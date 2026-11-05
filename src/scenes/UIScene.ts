@@ -225,6 +225,7 @@ export class UIScene extends Phaser.Scene {
       const a = (angles[i] * Math.PI) / 180, R = 58;
       const r = 17;
       const b = k.roundButton(ax + Math.cos(a) * R, ay + Math.sin(a) * R, r, `icon_${sk.icon}`, null);
+      (b.c.getData('icon') as Phaser.GameObjects.Image).setDisplaySize(r * 2.15, r * 2.15);
       const cd = this.add.graphics();
       const lock = k.text(0, 0, '', 8, '#ffffff').setOrigin(0.5);
       b.c.add([cd, lock]);

@@ -15,7 +15,7 @@ const HIRES = new Set<string>();
 /** Texture resolution factor: AI world art is stored at 2x and drawn at 0.5 scale. */
 export function resOf(key: string): number {
   if (HIRES.has(key)) return 2;
-  if (key.startsWith('aihero_')) return 2;
+  if (key.startsWith('aihero_') || key.startsWith('an_')) return 2;
   if (key.startsWith('ai_') && !key.startsWith('ai_icon_') && !key.startsWith('ai_tile_') && key !== 'ai_keyart') return 2;
   return 1;
 }
@@ -130,4 +130,4 @@ export function applyAiArt(scene: Phaser.Scene) {
 }
 
 /** Monsters whose ai art faces left (procedural art faces right). */
-export const AI_FACES_LEFT: Record<string, boolean> = { slime: true, shroom: true, wolf: true, goblin: true, wisp: true, treant: false };
+export const AI_FACES_LEFT: Record<string, boolean> = { slime: true, shroom: true, wolf: true, goblin: true, wisp: true, treant: true };

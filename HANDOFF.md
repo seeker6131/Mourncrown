@@ -71,6 +71,13 @@
 - ใช้กับ ฮีล, เลเวลอัป, พายุดาบ, สายฟ้า (สายฟ้าวาดหลังเป้าหมาย)
 - ตัดสินใจ: เอฟเฟกต์ทำด้วยโค้ด ไม่ต้องให้ GPT วาด prompt ชุด E (ภาพแบนแปะทับจะไม่ล้อมตัว)
 
+## v0.6 แอนิเมชันหลายเฟรมจริง (ภาพจากผู้ใช้ 22 แผ่น)
+- ต้นฉบับ `art-source/anim/*.png` → `python3 tools/import_anims.py` → `src/assets/anim/*.png` + meta.json (strip, 2x, pivot ที่เท้า)
+- `art/animAssets.ts`: preload spritesheet, ตั้ง customPivot ทุกเฟรม, สร้าง anim: ฮีโร่ h{armor}_idle/walk/walkup/attack/cast/die (เปลี่ยนสีตามเกราะ),
+  มอนสเตอร์ move/attack, บอส move/attack/cast/die, NPC idle, fxa_slash/fireball/explode/bolt/heal/lvlup/smoke/hit, env_campfire/lamp/smoke/flag, ไอคอนสกิล
+- Hero.animPose(), Monster.multi, WorldScene.playFx(); fallback เป็นภาพเดิมถ้าไม่มี anim
+- ยังขาด: ฮีโร่ท่าเดินลง-ซ้าย/ขึ้น-ซ้าย ใช้ flip, ไม่มีท่าโดนตีแยก (ใช้เฟรมแรกของ die)
+
 ## ไอเดียถัดไป (หลัง v0.3)
 - APK ด้วย Capacitor + GitHub Actions (ผู้ใช้สนใจ)
 - Character creator / map editor ในเกม, ระบบนำเข้าภาพจากผู้ใช้

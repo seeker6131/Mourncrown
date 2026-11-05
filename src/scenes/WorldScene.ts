@@ -21,7 +21,7 @@ import { sfx, startMusic } from '../audio/sfx';
 export const controls = { mx: 0, my: 0, attackHeld: false, joyActive: false };
 
 interface Projectile {
-  sprite: Phaser.GameObjects.Image; glow?: Phaser.GameObjects.Image;
+  sprite: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; glow?: Phaser.GameObjects.Image;
   vx: number; vy: number; life: number; owner: 'hero' | 'enemy';
   dmg: number; radius: number; onHit?: (x: number, y: number) => void; homing?: boolean; trail?: number;
 }
@@ -86,7 +86,10 @@ export class WorldScene extends Phaser.Scene {
     const ai = hasAi(this, 'house_0');
     for (const o of this.map.objects) {
       if (o.type === 'campfire') {
-        if (ai) {
+        if (this.anims.exists('env_campfire')) {
+          this.castShadow(this.add.sprite(o.x, o.y + 6, '__DEFAULT').setDepth(o.y).setScale(0.5).play('env_campfire'), 0.5);
+          this.burstLoop(o.x, o.y - 12);
+        } else if (ai) {
           const cf = this.fit(this.add.image(o.x, o.y + 4, 'ai_campfire').setOrigin(0.5, 0.92).setDepth(o.y));
           this.tweens.add({ targets: cf, scaleY: { from: cf.scaleY * 0.96, to: cf.scaleY * 1.05 }, scaleX: { from: cf.scaleX * 1.02, to: cf.scaleX * 0.98 }, duration: 130, yoyo: true, repeat: -1 });
           this.burstLoop(o.x, o.y - 10);
@@ -137,6 +140,13 @@ export class WorldScene extends Phaser.Scene {
       }
       if (o.type === 'tree' || o.type === 'pine') this.add.image(o.x, o.y + 4, 'fx_shadow').setScale(1.2, 1).setAlpha(0.7).setDepth(1);
       if (['bigrock', 'bush', 'tent', 'stall', 'well', 'statue', 'haystack', 'stairs', 'altar'].includes(o.type)) this.add.image(o.x + 3, o.y + 3, 'fx_shadow').setScale(1.4, 1.1).setDepth(1);
+      if (o.type === 'lamp' && this.anims.exists('env_lamp')) {
+        const lp = this.add.sprite(o.x, o.y + 4, '__DEFAULT').setDepth(o.y).setScale(0.5).play('env_lamp');
+        lp.anims.setProgress(Math.random());
+        this.castShadow(lp, 0.8);
+        this.nightLights.push(this.addGlow(o.x + 5, o.y - 20, 0xffd060, 0.9, true));
+        continue;
+      }
       let key = `obj_${o.type}_${o.v}`;
       if (!this.textures.exists(key)) key = `obj_${o.type}_0`;
       if (!this.textures.exists(key)) continue;
@@ -161,11 +171,21 @@ export class WorldScene extends Phaser.Scene {
       if (o.type === 'mushrooms' && o.v === 1) this.addGlow(o.x, o.y - 6, 0x6ae0ff, 0.6, true);
     }
 
+    // waving banners
+    if (this.anims.exists('env_flag')) for (const [fx, fy] of [[26, 36], [26, 42], [9, 34], [88, 34], [88, 46]] as const) {
+      const p = iso(fx + 0.5, fy + 0.5);
+      if (!this.canMove(p.x, p.y, 2)) continue;
+      const f = this.add.sprite(p.x, p.y + 4, '__DEFAULT').setDepth(p.y).setScale(0.5).play('env_flag');
+      f.anims.setProgress(Math.random());
+      this.castShadow(f, 0.7);
+    }
+
     // NPCs
     for (const n of this.map.npcs) {
       const { x, y } = iso(n.x + 0.5, n.y + 0.5);
       this.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.8);
       const sp = this.add.sprite(x, y, `npc_${n.id}`).setOrigin(0.5, 0.95).setDepth(y).play(`npc_${n.id}_idle`);
+      if (sp.texture.key.startsWith('an_')) sp.setScale(0.5);
       this.castShadow(sp, 0.8);
       const marker = this.add.image(x, y - 40, 'fx_qmark').setDepth(99999).setVisible(false);
       this.tweens.add({ targets: marker, y: y - 44, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -280,6 +300,11 @@ export class WorldScene extends Phaser.Scene {
     const y = img.y - img.displayHeight + at[1] * img.displayHeight;
     this.time.addEvent({ delay: 420, loop: true, callback: () => {
       if (!this.cameras.main.worldView.contains(x, y + 40)) return;
+      if (this.anims.exists('env_smoke') && Math.random() < 0.4) {
+        const sm = this.playFx('env_smoke', x + 4, y - 2, 99960, { scale: 0.35, normal: true, alpha: 0.75 });
+        if (sm) { sm.setOrigin(0.3, 1); this.tweens.add({ targets: sm, x: x + 14, y: y - 12, duration: 1200 }); }
+        return;
+      }
       const p = this.add.image(x + Math.random() * 3, y, 'fx_glow').setTint(0xc8c0c8).setAlpha(0.32).setScale(0.12).setDepth(99960);
       const life = 2600 + Math.random() * 1200;
       this.tweens.add({ targets: p, y: y - 34 - Math.random() * 10, x: p.x + 10 + Math.random() * 12, scale: 0.42, alpha: 0, duration: life, ease: 'Sine.easeOut', onComplete: () => p.destroy() });
@@ -692,8 +717,12 @@ export class WorldScene extends Phaser.Scene {
     // slash visual
     const ang = Math.atan2(h.facing.y, h.facing.x);
     const sx = h.x + h.facing.x * 14, sy = h.y - 9 + h.facing.y * 12;
+    const fxs = this.playFx('fxa_slash', h.x + h.facing.x * 12, h.y - 9 + h.facing.y * 10, h.y + 5, { scale: 0.55, rot: ang });
+    if (fxs) { fxs.setOrigin(0.4, 0.5); }
+    else {
     const sl = this.add.image(sx, sy, 'fx_slash').setRotation(ang).setDepth(h.y + 5).setBlendMode(Phaser.BlendModes.ADD).setScale(0.7).setAlpha(0.95);
     this.tweens.add({ targets: sl, scale: 1, alpha: 0, rotation: ang + 0.5, duration: 200, onComplete: () => sl.destroy() });
+    }
     this.time.delayedCall(70, () => {
       let hitAny = false;
       for (const m of this.monsters) {
@@ -763,7 +792,8 @@ export class WorldScene extends Phaser.Scene {
         let best: Monster | null = null, bd = 170;
         for (const m of this.monsters) { if (!m.alive) continue; const dd = Math.hypot(m.x - h.x, m.y - h.y); if (dd < bd) { bd = dd; best = m; } }
         if (best) { vx = best.x - h.x; vy = best.cy - (h.y - 10); const l = Math.hypot(vx, vy); vx /= l; vy /= l; h.setFacing(vx, vy); }
-        const fb = this.add.image(h.x + vx * 10, h.y - 10 + vy * 8, 'fx_fireball').setDepth(99000).setBlendMode(Phaser.BlendModes.ADD);
+        const fb = this.playFx('fxa_fireball', h.x + vx * 10, h.y - 10 + vy * 8, 99000, { scale: 0.5, rot: Math.atan2(vy, vx) }) ?? this.add.image(h.x + vx * 10, h.y - 10 + vy * 8, 'fx_fireball').setDepth(99000).setBlendMode(Phaser.BlendModes.ADD);
+        if (fb instanceof Phaser.GameObjects.Sprite) fb.setOrigin(0.75, 0.5);
         const glow = this.add.image(fb.x, fb.y, 'fx_glow').setTint(0xff7a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.8).setAlpha(0.7).setDepth(98999);
         this.projectiles.push({
           sprite: fb, glow, vx: vx * 220, vy: vy * 220, life: 900, owner: 'hero', dmg: 0, radius: 10, trail: 0xff8a3a,
@@ -857,10 +887,17 @@ export class WorldScene extends Phaser.Scene {
 
   healFx() {
     const h = this.hero;
-    this.surround(h.x, h.y, 0x5cff8a, { rings: 3, height: 34, radius: 15, motes: 18, beam: true, dur: 1000 });
+    const a = this.playFx('fxa_heal', h.x, h.y + 3, h.y - 0.5, { scale: 0.5 });
+    this.surround(h.x, h.y, 0x5cff8a, { rings: a ? 2 : 3, height: 34, radius: 15, motes: 18, beam: !a, dur: 1000 });
   }
 
   boltAt(x: number, y: number) {
+    if (this.playFx('fxa_bolt', x, y + 3, y - 0.5, { scale: 0.55 })) {
+      const g0 = this.add.image(x, y - 4, 'fx_glow').setTint(0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.4).setDepth(99499);
+      this.tweens.add({ targets: g0, alpha: 0, duration: 300, delay: 120, onComplete: () => g0.destroy() });
+      this.burst(x, y - 4, 0xd8f0ff, 8, 50);
+      return;
+    }
     const b = this.add.image(x, y + 1, 'fx_bolt').setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 0.5).setScale(1, 1.1);
     const g = this.add.image(x, y - 4, 'fx_glow').setTint(0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6).setDepth(99499);
     this.tweens.add({ targets: [b, g], alpha: 0, duration: 260, delay: 60, onComplete: () => { b.destroy(); g.destroy(); } });
@@ -869,6 +906,7 @@ export class WorldScene extends Phaser.Scene {
 
   explode(x: number, y: number, matk: number, power: number) {
     sfx.boom();
+    this.playFx('fxa_explode', x, y + 10, y + 20, { scale: 0.5, normal: true })?.setOrigin(0.5, 0.85);
     const g = this.add.image(x, y, 'fx_glow').setTint(0xff7a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.5).setDepth(99500);
     this.tweens.add({ targets: g, scale: 2.4, alpha: 0, duration: 380, onComplete: () => g.destroy() });
     const r = this.add.image(x, y, 'fx_ring').setTint(0xffb040).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2).setDepth(99500);
@@ -886,7 +924,18 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** Play a one-shot (or looping) frame animation; returns null if the art isn't loaded. */
+  playFx(key: string, x: number, y: number, depth: number, o: { scale?: number; rot?: number; normal?: boolean; alpha?: number; flip?: boolean } = {}) {
+    if (!this.anims.exists(key)) return null;
+    const sp = this.add.sprite(x, y, '__DEFAULT').setDepth(depth).setScale(o.scale ?? 0.5).setRotation(o.rot ?? 0).setAlpha(o.alpha ?? 1).setFlipX(!!o.flip);
+    if (!o.normal) sp.setBlendMode(Phaser.BlendModes.ADD);
+    sp.play(key);
+    if (this.anims.get(key).repeat !== -1) sp.once('animationcomplete', () => sp.destroy());
+    return sp;
+  }
+
   hitSpark(x: number, y: number, color: number) {
+    if (this.playFx('fxa_hit', x, y, 99600, { scale: 0.42, rot: Math.random() * 6 })) { this.burst(x, y, color, 4, 40); return; }
     const s = this.add.image(x, y, 'fx_spark').setTint(color).setBlendMode(Phaser.BlendModes.ADD).setDepth(99600).setScale(0.5).setRotation(Math.random());
     this.tweens.add({ targets: s, scale: 1.6, alpha: 0, duration: 180, onComplete: () => s.destroy() });
     this.burst(x, y, color, 5, 40);
@@ -1071,7 +1120,8 @@ export class WorldScene extends Phaser.Scene {
     sfx.levelUp();
     this.der = derive(S());
     bus.emit(EV.LEVEL_UP, S().level);
-    this.surround(h.x, h.y, 0xffd860, { rings: 4, height: 44, radius: 17, motes: 24, beam: true, dur: 1300 });
+    const a = this.playFx('fxa_lvlup', h.x, h.y + 3, h.y - 0.5, { scale: 0.55 });
+    this.surround(h.x, h.y, 0xffd860, { rings: a ? 3 : 4, height: 44, radius: 17, motes: 24, beam: !a, dur: 1300 });
     this.floatText(h.x, h.y - 44, 'LEVEL UP!', '#ffd040', 1.5);
   }
 

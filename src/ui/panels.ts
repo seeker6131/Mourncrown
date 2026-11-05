@@ -260,7 +260,7 @@ export class Panels {
     SKILLS.forEach((sk, i) => {
       const sy = ly + 24 + i * 60;
       const locked = s.level < sk.unlockLevel;
-      c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setScale(0.7).setAlpha(locked ? 0.4 : 1));
+      c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
       c.add(k.text(rx + 38, sy + 2, sk.name + (locked ? `  🔒 Lv${sk.unlockLevel}` : ''), 9, locked ? '#8a7a60' : '#9ad8ff'));
       c.add(k.text(rx + 38, sy + 15, `${sk.desc}\nMP ${sk.mp}  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 46 }, lineSpacing: 1 }));
     });

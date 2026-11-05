@@ -26,6 +26,7 @@ export class Monster {
   nextSpecial = 0;
   hoverT = Math.random() * 10;
   aiArt = false;
+  multi = false;
   facesLeft = false;
   animT = Math.random() * 10;
   base = 1;
@@ -38,7 +39,8 @@ export class Monster {
     const boss = !!this.def.boss;
     this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(boss ? 2.6 : kind === 'wolf' ? 1.1 : 0.8, boss ? 2 : 1);
     const f0 = scene.anims.get(`mon_${kind}_idle`).frames[0].frame;
-    this.aiArt = f0.texture.key.startsWith('ai_');
+    this.multi = f0.texture.key.startsWith('an_');
+    this.aiArt = f0.texture.key.startsWith('ai_') || this.multi;
     this.facesLeft = this.aiArt && AI_FACES_LEFT[kind];
     const h = f0.height;
     this.sprite = scene.add.sprite(x, y, f0.texture.key, f0.name).setOrigin(0.5, (h - (this.aiArt ? 2 : 2)) / h);
@@ -84,8 +86,16 @@ export class Monster {
     this.state = 'dead';
     this.hpBar.clear();
     this.sprite.clearTint();
+    if (this.def.boss && this.scene.anims.exists('mon_treant_die')) {
+      this.sprite.setScale(this.base).setRotation(0).play('mon_treant_die');
+      this.scene.tweens.add({ targets: this.sprite, alpha: 0, delay: 1500, duration: 600 });
+      this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 1500 });
+      this.scene.time.delayedCall(2200, () => this.destroy());
+      return;
+    }
     this.sprite.setTint(0xff9090);
     this.sprite.anims.stop();
+    this.scene.playFx('fxa_smoke', this.x, this.y - 4, this.y + 1, { scale: 0.5 * (this.def.bodyRadius / 7), normal: true });
     this.scene.tweens.add({ targets: this.sprite, alpha: 0, scaleY: 0.2 * this.base, scaleX: 1.4 * this.base, y: this.y + 2, duration: this.def.boss ? 1600 : 380, ease: 'Quad.easeIn' });
     this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 400 });
     this.scene.time.delayedCall(this.def.boss ? 1700 : 500, () => this.destroy());
@@ -196,7 +206,10 @@ export class Monster {
     let sx = 1, sy = 1, y = 0, rot = 0;
     const atk = time - this.lastAttack < 450 && this.state !== 'idle';
     if (moving && (k === 'wolf' || k === 'goblin' || k === 'shroom') && Math.floor(this.animT / Math.PI) !== Math.floor((this.animT - sec * (k === 'wolf' ? 14 : 9)) / Math.PI)) this.scene.dust(this.x, this.y);
-    if (k === 'slime') {
+    if (this.multi) {
+      if (!moving) sy = 1 + Math.sin(this.animT) * 0.02;
+      if (k === 'wisp') y = Math.sin(this.animT) * 1.5;
+    } else if (k === 'slime') {
       if (moving) { const hop = Math.abs(Math.sin(this.animT)); y = -hop * 5; sy = 0.85 + hop * 0.25; sx = 1.15 - hop * 0.2; }
       else { sy = 1 + Math.sin(this.animT) * 0.05; sx = 2 - sy; }
     } else if (k === 'wolf') {

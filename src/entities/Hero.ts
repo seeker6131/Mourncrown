@@ -4,6 +4,7 @@ import type { Dir } from '../art/heroArt';
 import { S } from '../core/events';
 import { equippedLook } from '../systems/inventory';
 import { hasAi, recolorHero } from '../art/aiAssets';
+import { ensureHeroAnims, hasAnim } from '../art/animAssets';
 
 export type HeroState = 'idle' | 'walk' | 'attack' | 'cast' | 'hurt' | 'dead';
 
@@ -25,11 +26,15 @@ export class Hero {
   walkT = 0;
   diag: 0 | 1 | 2 | 3 = 1; // 0 down-left, 1 down-right, 2 up-left, 3 up-right
   actionStart = 0;
+  anim = false;
+  animPre = 'h0_';
+  actionDur = 260;
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.x = x; this.y = y;
     this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.75, 0.9);
     this.ai = hasAi(scene, 'hero_0');
+    this.anim = hasAnim(scene, 'h0_idle');
     this.sprite = scene.add.sprite(x, y, this.ai ? 'ai_hero_0' : 'hero_a0_w0').setOrigin(0.5, this.ai ? 0.97 : 36 / 40);
     this.refreshLook();
   }
@@ -38,6 +43,7 @@ export class Hero {
     const s = S();
     const a = equippedLook(s, 'armor');
     const w = Math.max(0, equippedLook(s, 'weapon'));
+    if (this.anim) { this.animPre = ensureHeroAnims(this.scene, a); this.texKey = 'an_hero_idle'; }
     if (this.ai) {
       this.aiKeys = recolorHero(this.scene, Math.max(0, a));
       this.texKey = this.aiKeys[0];
@@ -51,7 +57,7 @@ export class Hero {
   }
 
   /** Texture + frame to show the hero in UI portraits. */
-  portrait(): { key: string; frame?: string } { return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
+  portrait(): { key: string; frame?: string | number } { if (this.anim) return { key: this.animPre === 'h0_' ? 'an_hero_idle' : `an_hero_idle_a${this.animPre[1]}`, frame: 0 }; return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
 
   play(anim: string, force = false) {
     if (this.ai) return;
@@ -75,7 +81,7 @@ export class Hero {
     this.state = 'attack';
     this.lockUntil = now + dur;
     this.play('attack', true);
-    this.actionStart = now;
+    this.actionStart = now; this.actionDur = dur;
     this.sprite.anims.timeScale = Math.max(1, 220 / Math.max(120, dur));
   }
 
@@ -97,6 +103,7 @@ export class Hero {
     this.state = 'dead';
     this.sprite.anims.timeScale = 1;
     this.play('hurt', true);
+    if (this.anim) { this.sprite.setFlipX((this.diag & 1) === 0).setRotation(0).setScale(0.5); this.sprite.play(this.animPre + 'die'); return; }
     if (this.ai) this.setPose(7, (this.diag & 1) === 0);
     this.scene.tweens.add({ targets: this.sprite, angle: this.flip || (this.ai && !(this.diag & 1)) ? -90 : 90, alpha: 0.7, duration: 500, ease: 'Bounce.easeOut' });
   }
@@ -106,6 +113,7 @@ export class Hero {
     this.x = x; this.y = y;
     this.sprite.setAngle(0).setAlpha(1);
     this.dir = 'down'; this.diag = 1;
+    if (this.anim) this.sprite.play(this.animPre + 'idle');
     this.play('idle', true);
   }
 
@@ -117,7 +125,8 @@ export class Hero {
       this.sprite.anims.timeScale = 1;
       this.play(this.state);
     }
-    if (this.ai) this.aiPose(now, moving);
+    if (this.anim) this.animPose(now);
+    else if (this.ai) this.aiPose(now, moving);
     this.sync();
   }
 
@@ -128,6 +137,27 @@ export class Hero {
   }
 
   /** Pose selection + procedural motion for the single-frame AI hero art. */
+  playA(name: string, ts = 1) {
+    const key = this.animPre + name;
+    if (this.sprite.anims.currentAnim?.key !== key || !this.sprite.anims.isPlaying && this.sprite.anims.currentAnim?.repeat === -1) this.sprite.play(key);
+    this.sprite.anims.timeScale = ts;
+  }
+
+  /** Real frame-by-frame animation from the Director's sheets. */
+  animPose(now: number) {
+    const left = (this.diag & 1) === 0, up = this.diag >= 2;
+    this.sprite.setFlipX(left).setRotation(0);
+    if (this.state === 'attack') {
+      const key = this.animPre + 'attack';
+      if (this.sprite.anims.currentAnim?.key !== key || now - this.actionStart < 20) { this.sprite.play(key); this.sprite.anims.timeScale = Math.max(1, 250 / Math.max(120, this.actionDur)); }
+    } else if (this.state === 'cast') {
+      const key = this.animPre + 'cast';
+      if (this.sprite.anims.currentAnim?.key !== key || now - this.actionStart < 20) this.sprite.play(key);
+    } else if (this.state === 'walk') this.playA(up ? 'walkup' : 'walk');
+    else this.playA(up ? 'idleup' : 'idle');
+    this.sprite.setScale(0.5);
+  }
+
   aiPose(now: number, moving: boolean) {
     const left = (this.diag & 1) === 0, up = this.diag >= 2;
     let sx = 1, sy = 1, rot = 0, oy = 0;
@@ -153,7 +183,7 @@ export class Hero {
   }
 
   sync() {
-    this.sprite.setPosition(Math.round(this.x), Math.round(this.y) + (this.ai && this.state === 'walk' ? -Math.round(Math.abs(Math.sin(this.walkT)) * 2) : 0));
+    this.sprite.setPosition(Math.round(this.x), Math.round(this.y) + (this.ai && !this.anim && this.state === 'walk' ? -Math.round(Math.abs(Math.sin(this.walkT)) * 2) : 0));
     this.sprite.setDepth(this.y);
     this.shadow.setPosition(this.x, this.y - 1);
     const t = this.scene.time.now;
