@@ -21,7 +21,8 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   sword: { id: 'sword', forms: ['', 'นักดาบ', 'อัศวิน', 'ลอร์ดอัศวิน'], desc: 'สายประชิด เลือดหนา ฟันรอบตัว', ranged: false, bonus: { atk: 12, hp: 15 }, skills: [[], ['bash', 'cyclone'], ['warcry'], []], cloth: null },
   archer: { id: 'archer', forms: ['', 'นักธนู', 'พรานป่า', 'เรนเจอร์ราชันย์'], desc: 'สายระยะไกล ยิงไว คริติคอลสูง', ranged: 'arrow', bonus: { atk: 10, crit: 6, aspd: 12 }, skills: [[], ['multishot', 'arrowrain'], ['warcry'], []], cloth: { h: 0.3, s: 0.6, v: 0.8 } },
   mage: { id: 'mage', forms: ['', 'จอมเวท', 'ปราชญ์เวท', 'อาร์คเมจ'], desc: 'สายเวท ระเบิดวงกว้าง พลังเวทสูงมาก', ranged: 'orb', bonus: { matk: 25 }, skills: [[], ['flame', 'thunder'], ['heal'], []], cloth: { h: 0.76, s: 0.55, v: 0.75 } },
-  cleric: { id: 'cleric', forms: ['', 'นักบวช', 'นักบุญ', 'ไฮพรีสต์'], desc: 'สายสนับสนุน ฮีลตัวเอง ทนทาน สายฟ้าศักดิ์สิทธิ์', ranged: 'orb', bonus: { matk: 12, hp: 12 }, skills: [[], ['heal', 'thunder'], ['bash'], []], cloth: { h: 0.13, s: 0.25, v: 1.15 } },
+  // id kept as 'cleric' for save compatibility; the class is now the Tank line.
+  cleric: { id: 'cleric', forms: ['', 'ผู้พิทักษ์', 'อัศวินเหล็กกล้า', 'ป้อมปราการมนุษย์'], desc: 'สายแทงค์ เลือดหนามาก เกราะหนา ยืนรับหน้าแทนทีม ฟื้นตัวเองได้', ranged: false, bonus: { atk: 6, hp: 35 }, skills: [[], ['bash', 'warcry'], ['heal'], ['cyclone']], cloth: { h: 0.0, s: 0.05, v: 0.7 } },
 };
 
 export function classSkills(cls: ClassId, tier: number): SkillId[] {

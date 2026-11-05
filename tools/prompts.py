@@ -48,7 +48,7 @@ P('W1', 'ตัดไม้ (ฟันขวาน)', char_anim(HERO, 'Chopping 
 P('W2', 'ขุดหิน (จอบ)', char_anim(HERO, 'Mining with a pickaxe instead of the sword', 4, 'down-right', 'Raise pickaxe, swing down, impact with stone sparks, recover.'))
 
 # ---------------- 1b. player classes & forms ----------------
-sec('forms', 'ร่างตัวละคร: ชาวบ้าน → 4 สาย × 3 ร่าง', 'ร่าง 1 ชาวบ้าน • ร่าง 2 (Lv5) • ร่าง 3 (Lv20) ชุดเท่ขึ้น • ร่าง 4 (Lv35) สวยที่สุด • ร่าง 3-4 ใส่หมวก/หน้ากากปิดหน้า • ทำ "รูปหลัก" ก่อน แล้วแนบรูปนั้นไปกับท่าที่เหลือของร่างเดียวกัน • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม')
+sec('forms', 'ร่างตัวละคร: ชาวบ้าน → 4 สาย × 3 ร่าง', 'ร่าง 1 ชาวบ้าน • ร่าง 2 (Lv5) • ร่าง 3 (Lv20) ชุดเท่ขึ้น • ร่าง 4 (Lv35) สวยที่สุด • ร่าง 3-4 ใส่หมวก/หน้ากากปิดหน้า • สายที่ 4 = แทงค์ (T) แทนนักบวช • ทำ "รูปหลัก" ก่อน แล้วแนบรูปนั้นไปกับท่าที่เหลือของร่างเดียวกัน • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม')
 HERO_FACE = 'the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions)'
 FORMS = [
     ('V0', 'ชาวบ้าน', 'a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots, holding a wooden practice sword'),
@@ -61,9 +61,9 @@ FORMS = [
     ('M2', 'จอมเวท', 'a mage: purple hooded robe with gold trim, belt with potion pouches, wooden staff with a blue crystal'),
     ('M3', 'ปราชญ์เวท', 'a sage mage: long violet robe with star embroidery, high collar, a tall pointed wizard hat with silver star ornaments shading the eyes and a mystic violet face veil over the mouth, floating spellbook beside him, ornate silver staff with orbiting crystal'),
     ('M4', 'อาร์คเมจทมิฬ', 'a legendary dark archmage: menacing jet-black layered robes with tattered edges and dark crimson runes, a tall black horned hood casting deep shadow, a sinister black iron skull-like mask covering the whole face with glowing blood-red eyes, black smoke and shadow wisps swirling around him, floating dark purple arcane sigils, a twisted black bone staff topped with a glowing crimson void crystal, intimidating and powerful pose'),
-    ('C2', 'นักบวช', 'a cleric: white and gold robe, holy symbol necklace, small mace and a prayer book'),
-    ('C3', 'นักบุญ', 'a saint: layered white robe with gold armor pieces, blue sash, a white and gold mitre-style holy helmet with a silver face guard over the eyes, golden halo, holy hammer'),
-    ('C4', 'ไฮพรีสต์', 'a legendary high priest: radiant white and gold vestments with feather wings motif, a tall ornate golden crown-helm with a radiant sun-shaped golden mask covering the face, glowing golden halo and floating holy light orbs, ornate scepter with a sun emblem'),
+    ('T2', 'ผู้พิทักษ์ (แทงค์)', 'a tank guardian: thick iron armor over chainmail, huge rectangular tower shield, short heavy mace, broad strong stance, open-face iron helmet'),
+    ('T3', 'อัศวินเหล็กกล้า', 'a heavy tank juggernaut: massive dark steel plate armor with huge spiked pauldrons, a full closed great-helm with a narrow glowing visor slit hiding the face, giant spiked tower shield, heavy war hammer'),
+    ('T4', 'ป้อมปราการมนุษย์', 'a legendary fortress tank: colossal black-and-gold ornate plate armor with glowing orange runes, enormous layered pauldrons, a menacing horned full helmet with a fierce iron face mask and burning orange eyes, gigantic castle-gate tower shield with a lion emblem, glowing heavy war hammer, unstoppable and intimidating pose'),
 ]
 ACTS = [
     ('', 'รูปหลัก (ยืน 4 เฟรม)', 'Idle breathing', 4, 'down-right', 'Subtle chest rise, cape/scarf gently waving.'),
