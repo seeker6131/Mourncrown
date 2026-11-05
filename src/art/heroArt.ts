@@ -16,15 +16,15 @@ export interface Pose {
   hurt?: boolean;
 }
 
-interface ArmorLook { body: Color; trim: Color; pants: Color; boots: Color; cape?: Color; helm?: 'band' | 'helm' | 'crown'; band: Color; shoulder?: Color }
+interface ArmorLook { scarf?: Color; body: Color; trim: Color; pants: Color; boots: Color; cape?: Color; helm?: 'band' | 'helm' | 'crown'; band: Color; shoulder?: Color }
 
 const ARMORS: ArmorLook[] = [
-  { body: 0x3e6db5, trim: 0x8a5a32, pants: 0x3b3550, boots: 0x6a4126, helm: 'band', band: 0xc23b3b },
-  { body: 0x9a6534, trim: 0x5e3a1c, pants: 0x4a3a2c, boots: 0x4a2c18, helm: 'band', band: 0x3f8f4a, shoulder: 0x6e4422 },
+  { scarf: 0x3f9a4a, body: 0x3e6db5, trim: 0x8a5a32, pants: 0x3b3550, boots: 0x6a4126, helm: 'band', band: 0xc23b3b },
+  { scarf: 0xb8402a, body: 0x9a6534, trim: 0x5e3a1c, pants: 0x4a3a2c, boots: 0x4a2c18, helm: 'band', band: 0x3f8f4a, shoulder: 0x6e4422 },
   { body: 0xa9b4c4, trim: 0x2f4f9a, pants: 0x30364a, boots: 0x3a3f52, helm: 'helm', band: 0x8a96aa, shoulder: 0xc8d0dc },
   { body: 0xe0b040, trim: 0xb02a2a, pants: 0x5a2228, boots: 0x7a5a20, cape: 0xb52a30, helm: 'crown', band: 0xf5d050, shoulder: 0xf2cc58 },
 ];
-const NAKED: ArmorLook = { body: 0xe8dcc0, trim: 0x8a7a60, pants: 0x4a4038, boots: 0x6a4126, helm: 'band', band: 0xc23b3b };
+const NAKED: ArmorLook = { scarf: 0x3f9a4a, body: 0xe8dcc0, trim: 0x8a7a60, pants: 0x4a4038, boots: 0x6a4126, helm: 'band', band: 0xc23b3b };
 
 const SKIN = 0xf4c7a0;
 const HAIR = 0x6b3a22;
@@ -69,6 +69,7 @@ function drawHeadDown(p: PixelCanvas, cx: number, cy: number, al: ArmorLook, hur
   p.shadedEllipse(cx, cy + 1, 6.5, 6, SKIN, false);
   // hair mass
   p.shadedEllipse(cx, cy - 2, 7.5, 5.2, HAIR);
+  for (const [i, j] of [[-4, -5], [-3, -6], [-1, -6], [0, -7], [2, -6], [3, -5]]) p.set(cx + i, cy + j, shadeLight(HAIR, i < 0 ? 0.5 : 0.3));
   // side locks
   p.rect(cx - 7, cy - 1, 2, 5, HAIR); p.rect(cx + 5, cy - 1, 2, 5, darken(HAIR, 0.15));
   // bangs (jagged)
@@ -102,6 +103,7 @@ function drawHeadSide(p: PixelCanvas, cx: number, cy: number, al: ArmorLook, hur
   p.shadedEllipse(cx + 1, cy + 1, 6.2, 6, SKIN, false);
   p.shadedEllipse(cx - 1, cy - 1.5, 7, 5.6, HAIR);
   p.rect(cx - 7, cy, 4, 5, HAIR); // back hair
+  for (const [i, j] of [[-3, -5], [-2, -6], [0, -6], [1, -5]]) p.set(cx + i, cy + j, shadeLight(HAIR, 0.45));
   p.set(cx - 7, cy + 5, darken(HAIR, 0.2));
   // bangs front
   p.rect(cx + 3, cy - 1, 3, 2, HAIR); p.set(cx + 6, cy - 1, HAIR);
@@ -168,7 +170,9 @@ export function drawHero(dir: Dir, pose: Pose, armorLook: number, weaponLook: nu
     p.rect(cx - 1, oy + 17 + b, 2, 5, al.trim); // tabard stripe / lacing
     p.rect(cx - 5, oy + 22 + b, 10, 1, darken(al.trim, 0.2)); // belt
     p.set(cx, oy + 22 + b, 0xf2cc58);
+    p.rect(cx + 2, oy + 22 + b, 3, 3, 0x7a4a2a); p.set(cx + 2, oy + 22 + b, 0x9a6a3a);
     if (al.shoulder) { p.shadedEllipse(cx - 6, oy + 18 + b, 2.5, 2, al.shoulder); p.shadedEllipse(cx + 5, oy + 18 + b, 2.5, 2, al.shoulder); }
+    if (al.scarf) { p.rect(cx - 5, oy + 16 + b, 10, 2, al.scarf); p.rect(cx - 4, oy + 16 + b, 8, 1, shadeLight(al.scarf, 0.3)); p.rect(cx + 2, oy + 18 + b, 2, 3, shadeDark(al.scarf, 0.25)); }
     // arms
     p.rect(cx - 7, oy + 18 + b + pose.armA, 2, 5, al.body);
     p.rect(cx - 7, oy + 23 + b + pose.armA, 2, 2, SKIN);
@@ -186,6 +190,7 @@ export function drawHero(dir: Dir, pose: Pose, armorLook: number, weaponLook: nu
     p.shadedRect(cx - 5, oy + 17 + b, 10, 8, al.body);
     p.rect(cx - 5, oy + 22 + b, 10, 1, darken(al.trim, 0.2));
     if (al.shoulder) { p.shadedEllipse(cx - 6, oy + 18 + b, 2.5, 2, al.shoulder); p.shadedEllipse(cx + 5, oy + 18 + b, 2.5, 2, al.shoulder); }
+    if (al.scarf) { p.rect(cx - 5, oy + 16 + b, 10, 2, al.scarf); p.rect(cx - 2, oy + 18 + b, 3, 5 + Math.abs(pose.legA), shadeDark(al.scarf, 0.15)); p.set(cx - 2, oy + 23 + b, shadeDark(al.scarf, 0.4)); }
     p.rect(cx + 5, oy + 18 + b + pose.armA, 2, 5, al.body);
     p.rect(cx + 5, oy + 23 + b + pose.armA, 2, 2, SKIN);
     p.line(cx - 5, oy + 18 + b, hx, hy - 1, al.body);
@@ -212,6 +217,12 @@ export function drawHero(dir: Dir, pose: Pose, armorLook: number, weaponLook: nu
     p.rect(cx - 4, oy + 22 + b, 8, 1, darken(al.trim, 0.2));
     p.rect(cx + 1, oy + 17 + b, 2, 5, al.trim);
     if (al.shoulder) p.shadedEllipse(cx, oy + 18 + b, 3, 2, al.shoulder);
+    if (al.scarf) {
+      p.rect(cx - 4, oy + 16 + b, 8, 2, al.scarf); p.rect(cx - 3, oy + 16 + b, 6, 1, shadeLight(al.scarf, 0.3));
+      const fl = Math.abs(pose.legA) > 0 ? 1 : 0;
+      p.rect(cx - 8, oy + 17 + b - fl, 4, 2, shadeDark(al.scarf, 0.15)); p.rect(cx - 10, oy + 18 + b - fl * 2, 2, 1, shadeDark(al.scarf, 0.3));
+    }
+    p.rect(cx - 3, oy + 22 + b, 3, 3, 0x7a4a2a);
     drawHeadSide(p, cx, oy + 10 + b, al, !!pose.hurt);
     const hx = cx + 3 + (pose.handDX ?? 0), hy = oy + 22 + b + (pose.handDY ?? 0);
     p.thickLine(cx, oy + 19 + b, hx, hy, al.body, 2);

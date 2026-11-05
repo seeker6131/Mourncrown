@@ -6,6 +6,7 @@ import { derive, gainExp, expToNext } from '../systems/stats';
 import type Phaser from 'phaser';
 
 export function installDebug(game: Phaser.Game) {
+  (window as unknown as { __dbgState: unknown }).__dbgState = () => runtime.state;
   (window as unknown as { __dbg: unknown }).__dbg = {
     boss() {
       const s = runtime.state!;

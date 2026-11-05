@@ -166,13 +166,6 @@ export function isoHouse(v: number, a = 5, b = 3): { p: PixelCanvas; ax: number;
 
   // back roof plane (mostly hidden)
   p.poly([up(N, Hh), up(E, Hh), up(M2, Hh + R), up(M1, Hh + R)], shadeDark(roof, 0.45));
-  // chimney: rises from the back roof plane near the east gable, poking above the ridge
-  const rt = 0.72;
-  const Cb: P2 = [up(M1, Hh + R)[0] + (up(M2, Hh + R)[0] - up(M1, Hh + R)[0]) * rt + 5, up(M1, Hh + R)[1] + (up(M2, Hh + R)[1] - up(M1, Hh + R)[1]) * rt + 6];
-  const ch = 18;
-  p.poly([Cb, add(Cb, [6, 3]), add(up(Cb, ch), [6, 3]), up(Cb, ch)], stone);
-  p.poly([add(Cb, [6, 3]), add(Cb, [12, 0]), add(up(Cb, ch), [12, 0]), add(up(Cb, ch), [6, 3])], shadeDark(stone, 0.3));
-  p.poly([up(Cb, ch), add(up(Cb, ch), [6, 3]), add(up(Cb, ch), [12, 0]), add(up(Cb, ch), [6, -3])], darken(stone, 0.55));
   // left wall (W -> S), lit
   const Lx = S[0] - W[0], Ly = S[1] - W[1];
   p.poly([W, S, up(S, Hh), up(W, Hh)], (x, y) => {
@@ -226,6 +219,15 @@ export function isoHouse(v: number, a = 5, b = 3): { p: PixelCanvas; ax: number;
     if (s > 0.97) c = shadeDark(c, 0.2);
     return c;
   });
+  // chimney sitting on the front roof plane near the ridge
+  {
+    const Cb: P2 = [fW[0] + ex * 0.78 + rx * 0.62, fW[1] + ey * 0.78 + ry * 0.62];
+    const ch = 13;
+    p.poly([Cb, add(Cb, [6, 3]), add(up(Cb, ch), [6, 3]), up(Cb, ch)], stone);
+    p.poly([add(Cb, [6, 3]), add(Cb, [12, 0]), add(up(Cb, ch), [12, 0]), add(up(Cb, ch), [6, 3])], shadeDark(stone, 0.3));
+    p.poly([up(Cb, ch), add(up(Cb, ch), [6, 3]), add(up(Cb, ch), [12, 0]), add(up(Cb, ch), [6, -3])], darken(stone, 0.6));
+    for (let k = 0; k < ch; k += 3) p.line(Cb[0], Cb[1] - k, Cb[0] + 5, Cb[1] - k + 2.5, darken(stone, 0.2));
+  }
   // eave shadow line under roof on left wall
   p.line(W[0] + 1, W[1] - Hh + 3, S[0] - 1, S[1] - Hh + 3, 0x3a2a1a);
   // lantern by the door
@@ -304,6 +306,73 @@ export function isoStall(): PixelCanvas {
   });
   // scalloped front edge
   for (let t = 0; t <= 1; t += 0.125) { const x = aw[0][0] + (aw[1][0] - aw[0][0]) * t, y = aw[0][1] + (aw[1][1] - aw[0][1]) * t; p.ellipse(x, y + 1, 2, 1.5, Math.round(t * 8) % 2 ? 0x2f7a52 : 0xf0e6d0); }
+  p.outline(OUT);
+  return p;
+}
+
+/** One tile-long iso wall segment. v: 0 stone along X, 1 stone along Y, 2 palisade along X, 3 palisade along Y. `seed` varies the crumbling. */
+export function isoWall(v: number, seed = 0): PixelCanvas {
+  const wood = v >= 2;
+  const h = wood ? 26 : 24;
+  const p = new PixelCanvas(38, h + 22);
+  const A: P2 = [3, h + 8], B: P2 = [35, h + 24 - 8];
+  // A->B goes down-right along iso X; compute face
+  const L = B[0] - A[0], Ly = B[1] - A[1];
+  const topH = (u: number) => wood ? h - (Math.abs(((u * 5) % 1) - 0.5) < 0.18 ? 0 : 4) : h - (hash2(Math.floor(u * 6), seed, 13) > 0.7 ? 3 + Math.floor(hash2(Math.floor(u * 6), seed, 5) * 8) : 0);
+  for (let x = A[0]; x <= B[0]; x++) {
+    const u = (x - A[0]) / L;
+    const base = A[1] + u * Ly;
+    const th = topH(u);
+    for (let hh = 0; hh < th; hh++) {
+      const y = base - hh;
+      let c: Color;
+      if (wood) {
+        const stake = Math.floor(u * 5);
+        const fu = (u * 5) % 1;
+        c = stake % 2 ? 0x7a5230 : 0x6a4426;
+        if (fu < 0.12) c = 0x3a2412; else if (fu < 0.25) c = lighten(c, 0.15);
+        if (hh === 9 || hh === 18) c = 0x4a3020; // binding ropes
+      } else {
+        const row = Math.floor(hh / 5);
+        const bu = u * 4 + (row % 2) * 0.5;
+        c = hash2(Math.floor(bu), row, seed) > 0.5 ? 0x8a8496 : 0x7a7488;
+        if (hh % 5 === 0 || (bu % 1) < 0.07) c = 0x4a4658;
+        else if (hh % 5 === 4) c = lighten(c, 0.12);
+        if (hh < 4 && valueNoise(x * 0.3, hh, seed) > 0.5) c = mix(c, 0x3f7a34, 0.6); // moss at base
+      }
+      p.set(x, y, c);
+    }
+    // top cap (receding towards -Y)
+    if (!wood) for (let k = 1; k <= 3; k++) p.set(x + k, base - th - k * 0.5, k === 1 ? 0xb0aac0 : 0x9a94aa);
+    else { p.set(x, base - th, 0xa07a4a); }
+  }
+  // vines on stone
+  if (!wood) for (let i = 0; i < 2; i++) {
+    const u = hash2(i, seed, 21); const x = A[0] + u * L; const base = A[1] + u * Ly;
+    for (let k = 0; k < 10; k++) p.set(x + Math.round(Math.sin(k) * 1), base - topH(u) + k + 2, k % 3 ? 0x3a8a3a : 0x5aaa4a);
+  }
+  p.outline(OUT);
+  if (v % 2 === 1) { const q = new PixelCanvas(p.w, p.h); q.stamp(p, 0, 0, true); return q; }
+  return p;
+}
+
+/** Treasure chest (closed / open). */
+export function isoChest(open: boolean): PixelCanvas {
+  const p = new PixelCanvas(26, 26);
+  const w = 0x8a4a22, gold = 0xf2c040;
+  isoBox(p, 13, 24, 0.55, 0.45, 9, lighten(w, 0.15), w, shadeDark(w, 0.3));
+  if (!open) {
+    // domed lid
+    p.poly([[13 - 7.2, 24 - 3.6 - 9], [13, 24 - 9], [13 + 8.8, 24 - 4.4 - 9], [13 + 8.8, 24 - 4.4 - 13], [13, 24 - 13], [13 - 7.2, 24 - 3.6 - 13]], 0xa05a2a);
+    p.poly([[13 - 7.2, 24 - 3.6 - 13], [13, 24 - 13], [13 + 8.8, 24 - 4.4 - 13], [13 + 1.6, 24 - 8 - 13]], lighten(0xa05a2a, 0.2));
+    p.line(13, 24 - 13, 13, 24, gold); p.line(13 - 7, 24 - 3.5 - 10, 13, 24 - 10, gold);
+    p.rect(12, 24 - 9, 3, 3, gold); p.set(13, 24 - 8, 0x3a2010);
+  } else {
+    p.poly([[13 - 7.2, 24 - 3.6 - 9], [13 + 1.6, 24 - 8 - 9], [13 + 1.6, 24 - 8 - 19], [13 - 7.2, 24 - 3.6 - 19]], 0x7a3a1a);
+    p.poly([[13 - 5, 24 - 3.5 - 9], [13, 24 - 9], [13 + 7, 24 - 4.4 - 9], [13 + 1.6, 24 - 7 - 9]], 0x1a0e08);
+    p.set(12, 24 - 11, gold); p.set(14, 24 - 10, gold);
+  }
+  p.line(13 - 7, 24 - 3.5 - 4, 13, 24 - 4, gold); p.line(13, 24 - 4, 13 + 8.8, 24 - 4.4 - 4, darken(gold, 0.3));
   p.outline(OUT);
   return p;
 }

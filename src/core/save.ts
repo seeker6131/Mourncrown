@@ -22,7 +22,9 @@ export function loadGame(): GameState | null {
     const data = JSON.parse(raw);
     if (!data || typeof data !== 'object' || data.version !== SAVE_VERSION) return null;
     // merge onto defaults so new fields survive old saves
-    return { ...newGameState(), ...data, base: { ...newGameState().base, ...data.base } };
+    const st: GameState = { ...newGameState(), ...data, base: { ...newGameState().base, ...data.base } };
+    if (data.mapVer !== 2) { st.pos = { x: -1, y: -1 }; st.mapVer = 2; } // map projection changed in v0.2
+    return st;
   } catch { return null; }
 }
 

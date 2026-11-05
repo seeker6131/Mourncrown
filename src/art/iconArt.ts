@@ -236,5 +236,14 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
   qq.rect(2, 0, 6, 2, 0x8ae0ff); qq.rect(6, 2, 2, 4, 0x8ae0ff); qq.rect(4, 5, 3, 2, 0x8ae0ff); qq.rect(4, 7, 2, 3, 0x8ae0ff); qq.rect(4, 11, 2, 3, 0x8ae0ff); qq.rect(1, 2, 2, 2, 0x8ae0ff);
   qq.outline(OUT, false);
   out.qdone = qq;
+  // selection rings (ellipse outlines)
+  for (const [k, col] of [['selhero', '#7dff9a'], ['seltarget', '#ff5a4a']] as const) {
+    const rc2 = document.createElement('canvas'); rc2.width = 40; rc2.height = 20;
+    const x2 = rc2.getContext('2d')!;
+    x2.strokeStyle = col; x2.lineWidth = 2; x2.globalAlpha = 0.9;
+    x2.beginPath(); x2.ellipse(20, 10, 17, 7.5, 0, 0, Math.PI * 2); x2.stroke();
+    x2.globalAlpha = 0.25; x2.fillStyle = col; x2.fill();
+    out[k] = rc2;
+  }
   return out;
 }

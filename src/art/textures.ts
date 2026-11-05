@@ -83,6 +83,8 @@ export function generateAll(scene: Phaser.Scene) {
   addSingle(scene, 'obj_lamp_0', W.lamp());
   for (let v = 0; v < 10; v++) { addSingle(scene, `obj_pillar_${v}`, W.pillar(false, v)); addSingle(scene, `obj_brokenpillar_${v}`, W.pillar(true, v)); }
   addSingle(scene, 'obj_altar_0', I.isoAltar());
+  for (let v = 0; v < 4; v++) for (let sd = 0; sd < 3; sd++) addSingle(scene, `obj_wall_${v * 3 + sd}`, I.isoWall(v, sd));
+  addSingle(scene, 'obj_chest_0', I.isoChest(false)); addSingle(scene, 'obj_chest_1', I.isoChest(true));
   addSingle(scene, 'obj_stall_0', I.isoStall());
   addSingle(scene, 'obj_barrel_0', W.barrel());
   addSingle(scene, 'obj_crate_0', I.isoCrate());

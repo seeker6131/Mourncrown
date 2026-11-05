@@ -37,6 +37,9 @@ export interface GameState {
   nextUid: number;
   playTime: number;
   bossDefeated: number;
+  chests: number[];
+  mapVer: number;
+  dayTime: number;
 }
 
 export const SAVE_VERSION = 1;
@@ -63,6 +66,9 @@ export function newGameState(): GameState {
     nextUid: 1,
     playTime: 0,
     bossDefeated: 0,
+    chests: [],
+    mapVer: 2,
+    dayTime: 0.15,
   };
   return s;
 }

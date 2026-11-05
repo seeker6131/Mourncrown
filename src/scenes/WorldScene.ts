@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, type WorldMap } from '../world/mapgen';
+import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, type WorldMap } from '../world/mapgen';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
 import { HOUSE_ANCHOR } from '../art/textures';
 import { Hero } from '../entities/Hero';
@@ -51,12 +51,20 @@ export class WorldScene extends Phaser.Scene {
   autoSideStep = 0;
   keys!: Record<string, Phaser.Input.Keyboard.Key>;
   dead = false;
+  chests: { id: number; x: number; y: number; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image | null }[] = [];
+  nightLights: Phaser.GameObjects.Image[] = [];
+  nightOverlay!: Phaser.GameObjects.Image;
+  heroLight!: Phaser.GameObjects.Image;
+  heroRing!: Phaser.GameObjects.Image;
+  targetRing!: Phaser.GameObjects.Image;
+  night = 0;
+  rays: Phaser.GameObjects.Image[] = [];
 
   constructor() { super('World'); }
 
   create() {
     this.monsters = []; this.projectiles = []; this.loot = []; this.npcs = []; this.cooldowns = {}; this.fireflies = []; this.clouds = [];
-    this.dead = false; this.boss = null; this.target = null;
+    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = [];
     const s = S();
     this.map = generateWorld();
     this.der = derive(s);
@@ -69,17 +77,35 @@ export class WorldScene extends Phaser.Scene {
     for (const o of this.map.objects) {
       if (o.type === 'campfire') {
         this.add.sprite(o.x, o.y, 'obj_campfire').setOrigin(0.5, 0.9).setDepth(o.y).play('campfire_burn');
-        this.addGlow(o.x, o.y - 8, 0xff9a3a, 2.2, true);
+        this.nightLights.push(this.addGlow(o.x, o.y - 8, 0xff9a3a, 1.6, true));
         continue;
       }
       if (o.type === 'house') {
         const n = iso(o.tx - 2, o.ty - 2);
         const img = this.add.image(n.x, n.y, `obj_house_${o.v}`);
         img.setOrigin(HOUSE_ANCHOR.ax / img.width, HOUSE_ANCHOR.ay / img.height).setDepth(o.y + 10);
+        const sh = iso(o.tx + 0.5, o.ty);
+        this.add.image(sh.x + 18, sh.y + 6, 'fx_shadow').setScale(5.5, 3.2).setAlpha(0.8).setDepth(1);
         const wl = iso(o.tx - 0.2, o.ty + 1);
-        this.addGlow(wl.x - 14, wl.y - 20, 0xffc060, 0.7, true); this.addGlow(wl.x + 34, wl.y - 2, 0xffc060, 0.7, true);
+        this.nightLights.push(this.addGlow(wl.x - 14, wl.y - 20, 0xffc060, 0.7, true), this.addGlow(wl.x + 34, wl.y - 2, 0xffc060, 0.7, true));
         continue;
       }
+      if (o.type === 'chest') {
+        const opened = S().chests.includes(o.v);
+        const img = this.add.image(o.x, o.y + 4, opened ? 'obj_chest_1' : 'obj_chest_0').setOrigin(0.5, 0.95).setDepth(o.y);
+        this.add.image(o.x, o.y + 3, 'fx_shadow').setScale(0.8, 0.7).setDepth(1);
+        const glow = opened ? null : this.addGlow(o.x, o.y - 4, 0xffd060, 0.45, true);
+        this.chests.push({ id: o.v, x: o.x, y: o.y, img, glow });
+        continue;
+      }
+      if (o.type === 'wall') {
+        const img = this.add.image(o.x, o.y + 4, `obj_wall_${o.v}`);
+        const hh = o.v >= 6 ? 26 : 24;
+        img.setOrigin(19 / img.width, (hh + 12) / img.height).setDepth(o.y + 2);
+        continue;
+      }
+      if (o.type === 'tree' || o.type === 'pine') this.add.image(o.x + 5, o.y + 4, 'fx_shadow').setScale(o.type === 'tree' ? 2.4 : 1.8, 1.7).setAlpha(0.85).setDepth(1);
+      if (o.type === 'bigrock' || o.type === 'bush' || o.type === 'tent' || o.type === 'stall' || o.type === 'well') this.add.image(o.x + 3, o.y + 3, 'fx_shadow').setScale(1.4, 1.1).setDepth(1);
       const key = `obj_${o.type}_${o.v}`;
       const flat = o.type === 'flower' || o.type === 'tuft' || o.type === 'lily';
       const oy = o.type === 'lily' ? WATER_DEPTH + 2 : flat ? 2 : 3;
@@ -92,7 +118,7 @@ export class WorldScene extends Phaser.Scene {
         // gentle canopy sway
         this.tweens.add({ targets: img, scaleX: { from: 1, to: 1.015 }, duration: 1800 + (o.x % 700), yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: o.y % 1000 });
       }
-      if (o.type === 'lamp') this.addGlow(o.x, o.y - 26, 0xffd060, 0.9, true);
+      if (o.type === 'lamp') this.nightLights.push(this.addGlow(o.x, o.y - 26, 0xffd060, 0.9, true));
       if (o.type === 'crystal') this.addGlow(o.x, o.y - 12, 0x5ae0ff, 1.8, true);
       if (o.type === 'altar') this.addGlow(o.x, o.y - 22, 0xb07aff, 1.8, true);
       if (o.type === 'mushrooms' && o.v === 1) this.addGlow(o.x, o.y - 6, 0x6ae0ff, 0.6, true);
@@ -110,8 +136,12 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // hero
-    const start = s.pos.x > 0 ? s.pos : this.map.heroStart;
+    let start = s.pos.x > 0 ? s.pos : this.map.heroStart;
+    if (!this.canMove(start.x, start.y, 5)) start = this.map.heroStart;
     this.hero = new Hero(this, start.x, start.y);
+    this.heroRing = this.add.image(start.x, start.y, 'fx_selhero').setDepth(1.5).setScale(0.75);
+    this.targetRing = this.add.image(0, 0, 'fx_seltarget').setDepth(1.5).setVisible(false);
+    this.tweens.add({ targets: this.targetRing, alpha: { from: 1, to: 0.5 }, duration: 500, yoyo: true, repeat: -1 });
 
     // monsters
     this.map.spawns.forEach((sp, i) => { for (let k = 0; k < sp.count; k++) this.spawnAt(i); });
@@ -169,6 +199,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   createAmbient() {
+    // day/night colour grading (multiply) sits under the additive light glows
+    this.nightOverlay = this.add.image(0, 0, 'fx_px').setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(99970).setOrigin(0.5);
+    this.heroLight = this.add.image(0, 0, 'fx_glow').setTint(0xffc880).setBlendMode(Phaser.BlendModes.ADD).setScale(2.6, 2).setDepth(99975).setAlpha(0);
     // drifting cloud shadows for depth
     for (let i = 0; i < 7; i++) {
       const c = this.add.image(Math.random() * WORLD_PX_W, Math.random() * WORLD_PX_H, 'fx_glow').setTint(0x0a0a20).setAlpha(0.13).setScale(9 + Math.random() * 5, 6 + Math.random() * 3).setDepth(99980);
@@ -183,7 +216,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [x, y] of [[34, 30], [40, 46], [28, 50], [70, 8], [84, 6], [62, 30], [96, 34]] as const) {
       const rp = iso(x, y);
       const r = this.add.image(rp.x, rp.y, 'fx_ray').setBlendMode(Phaser.BlendModes.ADD).setAngle(-25).setScale(2.4, 2.2).setAlpha(0.18).setDepth(99985);
-      this.tweens.add({ targets: r, alpha: { from: 0.08, to: 0.22 }, duration: 3000 + Math.random() * 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.rays.push(r);
     }
     // falling leaves & petals
     this.leafEmitter = this.add.particles(0, 0, 'fx_leaf', {
@@ -220,12 +253,30 @@ export class WorldScene extends Phaser.Scene {
 
   updateAmbient(time: number, dt: number) {
     const v = this.cameras.main.worldView;
+    // ---- day / night cycle (one full day = 6 minutes) ----
+    const st = S();
+    st.dayTime = (st.dayTime + dt / 360000) % 1;
+    const t = st.dayTime;
+    let dusk = 0, night = 0;
+    if (t > 0.55 && t < 0.65) { dusk = Math.sin(((t - 0.55) / 0.1) * Math.PI); night = (t - 0.55) / 0.1; }
+    else if (t >= 0.65 && t < 0.9) night = 1;
+    else if (t >= 0.9) { night = 1 - (t - 0.9) / 0.1; dusk = Math.sin(((t - 0.9) / 0.1) * Math.PI) * 0.6; }
+    this.night = night;
+    const mixc = (a: number, b: number, k: number) => Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 100, Math.round(k * 100));
+    let c = mixc(0xfff6ea, 0x3c4a8c, night);
+    const cc = Phaser.Display.Color.GetColor(c.r, c.g, c.b);
+    c = mixc(cc, 0xff9a60, dusk * 0.55);
+    this.nightOverlay.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
+    this.nightOverlay.setPosition(v.centerX, v.centerY).setDisplaySize(v.width + 64, v.height + 64);
+    for (const l of this.nightLights) { const b0 = (l.getData('base') as number | undefined) ?? (l.setData('base', l.scaleX), l.scaleX); l.setScale(b0 * (1 + night * 0.9)); }
+    this.rays.forEach((r, i) => r.setAlpha((0.14 + Math.sin(time * 0.0006 + i * 1.7) * 0.07) * (1 - night) * (1 - dusk * 0.5)));
+    this.heroLight.setPosition(this.hero.x, this.hero.y - 10).setAlpha(night * 0.35);
     for (const c of this.clouds) {
       c.x += dt * 0.012; c.y += dt * 0.004;
       if (c.x > WORLD_PX_W + 300) { c.x = -300; c.y = Math.random() * WORLD_PX_H; }
     }
     const zone = this.currentZone;
-    const dense = zone === 'forest' || zone === 'grove' || zone === 'arena' ? 1 : 0.35;
+    const dense = Math.min(1, (zone === 'forest' || zone === 'grove' || zone === 'arena' ? 1 : 0.35) + this.night * 0.8);
     this.fireflies.forEach((f, i) => {
       f.t += dt * 0.001;
       const x = v.x + ((f.bx * v.width + Math.sin(f.t * 0.7 + i) * 30 + f.t * 4) % (v.width + 40));
@@ -334,6 +385,11 @@ export class WorldScene extends Phaser.Scene {
     this.updateLoot(time);
     this.respawnTick(time);
     this.updateAmbient(time, dt);
+    this.heroRing.setPosition(h.x, h.y).setVisible(h.state !== 'dead');
+    const tgt = this.target && this.target.alive ? this.target : this.nearestEnemy(60);
+    if (tgt) this.targetRing.setVisible(true).setPosition(tgt.x, tgt.y).setScale(tgt.def.boss ? 2.2 : tgt.def.bodyRadius / 8);
+    else this.targetRing.setVisible(false);
+    this.checkChests();
 
     // regen
     if (time - this.lastRegen > 2000 && h.state !== 'dead') {
@@ -401,6 +457,33 @@ export class WorldScene extends Phaser.Scene {
     h.setFacing(t.x - h.x, t.y - h.y);
     this.basicAttack(time);
     return false;
+  }
+
+  nearestEnemy(maxD: number): Monster | null {
+    let best: Monster | null = null, bd = maxD;
+    for (const m of this.monsters) { if (!m.alive) continue; const d = Math.hypot(m.x - this.hero.x, m.y - this.hero.y); if (d < bd) { bd = d; best = m; } }
+    return best;
+  }
+
+  checkChests() {
+    const s = S(), h = this.hero;
+    if (h.state === 'dead') return;
+    for (const c of this.chests) {
+      if (s.chests.includes(c.id)) continue;
+      if (Math.hypot(c.x - h.x, c.y - h.y) > 20) continue;
+      s.chests.push(c.id);
+      c.img.setTexture('obj_chest_1');
+      c.glow?.destroy(); c.glow = null;
+      sfx.levelUp();
+      this.burst(c.x, c.y - 8, 0xffd060, 20, 60);
+      const ray = this.add.image(c.x, c.y, 'fx_ray').setOrigin(0.5, 1).setTint(0xffe080).setBlendMode(Phaser.BlendModes.ADD).setScale(0.8, 0.1).setDepth(99700);
+      this.tweens.add({ targets: ray, scaleY: 0.6, alpha: 0, duration: 900, onComplete: () => ray.destroy() });
+      const loot = CHEST_LOOT[c.id % CHEST_LOOT.length];
+      this.dropLoot(c.x, c.y + 6, 'gold', loot.gold);
+      for (const it of loot.items) this.dropLoot(c.x, c.y + 6, it.id, it.qty);
+      bus.emit(EV.TOAST, 'พบหีบสมบัติ!', '#ffd84a');
+      saveGame(s);
+    }
   }
 
   quickPotion(auto = false) {

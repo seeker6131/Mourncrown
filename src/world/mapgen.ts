@@ -24,7 +24,7 @@ export function unIso(sx: number, sy: number) {
 export enum G { Grass = 0, Path = 1, Water = 2, Sand = 3, Forest = 4, Grove = 5, Plaza = 6, Ruins = 7, Bridge = 8 }
 
 export type ObjType = 'tree' | 'pine' | 'bush' | 'rock' | 'bigrock' | 'flower' | 'tuft' | 'mushrooms' | 'house' | 'well' | 'fence' | 'sign' | 'campfire'
-  | 'lamp' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
+  | 'lamp' | 'wall' | 'chest' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
 
 export interface WorldObj { type: ObjType; x: number; y: number; v: number; tx: number; ty: number; solid?: { w: number; h: number } }
 
@@ -66,6 +66,18 @@ function distToPolyline(x: number, y: number, pts: [number, number][]): number {
   }
   return best;
 }
+
+export const CHEST_SPOTS: [number, number][] = [[39, 32], [27, 55], [64, 56], [82, 50], [84, 29], [76, 7], [101, 36], [59, 16]];
+export const CHEST_LOOT: { gold: number; items: { id: string; qty: number }[] }[] = [
+  { gold: 60, items: [{ id: 'hp_potion', qty: 3 }] },
+  { gold: 80, items: [{ id: 'mana_shard', qty: 2 }, { id: 'mp_potion', qty: 2 }] },
+  { gold: 150, items: [{ id: 'leather_armor', qty: 1 }, { id: 'mana_shard', qty: 2 }] },
+  { gold: 250, items: [{ id: 'iron_sword', qty: 1 }, { id: 'hp_potion_l', qty: 2 }] },
+  { gold: 220, items: [{ id: 'copper_ring', qty: 1 }, { id: 'mana_shard', qty: 3 }] },
+  { gold: 400, items: [{ id: 'sage_pendant', qty: 1 }, { id: 'mana_shard', qty: 4 }] },
+  { gold: 600, items: [{ id: 'chain_mail', qty: 1 }, { id: 'hp_potion_l', qty: 4 }] },
+  { gold: 300, items: [{ id: 'oak_staff', qty: 1 }, { id: 'mp_potion', qty: 4 }] },
+];
 
 export function riverX(y: number) { return 50 + Math.sin(y * 0.12) * 3 + Math.sin(y * 0.31) * 1.2; }
 
@@ -162,10 +174,31 @@ export function generateWorld(seed = 1337): WorldMap {
     put(i % 3 === 1 ? 'brokenpillar' : 'pillar', px, py, i, { w: 1, h: 1 });
   }
   put('altar', B.cx + 4, B.cy - 3, 0, { w: 2, h: 1 });
+  // ruined stone wall ring around the arena (gaps for the path and crumbled sections)
+  for (let ty = B.cy - 12; ty <= B.cy + 12; ty++) for (let tx = B.cx - 12; tx <= B.cx + 12; tx++) {
+    const dx = tx + 0.5 - B.cx, dy = (ty + 0.5 - B.cy) * 1.15;
+    const d = Math.hypot(dx, dy);
+    if (d < 9.6 || d >= 10.6) continue;
+    if (pathDist(tx + 0.5, ty + 0.5) < 2.4) continue;
+    if (rnd() < 0.18) continue;
+    if (blocked[idx(tx, ty)] || ground[idx(tx, ty)] === G.Water) continue;
+    put('wall', tx, ty, (Math.abs(dx) > Math.abs(dy) ? 1 : 0) * 3 + Math.floor(rnd() * 3), { w: 1, h: 1 });
+  }
 
   // goblin camp
   for (const [x, y] of [[80, 52], [86, 48], [82, 27]] as const) put('tent', x, y, 0, { w: 3, h: 2 });
   put('campfire', 83, 51, 1, { w: 1, h: 1 });
+  // goblin palisades
+  for (const [cx, cy, r] of [[82, 50, 6.5], [83, 29, 5]] as const) {
+    for (let ty = Math.floor(cy - r - 2); ty <= cy + r + 2; ty++) for (let tx = Math.floor(cx - r - 2); tx <= cx + r + 2; tx++) {
+      const dx = tx + 0.5 - cx, dy = ty + 0.5 - cy;
+      const d = Math.hypot(dx, dy);
+      if (d < r || d >= r + 1) continue;
+      if (pathDist(tx + 0.5, ty + 0.5) < 2.4 || (dx < -r * 0.6 && Math.abs(dy) < 2)) continue; // gate facing west
+      if (blocked[idx(tx, ty)] || ground[idx(tx, ty)] === G.Water) continue;
+      put('wall', tx, ty, (Math.abs(dx) > Math.abs(dy) ? 3 : 2) * 3 + Math.floor(rnd() * 3), { w: 1, h: 1 });
+    }
+  }
 
   // grove crystals
   for (const [x, y] of [[64, 9], [72, 6], [84, 17], [97, 7], [60, 18]] as const) put('crystal', x, y, 0, { w: 1, h: 1 });
@@ -203,6 +236,23 @@ export function generateWorld(seed = 1337): WorldMap {
     else if (r2 < 0.13 && g === G.Grass) put('flower', x, y, Math.floor(rnd() * 4));
     else if (r2 < 0.22) put('tuft', x, y, g);
   }
+  // treasure chests (index = chest id)
+  CHEST_SPOTS.forEach(([cx, cy], i) => {
+    for (let r = 0; r < 6; r++) {
+      let done = false;
+      for (let j = -r; j <= r && !done; j++) for (let k = -r; k <= r && !done; k++) {
+        const x = cx + j, y = cy + k;
+        if (x < 1 || y < 1 || x >= MAP_W - 1 || y >= MAP_H - 1) continue;
+        if (blocked[idx(x, y)] || ground[idx(x, y)] === G.Water) continue;
+        // remove decorative objects on that tile
+        for (let q = objects.length - 1; q >= 0; q--) if (objects[q].tx === x && objects[q].ty === y) objects.splice(q, 1);
+        put('chest', x, y, i, { w: 1, h: 1 });
+        done = true;
+      }
+      if (done) break;
+    }
+  });
+
   // lily pads
   for (let i = 0; i < 40; i++) {
     const x = Math.floor(rnd() * MAP_W), y = Math.floor(rnd() * MAP_H);
