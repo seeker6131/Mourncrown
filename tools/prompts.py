@@ -48,22 +48,22 @@ P('W1', 'ตัดไม้ (ฟันขวาน)', char_anim(HERO, 'Chopping 
 P('W2', 'ขุดหิน (จอบ)', char_anim(HERO, 'Mining with a pickaxe instead of the sword', 4, 'down-right', 'Raise pickaxe, swing down, impact with stone sparks, recover.'))
 
 # ---------------- 1b. player classes & forms ----------------
-sec('forms', 'ร่างตัวละคร: ชาวบ้าน → 4 สาย × 3 ร่าง', 'ร่าง 1 ชาวบ้าน • ร่าง 2 (Lv5) • ร่าง 3 (Lv20) ชุดเท่ขึ้น • ร่าง 4 (Lv35) สวยที่สุด • ทำ "รูปหลัก" ก่อน แล้วแนบรูปนั้นไปกับท่าที่เหลือของร่างเดียวกัน • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม')
-HERO_FACE = 'the same young hero with brown spiky hair and brown eyes (same face as the attached reference)'
+sec('forms', 'ร่างตัวละคร: ชาวบ้าน → 4 สาย × 3 ร่าง', 'ร่าง 1 ชาวบ้าน • ร่าง 2 (Lv5) • ร่าง 3 (Lv20) ชุดเท่ขึ้น • ร่าง 4 (Lv35) สวยที่สุด • ร่าง 3-4 ใส่หมวก/หน้ากากปิดหน้า • ทำ "รูปหลัก" ก่อน แล้วแนบรูปนั้นไปกับท่าที่เหลือของร่างเดียวกัน • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม')
+HERO_FACE = 'the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions)'
 FORMS = [
     ('V0', 'ชาวบ้าน', 'a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots, holding a wooden practice sword'),
     ('S2', 'นักดาบ', 'a swordsman: blue tunic with leather pauldron, red headband, green scarf, steel short sword and small round shield'),
-    ('S3', 'อัศวิน', 'a knight: polished steel plate armor with blue tabard, red cape, steel longsword and kite shield with a gold emblem'),
-    ('S4', 'ลอร์ดอัศวิน', 'a legendary lord knight: ornate white-and-gold plate armor with glowing blue runes, flowing royal blue cape with gold trim, winged helmet circlet, radiant holy greatsword with light particles'),
+    ('S3', 'อัศวิน', 'a knight: polished steel plate armor with blue tabard, red cape, a cool closed steel knight helmet with a T-shaped visor slit and a red plume hiding the face, steel longsword and kite shield with a gold emblem'),
+    ('S4', 'ลอร์ดอัศวิน', 'a legendary lord knight: ornate white-and-gold plate armor with glowing blue runes, flowing royal blue cape with gold trim, a majestic full helmet with golden wings and a glowing blue visor covering the face, radiant holy greatsword with light particles'),
     ('A2', 'นักธนู', 'an archer: green hooded tunic, leather bracers, quiver on the back, simple wooden bow'),
-    ('A3', 'พรานป่า', 'a forest ranger: layered green and brown leather armor, fur-lined hood, feathered cloak, carved composite longbow'),
-    ('A4', 'เรนเจอร์ราชันย์', 'a legendary royal ranger: elegant emerald and gold elven armor, flowing leaf-pattern cape, glowing magical bow made of light with spirit arrows, golden laurel circlet'),
+    ('A3', 'พรานป่า', 'a forest ranger: layered green and brown leather armor, deep fur-lined hood pulled low, a dark green cloth mask covering the nose and mouth so only sharp eyes show, feathered cloak, carved composite longbow'),
+    ('A4', 'เรนเจอร์ราชันย์', 'a legendary royal ranger: elegant emerald and gold elven armor, flowing leaf-pattern cape, hood with a sleek golden half-mask covering the lower face and glowing green eyes, glowing magical bow made of light with spirit arrows'),
     ('M2', 'จอมเวท', 'a mage: purple hooded robe with gold trim, belt with potion pouches, wooden staff with a blue crystal'),
-    ('M3', 'ปราชญ์เวท', 'a sage mage: long violet robe with star embroidery, high collar, floating spellbook beside him, ornate silver staff with orbiting crystal'),
-    ('M4', 'อาร์คเมจ', 'a legendary archmage: deep midnight-blue and gold robe with glowing constellation patterns, crown-like circlet, floating arcane rings around him, staff with a blazing cosmic crystal'),
+    ('M3', 'ปราชญ์เวท', 'a sage mage: long violet robe with star embroidery, high collar, a tall pointed wizard hat with silver star ornaments shading the eyes and a mystic violet face veil over the mouth, floating spellbook beside him, ornate silver staff with orbiting crystal'),
+    ('M4', 'อาร์คเมจ', 'a legendary archmage: deep midnight-blue and gold robe with glowing constellation patterns, a dramatic tall horned hood with an ornate golden arcane mask covering the whole face with glowing blue eye slits, floating arcane rings around him, staff with a blazing cosmic crystal'),
     ('C2', 'นักบวช', 'a cleric: white and gold robe, holy symbol necklace, small mace and a prayer book'),
-    ('C3', 'นักบุญ', 'a saint: layered white robe with gold armor pieces, blue sash, golden halo, holy hammer'),
-    ('C4', 'ไฮพรีสต์', 'a legendary high priest: radiant white and gold vestments with feather wings motif, glowing golden halo and floating holy light orbs, ornate scepter with a sun emblem'),
+    ('C3', 'นักบุญ', 'a saint: layered white robe with gold armor pieces, blue sash, a white and gold mitre-style holy helmet with a silver face guard over the eyes, golden halo, holy hammer'),
+    ('C4', 'ไฮพรีสต์', 'a legendary high priest: radiant white and gold vestments with feather wings motif, a tall ornate golden crown-helm with a radiant sun-shaped golden mask covering the face, glowing golden halo and floating holy light orbs, ornate scepter with a sun emblem'),
 ]
 ACTS = [
     ('', 'รูปหลัก (ยืน 4 เฟรม)', 'Idle breathing', 4, 'down-right', 'Subtle chest rise, cape/scarf gently waving.'),
