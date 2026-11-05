@@ -5,6 +5,9 @@ import { drawHero, heroAnims, HERO_FRAME, type Dir } from './heroArt';
 import { buildMonster } from './monsterArt';
 import * as W from './worldArt';
 import { buildIcons, buildVfx } from './iconArt';
+import * as I from './isoArt';
+
+export const HOUSE_ANCHOR = { ax: 0, ay: 0 };
 import type { MonsterKind } from '../data/monsters';
 
 function addSheet(scene: Phaser.Scene, key: string, groups: { name: string; frames: PixelCanvas[] }[]) {
@@ -71,19 +74,18 @@ export function generateAll(scene: Phaser.Scene) {
   for (let v = 0; v < 5; v++) addSingle(scene, `obj_tree_${v}`, W.tree(v));
   for (const v of [1, 2]) addSingle(scene, `obj_pine_${v}`, W.pine(v));
   addSingle(scene, 'obj_pine_0', W.pine(1));
-  for (const v of [0, 1]) { addSingle(scene, `obj_bush_${v}`, W.bush(v)); addSingle(scene, `obj_rock_${v}`, W.rock(v)); addSingle(scene, `obj_house_${v}`, W.house(v)); addSingle(scene, `obj_mushrooms_${v}`, W.mushrooms(v)); addSingle(scene, `obj_lily_${v}`, W.lily(v)); }
+  for (const v of [0, 1]) { addSingle(scene, `obj_bush_${v}`, W.bush(v)); addSingle(scene, `obj_rock_${v}`, W.rock(v)); { const h = I.isoHouse(v); HOUSE_ANCHOR.ax = h.ax; HOUSE_ANCHOR.ay = h.ay; addSingle(scene, `obj_house_${v}`, h.p); addSingle(scene, `obj_fence_${v}`, I.isoFence(v)); } addSingle(scene, `obj_mushrooms_${v}`, W.mushrooms(v)); addSingle(scene, `obj_lily_${v}`, W.lily(v)); }
   addSingle(scene, 'obj_bigrock_0', W.bigRock());
   for (let v = 0; v < 4; v++) addSingle(scene, `obj_flower_${v}`, W.flower(v));
   for (const g of [0, 4, 5]) addSingle(scene, `obj_tuft_${g}`, W.tuft(g));
   addSingle(scene, 'obj_well_0', W.well());
-  addSingle(scene, 'obj_fence_0', W.fence());
   addSingle(scene, 'obj_sign_0', W.sign());
   addSingle(scene, 'obj_lamp_0', W.lamp());
   for (let v = 0; v < 10; v++) { addSingle(scene, `obj_pillar_${v}`, W.pillar(false, v)); addSingle(scene, `obj_brokenpillar_${v}`, W.pillar(true, v)); }
-  addSingle(scene, 'obj_altar_0', W.altar());
-  addSingle(scene, 'obj_stall_0', W.stall());
+  addSingle(scene, 'obj_altar_0', I.isoAltar());
+  addSingle(scene, 'obj_stall_0', I.isoStall());
   addSingle(scene, 'obj_barrel_0', W.barrel());
-  addSingle(scene, 'obj_crate_0', W.crate());
+  addSingle(scene, 'obj_crate_0', I.isoCrate());
   addSingle(scene, 'obj_tent_0', W.tent());
   addSingle(scene, 'obj_crystal_0', W.crystal());
   addSingle(scene, 'obj_log_0', W.log());

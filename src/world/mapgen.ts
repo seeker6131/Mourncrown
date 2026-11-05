@@ -6,12 +6,27 @@ export const TILE = 16;
 export const MAP_W = 110;
 export const MAP_H = 76;
 
+// ---- Isometric projection (2:1 diamonds). Game logic runs in screen space; tiles are diamonds. ----
+export const ISO_HW = 16; // half tile width on screen
+export const ISO_HH = 8;  // half tile height on screen
+export const ISO_OX = MAP_H * ISO_HW + 8;
+export const ISO_OY = 24;
+export const WORLD_PX_W = (MAP_W + MAP_H) * ISO_HW + 16;
+export const WORLD_PX_H = (MAP_W + MAP_H) * ISO_HH + 48;
+/** Tile-space (float) -> screen pixel. */
+export function iso(tx: number, ty: number) { return { x: ISO_OX + (tx - ty) * ISO_HW, y: ISO_OY + (tx + ty) * ISO_HH }; }
+/** Screen pixel -> tile-space (float). */
+export function unIso(sx: number, sy: number) {
+  const a = (sx - ISO_OX) / ISO_HW, b = (sy - ISO_OY) / ISO_HH;
+  return { tx: (a + b) / 2, ty: (b - a) / 2 };
+}
+
 export enum G { Grass = 0, Path = 1, Water = 2, Sand = 3, Forest = 4, Grove = 5, Plaza = 6, Ruins = 7, Bridge = 8 }
 
 export type ObjType = 'tree' | 'pine' | 'bush' | 'rock' | 'bigrock' | 'flower' | 'tuft' | 'mushrooms' | 'house' | 'well' | 'fence' | 'sign' | 'campfire'
   | 'lamp' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
 
-export interface WorldObj { type: ObjType; x: number; y: number; v: number; solid?: { w: number; h: number } }
+export interface WorldObj { type: ObjType; x: number; y: number; v: number; tx: number; ty: number; solid?: { w: number; h: number } }
 
 export interface Zone { id: string; name: string; cx: number; cy: number; r: number }
 
@@ -112,7 +127,11 @@ export function generateWorld(seed = 1337): WorldMap {
     }
   };
   const put = (type: ObjType, tx: number, ty: number, v = 0, solid?: { w: number; h: number }) => {
-    objects.push({ type, x: tx * TILE + TILE / 2, y: ty * TILE + TILE, v, solid });
+    // screen anchor = centre of the footprint
+    let cx = tx + 0.5, cy = ty + 0.5;
+    if (solid) { cx = tx - Math.floor((solid.w - 1) / 2) + solid.w / 2; cy = ty - solid.h + 1 + solid.h / 2; }
+    const p = iso(cx, cy);
+    objects.push({ type, x: p.x, y: p.y, v, tx, ty, solid });
     if (solid) block(tx - Math.floor((solid.w - 1) / 2), ty - solid.h + 1, solid.w, solid.h);
   };
 
@@ -130,8 +149,8 @@ export function generateWorld(seed = 1337): WorldMap {
     const fx = Math.round(15 + Math.cos(a) * 13), fy = Math.round(39 + Math.sin(a) * 11);
     if (pathDist(fx + 0.5, fy + 0.5) < 2.5) continue;
     if (!free(fx, fy)) continue;
-    if (objects.some(o => o.type === 'fence' && Math.abs(o.x - (fx * TILE + 8)) < 8 && Math.abs(o.y - (fy * TILE + 16)) < 8)) continue;
-    put('fence', fx, fy, 0, { w: 1, h: 1 });
+    if (objects.some(o => o.type === 'fence' && o.tx === fx && o.ty === fy)) continue;
+    put('fence', fx, fy, Math.abs(Math.sin(a)) > Math.abs(Math.cos(a)) ? 0 : 1, { w: 1, h: 1 });
   }
 
   // ---- arena ----
@@ -210,14 +229,14 @@ export function generateWorld(seed = 1337): WorldMap {
   return {
     ground, blocked, objects, spawns,
     npcs: [{ id: 'elder', x: 15, y: 34 }, { id: 'merchant', x: 24, y: 40 }, { id: 'smith', x: 9, y: 39 }],
-    heroStart: { x: 15 * TILE, y: 39 * TILE },
-    bossPos: { x: B.cx * TILE, y: B.cy * TILE },
+    heroStart: iso(15.5, 39.5),
+    bossPos: iso(B.cx + 0.5, B.cy + 0.5),
     zones: ZONES,
   };
 }
 
 export function zoneAt(px: number, py: number): Zone {
-  const tx = px / TILE, ty = py / TILE;
+  const { tx, ty } = unIso(px, py);
   let best = ZONES[0], bd = 1e9;
   for (const z of ZONES) { const d = Math.hypot(tx - z.cx, ty - z.cy) / z.r; if (d < bd) { bd = d; best = z; } }
   return best;

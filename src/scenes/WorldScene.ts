@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { generateWorld, TILE, MAP_W, MAP_H, G, zoneAt, type WorldMap } from '../world/mapgen';
-import { paintGround } from '../art/worldArt';
+import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, type WorldMap } from '../world/mapgen';
+import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
+import { HOUSE_ANCHOR } from '../art/textures';
 import { Hero } from '../entities/Hero';
 import { Monster } from '../entities/Monster';
 import { bus, EV, S, runtime } from '../core/events';
@@ -61,7 +62,7 @@ export class WorldScene extends Phaser.Scene {
     this.der = derive(s);
 
     // ground
-    if (!this.textures.exists('ground')) this.textures.addCanvas('ground', paintGround(this.map.ground));
+    if (!this.textures.exists('ground')) this.textures.addCanvas('ground', paintGroundIso(this.map.ground));
     this.add.image(0, 0, 'ground').setOrigin(0).setDepth(0);
 
     // objects
@@ -71,10 +72,20 @@ export class WorldScene extends Phaser.Scene {
         this.addGlow(o.x, o.y - 8, 0xff9a3a, 2.2, true);
         continue;
       }
+      if (o.type === 'house') {
+        const n = iso(o.tx - 2, o.ty - 2);
+        const img = this.add.image(n.x, n.y, `obj_house_${o.v}`);
+        img.setOrigin(HOUSE_ANCHOR.ax / img.width, HOUSE_ANCHOR.ay / img.height).setDepth(o.y + 10);
+        const wl = iso(o.tx - 0.2, o.ty + 1);
+        this.addGlow(wl.x - 14, wl.y - 20, 0xffc060, 0.7, true); this.addGlow(wl.x + 34, wl.y - 2, 0xffc060, 0.7, true);
+        continue;
+      }
       const key = `obj_${o.type}_${o.v}`;
       const flat = o.type === 'flower' || o.type === 'tuft' || o.type === 'lily';
-      const img = this.add.image(o.x + (o.type === 'bigrock' || o.type === 'log' ? 8 : 0), o.y + (flat ? -2 : 0), this.textures.exists(key) ? key : `obj_${o.type}_0`)
-        .setOrigin(0.5, o.type === 'house' ? 0.96 : 1);
+      const oy = o.type === 'lily' ? WATER_DEPTH + 2 : flat ? 2 : 3;
+      const originY: Record<string, number> = { fence: 0.78, crate: 0.75, stall: 0.85, altar: 0.86, tent: 0.92 };
+      const img = this.add.image(o.x, o.y + oy, this.textures.exists(key) ? key : `obj_${o.type}_0`)
+        .setOrigin(0.5, originY[o.type] ?? 1);
       img.setDepth(o.type === 'lily' ? 1 : flat ? o.y - 12 : o.y);
       if (o.type === 'tree' || o.type === 'pine') {
         img.setFlipX(((o.x * 7 + o.y * 3) & 8) > 0);
@@ -84,13 +95,12 @@ export class WorldScene extends Phaser.Scene {
       if (o.type === 'lamp') this.addGlow(o.x, o.y - 26, 0xffd060, 0.9, true);
       if (o.type === 'crystal') this.addGlow(o.x, o.y - 12, 0x5ae0ff, 1.8, true);
       if (o.type === 'altar') this.addGlow(o.x, o.y - 22, 0xb07aff, 1.8, true);
-      if (o.type === 'house') { this.addGlow(o.x - 18, o.y - 26, 0xffc060, 0.8, true); this.addGlow(o.x + 20, o.y - 26, 0xffc060, 0.8, true); }
       if (o.type === 'mushrooms' && o.v === 1) this.addGlow(o.x, o.y - 6, 0x6ae0ff, 0.6, true);
     }
 
     // NPCs
     for (const n of this.map.npcs) {
-      const x = n.x * TILE + 8, y = n.y * TILE + 14;
+      const { x, y } = iso(n.x + 0.5, n.y + 0.5);
       this.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.8);
       const sp = this.add.sprite(x, y, `npc_${n.id}`).setOrigin(0.5, 0.95).setDepth(y).play(`npc_${n.id}_idle`);
       const marker = this.add.image(x, y - 40, 'fx_qmark').setDepth(99999).setVisible(false);
@@ -109,7 +119,8 @@ export class WorldScene extends Phaser.Scene {
 
     // camera
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE);
+    cam.setBounds(0, 0, WORLD_PX_W, WORLD_PX_H);
+    cam.setBackgroundColor('#1c2e1c');
     cam.startFollow(this.hero.sprite, true, 0.15, 0.15);
     cam.setRoundPixels(true);
     this.applyZoom();
@@ -160,7 +171,7 @@ export class WorldScene extends Phaser.Scene {
   createAmbient() {
     // drifting cloud shadows for depth
     for (let i = 0; i < 7; i++) {
-      const c = this.add.image(Math.random() * MAP_W * TILE, Math.random() * MAP_H * TILE, 'fx_glow').setTint(0x0a0a20).setAlpha(0.13).setScale(9 + Math.random() * 5, 6 + Math.random() * 3).setDepth(99980);
+      const c = this.add.image(Math.random() * WORLD_PX_W, Math.random() * WORLD_PX_H, 'fx_glow').setTint(0x0a0a20).setAlpha(0.13).setScale(9 + Math.random() * 5, 6 + Math.random() * 3).setDepth(99980);
       this.clouds.push(c);
     }
     // fireflies / motes
@@ -170,7 +181,8 @@ export class WorldScene extends Phaser.Scene {
     }
     // god rays over meadow/grove
     for (const [x, y] of [[34, 30], [40, 46], [28, 50], [70, 8], [84, 6], [62, 30], [96, 34]] as const) {
-      const r = this.add.image(x * TILE, y * TILE, 'fx_ray').setBlendMode(Phaser.BlendModes.ADD).setAngle(-25).setScale(2.4, 2.2).setAlpha(0.18).setDepth(99985);
+      const rp = iso(x, y);
+      const r = this.add.image(rp.x, rp.y, 'fx_ray').setBlendMode(Phaser.BlendModes.ADD).setAngle(-25).setScale(2.4, 2.2).setAlpha(0.18).setDepth(99985);
       this.tweens.add({ targets: r, alpha: { from: 0.08, to: 0.22 }, duration: 3000 + Math.random() * 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
     // falling leaves & petals
@@ -196,10 +208,9 @@ export class WorldScene extends Phaser.Scene {
       delay: 140, loop: true, callback: () => {
         const v = this.cameras.main.worldView;
         for (let k = 0; k < 3; k++) {
-          const tx = Math.floor((v.x + Math.random() * v.width) / TILE), ty = Math.floor((v.y + Math.random() * v.height) / TILE);
-          if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) continue;
-          if (this.map.ground[ty * MAP_W + tx] !== G.Water) continue;
-          const sp = this.add.image(tx * TILE + Math.random() * 16, ty * TILE + Math.random() * 16, 'fx_spark').setScale(0.4).setDepth(2).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+          const px = v.x + Math.random() * v.width, py = v.y + Math.random() * v.height;
+          if (this.groundAt(px, py - WATER_DEPTH) !== G.Water || this.groundAt(px, py) !== G.Water) continue;
+          const sp = this.add.image(px, py, 'fx_spark').setScale(0.4).setDepth(2).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
           this.tweens.add({ targets: sp, alpha: 0.9, scale: 0.7, duration: 300, yoyo: true, onComplete: () => sp.destroy() });
           break;
         }
@@ -211,7 +222,7 @@ export class WorldScene extends Phaser.Scene {
     const v = this.cameras.main.worldView;
     for (const c of this.clouds) {
       c.x += dt * 0.012; c.y += dt * 0.004;
-      if (c.x > MAP_W * TILE + 300) { c.x = -300; c.y = Math.random() * MAP_H * TILE; }
+      if (c.x > WORLD_PX_W + 300) { c.x = -300; c.y = Math.random() * WORLD_PX_H; }
     }
     const zone = this.currentZone;
     const dense = zone === 'forest' || zone === 'grove' || zone === 'arena' ? 1 : 0.35;
@@ -229,9 +240,17 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- Collision ----------
   blockedAt(px: number, py: number): boolean {
-    const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+    const t = unIso(px, py);
+    const tx = Math.floor(t.tx), ty = Math.floor(t.ty);
     if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return true;
     return this.map.blocked[ty * MAP_W + tx] === 1;
+  }
+
+  groundAt(px: number, py: number): number {
+    const t = unIso(px, py);
+    const tx = Math.floor(t.tx), ty = Math.floor(t.ty);
+    if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return -1;
+    return this.map.ground[ty * MAP_W + tx];
   }
 
   canMove(x: number, y: number, r: number): boolean {
@@ -251,9 +270,9 @@ export class WorldScene extends Phaser.Scene {
     const sp = this.map.spawns[i];
     for (let tries = 0; tries < 20; tries++) {
       const a = Math.random() * Math.PI * 2, r = Math.random() * sp.r;
-      const x = (sp.x + Math.cos(a) * r) * TILE, y = (sp.y + Math.sin(a) * r) * TILE;
+      const { x, y } = iso(sp.x + Math.cos(a) * r, sp.y + Math.sin(a) * r);
       if (!this.canMove(x, y, 6) && sp.kind !== 'wisp') continue;
-      this.monsters.push(new Monster(this, sp.kind, x, y, sp.r * TILE * 0.8, i));
+      this.monsters.push(new Monster(this, sp.kind, x, y, sp.r * 16 * 0.8, i));
       return;
     }
   }
@@ -270,7 +289,8 @@ export class WorldScene extends Phaser.Scene {
     this.monsters = this.monsters.filter(m => m.alive || m.sprite.active);
     this.map.spawns.forEach((sp, i) => {
       const alive = this.monsters.filter(m => m.spawnIndex === i && m.alive).length;
-      const far = Math.hypot(this.hero.x - sp.x * TILE, this.hero.y - sp.y * TILE) > 120;
+      const sc = iso(sp.x, sp.y);
+      const far = Math.hypot(this.hero.x - sc.x, this.hero.y - sc.y) > 120;
       if (alive < sp.count && far) this.spawnAt(i);
     });
     if ((!this.boss || !this.boss.alive) && time - this.bossDeadAt > 90000) {
@@ -691,7 +711,7 @@ export class WorldScene extends Phaser.Scene {
       } else if (h.state !== 'dead' && Math.hypot(h.x - p.sprite.x, (h.y - 8) - p.sprite.y) < p.radius + 4) {
         hit = true; this.damageHero(p.dmg, null);
       }
-      if (!hit && this.blockedAt(p.sprite.x, p.sprite.y + 8) && p.owner === 'hero' && this.map.ground[Math.floor((p.sprite.y + 8) / TILE) * MAP_W + Math.floor(p.sprite.x / TILE)] !== G.Water) hit = true;
+      if (!hit && this.blockedAt(p.sprite.x, p.sprite.y + 8) && p.owner === 'hero' && this.groundAt(p.sprite.x, p.sprite.y + 8) !== G.Water) hit = true;
       if (hit || p.life <= 0) {
         if (p.onHit) p.onHit(p.sprite.x, p.sprite.y);
         p.life = -1;

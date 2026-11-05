@@ -4,8 +4,8 @@ import { bus, EV, S } from '../core/events';
 import { controls, type WorldScene } from './WorldScene';
 import { derive, expToNext } from '../systems/stats';
 import { SKILLS, type SkillId } from '../data/skills';
-import { paintMinimap } from '../art/worldArt';
-import { MAP_W, MAP_H, TILE } from '../world/mapgen';
+import { paintMinimapIso } from '../art/isoArt';
+import { WORLD_PX_W, WORLD_PX_H } from '../world/mapgen';
 import { QUEST_BY_ID } from '../data/quests';
 import { Panels } from '../ui/panels';
 import { sfx } from '../audio/sfx';
@@ -88,7 +88,7 @@ export class UIScene extends Phaser.Scene {
       const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
       const c = cv.getContext('2d')!;
       const g = c.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, w * 0.62);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(8,4,16,0.55)');
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.6, 'rgba(10,6,14,0.18)'); g.addColorStop(1, 'rgba(8,4,12,0.7)');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
       this.textures.addCanvas(key, cv);
     }
@@ -118,9 +118,9 @@ export class UIScene extends Phaser.Scene {
     this.root.add(qz);
 
     // minimap
-    const mmW = 96, mmH = mmW * MAP_H / MAP_W;
+    const mmW = 116, mmH = mmW * WORLD_PX_H / WORLD_PX_W;
     const mx = this.VW - mmW - 8, my = 8;
-    if (!this.textures.exists('minimap')) this.textures.addCanvas('minimap', paintMinimap(this.world.map.ground, this.world.map.blocked));
+    if (!this.textures.exists('minimap')) this.textures.addCanvas('minimap', paintMinimapIso(this.world.map.ground, this.world.map.blocked));
     const mmG = this.add.graphics();
     k.frame(mmG, mx - 4, my - 4, mmW + 8, mmH + 8, 0.9);
     this.minimap = this.add.image(mx, my, 'minimap').setOrigin(0).setDisplaySize(mmW, mmH);
@@ -295,7 +295,7 @@ export class UIScene extends Phaser.Scene {
     // minimap dots
     const r = this.minimap.getData('rect') as { mx: number; my: number; mmW: number; mmH: number };
     const md = this.miniDots; md.clear();
-    const sx = r.mmW / (MAP_W * TILE), sy = r.mmH / (MAP_H * TILE);
+    const sx = r.mmW / WORLD_PX_W, sy = r.mmH / WORLD_PX_H;
     const w = this.world;
     for (const m of w.monsters) {
       if (!m.alive) continue;

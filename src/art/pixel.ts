@@ -106,6 +106,24 @@ export class PixelCanvas {
     }
   }
 
+  /** Scanline polygon fill. */
+  poly(pts: [number, number][], c: Color | ((x: number, y: number) => Color)) {
+    const ys = pts.map(p => p[1]);
+    const y0 = Math.floor(Math.min(...ys)), y1 = Math.ceil(Math.max(...ys));
+    for (let y = y0; y <= y1; y++) {
+      const yc = y + 0.5;
+      const xs: number[] = [];
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length];
+        if ((ay <= yc && by > yc) || (by <= yc && ay > yc)) xs.push(ax + ((yc - ay) / (by - ay)) * (bx - ax));
+      }
+      xs.sort((a, b) => a - b);
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        for (let x = Math.round(xs[k]); x < Math.round(xs[k + 1]); x++) this.set(x, y, typeof c === 'function' ? c(x, y) : c);
+      }
+    }
+  }
+
   thickLine(x0: number, y0: number, x1: number, y1: number, c: Color, w = 2) {
     const len = Math.max(1, Math.hypot(x1 - x0, y1 - y0));
     const nx = -(y1 - y0) / len, ny = (x1 - x0) / len;

@@ -24,7 +24,7 @@ export class PreviewScene extends Phaser.Scene {
       mx += s.width * z + 10;
     }
     let ox = 30;
-    const objs = ['obj_tree_0', 'obj_tree_1', 'obj_tree_2', 'obj_tree_3', 'obj_tree_4', 'obj_pine_1', 'obj_house_0', 'obj_house_1', 'obj_well_0', 'obj_stall_0', 'obj_tent_0', 'obj_pillar_0', 'obj_brokenpillar_1', 'obj_altar_0', 'obj_crystal_0', 'obj_bigrock_0', 'obj_bush_1', 'obj_lamp_0'];
+    const objs = ['obj_house_0', 'obj_fence_0', 'obj_fence_1', 'obj_stall_0', 'obj_crate_0', 'obj_barrel_0', 'obj_altar_0', 'obj_sign_0', 'obj_well_0', 'obj_tent_0', 'obj_lamp_0', 'obj_rock_0', 'obj_bigrock_0', 'obj_log_0'];
     for (const k of objs) { const s = this.add.image(ox, 600, k).setOrigin(0, 0).setScale(2); ox += s.width * 2 + 6; }
     this.add.sprite(ox, 600, 'obj_campfire').setOrigin(0, 0).setScale(2).play('campfire_burn');
     let ix = 30;
