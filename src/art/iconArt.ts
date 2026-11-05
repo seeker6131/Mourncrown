@@ -309,6 +309,12 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
     if ((x / 2 + y) % 6 > 3 && (x * 7 + row * 13) % 9 === 0) { fx2.fillStyle = row % 3 ? '#5aa83a' : '#e8c040'; fx2.fillRect(x, y - 3, 1, 3); fx2.fillStyle = '#7ad04a'; fx2.fillRect(x - 1, y - 3, 3, 1); }
   }
   out.field = fc;
+  // floating hanger icon over the changing room
+  const hg = new PixelCanvas(16, 14);
+  hg.line(8, 1, 8, 4, 0xe0e0e8); hg.set(9, 1, 0xe0e0e8); hg.set(9, 0, 0xe0e0e8);
+  hg.line(8, 4, 1, 10, 0xf2cc58); hg.line(8, 4, 15, 10, 0xf2cc58); hg.line(1, 10, 15, 10, 0xf2cc58);
+  hg.rect(4, 10, 8, 3, 0xb08aff); hg.outline(0x140c1c, false);
+  out.hanger = hg;
   // butterfly (white, tinted in game; flaps via scaleX)
   const bf = new PixelCanvas(7, 5);
   bf.rect(0, 0, 3, 2, 0xffffff); bf.rect(4, 0, 3, 2, 0xffffff); bf.rect(1, 2, 2, 2, 0xe8e8e8); bf.rect(4, 2, 2, 2, 0xe8e8e8); bf.rect(3, 1, 1, 3, 0x3a2a2a);

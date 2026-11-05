@@ -48,6 +48,7 @@ export interface GameState {
   cls: 'novice' | 'sword' | 'archer' | 'mage' | 'cleric';
   tier: number;
   outfit: 'hunt' | 'gather';
+  useTier?: number;
   dayTime: number;
 }
 

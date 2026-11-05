@@ -6,7 +6,8 @@ import { S, bus, EV, runtime } from '../core/events';
 import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf } from '../systems/settlement';
-import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass } from '../systems/stats';
+import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass, activeTier } from '../systems/stats';
+import { portraitKey } from '../art/formAssets';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
@@ -14,12 +15,12 @@ import { reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, r
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
-import { CLASSES, FORM_LEVEL, formName, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
+import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -57,6 +58,7 @@ export class Panels {
   }
 
   openDialog(npc: string, text?: string) {
+    if (npc === 'wardrobe') { this.open('wardrobe'); return; }
     this.dialogNpc = npc;
     const s = S();
     if (text) { this.dialogText = text; this.open('dialog'); return; }
@@ -93,6 +95,7 @@ export class Panels {
       case 'plot': this.buildPlot(c); break;
       case 'job': this.buildJob(c); break;
       case 'forms': this.buildForms(c); break;
+      case 'wardrobe': this.buildWardrobe(c); break;
       case 'dialog': this.buildDialog(c); break;
       case 'shop': this.buildShop(c); break;
       case 'smith': this.buildSmith(c); break;
@@ -427,6 +430,44 @@ export class Panels {
     c.add(k.button(x + W / 2 - 80, top + H - 90, 160, 30, '✨ เปลี่ยนร่าง', () => doIt(), { size: 12, color: 0x6a3a8a, disabled: nf === null }));
   }
 
+  // ---------------- CHANGING ROOM ----------------
+  buildWardrobe(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(600, ui.VW - 16), H = 330;
+    const { x, y, g } = this.window(c, W, H, '👕 ห้องแต่งตัว — เตรียมตัวก่อนออกเดินทาง');
+    const top = y + 32;
+    c.add(k.text(x + 16, top, 'ชุดสำหรับการออกเดินทาง', 10, '#ffe7a0'));
+    const opts: ['hunt' | 'gather', string, string][] = [
+      ['hunt', '⚔ ชุดล่ามอนสเตอร์', 'สวมชุดนักรบ พลังโจมตีเต็มที่\nเหมาะกับการล่ามอนและหาไอเทม'],
+      ['gather', '⛏ ชุดหาทรัพยากร', 'ใส่ชุดชาวบ้าน เก็บไม้/หินได้ x2\nแต่ตีมอน -40%'],
+    ];
+    const cw = (W - 38) / 2;
+    opts.forEach(([id, t, d], i) => {
+      const cx = x + 14 + i * (cw + 10), on = s.outfit === id;
+      g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(cx, top + 16, cw, 74, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(cx, top + 16, cw, 74, 4);
+      c.add(k.text(cx + 10, top + 22, t + (on ? '  ✔' : ''), 11, on ? '#ffd84a' : '#f3e6c4'));
+      c.add(k.text(cx + 10, top + 42, d, 8, '#d8ccb0', { lineSpacing: 2 }));
+      const z = ui.add.zone(cx, top + 16, cw, 74).setOrigin(0).setInteractive();
+      z.on('pointerup', () => { s.outfit = id; sfx.pickup(); bus.emit(EV.STATE_CHANGED); this.rebuild(); });
+      c.add(z);
+    });
+    c.add(k.text(x + 16, top + 102, 'เลือกร่างที่จะสวม (แต่ละร่างมีสกิลของตัวเอง)', 10, '#ffe7a0'));
+    const tiers = s.cls === 'novice' ? [0] : Array.from({ length: s.tier }, (_, i) => i + 1);
+    const bw = Math.min(150, (W - 28 - (tiers.length - 1) * 8) / Math.max(1, tiers.length));
+    tiers.forEach((t, i) => {
+      const bx = x + 14 + i * (bw + 8), by = top + 120, on = activeTier(s) === t;
+      g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(bx, by, bw, 128, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(bx, by, bw, 128, 4);
+      const pk = portraitKey(ui, formCode(s.cls, t));
+      if (pk) { const im = ui.add.image(bx + bw / 2, by + 44, pk); im.setScale(70 / Math.max(im.width, im.height)); c.add(im); }
+      c.add(k.text(bx + bw / 2, by + 84, formName(s.cls, t) + (on ? ' ✔' : ''), 9.5, on ? '#ffd84a' : '#f3e6c4').setOrigin(0.5, 0));
+      c.add(k.text(bx + bw / 2, by + 100, classSkills(s.cls, t).map(q => SKILL_BY_ID[q].name).join(' • '), 6.5, '#9ad8ff', { align: 'center', wordWrap: { width: bw - 8 } }).setOrigin(0.5, 0));
+      const z = ui.add.zone(bx, by, bw, 128).setOrigin(0).setInteractive();
+      z.on('pointerup', () => { s.useTier = t; sfx.levelUp(); bus.emit(EV.TOAST, `สวมร่าง ${formName(s.cls, t)}`, '#ffd84a'); this.close(); bus.emit(EV.STATE_CHANGED); });
+      c.add(z);
+    });
+    if (s.cls === 'novice') c.add(k.text(x + 180, top + 170, 'ถึง Lv5 แล้วไปคุยกับผู้เฒ่าเพื่อเลือกสายอาชีพ', 9, '#a89878'));
+  }
+
   // ---------------- TEST: FORM SWITCHER ----------------
   buildForms(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
@@ -440,7 +481,7 @@ export class Panels {
       const bx = x + 14 + col * (bw + 6), by = y + 32 + row * 52;
       const cur = s.cls === f.cls && s.tier === f.tier;
       c.add(k.button(bx, by, bw, 44, `${formName(f.cls, f.tier)}\nร่าง ${f.tier + 1} • Lv${FORM_LEVEL[f.tier]}+`, () => {
-        s.cls = f.cls; s.tier = f.tier; s.level = Math.max(s.level, FORM_LEVEL[f.tier]);
+        s.cls = f.cls; s.tier = f.tier; s.useTier = f.tier; s.level = Math.max(s.level, FORM_LEVEL[f.tier]);
         const d0 = derive(s); s.hp = d0.maxHp; s.mp = d0.maxMp;
         sfx.levelUp(); bus.emit(EV.TOAST, `สลับเป็น ${formName(f.cls, f.tier)}`, '#9ad8ff');
         this.close(); bus.emit(EV.STATE_CHANGED);

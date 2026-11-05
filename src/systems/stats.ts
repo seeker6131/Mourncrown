@@ -46,7 +46,7 @@ export function derive(s: GameState): Derived {
     for (const a of it.aff ?? []) g[a.k] = (g[a.k] ?? 0) + a.v;
   }
   const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
-  const cb = CLASSES[s.cls ?? 'novice'].bonus, tf = Math.max(0, s.tier ?? 0);
+  const cb = CLASSES[s.cls ?? 'novice'].bonus, tf = Math.max(0, activeTier(s));
   g.crit += (cb.crit ?? 0) * tf; g.aspd += (cb.aspd ?? 0) * tf;
   const sb = (s as GameState & { skillBuff?: { atk?: number; def?: number; aspd?: number; until: number } }).skillBuff;
   const sbOn = sb && sb.until > Date.now() ? sb : null;
@@ -121,8 +121,10 @@ export function advanceClass(s: GameState, cls?: ClassId): boolean {
   const nt = nextForm(s);
   if (nt === null) return false;
   if ((s.tier ?? 0) === 0) { if (!cls || cls === 'novice') return false; s.cls = cls; }
-  s.tier = nt;
+  s.tier = nt; s.useTier = nt;
   return true;
 }
 
-export function currentSkills(s: GameState) { return classSkills(s.cls ?? 'novice', s.tier ?? 0); }
+/** Form currently worn (chosen in the changing room; can be any unlocked form). */
+export function activeTier(s: GameState) { return Math.max(0, Math.min(s.useTier ?? s.tier ?? 0, s.tier ?? 0)); }
+export function currentSkills(s: GameState) { return classSkills(s.cls ?? 'novice', activeTier(s)); }

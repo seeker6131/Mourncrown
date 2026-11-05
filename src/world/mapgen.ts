@@ -24,7 +24,7 @@ export function unIso(sx: number, sy: number) {
 export enum G { Grass = 0, Path = 1, Water = 2, Sand = 3, Forest = 4, Grove = 5, Plaza = 6, Ruins = 7, Bridge = 8 }
 
 export type ObjType = 'tree' | 'pine' | 'bush' | 'rock' | 'bigrock' | 'flower' | 'tuft' | 'mushrooms' | 'house' | 'well' | 'fence' | 'sign' | 'campfire'
-  | 'lamp' | 'wall' | 'chest' | 'building' | 'haystack' | 'statue' | 'arch' | 'stairs' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
+  | 'lamp' | 'wall' | 'chest' | 'wardrobe' | 'building' | 'haystack' | 'statue' | 'arch' | 'stairs' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
 
 export interface WorldObj { type: ObjType; x: number; y: number; v: number; tx: number; ty: number; solid?: { w: number; h: number } }
 
@@ -158,6 +158,7 @@ export function generateWorld(seed = 1337): WorldMap {
   put('well', 15, 45, 0, { w: 1, h: 1 });
   put('building', 6, 41, 0, { w: 3, h: 3 }); // blacksmith workshop
   put('building', 12, 32, 1, { w: 2, h: 2 }); // elder's tower
+  put('wardrobe', 18, 44, 0, { w: 2, h: 1 }); // changing room
   put('haystack', 24, 34, 0, { w: 1, h: 1 }); put('haystack', 4, 44, 0, { w: 1, h: 1 });
   put('campfire', 12, 42, 0, { w: 1, h: 1 });
   put('stall', 20, 40, 0, { w: 3, h: 1 });

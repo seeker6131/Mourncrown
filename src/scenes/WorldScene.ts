@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, PLOTS, type WorldMap } from '../world/mapgen';
 import { tick as settleTick, collect as settleCollect, buildingAt } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, unlockedPlots, type BuildingId, type ResKey } from '../data/buildings';
-import { skillMult, currentSkills } from '../systems/stats';
+import { skillMult, currentSkills, activeTier } from '../systems/stats';
 import { CLASSES } from '../data/classes';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
 import { HOUSE_ANCHOR } from '../art/textures';
@@ -67,6 +67,7 @@ export class WorldScene extends Phaser.Scene {
   night = 0;
   rays: Phaser.GameObjects.Image[] = [];
   shieldHp = 0;
+  wardrobe: { x: number; y: number } | null = null;
   shieldUntil = 0;
   nodes: { img: Phaser.GameObjects.Image; sh: Phaser.GameObjects.Image | null; x: number; y: number; tx: number; ty: number; hp: number; max: number; kind: ResKey; solid: boolean; regrowAt: number; tex: string }[] = [];
   plotViews: { x: number; y: number; objs: Phaser.GameObjects.GameObject[]; bubble: Phaser.GameObjects.Container | null; key: string }[] = [];
@@ -125,6 +126,16 @@ export class WorldScene extends Phaser.Scene {
         this.nightLights.push(this.addGlow(c.x - 14, c.y - 6, 0xffc060, 0.75, true), this.addGlow(c.x + 18, c.y - 2, 0xffc060, 0.7, true));
         if (o.type === 'building' && o.v === 1) this.addGlow(c.x, c.y - 92, 0x7ad8ff, 1.2, true); // tower crystal
         if (o.type === 'building' && o.v === 0) this.nightLights.push(this.addGlow(c.x + 12, c.y - 10, 0xff8a3a, 1.1, true)); // forge
+        continue;
+      }
+      if (o.type === 'wardrobe') {
+        const t = this.fit(this.add.image(o.x, o.y + 6, 'obj_tent_0').setOrigin(0.5, 0.92).setDepth(o.y).setTint(0xc8a0ff));
+        this.castShadow(t, 0.8);
+        const ic = this.add.image(o.x, o.y - 44, 'fx_hanger').setDepth(99999);
+        this.tweens.add({ targets: ic, y: o.y - 48, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        const lb = this.add.text(o.x, o.y + 10, 'ห้องแต่งตัว', { fontFamily: FONT, fontSize: '7px', color: '#e8d0ff', stroke: '#0b0705', strokeThickness: 2, resolution: 4 }).setOrigin(0.5, 0).setDepth(o.y + 30);
+        void lb;
+        this.wardrobe = { x: o.x, y: o.y + 14 };
         continue;
       }
       if (o.type === 'chest') {
@@ -624,6 +635,7 @@ export class WorldScene extends Phaser.Scene {
     let near: string | null = null;
     for (const n of this.npcs) if (Math.hypot(n.x - h.x, n.y - h.y) < 30) near = n.id;
     this.plotViews.forEach((v, i) => { if (Math.hypot(v.x - h.x, v.y - h.y) < 30) near = 'plot:' + i; });
+    if (this.wardrobe && Math.hypot(this.wardrobe.x - h.x, this.wardrobe.y - h.y) < 32) near = 'wardrobe';
     if (near !== this.nearNpc) { this.nearNpc = near; bus.emit(EV.NEAR_NPC, near); }
 
     s.pos = { x: Math.round(h.x), y: Math.round(h.y) };
@@ -674,7 +686,7 @@ export class WorldScene extends Phaser.Scene {
         if (d <= k.range + t.def.bodyRadius && (!aoe || near >= 2 || t.def.boss || t.hp > t.maxHp * 0.4)) { this.castSkill(id); return false; }
       }
     }
-    const ranged = CLASSES[s.cls ?? 'novice'].ranged && (s.tier ?? 0) > 0;
+    const ranged = CLASSES[s.cls ?? 'novice'].ranged && activeTier(s) > 0;
     const reach = ranged ? 95 : t.def.bodyRadius + 14;
     if (d > reach) {
       if (h.busy(time)) return false;
@@ -879,7 +891,7 @@ export class WorldScene extends Phaser.Scene {
     if (best) h.setFacing(best.x - h.x, best.y - h.y);
     else { node = this.nearestNode(30); if (node) h.setFacing(node.x - h.x, node.y - 6 - h.y); }
     const dur = Math.min(260, this.der.attackInterval * 0.8);
-    const st = S(), rng = CLASSES[st.cls ?? 'novice'].ranged && (st.tier ?? 0) > 0 ? CLASSES[st.cls].ranged : false;
+    const st = S(), rng = CLASSES[st.cls ?? 'novice'].ranged && activeTier(st) > 0 ? CLASSES[st.cls].ranged : false;
     if (rng) {
       const t = this.nearestEnemy(140);
       if (!t) { node = this.nearestNode(30); }
@@ -1316,7 +1328,7 @@ export class WorldScene extends Phaser.Scene {
       sfx.bossRoar();
       bus.emit(EV.TOAST, 'ผู้พิทักษ์คลุ้มคลั่ง!', '#ff6a4a');
       b.sprite.setTint(0xffb0a0);
-      for (let i = 0; i < 3; i++) this.monsters.push(new Monster(this, i === 2 ? 'wisp' : 'shroom', b.x + (i - 1) * 30, b.y + 24, 40, -2));
+      for (let i = 0; i < 3; i++) { const add = new Monster(this, i === 2 ? 'wisp' : 'shroom', b.x + (i - 1) * 30, b.y + 24, 40, -2); add.state = 'chase'; this.monsters.push(add); }
     }
     if (time < b.nextSpecial) return;
     const h = this.hero;
@@ -1495,6 +1507,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   tryTalk(id: string) {
+    if (id === 'wardrobe') { sfx.click(); bus.emit(EV.NPC_TALK, 'wardrobe'); return; }
     if (id.startsWith('plot:')) {
       const i = Number(id.slice(5));
       if (i >= unlockedPlots(S().bossDefeated) && !buildingAt(S(), i)) { sfx.error(); bus.emit(EV.TOAST, 'ที่ดินถูกคำสาปปกคลุม — ปราบผู้พิทักษ์ธอร์นวูดเพื่อชำระ', '#c89aff'); return; }

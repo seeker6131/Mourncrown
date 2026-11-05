@@ -4,7 +4,7 @@ import { bus, EV, S } from '../core/events';
 import { controls, type WorldScene } from './WorldScene';
 import { derive, expToNext } from '../systems/stats';
 import { SKILLS, SKILL_BY_ID, type SkillId } from '../data/skills';
-import { currentSkills, nextForm } from '../systems/stats';
+import { currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formName } from '../data/classes';
 import { paintMinimapIso } from '../art/isoArt';
 import { WORLD_PX_W, WORLD_PX_H } from '../world/mapgen';
@@ -272,16 +272,6 @@ export class UIScene extends Phaser.Scene {
     });
     this.root.add(this.autoBtn.c);
 
-    // Outfit toggle: hunting gear <-> gathering clothes
-    this.outfitBtn = k.roundButton(ax - 46, ay - 96, 15, null, '⚔');
-    (this.outfitBtn.c.getData('label') as Phaser.GameObjects.Text).setFontSize(13);
-    this.outfitBtn.c.add(k.text(0, 17, 'ชุด', 6.5, '#ffe7a0').setOrigin(0.5, 0));
-    this.outfitBtn.zone.on('pointerup', () => {
-      const s = S(); s.outfit = s.outfit === 'gather' ? 'hunt' : 'gather'; sfx.click();
-      this.toast(s.outfit === 'gather' ? '⛏ ชุดหาทรัพยากร: เก็บไม้/หินได้ x2 แต่โจมตีมอน -40%' : '⚔ ชุดล่ามอนสเตอร์: พลังเต็มที่', s.outfit === 'gather' ? '#c8e8a0' : '#ffe7a0');
-      this.refresh();
-    });
-    this.root.add(this.outfitBtn.c);
 
     // Talk button (appears near NPCs)
     this.talkBtn = k.button(ax - 70, ay - 140, 70, 24, '💬 พูดคุย', () => this.world.interact(), { size: 10, color: 0x2a4a2a });
@@ -373,7 +363,7 @@ export class UIScene extends Phaser.Scene {
     this.mpText.setText(`${Math.ceil(s.mp)} / ${d.maxMp}`);
     this.expText.setText('');
     this.lvText.setText('Lv ' + s.level);
-    if (this.formKey !== `${s.cls}${s.tier}`) { const first = !this.formKey; this.formKey = `${s.cls}${s.tier}`; if (!first) { this.time.delayedCall(10, () => this.scene.restart()); return; } }
+    if (this.formKey !== `${s.cls}${activeTier(s)}`) { const first = !this.formKey; this.formKey = `${s.cls}${activeTier(s)}`; if (!first) { this.time.delayedCall(10, () => this.scene.restart()); return; } }
     this.goldText.setText('พลังรบ ' + d.power.toLocaleString() + (s.buff && s.buff.until > Date.now() ? '  🍲' : ''));
     const fmt = (n: number) => n >= 10000 ? (n / 1000).toFixed(1) + 'K' : String(Math.floor(n));
     [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i].setText(fmt(v)));
@@ -397,7 +387,6 @@ export class UIScene extends Phaser.Scene {
     this.autoBtn.c.setData('active', s.auto);
     this.autoBtn.draw(false, s.auto);
     (this.autoBtn.c.getData('label') as Phaser.GameObjects.Text).setColor(s.auto ? '#9fffb0' : '#ffe7a0');
-    (this.outfitBtn.c.getData('label') as Phaser.GameObjects.Text).setText(s.outfit === 'gather' ? '⛏' : '⚔');
     this.potionCount.setText(String(this.world.countItem('hp_potion') + this.world.countItem('hp_potion_l')));
     this.statBadge.setVisible(false);
     if (this.panels?.isOpen) this.panels.rebuild();
@@ -426,6 +415,7 @@ export class UIScene extends Phaser.Scene {
     if (id) {
       const names: Record<string, string> = { elder: 'ผู้เฒ่าอัลดริค', merchant: 'พ่อค้ามิร่า', smith: 'ช่างตีเหล็กบรอม' };
       let label = '💬 ' + (names[id] ?? 'พูดคุย');
+      if (id === 'wardrobe') label = '👕 ห้องแต่งตัว';
       if (id.startsWith('plot:')) { const b = buildingAt(S(), Number(id.slice(5))); label = '🔨 ' + (b ? BUILDINGS[b.type as BuildingId].name : 'ก่อสร้าง'); }
       (this.talkBtn.getData('label') as Phaser.GameObjects.Text).setText(label);
     }

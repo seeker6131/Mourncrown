@@ -7,6 +7,7 @@ import { hasAi, recolorHero } from '../art/aiAssets';
 import { ensureHeroAnims, hasAnim } from '../art/animAssets';
 import { hasForms, formAnim, portraitKey, FORM_RES } from '../art/formAssets';
 import { formCode } from '../data/classes';
+import { activeTier } from '../systems/stats';
 
 export type HeroState = 'idle' | 'walk' | 'attack' | 'cast' | 'hurt' | 'dead';
 
@@ -65,9 +66,9 @@ export class Hero {
   }
 
   /** Texture + frame to show the hero in UI portraits. */
-  code() { const s = S(); return this.casual ? 'V0' : formCode(s.cls ?? 'novice', s.tier ?? 0); }
+  code() { const s = S(); return this.casual ? 'V0' : formCode(s.cls ?? 'novice', activeTier(s)); }
 
-  portrait(): { key: string; frame?: string | number } { if (this.forms) { const k = portraitKey(this.scene, formCode(S().cls ?? 'novice', S().tier ?? 0)); if (k) return { key: k }; } if (this.anim) { const k = `an_hero_idle_${this.animPre.slice(2, -1)}`; return { key: this.scene.textures.exists(k) ? k : 'an_hero_idle', frame: 0 }; } return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
+  portrait(): { key: string; frame?: string | number } { if (this.forms) { const k = portraitKey(this.scene, formCode(S().cls ?? 'novice', activeTier(S()))); if (k) return { key: k }; } if (this.anim) { const k = `an_hero_idle_${this.animPre.slice(2, -1)}`; return { key: this.scene.textures.exists(k) ? k : 'an_hero_idle', frame: 0 }; } return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
 
   play(anim: string, force = false) {
     if (this.ai || this.forms) return;

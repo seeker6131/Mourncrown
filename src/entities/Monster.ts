@@ -78,8 +78,15 @@ export class Monster {
     if (this.def.boss) this.sprite.setTint(0xffa0a0); else this.sprite.setTintFill(0xffffff);
     this.hitFlashUntil = this.scene.time.now + (this.def.boss ? 60 : 80);
     if (!this.def.boss || Math.random() < 0.3) this.sprite.play(`mon_${this.def.kind}_hurt`);
-    if (this.state === 'idle' || this.state === 'wander' || this.state === 'return') this.state = 'chase';
+    if (this.state === 'idle' || this.state === 'wander' || this.state === 'return') this.provoke();
     if (this.hp <= 0) this.die();
+  }
+
+  provoke() {
+    if (!this.alive) return;
+    if (this.state === 'idle' || this.state === 'wander' || this.state === 'return') this.state = 'chase';
+    // packmates of the same kind nearby join the fight
+    for (const o of this.scene.monsters) if (o !== this && o.alive && o.def.kind === this.def.kind && (o.state === 'idle' || o.state === 'wander') && Math.hypot(o.x - this.x, o.y - this.y) < 50) o.state = 'chase';
   }
 
   die() {
@@ -128,7 +135,7 @@ export class Monster {
     switch (this.state) {
       case 'idle':
       case 'wander': {
-        if (heroAlive && hd < def.aggro) { this.state = 'chase'; break; }
+        // monsters never start a fight: they only chase after being hit (or a packmate is hit)
         if (time > this.stateUntil) {
           if (this.state === 'idle' && !def.boss) {
             const a = Math.random() * Math.PI * 2, r = Math.random() * this.homeR;

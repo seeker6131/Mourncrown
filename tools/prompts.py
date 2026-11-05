@@ -191,6 +191,22 @@ for c, name, t in TILES:
 P('DW', 'ผนังดันเจี้ยน', sheet('dungeon wall pieces', '4 by 2', ['straight stone wall segment going down-right', 'straight stone wall segment going down-left', 'outer corner', 'inner corner', 'wall with torch', 'wall with barred window', 'arched doorway', 'collapsed wall']))
 P('VP', 'ของในหมู่บ้านเพิ่มเติม', sheet('village props', '4 by 3', ['log pile', 'plank stack', 'stone block pile', 'hay cart', 'wheelbarrow', 'water trough', 'notice board without letters', 'beehive', 'clothesline with laundry', 'pumpkin pile', 'flower planter', 'wooden bench']))
 
+# ---------------- 7b. terrain with height ----------------
+sec('terrain', 'แมพมีมิติ: หน้าผา เนิน ภูเขา ระดับสูงต่ำ', 'ทุกชิ้นต้องเป็น ISOMETRIC 2:1 เหมือนพื้นในเกม • ทำ M1 ก่อน (ใช้เป็นต้นแบบ) แล้วแนบไปกับชิ้นต่อไป')
+TER = [
+    ('M1', 'หน้าผาหญ้า (ชุดต่อกันได้)', 'a set of 8 modular grass-topped cliff pieces for building raised plateaus: straight cliff wall facing down-left, straight cliff wall facing down-right, outer corner, inner corner, left end, right end, cliff with hanging vines, cliff with roots; each piece exactly one isometric tile wide with a grass top edge and layered brown earth and stone face about one tile tall'),
+    ('M2', 'หน้าผาหิน ภูเขา', 'a set of 8 modular grey rocky mountain cliff pieces, taller (two tiles high), with ledges, cracks, moss and small shrubs: straight wall facing down-left, straight wall facing down-right, outer corner, inner corner, two variations, a cave entrance, a cliff with a small waterfall'),
+    ('M3', 'ทางขึ้นลง', 'a set of 6 ramps and stairs connecting a low ground level to a higher plateau: carved stone stairs facing down-left, stone stairs facing down-right, wooden stairs with railing, dirt slope ramp, rope ladder on a cliff, rocky natural steps'),
+    ('M4', 'เนินเขาและเนินดิน', 'a set of 6 soft grassy hills and mounds of different sizes with flowers and small rocks, seen from a high isometric angle, gentle slopes, to place on flat grass as decoration'),
+    ('M5', 'ภูเขาพื้นหลัง (ไกล)', 'a wide panoramic background of distant layered fantasy mountains and forested hills with soft mist between layers, warm sunset light, painted in high-detail pixel art, 3 separate horizontal layers stacked vertically with white space between them: far misty peaks, middle forested hills, near tree line silhouette'),
+    ('M6', 'น้ำตก', 'an isometric pixel art waterfall flowing down a two-tile-high grassy rock cliff into a small pond with foam and mist, plus 3 extra frames of the same waterfall showing water animation, 4 frames in one row'),
+    ('M7', 'สะพาน/ทางเดินสูง', 'a set of 4 isometric bridges: long wooden plank bridge over a ravine, stone arch bridge, rope bridge, broken bridge'),
+    ('M8', 'ขอบน้ำ/ริมแม่น้ำ', 'a set of 8 modular isometric riverbank edge pieces: grass to water edge with sand, rocks along the shore, reeds and cattails, lily pads cluster, wooden dock, fishing pier, stepping stones, small rapids'),
+    ('M9', 'ต้นไม้ใหญ่บังฉาก (ด้านหน้า)', 'a set of 4 large foreground tree canopies and hanging branches seen from above at an isometric angle, used to frame the screen edges and add depth, slightly darker and more saturated'),
+]
+for c, name, d in TER:
+    P(c, name, f"Pixel art game asset sheet: {d}. TRUE ISOMETRIC 2:1 projection, orthographic, no perspective, camera high above looking down about 30 degrees; edges slant at 26.5 degrees. {LOOK} {PIX} Pieces separated by large empty white space. No characters. {BG}")
+
 # ---------------- 8. items ----------------
 sec('items', 'ไอคอนไอเทม', 'ไอคอนมองตรง ไม่ต้อง isometric')
 def icons(n, grid, items):
