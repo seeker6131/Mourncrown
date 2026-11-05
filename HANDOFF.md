@@ -85,7 +85,7 @@
 
 ## ทิศทางใหม่ (2026-11-05) — ผู้ใช้ส่งภาพอ้างอิง "สร้างหมู่บ้าน/ล่า/หลอมอาวุธ/ดันเจี้ยน/รับฮีโร่"
 - ผู้ใช้ให้เราออกแบบระบบเองทั้งหมด → ดู `docs/GAME_DESIGN.md` (core loop, ทรัพยากร, อาคาร, ทีมฮีโร่, ดินแดน, เฟส 1-7)
-- Prompt ภาพทั้งหมด 125 ชิ้น: `tools/prompts.py` (แหล่งเดียว) → `docs/PROMPTS.md` + หน้าเว็บ https://claude.ai/artifact/ (Prompt Book, มีปุ่มคัดลอก)
+- Prompt ภาพทั้งหมด 125 ชิ้น: `tools/prompts.py` (แหล่งเดียว) → `docs/PROMPTS.md` + หน้าเว็บ https://claude.ai/artifact/WWGB1uemxynAXSALo2427k (Prompt Book, มีปุ่มคัดลอก)
 - **เฟส 1 กำลังทำ (commit WIP, ยังไม่ deploy)**: `data/buildings.ts`, `systems/settlement.ts` (+tests), state.res/buildings,
   mapgen PLOTS (6 ที่ดินใต้หมู่บ้าน) + PATH3, WorldScene: ตัดไม้/ขุดหิน (nodes, hitNode, regrow), buildPlots/drawBuilding/updateSettlement (ฟองเก็บของ),
   อาหารจากมอนสเตอร์, AUTO ตัดไม้เมื่อไม่มีมอน
