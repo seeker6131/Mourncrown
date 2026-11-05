@@ -1,6 +1,7 @@
 // Multi-frame animation sheets made by the Game Director (processed by tools/import_anims.py).
 import Phaser from 'phaser';
 import meta from '../assets/anim/meta.json';
+import { strokeEnabled, strokeSheet } from './stroke';
 
 type Meta = { w: number; h: number; n: number; ax: number; ay: number };
 const M = meta as Record<string, Meta>;
@@ -72,6 +73,10 @@ export function ensureHeroAnims(scene: Phaser.Scene, armor: number): string {
 }
 
 export function applyAnims(scene: Phaser.Scene) {
+  if (strokeEnabled()) for (const [k, m] of Object.entries(M)) {
+    if (k.startsWith('fx_') || k === 'env_smoke' || !scene.textures.exists('an_' + k)) continue;
+    strokeSheet(scene, 'an_' + k, m.w, m.h, 2);
+  }
   for (const [k, m] of Object.entries(M)) if (scene.textures.exists('an_' + k)) pivot(scene, 'an_' + k, m);
   if (!scene.textures.exists('an_hero_idle')) return;
   ensureHeroAnims(scene, 0);

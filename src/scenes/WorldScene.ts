@@ -735,7 +735,6 @@ export class WorldScene extends Phaser.Scene {
         this.hitMonster(m, this.der.atk, 1, 'phys');
         hitAny = true;
       }
-      if (hitAny) this.cameras.main.shake(60, 0.0025);
     });
   }
 
@@ -746,7 +745,6 @@ export class WorldScene extends Phaser.Scene {
     if (r.crit) sfx.crit(); else sfx.hit();
     this.floatText(m.x + (Math.random() * 10 - 5), m.cy - 10, String(r.dmg), r.crit ? '#ffd040' : kind === 'magic' ? '#9ad8ff' : '#ffffff', r.crit ? 1.4 : 1);
     this.hitSpark(m.x, m.cy, r.crit ? 0xffd040 : kind === 'magic' ? 0x8ad0ff : 0xffffff);
-    if (r.crit) this.cameras.main.shake(90, 0.005);
     if (m.def.boss) bus.emit(EV.BOSS_HP, Math.max(0, m.hp), m.maxHp, m.def.name);
     if (!m.alive) this.onMonsterKilled(m);
   }
@@ -781,7 +779,6 @@ export class WorldScene extends Phaser.Scene {
         for (const delay of [60, 220]) this.time.delayedCall(delay, () => {
           for (const m of this.monsters) if (m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46 + m.def.bodyRadius) this.hitMonster(m, d.atk, sk.power / 2 + 0.1, 'phys', 10);
         });
-        this.cameras.main.shake(150, 0.004);
         break;
       }
       case 'flame': {
@@ -912,7 +909,6 @@ export class WorldScene extends Phaser.Scene {
     const r = this.add.image(x, y, 'fx_ring').setTint(0xffb040).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2).setDepth(99500);
     this.tweens.add({ targets: r, scale: 1.1, alpha: 0, duration: 350, onComplete: () => r.destroy() });
     this.burst(x, y, 0xffa040, 16, 70);
-    this.cameras.main.shake(140, 0.005);
     for (const m of this.monsters) if (m.alive && Math.hypot(m.x - x, m.cy - y) < 34 + m.def.bodyRadius) this.hitMonster(m, matk, power, 'magic', 8);
   }
 
@@ -964,7 +960,6 @@ export class WorldScene extends Phaser.Scene {
     h.hurtFlash();
     h.invulnUntil = time + 250;
     this.floatText(h.x, h.y - 30, '-' + r.dmg, '#ff5a5a', r.crit ? 1.3 : 1.05);
-    this.cameras.main.shake(90, 0.004);
     if (from) { const d = Math.hypot(h.x - from.x, h.y - from.y) || 1; this.moveHero((h.x - from.x) / d * 4, (h.y - from.y) / d * 4); }
     if (s.hp <= 0) this.heroDie();
     bus.emit(EV.STATE_CHANGED);
@@ -1005,11 +1000,10 @@ export class WorldScene extends Phaser.Scene {
   }
 
   bossSpecials(b: Monster, time: number) {
-    if (b.nextSpecial === 0) { b.nextSpecial = time + 3000; sfx.bossRoar(); bus.emit(EV.BOSS_HP, b.hp, b.maxHp, b.def.name); this.cameras.main.shake(500, 0.006); }
+    if (b.nextSpecial === 0) { b.nextSpecial = time + 3000; sfx.bossRoar(); bus.emit(EV.BOSS_HP, b.hp, b.maxHp, b.def.name); }
     if (b.phase === 1 && b.hp < b.maxHp * 0.5) {
       b.phase = 2;
       sfx.bossRoar();
-      this.cameras.main.shake(600, 0.01);
       bus.emit(EV.TOAST, 'ผู้พิทักษ์คลุ้มคลั่ง!', '#ff6a4a');
       b.sprite.setTint(0xffb0a0);
       for (let i = 0; i < 3; i++) this.monsters.push(new Monster(this, i === 2 ? 'wisp' : 'shroom', b.x + (i - 1) * 30, b.y + 24, 40, -2));
@@ -1032,7 +1026,6 @@ export class WorldScene extends Phaser.Scene {
           this.burst(tx, ty, 0x8a6a3a, 14, 50);
           const spike = this.add.image(tx, ty, 'fx_thorn').setOrigin(0, 0.5).setRotation(-Math.PI / 2).setScale(2.2).setDepth(ty);
           this.tweens.add({ targets: spike, scaleX: 0.1, alpha: 0, delay: 300, duration: 300, onComplete: () => spike.destroy() });
-          this.cameras.main.shake(120, 0.006);
           if (Math.hypot(h.x - tx, (h.y - ty) * 1.5) < 30) this.damageHero(b.def.atk, null, 1.4);
         });
       }

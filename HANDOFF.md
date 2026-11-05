@@ -78,6 +78,11 @@
 - Hero.animPose(), Monster.multi, WorldScene.playFx(); fallback เป็นภาพเดิมถ้าไม่มี anim
 - ยังขาด: ฮีโร่ท่าเดินลง-ซ้าย/ขึ้น-ซ้าย ใช้ flip, ไม่มีท่าโดนตีแยก (ใช้เฟรมแรกของ die)
 
+## v0.6.1
+- เส้นขอบ (stroke) รอบภาพ ai_/an_ ทั้งหมด (ยกเว้นไอคอน/พื้น/เอฟเฟกต์) `art/stroke.ts` — เปิด/ปิดได้ในเมนู (localStorage `eldergrove_stroke`, ค่าเริ่มต้นเปิด, reload เมื่อสลับ)
+- ลบเอฟเฟกต์สั่นจอทั้งหมด (ผู้ใช้ไม่ต้องการ)
+- ส่ง prompt L1-L5 (ท่าหันซ้าย) และ H1-H2 (ท่าโดนตี) ให้ผู้ใช้แล้ว → เมื่อได้ภาพ: เพิ่มใน import_anims.py เป็น hero_*left / hero_hurt แล้วใช้แทน flip ใน Hero.animPose
+
 ## ไอเดียถัดไป (หลัง v0.3)
 - APK ด้วย Capacitor + GitHub Actions (ผู้ใช้สนใจ)
 - Character creator / map editor ในเกม, ระบบนำเข้าภาพจากผู้ใช้

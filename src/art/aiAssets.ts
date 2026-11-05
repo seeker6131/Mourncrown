@@ -1,6 +1,7 @@
 // Imported art made by the Game Director with an image generator (processed by tools/import_ai_assets.py).
 // Loaded at boot; replaces procedural textures where available, procedural art remains the fallback.
 import Phaser from 'phaser';
+import { strokeEnabled, strokeImage } from './stroke';
 
 const files = import.meta.glob('../assets/ai/*.{png,jpg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
@@ -89,6 +90,10 @@ export function recolorHero(scene: Phaser.Scene, armor: number) {
 
 /** Apply all aliases after procedural generation. */
 export function applyAiArt(scene: Phaser.Scene) {
+  if (strokeEnabled()) for (const k of scene.textures.getTextureKeys()) {
+    if (!k.startsWith('ai_') || k.startsWith('ai_icon_') || k.startsWith('ai_tile_') || k === 'ai_keyart') continue;
+    strokeImage(scene, k, 2);
+  }
   if (!hasAi(scene, 'house_0')) return;
   const A = (k: string, n: string, o?: Parameters<typeof aliasAi>[3]) => aliasAi(scene, k, n, o);
   // icons (32px)
