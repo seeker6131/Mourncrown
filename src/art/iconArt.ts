@@ -241,6 +241,21 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
   qq.rect(2, 0, 6, 2, 0x8ae0ff); qq.rect(6, 2, 2, 4, 0x8ae0ff); qq.rect(4, 5, 3, 2, 0x8ae0ff); qq.rect(4, 7, 2, 3, 0x8ae0ff); qq.rect(4, 11, 2, 3, 0x8ae0ff); qq.rect(1, 2, 2, 2, 0x8ae0ff);
   qq.outline(OUT, false);
   out.qdone = qq;
+  // aura cylinder, split into back (upper arcs) and front (lower arcs) halves
+  for (const [k, a0, a1] of [['aura_back', Math.PI, Math.PI * 2], ['aura_front', 0, Math.PI]] as const) {
+    const cv = document.createElement('canvas'); cv.width = 64; cv.height = 72;
+    const x = cv.getContext('2d')!;
+    const H = 56;
+    for (let h = 0; h <= H; h++) {
+      const t = h / H;
+      x.globalAlpha = 0.9 * Math.pow(1 - t, 1.3);
+      x.strokeStyle = '#ffffff'; x.lineWidth = 2;
+      x.beginPath(); x.ellipse(32, 62 - h, 28, 9, 0, a0, a1); x.stroke();
+    }
+    // bright base ring
+    x.globalAlpha = 1; x.lineWidth = 3.5; x.beginPath(); x.ellipse(32, 62, 28, 9, 0, a0, a1); x.stroke();
+    out[k] = cv;
+  }
   // butterfly (white, tinted in game; flaps via scaleX)
   const bf = new PixelCanvas(7, 5);
   bf.rect(0, 0, 3, 2, 0xffffff); bf.rect(4, 0, 3, 2, 0xffffff); bf.rect(1, 2, 2, 2, 0xe8e8e8); bf.rect(4, 2, 2, 2, 0xe8e8e8); bf.rect(3, 1, 1, 3, 0x3a2a2a);

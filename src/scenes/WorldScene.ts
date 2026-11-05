@@ -748,6 +748,7 @@ export class WorldScene extends Phaser.Scene {
         const ring2 = this.add.image(h.x, h.y - 8, 'fx_slash').setBlendMode(Phaser.BlendModes.ADD).setDepth(h.y + 6).setScale(1.5).setRotation(Math.PI).setTint(0x9ad8ff);
         this.tweens.add({ targets: [ring, ring2], rotation: '+=12', scale: 2.4, alpha: 0, duration: 450, onComplete: () => { ring.destroy(); ring2.destroy(); } });
         this.burst(h.x, h.y - 6, 0xbfe8ff, 18, 60);
+        this.surround(h.x, h.y, 0xbfe8ff, { rings: 2, height: 14, radius: 26, motes: 10, dur: 450 });
         for (const delay of [60, 220]) this.time.delayedCall(delay, () => {
           for (const m of this.monsters) if (m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46 + m.def.bodyRadius) this.hitMonster(m, d.atk, sk.power / 2 + 0.1, 'phys', 10);
         });
@@ -781,6 +782,7 @@ export class WorldScene extends Phaser.Scene {
         targets.forEach((m, i) => this.time.delayedCall(120 + i * 90, () => {
           if (!m.alive) return;
           this.boltAt(m.x, m.y);
+          this.surround(m.x, m.y, 0xbfe0ff, { rings: 2, height: 22, radius: m.def.bodyRadius + 8, motes: 8, dur: 450 });
           this.hitMonster(m, d.matk, sk.power, 'magic', 2);
         }));
         sfx.thunder();
@@ -801,18 +803,65 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  healFx() {
-    const h = this.hero;
-    const ring = this.add.image(h.x, h.y - 2, 'fx_ring').setTint(0x7aff9a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2, 0.1).setDepth(2);
-    this.tweens.add({ targets: ring, scaleX: 1, scaleY: 0.5, alpha: 0, duration: 600, onComplete: () => ring.destroy() });
-    for (let i = 0; i < 14; i++) {
-      const p = this.add.image(h.x + (Math.random() * 24 - 12), h.y - Math.random() * 10, 'fx_spark').setTint(0x9aff9a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99000).setScale(0.6);
-      this.tweens.add({ targets: p, y: p.y - 30 - Math.random() * 20, alpha: 0, duration: 700 + Math.random() * 400, delay: i * 30, onComplete: () => p.destroy() });
+  /**
+   * Aura that wraps around a character: every piece is split into a BACK half (drawn behind the
+   * character) and a FRONT half (drawn over it), so the character stands inside the effect.
+   */
+  surround(x: number, y: number, color: number, o: { rings?: number; height?: number; radius?: number; motes?: number; beam?: boolean; dur?: number } = {}) {
+    const R = o.radius ?? 15, H = o.height ?? 34, dur = o.dur ?? 900;
+    const back = y - 0.5, front = y + 0.5;
+    const add = Phaser.BlendModes.ADD;
+    // ground ring
+    const g = this.add.image(x, y, 'fx_ring').setTint(color).setBlendMode(add).setScale(0.15, 0.07).setDepth(2).setAlpha(0.9);
+    this.tweens.add({ targets: g, scaleX: R / 26, scaleY: R / 52, alpha: 0, duration: dur, ease: 'Quad.easeOut', onComplete: () => g.destroy() });
+    // glowing cylinder wall: back half behind the character, front half over it
+    const cb = this.add.image(x, y, 'fx_aura_back').setOrigin(0.5, 62 / 72).setTint(color).setBlendMode(add).setDepth(back);
+    const cf = this.add.image(x, y, 'fx_aura_front').setOrigin(0.5, 62 / 72).setTint(color).setBlendMode(add).setDepth(front);
+    for (const [im, al] of [[cb, 1], [cf, 0.75]] as const) {
+      im.setScale(R / 28, 0.15).setAlpha(al);
+      this.tweens.add({ targets: im, scaleY: H / 56, duration: dur * 0.25, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: im, alpha: 0, scaleX: (R / 28) * 1.15, delay: dur * 0.55, duration: dur * 0.45, onComplete: () => im.destroy() });
+    }
+    // rising rings, split into back/front halves
+    const n = o.rings ?? 3;
+    for (let i = 0; i < n; i++) {
+      const halves = [
+        this.add.image(x, y, 'fx_ring').setCrop(0, 0, 64, 32).setDepth(back).setAlpha(0.85),
+        this.add.image(x, y, 'fx_ring').setCrop(0, 32, 64, 32).setDepth(front).setAlpha(0.55),
+      ];
+      for (const r of halves) {
+        r.setTint(color).setBlendMode(add).setScale(R / 30, R / 60);
+        this.tweens.add({ targets: r, y: y - H, scaleX: R / 48, scaleY: R / 96, alpha: 0, duration: dur * 0.9, delay: i * dur * 0.18, ease: 'Sine.easeOut', onComplete: () => r.destroy() });
+      }
+    }
+    // light column: bright behind, faint veil in front
+    if (o.beam) {
+      const bb = this.add.image(x, y + 2, 'fx_ray').setOrigin(0.5, 1).setTint(color).setBlendMode(add).setScale(R / 22, 0.1).setDepth(back).setAlpha(0.9);
+      const bf = this.add.image(x, y + 2, 'fx_ray').setOrigin(0.5, 1).setTint(color).setBlendMode(add).setScale(R / 22, 0.1).setDepth(front).setAlpha(0.3);
+      this.tweens.add({ targets: [bb, bf], scaleY: H / 70, duration: dur * 0.3, yoyo: true, hold: dur * 0.4, onComplete: () => { bb.destroy(); bf.destroy(); } });
+    }
+    // motes spiralling upward around the body; depth flips as they pass behind/in front
+    for (let i = 0; i < (o.motes ?? 12); i++) {
+      const a0 = Math.random() * Math.PI * 2, spin = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
+      const p = this.add.image(x, y, 'fx_spark').setTint(color).setBlendMode(add).setScale(0.7);
+      this.tweens.addCounter({ from: 0, to: 1, duration: dur * (0.8 + Math.random() * 0.5), delay: i * (dur / 30),
+        onUpdate: tw => {
+          const t = tw.getValue()!; const a = a0 + t * spin;
+          const r = R * (1 - t * 0.45);
+          const sy = Math.sin(a);
+          p.setPosition(x + Math.cos(a) * r, y + sy * r * 0.4 - t * H).setDepth(sy > 0 ? front : back).setAlpha((1 - t) * (sy > 0 ? 0.9 : 0.6));
+        },
+        onComplete: () => p.destroy() });
     }
   }
 
+  healFx() {
+    const h = this.hero;
+    this.surround(h.x, h.y, 0x5cff8a, { rings: 3, height: 34, radius: 15, motes: 18, beam: true, dur: 1000 });
+  }
+
   boltAt(x: number, y: number) {
-    const b = this.add.image(x, y, 'fx_bolt').setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD).setDepth(99500).setScale(1, 1.1);
+    const b = this.add.image(x, y + 1, 'fx_bolt').setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 0.5).setScale(1, 1.1);
     const g = this.add.image(x, y - 4, 'fx_glow').setTint(0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6).setDepth(99499);
     this.tweens.add({ targets: [b, g], alpha: 0, duration: 260, delay: 60, onComplete: () => { b.destroy(); g.destroy(); } });
     this.burst(x, y - 4, 0xd8f0ff, 10, 50);
@@ -1022,14 +1071,7 @@ export class WorldScene extends Phaser.Scene {
     sfx.levelUp();
     this.der = derive(S());
     bus.emit(EV.LEVEL_UP, S().level);
-    const pillar = this.add.image(h.x, h.y, 'fx_ray').setOrigin(0.5, 1).setTint(0xffe080).setBlendMode(Phaser.BlendModes.ADD).setScale(1.2, 0.2).setDepth(99700);
-    this.tweens.add({ targets: pillar, scaleY: 1, duration: 300, yoyo: true, hold: 500, onComplete: () => pillar.destroy() });
-    const ring = this.add.image(h.x, h.y, 'fx_ring').setTint(0xffd040).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2, 0.1).setDepth(2);
-    this.tweens.add({ targets: ring, scaleX: 1.6, scaleY: 0.8, alpha: 0, duration: 800, onComplete: () => ring.destroy() });
-    for (let i = 0; i < 24; i++) {
-      const p = this.add.image(h.x + Math.random() * 30 - 15, h.y, 'fx_spark').setTint(0xffe080).setBlendMode(Phaser.BlendModes.ADD).setDepth(99701).setScale(0.6);
-      this.tweens.add({ targets: p, y: h.y - 40 - Math.random() * 30, alpha: 0, duration: 900, delay: i * 25, onComplete: () => p.destroy() });
-    }
+    this.surround(h.x, h.y, 0xffd860, { rings: 4, height: 44, radius: 17, motes: 24, beam: true, dur: 1300 });
     this.floatText(h.x, h.y - 44, 'LEVEL UP!', '#ffd040', 1.5);
   }
 
