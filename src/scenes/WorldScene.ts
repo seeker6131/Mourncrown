@@ -94,6 +94,7 @@ export class WorldScene extends Phaser.Scene {
 
     // objects
     const ai = hasAi(this, 'house_0');
+    const fenceSet = new Set(this.map.objects.filter(q => q.type === 'fence').map(q => q.tx + ',' + q.ty));
     for (const o of this.map.objects) {
       if (o.type === 'campfire') {
         if (this.anims.exists('env_campfire')) {
@@ -112,6 +113,7 @@ export class WorldScene extends Phaser.Scene {
         const w = o.solid!.w, h = o.solid!.h;
         const sx0 = o.tx - Math.floor((w - 1) / 2), sy0 = o.ty - h + 1;
         const c = iso(sx0 + w / 2, sy0 + h / 2), bot = iso(sx0 + w, sy0 + h);
+        this.add.image(c.x, c.y + 4, 'fx_glow').setTint(0x0a0612).setAlpha(0.55).setScale(w * 0.9, h * 0.55).setDepth(1.1);
         if (!ai) this.add.image(c.x + 10, c.y + 4, 'fx_shadow').setScale(w * 1.15, h * 1.25).setAlpha(0.8).setDepth(1);
         if (ai) {
           const bimg = this.fit(this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10));
@@ -129,10 +131,13 @@ export class WorldScene extends Phaser.Scene {
         continue;
       }
       if (o.type === 'wardrobe') {
-        const t = this.fit(this.add.image(o.x, o.y + 6, 'obj_tent_0').setOrigin(0.5, 0.92).setDepth(o.y).setTint(0xc8a0ff));
+        const tk = this.wardrobeTexture();
+        const t = this.fit(this.add.image(o.x, o.y + 8, tk).setOrigin(0.5, 0.92).setDepth(o.y));
+        if (tk === 'obj_tent_0') t.setTint(0xf0dcff);
+        if (this.anims.exists('env_flag')) { const fl = this.add.sprite(o.x + 22, o.y + 4, '__DEFAULT').setDepth(o.y + 1).setScale(0.45).setTint(0xd8b0ff).play('env_flag'); this.castShadow(fl, 0.6); }
         this.castShadow(t, 0.8);
-        const ic = this.add.image(o.x, o.y - 44, 'fx_hanger').setDepth(99999);
-        this.tweens.add({ targets: ic, y: o.y - 48, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        const ic = this.add.image(o.x, o.y - 54, 'fx_hanger').setDepth(99999);
+        this.tweens.add({ targets: ic, y: o.y - 58, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         const lb = this.add.text(o.x, o.y + 10, 'ห้องแต่งตัว', { fontFamily: FONT, fontSize: '7px', color: '#e8d0ff', stroke: '#0b0705', strokeThickness: 2, resolution: 4 }).setOrigin(0.5, 0).setDepth(o.y + 30);
         void lb;
         this.wardrobe = { x: o.x, y: o.y + 14 };
@@ -165,6 +170,15 @@ export class WorldScene extends Phaser.Scene {
         lp.anims.setProgress(Math.random());
         this.castShadow(lp, 0.8);
         this.nightLights.push(this.addGlow(o.x + 5, o.y - 20, 0xffd060, 0.9, true));
+        continue;
+      }
+      if (o.type === 'fence' && ai) {
+        const has = (dx: number, dy: number) => fenceSet.has((o.tx + dx) + ',' + (o.ty + dy));
+        const alongX = has(1, 0) || has(-1, 0), alongY = has(0, 1) || has(0, -1);
+        const k = alongX && !alongY ? 'obj_fence_1' : alongY && !alongX ? 'obj_fence_0' : (o.v === 1 ? 'obj_fence_1' : 'obj_fence_0');
+        const fimg = this.fit(this.add.image(o.x, o.y + 6, k).setOrigin(0.5, 0.86));
+        fimg.setScale(fimg.scaleX * 0.74).setDepth(o.y);
+        this.castShadow(fimg, 0.7);
         continue;
       }
       let key = `obj_${o.type}_${o.v}`;
@@ -210,10 +224,10 @@ export class WorldScene extends Phaser.Scene {
       const { x, y } = iso(n.x + 0.5, n.y + 0.5);
       this.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.8);
       const sp = this.add.sprite(x, y, `npc_${n.id}`).setOrigin(0.5, 0.95).setDepth(y).play(`npc_${n.id}_idle`);
-      if (sp.texture.key.startsWith('an_')) sp.setScale(0.5);
+      if (sp.texture.key.startsWith('an_')) sp.setScale(0.5 * 34 / 44); // same size as the hero
       this.castShadow(sp, 0.8);
-      const marker = this.add.image(x, y - 40, 'fx_qmark').setDepth(99999).setVisible(false);
-      this.tweens.add({ targets: marker, y: y - 44, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const marker = this.add.image(x, y - 42, 'fx_qmark').setDepth(99999).setVisible(false).setScale(0.75);
+      this.tweens.add({ targets: marker, y: y - 46, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       sp.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.tryTalk(n.id));
       this.npcs.push({ id: n.id, x, y, sprite: sp, marker });
     }
@@ -314,6 +328,27 @@ export class WorldScene extends Phaser.Scene {
     this.butterflies = this.butterflies.filter(b => b.t >= 0);
   }
 
+  /** Changing room: the market-stall art with its green awning recoloured royal purple. */
+  wardrobeTexture(): string {
+    if (this.textures.exists('ai_wardrobe')) return 'ai_wardrobe';
+    if (!this.textures.exists('ai_stall')) return 'obj_tent_0';
+    const img = this.textures.get('ai_stall').getSourceImage() as HTMLImageElement;
+    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    const ctx = cv.getContext('2d')!; ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, cv.width, cv.height), d = id.data;
+    for (let p = 0; p < d.length; p += 4) {
+      if (!d[p + 3]) continue;
+      const c = Phaser.Display.Color.RGBToHSV(d[p], d[p + 1], d[p + 2]) as { h: number; s: number; v: number };
+      if (c.h > 0.22 && c.h < 0.5 && c.s > 0.25) {
+        const rgb = Phaser.Display.Color.HSVToRGB(0.78, Math.min(1, c.s * 1.05), c.v) as { r: number; g: number; b: number };
+        d[p] = rgb.r; d[p + 1] = rgb.g; d[p + 2] = rgb.b;
+      }
+    }
+    ctx.putImageData(id, 0, 0);
+    this.textures.addCanvas('ai_wardrobe', cv);
+    return 'ai_wardrobe';
+  }
+
   /** Draw hi-res (2x) art at world scale. */
   fit<T extends Phaser.GameObjects.Image>(img: T): T { const r = resOf(img.texture.key); if (r !== 1) img.setScale(1 / r); return img; }
 
@@ -326,12 +361,12 @@ export class WorldScene extends Phaser.Scene {
       if (!this.cameras.main.worldView.contains(x, y + 40)) return;
       if (this.anims.exists('env_smoke') && Math.random() < 0.4) {
         const sm = this.playFx('env_smoke', x + 4, y - 2, 99960, { scale: 0.35, normal: true, alpha: 0.75 });
-        if (sm) { sm.setOrigin(0.3, 1); this.tweens.add({ targets: sm, x: x + 14, y: y - 12, duration: 1200 }); }
+        if (sm) { sm.setOrigin(0.3, 1).setAlpha(0.55); this.tweens.add({ targets: sm, x: x + 16, y: y - 8, duration: 1200 }); }
         return;
       }
       const p = this.add.image(x + Math.random() * 3, y, 'fx_glow').setTint(0xc8c0c8).setAlpha(0.32).setScale(0.12).setDepth(99960);
       const life = 2600 + Math.random() * 1200;
-      this.tweens.add({ targets: p, y: y - 34 - Math.random() * 10, x: p.x + 10 + Math.random() * 12, scale: 0.42, alpha: 0, duration: life, ease: 'Sine.easeOut', onComplete: () => p.destroy() });
+      this.tweens.add({ targets: p, y: y - 20 - Math.random() * 8, x: p.x + 14 + Math.random() * 12, scale: 0.34, alpha: 0, duration: life, ease: 'Sine.easeOut', onComplete: () => p.destroy() });
     } });
   }
 

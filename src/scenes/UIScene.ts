@@ -164,10 +164,10 @@ export class UIScene extends Phaser.Scene {
     // menu buttons under minimap
     const by = my + mmH + 18;
     const menuDefs: [string, string, () => void][] = [
-      ['icon_armor0', 'กระเป๋า', () => this.panels.open('bag')],
-      ['icon_sword2', 'ตัวละคร', () => this.panels.open('stats')],
-      ['icon_spore', 'เควสต์', () => this.panels.open('quest')],
-      ['icon_gem0', 'เมนู', () => this.panels.open('menu')],
+      ['fx_ui_bag', 'กระเป๋า', () => this.panels.open('bag')],
+      [this.world.hero.portrait().frame === undefined ? this.world.hero.portrait().key : 'fx_ui_hero', 'ตัวละคร', () => this.panels.open('stats')],
+      ['fx_ui_scroll', 'เควสต์', () => this.panels.open('quest')],
+      ['fx_ui_gear', 'เมนู', () => this.panels.open('menu')],
     ];
     menuDefs.forEach(([icon, label, cb], i) => {
       const b = k.roundButton(this.VW - 20 - (3 - i) * 27, by, 12, icon, null);
@@ -189,7 +189,7 @@ export class UIScene extends Phaser.Scene {
     this.root.add([this.bossBar, this.bossText]);
 
     // fullscreen hint button (top centre-left)
-    const fs = k.roundButton(this.VW - 20 - 4 * 27, by, 12, null, '⛶');
+    const fs = k.roundButton(this.VW - 20 - 4 * 27, by, 12, 'fx_ui_full', null);
     fs.zone.on('pointerup', () => this.toggleFullscreen());
     fs.c.add(k.text(0, 15, 'เต็มจอ', 6.5, '#ffe7a0').setOrigin(0.5, 0));
     this.root.add(fs.c);

@@ -1,7 +1,7 @@
 // Isometric (2:1) environment art: painted ground, buildings, props, minimap.
 import { PixelCanvas, shadeDark, shadeLight, lighten, darken, mix, type Color } from './pixel';
 import { hash2, fbm, valueNoise } from '../core/rng';
-import { G, MAP_W, MAP_H, WORLD_PX_W, WORLD_PX_H, unIso } from '../world/mapgen';
+import { G, MAP_W, MAP_H, WORLD_PX_W, WORLD_PX_H, unIso, surfaceAt } from '../world/mapgen';
 
 const OUT = 0x120a14;
 export const WATER_DEPTH = 6;
@@ -28,9 +28,10 @@ export function paintGroundIso(ground: Uint8Array): HTMLCanvasElement {
   // ground type at a screen pixel (with organic jitter of borders)
   const gScreen = (sx: number, sy: number): number => {
     const t = unIso(sx, sy);
-    const jx = (valueNoise(sx * 0.09, sy * 0.18, 11) - 0.5) * 0.55;
-    const jy = (valueNoise(sx * 0.09, sy * 0.18, 23) - 0.5) * 0.55;
-    return gAt(t.tx + jx, t.ty + jy);
+    const jx = (valueNoise(sx * 0.09, sy * 0.18, 11) - 0.5) * 0.35;
+    const jy = (valueNoise(sx * 0.09, sy * 0.18, 23) - 0.5) * 0.35;
+    const g = gAt(t.tx + jx, t.ty + jy);
+    return g < 0 ? g : surfaceAt(t.tx + jx * 0.4, t.ty + jy * 0.4, g);
   };
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -78,6 +79,14 @@ export function paintGroundIso(ground: Uint8Array): HTMLCanvasElement {
           if (blade > 0.8) c = shadeLight(c, 0.13);
           else if (blade < 0.17) c = shadeDark(c, 0.18);
           if (h > 0.996) c = shadeLight(c, 0.45);
+          // grass clumps: lit top-left rim, shadowed bottom-right
+          const cl = valueNoise(x * 0.22, y * 0.44, 13);
+          if (cl > 0.72) { const cl2 = valueNoise((x + 2) * 0.22, (y + 2) * 0.44, 13); c = cl2 < cl - 0.03 ? shadeLight(c, 0.18) : shadeDark(c, 0.08); }
+          else if (cl > 0.66) c = shadeDark(c, 0.14);
+          // tiny pebbles and clover
+          const pb = hash2(x >> 1, y >> 1, 71);
+          if (pb > 0.9985) c = 0xb8b0a0; else if (pb > 0.9975) c = 0x8a8478;
+          if (g === G.Grass && valueNoise(x * 0.07, y * 0.14, 19) > 0.78 && hash2(x, y, 23) > 0.86) c = shadeLight(c, 0.3);
           if (g === G.Forest) { const sp = valueNoise(x * 0.025, y * 0.05, 99); if (sp > 0.72) c = shadeLight(c, 0.16); else if (sp < 0.3) c = shadeDark(c, 0.15); }
         } else if (g === G.Path || g === G.Sand) {
           c = n > 0.55 ? lighten(c, 0.06) : n < 0.42 ? darken(c, 0.08) : c;
@@ -85,18 +94,29 @@ export function paintGroundIso(ground: Uint8Array): HTMLCanvasElement {
           // pebbles
           if (g === G.Path && valueNoise(t.tx * 3, t.ty * 3, 41) > 0.86) c = mix(c, 0x9a9488, 0.6);
         } else if (g === G.Plaza || g === G.Ruins) {
-          // iso cobblestones aligned to the tile grid
-          const u = t.tx * 3, v = t.ty * 3;
-          const row = Math.floor(v);
-          const uu = u + (row % 2) * 0.5;
-          const su = Math.floor(uu), sv = row;
-          const shade = hash2(su, sv, g) * 0.18 - 0.09;
-          c = shade > 0 ? lighten(c, shade) : darken(c, -shade);
-          const fu = uu - su, fv = v - sv;
-          if (fu < 0.08 || fv < 0.1) c = darken(c, 0.32);
-          else if (fu < 0.16 || fv < 0.2) c = lighten(c, 0.1);
-          if (g === G.Ruins && valueNoise(x * 0.04, y * 0.08, 5) > 0.64) c = mix(c, 0x3f7a34, 0.55);
-          if (g === G.Ruins && hash2(su, sv, 9) > 0.93) c = darken(c, 0.25);
+          // irregular flagstones (jittered Voronoi in tile space) with bevel light + mortar AO
+          const u = t.tx * 2.6, v = t.ty * 2.6;
+          const cu = Math.floor(u), cv = Math.floor(v);
+          let d1 = 9, d2 = 9, id = 0;
+          for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+            const gx = cu + i, gy = cv + j;
+            const px = gx + 0.15 + hash2(gx, gy, 31) * 0.7, py = gy + 0.15 + hash2(gx, gy, 47) * 0.7;
+            const dd = Math.hypot((u - px) * 1.0, (v - py) * 1.0);
+            if (dd < d1) { d2 = d1; d1 = dd; id = gx * 7919 + gy; } else if (dd < d2) d2 = dd;
+          }
+          const edge = d2 - d1;
+          const stone = hash2(id, 3, g);
+          let base = mix(GROUND_BASE[g], stone > 0.66 ? 0xa89a86 : stone > 0.33 ? 0x8e8778 : 0x9c9488, 0.55);
+          if (g === G.Ruins) base = mix(base, 0x7a7690, 0.5);
+          c = base;
+          if (edge < 0.07) c = darken(base, 0.42);                       // mortar
+          else if (edge < 0.13) c = darken(base, 0.18);                  // stone rim (shadow side)
+          else {
+            const lx = (u - Math.floor(u)) - (v - Math.floor(v));
+            if (edge < 0.2 && lx < 0) c = lighten(base, 0.12);             // bevel highlight
+            if (hash2(x, y, 5) > 0.985) c = darken(c, 0.15);              // grit
+          }
+          if (valueNoise(x * 0.05, y * 0.1, 5) > (g === G.Ruins ? 0.62 : 0.74) && edge < 0.14) c = mix(c, 0x4f8a3a, 0.65); // moss in cracks
         } else if (g === G.Bridge) {
           const plank = Math.floor(t.tx * 3.2);
           c = plank % 2 ? c : lighten(c, 0.08);

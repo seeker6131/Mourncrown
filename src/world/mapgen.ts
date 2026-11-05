@@ -88,6 +88,19 @@ export function pathDist(x: number, y: number) {
   return Math.min(distToPolyline(x, y, PATH), distToPolyline(x, y, PATH2), distToPolyline(x, y, PATH3));
 }
 
+/** Continuous (sub-tile) refinement of plaza / ruins / path borders for smooth, organic painted edges. */
+export function surfaceAt(tx: number, ty: number, tileG: number): number {
+  if (tileG === G.Water || tileG === G.Sand || tileG === G.Bridge) return tileG;
+  for (const [px, py] of PLOTS) if (Math.abs(tx - px - 0.5) <= 1.5 && Math.abs(ty - py - 0.5) <= 1.5) return G.Plaza;
+  const land = tileG === G.Forest || tileG === G.Grove ? tileG : G.Grass;
+  const n = fbm(tx * 0.08, ty * 0.08, 7);
+  const zd = (z: string) => { const Z = ZONES.find(q => q.id === z)!; return Math.hypot(tx - 0.5 - Z.cx, ty - 0.5 - Z.cy) / Z.r; };
+  if (zd('village') < 0.42 + (n - 0.5) * 0.15) return G.Plaza;
+  if (zd('arena') < 0.85 + (n - 0.5) * 0.2) return G.Ruins;
+  if (pathDist(tx, ty) + (n - 0.5) * 0.9 < 1.3) return G.Path;
+  return land;
+}
+
 export function generateWorld(seed = 1337): WorldMap {
   const rnd = mulberry32(seed);
   const ground = new Uint8Array(MAP_W * MAP_H);
@@ -158,12 +171,12 @@ export function generateWorld(seed = 1337): WorldMap {
   put('well', 15, 45, 0, { w: 1, h: 1 });
   put('building', 6, 41, 0, { w: 3, h: 3 }); // blacksmith workshop
   put('building', 12, 32, 1, { w: 2, h: 2 }); // elder's tower
-  put('wardrobe', 18, 44, 0, { w: 2, h: 1 }); // changing room
+  put('wardrobe', 11, 37, 0, { w: 2, h: 1 }); // changing room (on the plaza edge, never hidden by houses)
   put('haystack', 24, 34, 0, { w: 1, h: 1 }); put('haystack', 4, 44, 0, { w: 1, h: 1 });
   put('campfire', 12, 42, 0, { w: 1, h: 1 });
   put('stall', 20, 40, 0, { w: 3, h: 1 });
   put('sign', 25, 38, 0, { w: 1, h: 1 });
-  put('lamp', 11, 36, 0, { w: 1, h: 1 }); put('lamp', 19, 36, 0, { w: 1, h: 1 }); put('lamp', 11, 44, 0, { w: 1, h: 1 }); put('lamp', 19, 44, 0, { w: 1, h: 1 });
+  put('lamp', 19, 36, 0, { w: 1, h: 1 }); put('lamp', 11, 44, 0, { w: 1, h: 1 }); put('lamp', 19, 44, 0, { w: 1, h: 1 });
   for (const [x, y] of [[17, 41], [25, 43], [5, 36], [23, 36]] as const) put(rnd() < 0.5 ? 'barrel' : 'crate', x, y, 0, { w: 1, h: 1 });
   // fence ring around village (with gaps for path)
   for (let a = 0; a < Math.PI * 2; a += 0.09) {

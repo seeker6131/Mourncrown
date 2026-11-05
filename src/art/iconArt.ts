@@ -267,14 +267,25 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
   rr.fillStyle = rgd; rr.beginPath(); rr.moveTo(8, 0); rr.lineTo(24, 0); rr.lineTo(32, 128); rr.lineTo(0, 128); rr.fill();
   out.ray = ray;
   // quest marker
-  const qm = new PixelCanvas(8, 14);
-  qm.rect(2, 0, 4, 9, 0xffd040); qm.rect(2, 11, 4, 3, 0xffd040); qm.rect(2, 0, 2, 9, 0xfff0a0);
-  qm.outline(OUT, false);
-  out.qmark = qm;
-  const qq = new PixelCanvas(10, 14);
-  qq.rect(2, 0, 6, 2, 0x8ae0ff); qq.rect(6, 2, 2, 4, 0x8ae0ff); qq.rect(4, 5, 3, 2, 0x8ae0ff); qq.rect(4, 7, 2, 3, 0x8ae0ff); qq.rect(4, 11, 2, 3, 0x8ae0ff); qq.rect(1, 2, 2, 2, 0x8ae0ff);
-  qq.outline(OUT, false);
-  out.qdone = qq;
+  // quest markers: gold "!" (new quest) and blue "?" (ready to turn in) on a small shield badge
+  const badge = (glyph: (p: PixelCanvas, col: number, hi: number) => void, col: number, hi: number, rim: number) => {
+    const p = new PixelCanvas(16, 22);
+    p.poly([[1, 2], [15, 2], [15, 13], [8, 20], [1, 13]], 0x2a1a10);
+    p.poly([[2, 3], [14, 3], [14, 12.5], [8, 18.5], [2, 12.5]], rim);
+    p.poly([[3, 4], [13, 4], [13, 12], [8, 17], [3, 12]], 0x3a2414);
+    glyph(p, col, hi);
+    p.outline(OUT, false);
+    return p;
+  };
+  out.qmark = badge((p, c, hi) => { p.rect(7, 5, 3, 7, c); p.rect(7, 5, 1, 7, hi); p.rect(7, 13, 3, 2, c); p.set(7, 13, hi); }, 0xffd040, 0xfff4b0, 0xd9b45a);
+  out.qdone = badge((p, c, hi) => { p.rect(6, 5, 5, 2, c); p.rect(10, 6, 2, 3, c); p.rect(8, 9, 3, 2, c); p.rect(8, 11, 2, 1, c); p.rect(8, 13, 2, 2, c); p.rect(6, 5, 5, 1, hi); }, 0x8ae0ff, 0xe0f8ff, 0x6fb6ff);
+  // HUD menu icons (drawn, consistent style)
+  const ic = (draw: (p: PixelCanvas) => void) => { const p = new PixelCanvas(16, 16); draw(p); p.outline(OUT, false); return p; };
+  out.ui_bag = ic(p => { p.shadedEllipse(8, 10, 6, 5, 0x9a6234); p.rect(5, 3, 6, 3, 0x7a4a24); p.rect(6, 2, 4, 1, 0x5a3418); p.rect(3, 8, 10, 1, 0x5a3418); p.rect(7, 8, 2, 3, 0xf2cc58); });
+  out.ui_scroll = ic(p => { p.shadedRect(3, 3, 10, 11, 0xf0e2b8); p.rect(2, 2, 12, 2, 0xc89a60); p.rect(2, 13, 12, 2, 0xc89a60); for (let y = 5; y < 12; y += 2) p.rect(5, y, 6, 1, 0x8a6a4a); });
+  out.ui_gear = ic(p => { for (let a = 0; a < 8; a++) { const r = a * Math.PI / 4; p.rect(8 + Math.cos(r) * 6 - 1, 8 + Math.sin(r) * 6 - 1, 3, 3, 0xb0b4c0); } p.shadedEllipse(8, 8, 5, 5, 0xc8ccd8); p.ellipse(8, 8, 2, 2, 0x3a3048); });
+  out.ui_full = ic(p => { const c = 0xf2cc58; p.rect(2, 2, 5, 2, c); p.rect(2, 2, 2, 5, c); p.rect(9, 2, 5, 2, c); p.rect(12, 2, 2, 5, c); p.rect(2, 12, 5, 2, c); p.rect(2, 9, 2, 5, c); p.rect(9, 12, 5, 2, c); p.rect(12, 9, 2, 5, c); });
+  out.ui_hero = ic(p => { p.shadedEllipse(8, 6, 4, 4, 0xf4c7a0); p.shadedEllipse(8, 4, 4.5, 3, 0x8a4a22); p.shadedRect(4, 10, 8, 5, 0x3e6db5); });
   // aura cylinder, split into back (upper arcs) and front (lower arcs) halves
   for (const [k, a0, a1] of [['aura_back', Math.PI, Math.PI * 2], ['aura_front', 0, Math.PI]] as const) {
     const cv = document.createElement('canvas'); cv.width = 64; cv.height = 72;
