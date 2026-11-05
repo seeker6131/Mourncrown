@@ -1,0 +1,68 @@
+// Single source of truth for persistent player progress. Serialised by save.ts.
+import type { EquipSlot } from '../data/items';
+
+export type StatKey = 'str' | 'agi' | 'vit' | 'int' | 'luk';
+export const STAT_KEYS: StatKey[] = ['str', 'agi', 'vit', 'int', 'luk'];
+export const STAT_NAMES: Record<StatKey, string> = { str: 'STR', agi: 'AGI', vit: 'VIT', int: 'INT', luk: 'LUK' };
+export const STAT_DESC: Record<StatKey, string> = {
+  str: 'พลังโจมตีกายภาพ',
+  agi: 'ความเร็วโจมตี/เคลื่อนที่ หลบหลีก',
+  vit: 'HP สูงสุด และพลังป้องกัน',
+  int: 'MP สูงสุด และพลังเวท',
+  luk: 'โอกาสคริติคอล และดรอปไอเทม',
+};
+
+export interface InvItem { uid: number; id: string; qty: number; upg: number }
+
+export interface QuestProgress { id: string; progress: number; status: 'active' | 'ready' | 'done' }
+
+export interface GameState {
+  version: number;
+  name: string;
+  level: number;
+  exp: number;
+  statPoints: number;
+  base: Record<StatKey, number>;
+  hp: number;
+  mp: number;
+  gold: number;
+  inventory: InvItem[];
+  equip: Record<EquipSlot, number | null>; // uid of item in inventory
+  quests: QuestProgress[];
+  kills: Record<string, number>;
+  pos: { x: number; y: number };
+  auto: boolean;
+  music: boolean;
+  sfx: boolean;
+  nextUid: number;
+  playTime: number;
+  bossDefeated: number;
+}
+
+export const SAVE_VERSION = 1;
+export const INV_SIZE = 30;
+
+export function newGameState(): GameState {
+  const s: GameState = {
+    version: SAVE_VERSION,
+    name: 'Aren',
+    level: 1,
+    exp: 0,
+    statPoints: 3,
+    base: { str: 5, agi: 4, vit: 5, int: 4, luk: 3 },
+    hp: 1, mp: 1,
+    gold: 50,
+    inventory: [],
+    equip: { weapon: null, armor: null, accessory: null },
+    quests: [],
+    kills: {},
+    pos: { x: -1, y: -1 },
+    auto: false,
+    music: true,
+    sfx: true,
+    nextUid: 1,
+    playTime: 0,
+    bossDefeated: 0,
+  };
+  return s;
+}

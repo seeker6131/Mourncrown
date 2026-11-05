@@ -1,0 +1,32 @@
+// Test hooks used by automated browser tests (window.__dbg).
+import { runtime } from './events';
+import { saveGame } from './save';
+import { addItem, equip } from '../systems/inventory';
+import { derive, gainExp, expToNext } from '../systems/stats';
+import type Phaser from 'phaser';
+
+export function installDebug(game: Phaser.Game) {
+  (window as unknown as { __dbg: unknown }).__dbg = {
+    boss() {
+      const s = runtime.state!;
+      let need = 0; for (let l = s.level; l < 15; l++) need += expToNext(l);
+      gainExp(s, need - s.exp);
+      s.base.str += 20; s.base.vit += 20; s.base.int += 10; s.statPoints = 0;
+      addItem(s, 'flame_saber'); equip(s, s.inventory[s.inventory.length - 1].uid);
+      addItem(s, 'knight_plate'); equip(s, s.inventory[s.inventory.length - 1].uid);
+      addItem(s, 'hp_potion_l', 10);
+      const d = derive(s); s.hp = d.maxHp; s.mp = d.maxMp;
+      s.auto = true;
+      const w = game.scene.getScene('World') as unknown as { hero: { x: number; y: number }; map: { bossPos: { x: number; y: number } }; onState(): void };
+      w.hero.x = w.map.bossPos.x - 90; w.hero.y = w.map.bossPos.y;
+      w.onState();
+      game.events.emit('dbg');
+    },
+    info() {
+      const s = runtime.state!;
+      const w = game.scene.getScene('World') as unknown as { boss: { hp: number; alive: boolean } | null; hero: { x: number; y: number } };
+      return JSON.stringify({ lv: s.level, hp: s.hp, gold: s.gold, inv: s.inventory.length, boss: w.boss ? { hp: Math.round(w.boss.hp), alive: w.boss.alive } : null, defeated: s.bossDefeated, pos: s.pos });
+    },
+    save() { return saveGame(runtime.state!); },
+  };
+}

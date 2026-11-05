@@ -1,0 +1,208 @@
+import Phaser from 'phaser';
+import { MONSTERS, type MonsterDef, type MonsterKind } from '../data/monsters';
+import type { WorldScene } from '../scenes/WorldScene';
+
+export type MState = 'idle' | 'wander' | 'chase' | 'attack' | 'return' | 'dead';
+
+export class Monster {
+  def: MonsterDef;
+  sprite: Phaser.GameObjects.Sprite;
+  shadow: Phaser.GameObjects.Image;
+  hpBar: Phaser.GameObjects.Graphics;
+  x: number; y: number;
+  hp: number; maxHp: number;
+  state: MState = 'idle';
+  stateUntil = 0;
+  lastAttack = 0;
+  tx = 0; ty = 0;
+  homeX: number; homeY: number;
+  homeR: number;
+  hitFlashUntil = 0;
+  knockX = 0; knockY = 0;
+  spawnIndex: number;
+  // boss
+  phase = 1;
+  nextSpecial = 0;
+  hoverT = Math.random() * 10;
+
+  constructor(private scene: WorldScene, kind: MonsterKind, x: number, y: number, homeR: number, spawnIndex: number) {
+    this.def = MONSTERS[kind];
+    this.x = x; this.y = y; this.homeX = x; this.homeY = y; this.homeR = homeR;
+    this.spawnIndex = spawnIndex;
+    this.hp = this.maxHp = this.def.hp;
+    const boss = !!this.def.boss;
+    this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(boss ? 2.6 : kind === 'wolf' ? 1.1 : 0.8, boss ? 2 : 1);
+    const h = scene.textures.getFrame(`mon_${kind}`, 'idle_0').height;
+    this.sprite = scene.add.sprite(x, y, `mon_${kind}`).setOrigin(0.5, (h - 2) / h);
+    this.sprite.play(`mon_${kind}_idle`);
+    this.sprite.anims.setProgress(Math.random());
+    this.hpBar = scene.add.graphics().setDepth(100000);
+    this.sprite.on('animationcomplete', (a: Phaser.Animations.Animation) => {
+      if (this.state === 'dead') return;
+      if (a.key.endsWith('_attack') || a.key.endsWith('_hurt') || a.key.endsWith('_cast')) this.sprite.play(`mon_${this.def.kind}_idle`);
+    });
+    // spawn pop-in
+    this.sprite.setAlpha(0).setScale(0.6);
+    scene.tweens.add({ targets: this.sprite, alpha: 1, scale: 1, duration: 300, ease: 'Back.easeOut' });
+  }
+
+  get alive() { return this.state !== 'dead'; }
+  get cy() { return this.y - (this.def.boss ? 30 : 8); }
+
+  playAnim(name: string) {
+    const key = `mon_${this.def.kind}_${name}`;
+    const cur = this.sprite.anims.currentAnim?.key;
+    if (cur === key && this.sprite.anims.isPlaying) return;
+    if (cur && (cur.endsWith('_attack') || cur.endsWith('_cast')) && this.sprite.anims.isPlaying && name !== 'hurt') return;
+    this.sprite.play(key);
+  }
+
+  takeHit(dmg: number, fromX: number, fromY: number, knock = 6) {
+    if (!this.alive) return;
+    this.hp -= dmg;
+    const d = Math.hypot(this.x - fromX, this.y - fromY) || 1;
+    const k = this.def.boss ? knock * 0.15 : knock;
+    this.knockX = ((this.x - fromX) / d) * k; this.knockY = ((this.y - fromY) / d) * k;
+    this.sprite.setTintFill(0xffffff);
+    this.hitFlashUntil = this.scene.time.now + 80;
+    if (!this.def.boss || Math.random() < 0.3) this.sprite.play(`mon_${this.def.kind}_hurt`);
+    if (this.state === 'idle' || this.state === 'wander' || this.state === 'return') this.state = 'chase';
+    if (this.hp <= 0) this.die();
+  }
+
+  die() {
+    this.state = 'dead';
+    this.hpBar.clear();
+    this.sprite.clearTint();
+    this.sprite.setTint(0xff9090);
+    this.sprite.anims.stop();
+    this.scene.tweens.add({ targets: this.sprite, alpha: 0, scaleY: 0.2, scaleX: 1.4, y: this.y + 2, duration: this.def.boss ? 1600 : 380, ease: 'Quad.easeIn' });
+    this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 400 });
+    this.scene.time.delayedCall(this.def.boss ? 1700 : 500, () => this.destroy());
+  }
+
+  destroy() {
+    this.sprite.destroy(); this.shadow.destroy(); this.hpBar.destroy();
+  }
+
+  update(time: number, dt: number) {
+    if (!this.alive) return;
+    const sc = this.scene;
+    const hero = sc.hero;
+    const def = this.def;
+    const sec = dt / 1000;
+    if (time > this.hitFlashUntil && this.hitFlashUntil) { this.sprite.clearTint(); this.hitFlashUntil = 0; }
+    // knockback
+    if (Math.abs(this.knockX) + Math.abs(this.knockY) > 0.1) {
+      this.tryMove(this.knockX * 0.35, this.knockY * 0.35);
+      this.knockX *= 0.65; this.knockY *= 0.65;
+    }
+    const hd = Math.hypot(hero.x - this.x, hero.y - this.y);
+    const heroAlive = hero.state !== 'dead';
+    const homeD = Math.hypot(this.x - this.homeX, this.y - this.homeY);
+    const leash = def.boss ? 260 : def.aggro * 2.2 + this.homeR;
+
+    if (def.boss && (this.state === 'chase' || this.state === 'attack')) sc.bossSpecials(this, time);
+
+    switch (this.state) {
+      case 'idle':
+      case 'wander': {
+        if (heroAlive && hd < def.aggro) { this.state = 'chase'; break; }
+        if (time > this.stateUntil) {
+          if (this.state === 'idle' && !def.boss) {
+            const a = Math.random() * Math.PI * 2, r = Math.random() * this.homeR;
+            this.tx = this.homeX + Math.cos(a) * r; this.ty = this.homeY + Math.sin(a) * r;
+            this.state = 'wander'; this.stateUntil = time + 2500;
+          } else { this.state = 'idle'; this.stateUntil = time + 1500 + Math.random() * 2500; }
+        }
+        if (this.state === 'wander') {
+          if (this.moveToward(this.tx, this.ty, def.speed * 0.5 * sec) < 3) { this.state = 'idle'; this.stateUntil = time + 1500 + Math.random() * 2000; }
+          else this.playAnim('move');
+        } else this.playAnim('idle');
+        break;
+      }
+      case 'chase': {
+        if (!heroAlive || homeD > leash) { this.state = 'return'; break; }
+        const range = def.attackRange;
+        if (def.ranged && hd < range * 0.5) {
+          // kite away
+          this.moveToward(this.x * 2 - hero.x, this.y * 2 - hero.y, def.speed * 0.8 * sec);
+          this.playAnim('move');
+        } else if (hd > range) {
+          this.moveToward(hero.x, hero.y, def.speed * sec);
+          this.playAnim('move');
+        } else this.playAnim('idle');
+        this.sprite.setFlipX(hero.x < this.x);
+        if (hd <= range + 2 && time - this.lastAttack > def.attackCooldown) {
+          this.lastAttack = time;
+          this.state = 'attack';
+          this.stateUntil = time + (def.ranged ? 650 : 520);
+          this.sprite.play(`mon_${def.kind}_attack`);
+          const windup = def.ranged ? 380 : 300;
+          sc.time.delayedCall(windup, () => {
+            if (!this.alive) return;
+            if (def.ranged) sc.enemyShoot(this);
+            else if (Math.hypot(hero.x - this.x, hero.y - this.y) < range + 10) sc.damageHero(def.atk, this);
+          });
+          if (def.kind === 'wolf' || def.kind === 'slime') {
+            // lunge
+            const d = hd || 1;
+            sc.tweens.addCounter({ from: 0, to: 1, duration: 200, onUpdate: (tw) => { const v = (1 - tw.getValue()!) * 1.6; this.tryMove(((hero.x - this.x) / d) * v, ((hero.y - this.y) / d) * v); } });
+          }
+        }
+        break;
+      }
+      case 'attack':
+        if (time > this.stateUntil) this.state = 'chase';
+        break;
+      case 'return':
+        this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.5 * sec);
+        if (this.moveToward(this.homeX, this.homeY, def.speed * 1.2 * sec) < 4) { this.state = 'idle'; this.hp = this.maxHp; }
+        else this.playAnim('move');
+        break;
+    }
+
+    // visuals
+    let yOff = 0;
+    if (def.kind === 'wisp') { this.hoverT += sec * 3; yOff = -6 + Math.sin(this.hoverT) * 2; }
+    this.sprite.setPosition(Math.round(this.x), Math.round(this.y + yOff)).setDepth(this.y);
+    this.shadow.setPosition(this.x, this.y - 1);
+    if (this.state !== 'idle' && this.state !== 'wander' && Math.abs(hero.x - this.x) > 2 && this.state !== 'return') this.sprite.setFlipX(hero.x < this.x);
+    else if (this.state === 'wander' || this.state === 'return') this.sprite.setFlipX((this.state === 'wander' ? this.tx : this.homeX) < this.x);
+    this.drawHp();
+  }
+
+  drawHp() {
+    const g = this.hpBar;
+    g.clear();
+    if (this.def.boss || this.hp >= this.maxHp) return;
+    const w = 18, top = this.y - this.sprite.displayHeight + 2 + (this.def.kind === 'wisp' ? -6 : 0);
+    g.fillStyle(0x140c1c, 0.9).fillRect(this.x - w / 2 - 1, top - 1, w + 2, 4);
+    g.fillStyle(0x5a1a1a).fillRect(this.x - w / 2, top, w, 2);
+    g.fillStyle(0xe8443a).fillRect(this.x - w / 2, top, w * Math.max(0, this.hp / this.maxHp), 2);
+  }
+
+  moveToward(tx: number, ty: number, step: number): number {
+    const dx = tx - this.x, dy = ty - this.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 0.001) return 0;
+    const s = Math.min(step, d);
+    // separation from other monsters
+    let sx = 0, sy = 0;
+    for (const o of this.scene.monsters) {
+      if (o === this || !o.alive) continue;
+      const ox = this.x - o.x, oy = this.y - o.y; const od = Math.hypot(ox, oy);
+      const min = this.def.bodyRadius + o.def.bodyRadius;
+      if (od > 0 && od < min) { sx += (ox / od) * (min - od) * 0.3; sy += (oy / od) * (min - od) * 0.3; }
+    }
+    this.tryMove((dx / d) * s + sx, (dy / d) * s + sy);
+    return d;
+  }
+
+  tryMove(dx: number, dy: number) {
+    const r = Math.min(this.def.bodyRadius, 6);
+    const flying = this.def.kind === 'wisp';
+    if (flying || this.scene.canMove(this.x + dx, this.y, r)) this.x += dx;
+    if (flying || this.scene.canMove(this.x, this.y + dy, r)) this.y += dy;
+  }
+}
