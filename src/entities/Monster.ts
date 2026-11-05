@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { MONSTERS, type MonsterDef, type MonsterKind } from '../data/monsters';
 import type { WorldScene } from '../scenes/WorldScene';
-import { AI_FACES_LEFT } from '../art/aiAssets';
+import { AI_FACES_LEFT, resOf } from '../art/aiAssets';
 
 export type MState = 'idle' | 'wander' | 'chase' | 'attack' | 'return' | 'dead';
 
@@ -28,6 +28,7 @@ export class Monster {
   aiArt = false;
   facesLeft = false;
   animT = Math.random() * 10;
+  base = 1;
 
   constructor(private scene: WorldScene, kind: MonsterKind, x: number, y: number, homeR: number, spawnIndex: number) {
     this.def = MONSTERS[kind];
@@ -40,7 +41,9 @@ export class Monster {
     this.aiArt = f0.texture.key.startsWith('ai_');
     this.facesLeft = this.aiArt && AI_FACES_LEFT[kind];
     const h = f0.height;
-    this.sprite = scene.add.sprite(x, y, f0.texture.key, f0.name).setOrigin(0.5, (h - (this.aiArt ? 1 : 2)) / h);
+    this.sprite = scene.add.sprite(x, y, f0.texture.key, f0.name).setOrigin(0.5, (h - (this.aiArt ? 2 : 2)) / h);
+    this.base = 1 / resOf(f0.texture.key);
+    this.sprite.setScale(this.base);
     this.sprite.play(`mon_${kind}_idle`);
     this.sprite.anims.setProgress(Math.random());
     this.hpBar = scene.add.graphics().setDepth(100000);
@@ -49,8 +52,8 @@ export class Monster {
       if (a.key.endsWith('_attack') || a.key.endsWith('_hurt') || a.key.endsWith('_cast')) this.sprite.play(`mon_${this.def.kind}_idle`);
     });
     // spawn pop-in
-    this.sprite.setAlpha(0).setScale(0.6);
-    scene.tweens.add({ targets: this.sprite, alpha: 1, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    this.sprite.setAlpha(0).setScale(0.6 * this.base);
+    scene.tweens.add({ targets: this.sprite, alpha: 1, scale: this.base, duration: 300, ease: 'Back.easeOut' });
   }
 
   get alive() { return this.state !== 'dead'; }
@@ -83,7 +86,7 @@ export class Monster {
     this.sprite.clearTint();
     this.sprite.setTint(0xff9090);
     this.sprite.anims.stop();
-    this.scene.tweens.add({ targets: this.sprite, alpha: 0, scaleY: 0.2, scaleX: 1.4, y: this.y + 2, duration: this.def.boss ? 1600 : 380, ease: 'Quad.easeIn' });
+    this.scene.tweens.add({ targets: this.sprite, alpha: 0, scaleY: 0.2 * this.base, scaleX: 1.4 * this.base, y: this.y + 2, duration: this.def.boss ? 1600 : 380, ease: 'Quad.easeIn' });
     this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 400 });
     this.scene.time.delayedCall(this.def.boss ? 1700 : 500, () => this.destroy());
   }
@@ -181,6 +184,8 @@ export class Monster {
     this.drawHp();
   }
 
+  spawning() { return this.sprite.alpha < 1; }
+
   face(left: boolean) { this.sprite.setFlipX(left !== this.facesLeft); }
 
   /** Procedural animation for single-image AI sprites: breathing, hopping, lunging. */
@@ -190,6 +195,7 @@ export class Monster {
     this.animT += sec * (moving ? (k === 'wolf' ? 14 : 9) : 3);
     let sx = 1, sy = 1, y = 0, rot = 0;
     const atk = time - this.lastAttack < 450 && this.state !== 'idle';
+    if (moving && (k === 'wolf' || k === 'goblin' || k === 'shroom') && Math.floor(this.animT / Math.PI) !== Math.floor((this.animT - sec * (k === 'wolf' ? 14 : 9)) / Math.PI)) this.scene.dust(this.x, this.y);
     if (k === 'slime') {
       if (moving) { const hop = Math.abs(Math.sin(this.animT)); y = -hop * 5; sy = 0.85 + hop * 0.25; sx = 1.15 - hop * 0.2; }
       else { sy = 1 + Math.sin(this.animT) * 0.05; sx = 2 - sy; }
@@ -206,7 +212,7 @@ export class Monster {
     }
     if (atk) { const t = (time - this.lastAttack) / 450; const p = Math.sin(t * Math.PI); sx *= 1 + p * 0.18; sy *= 1 - p * 0.08; }
     if (this.hitFlashUntil && time < this.hitFlashUntil + 120) { sx *= 1.1; sy *= 0.9; }
-    if (this.alive) this.sprite.setScale(sx, sy).setRotation(rot);
+    if (this.alive && !this.spawning()) this.sprite.setScale(sx * this.base, sy * this.base).setRotation(rot);
     return y;
   }
 

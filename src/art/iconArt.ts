@@ -241,6 +241,10 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
   qq.rect(2, 0, 6, 2, 0x8ae0ff); qq.rect(6, 2, 2, 4, 0x8ae0ff); qq.rect(4, 5, 3, 2, 0x8ae0ff); qq.rect(4, 7, 2, 3, 0x8ae0ff); qq.rect(4, 11, 2, 3, 0x8ae0ff); qq.rect(1, 2, 2, 2, 0x8ae0ff);
   qq.outline(OUT, false);
   out.qdone = qq;
+  // butterfly (white, tinted in game; flaps via scaleX)
+  const bf = new PixelCanvas(7, 5);
+  bf.rect(0, 0, 3, 2, 0xffffff); bf.rect(4, 0, 3, 2, 0xffffff); bf.rect(1, 2, 2, 2, 0xe8e8e8); bf.rect(4, 2, 2, 2, 0xe8e8e8); bf.rect(3, 1, 1, 3, 0x3a2a2a);
+  out.bfly = bf;
   // selection rings (ellipse outlines)
   for (const [k, col] of [['selhero', '#7dff9a'], ['seltarget', '#ff5a4a']] as const) {
     const rc2 = document.createElement('canvas'); rc2.width = 40; rc2.height = 20;

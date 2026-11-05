@@ -11,6 +11,15 @@ export function preloadAi(scene: Phaser.Scene) {
   }
 }
 
+const HIRES = new Set<string>();
+/** Texture resolution factor: AI world art is stored at 2x and drawn at 0.5 scale. */
+export function resOf(key: string): number {
+  if (HIRES.has(key)) return 2;
+  if (key.startsWith('aihero_')) return 2;
+  if (key.startsWith('ai_') && !key.startsWith('ai_icon_') && !key.startsWith('ai_tile_') && key !== 'ai_keyart') return 2;
+  return 1;
+}
+
 export function hasAi(scene: Phaser.Scene, name: string) { return scene.textures.exists('ai_' + name); }
 
 function srcOf(scene: Phaser.Scene, name: string) {
@@ -35,6 +44,7 @@ export function aliasAi(scene: Phaser.Scene, key: string, name: string, opts: { 
   }
   if (scene.textures.exists(key)) scene.textures.remove(key);
   scene.textures.addCanvas(key, cv);
+  if (!name.startsWith('icon_') && !name.startsWith('tile_')) HIRES.add(key); else HIRES.delete(key);
   return true;
 }
 

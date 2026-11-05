@@ -148,7 +148,7 @@ export class Hero {
       this.setPose(up ? (left ? 2 : 3) : (left ? 0 : 1), false);
       sy = 1 + Math.sin(now / 420) * 0.02; sx = 2 - sy;
     }
-    this.sprite.setScale(sx, sy).setRotation(rot);
+    this.sprite.setScale(sx * 0.5, sy * 0.5).setRotation(rot);
     this.sprite.y += oy;
   }
 

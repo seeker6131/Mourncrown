@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, type WorldMap } from '../world/mapgen';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
 import { HOUSE_ANCHOR } from '../art/textures';
-import { hasAi, aiPixels } from '../art/aiAssets';
+import { hasAi, resOf } from '../art/aiAssets';
 import { Hero } from '../entities/Hero';
 import { Monster } from '../entities/Monster';
 import { bus, EV, S, runtime } from '../core/events';
@@ -63,12 +63,15 @@ export class WorldScene extends Phaser.Scene {
   shadows: Phaser.GameObjects.Image[] = [];
   lastShadowNight = -1;
   heroShadow: Phaser.GameObjects.Image | null = null;
+  swayers: { img: Phaser.GameObjects.Image; amp: number; ph: number; bend: number; freq: number }[] = [];
+  lastStep = 0;
+  butterflies: { s: Phaser.GameObjects.Image; t: number; x: number; y: number; vx: number; vy: number }[] = [];
 
   constructor() { super('World'); }
 
   create() {
     this.monsters = []; this.projectiles = []; this.loot = []; this.npcs = []; this.cooldowns = {}; this.fireflies = []; this.clouds = [];
-    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = []; this.shadows = []; this.heroShadow = null;
+    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = []; this.shadows = []; this.heroShadow = null; this.swayers = []; this.butterflies = [];
     const s = S();
     this.map = generateWorld();
     this.der = derive(s);
@@ -82,8 +85,8 @@ export class WorldScene extends Phaser.Scene {
     for (const o of this.map.objects) {
       if (o.type === 'campfire') {
         if (ai) {
-          const cf = this.add.image(o.x, o.y + 4, 'ai_campfire').setOrigin(0.5, 0.92).setDepth(o.y);
-          this.tweens.add({ targets: cf, scaleY: { from: 0.97, to: 1.04 }, duration: 160, yoyo: true, repeat: -1 });
+          const cf = this.fit(this.add.image(o.x, o.y + 4, 'ai_campfire').setOrigin(0.5, 0.92).setDepth(o.y));
+          this.tweens.add({ targets: cf, scaleY: { from: cf.scaleY * 0.96, to: cf.scaleY * 1.05 }, scaleX: { from: cf.scaleX * 1.02, to: cf.scaleX * 0.98 }, duration: 130, yoyo: true, repeat: -1 });
           this.burstLoop(o.x, o.y - 10);
         } else this.add.sprite(o.x, o.y, 'obj_campfire').setOrigin(0.5, 0.9).setDepth(o.y).play('campfire_burn');
         this.nightLights.push(this.addGlow(o.x, o.y - 8, 0xff9a3a, 1.6, true));
@@ -96,8 +99,9 @@ export class WorldScene extends Phaser.Scene {
         const c = iso(sx0 + w / 2, sy0 + h / 2), bot = iso(sx0 + w, sy0 + h);
         if (!ai) this.add.image(c.x + 10, c.y + 4, 'fx_shadow').setScale(w * 1.15, h * 1.25).setAlpha(0.8).setDepth(1);
         if (ai) {
-          const bimg = this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10);
+          const bimg = this.fit(this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10));
           this.castShadow(bimg);
+          this.addChimney(bimg, o.type === 'house' ? (o.v ? [0.33, 0.04] : [0.27, 0.03]) : o.v === 0 ? [0.77, 0.05] : null);
         } else {
           const n = iso(o.tx - 2, o.ty - 2);
           const img = this.add.image(n.x, n.y, `obj_house_${o.v % 2}`);
@@ -111,7 +115,7 @@ export class WorldScene extends Phaser.Scene {
       }
       if (o.type === 'chest') {
         const opened = S().chests.includes(o.v);
-        const img = this.add.image(o.x, o.y + 4, opened ? 'obj_chest_1' : 'obj_chest_0').setOrigin(0.5, 0.95).setDepth(o.y);
+        const img = this.fit(this.add.image(o.x, o.y + 4, opened ? 'obj_chest_1' : 'obj_chest_0').setOrigin(0.5, 0.95).setDepth(o.y));
         this.castShadow(img, 0.8);
         this.add.image(o.x, o.y + 3, 'fx_shadow').setScale(0.8, 0.7).setDepth(1);
         const glow = opened ? null : this.addGlow(o.x, o.y - 4, 0xffd060, 0.45, true);
@@ -121,7 +125,7 @@ export class WorldScene extends Phaser.Scene {
       if (o.type === 'wall') {
         if (ai && o.v < 6) {
           if ((o.tx + o.ty) % 2) continue; // ai wall pieces span ~2 tiles
-          this.castShadow(this.add.image(o.x, o.y + 6, `obj_wall_${o.v}`).setOrigin(0.5, 0.92).setDepth(o.y + 2), 0.8);
+          this.castShadow(this.fit(this.add.image(o.x, o.y + 6, `obj_wall_${o.v}`).setOrigin(0.5, 0.92).setDepth(o.y + 2)), 0.8);
           continue;
         }
         const img = this.add.image(o.x, o.y + 4, `obj_wall_${o.v}`);
@@ -139,15 +143,16 @@ export class WorldScene extends Phaser.Scene {
       const originY: Record<string, number> = ai
         ? { fence: 0.85, crate: 0.9, stall: 0.92, altar: 0.88, tent: 0.92, wall: 0.92, barrel: 0.95, stairs: 0.9, well: 0.92, chest: 0.92 }
         : { fence: 0.78, crate: 0.75, stall: 0.85, altar: 0.86, tent: 0.92 };
-      const img = this.add.image(o.x, o.y + oy, key).setOrigin(0.5, originY[o.type] ?? 0.97);
+      const img = this.fit(this.add.image(o.x, o.y + oy, key).setOrigin(0.5, originY[o.type] ?? 0.97));
       img.setDepth(o.type === 'lily' ? 1 : flat ? o.y - 12 : o.type === 'arch' ? o.y + 6 : o.y);
       if (o.type === 'tree' || o.type === 'pine') img.setFlipX(((o.x * 7 + o.y * 3) & 8) > 0);
       if (!flat && o.type !== 'mushrooms') this.castShadow(img, o.type === 'tree' || o.type === 'pine' ? 1 : 0.85);
       if (o.type === 'tree' || o.type === 'pine') {
-        // gentle canopy sway
-        this.tweens.add({ targets: img, scaleX: { from: 1, to: 1.015 }, duration: 1800 + (o.x % 700), yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: o.y % 1000 });
         if (o.v === 2) this.addGlow(o.x, o.y - 30, 0x5ae0d0, 1.2, true);
       }
+      const amp: Record<string, number> = { tree: 0.016, pine: 0.014, tuft: 0.16, flower: 0.13, bush: 0.035, mushrooms: 0.05, haystack: 0.01 };
+      if (amp[o.type]) this.swayers.push({ img, amp: amp[o.type], ph: (o.x * 0.013 + o.y * 0.007) % 6.28, bend: 0, freq: o.type === 'tree' || o.type === 'pine' ? 0.9 : 1.8 });
+      if (o.type === 'lily') this.tweens.add({ targets: img, y: img.y + 1, duration: 1400 + (o.x % 600), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       if (o.type === 'lamp') this.nightLights.push(this.addGlow(o.x + (ai ? -6 : 0), o.y - (ai ? 28 : 26), 0xffd060, 0.9, true));
       if (o.type === 'crystal') this.addGlow(o.x, o.y - 12, 0x5ae0ff, 1.8, true);
       if (o.type === 'altar') this.addGlow(o.x, o.y - (ai ? 30 : 22), 0xb07aff, 1.8, true);
@@ -223,6 +228,70 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- Ambient / atmosphere ----------
+  animateNature(time: number, dt: number) {
+    const v = this.cameras.main.worldView;
+    const t = time / 1000;
+    const h = this.hero;
+    for (const sw of this.swayers) {
+      const im = sw.img;
+      if (im.x < v.x - 60 || im.x > v.right + 60 || im.y < v.y - 10 || im.y > v.bottom + 140) continue;
+      // travelling wind gusts across the map
+      const gust = 0.55 + 0.45 * Math.sin(t * 0.45 - im.x * 0.004 - im.y * 0.002);
+      let target = 0;
+      if (sw.amp > 0.05) {
+        // grass & flowers bend away from the hero and monsters
+        const dx = im.x - h.x, dy = im.y - h.y;
+        if (Math.abs(dx) < 14 && Math.abs(dy) < 8) target = Math.sign(dx || 1) * 0.5;
+        for (const m of this.monsters) if (Math.abs(im.x - m.x) < 12 && Math.abs(im.y - m.y) < 7) target = Math.sign(im.x - m.x || 1) * 0.45;
+      } else if (sw.amp > 0.02) {
+        const dx = im.x - h.x, dy = im.y - h.y;
+        if (Math.abs(dx) < 18 && Math.abs(dy) < 10 && h.state === 'walk') target = Math.sin(t * 20) * 0.08; // bush rustle
+      }
+      sw.bend += (target - sw.bend) * Math.min(1, dt * 0.012);
+      im.setRotation(sw.amp * (Math.sin(t * sw.freq + sw.ph) * gust + 0.35 * gust) + sw.bend);
+    }
+    // butterflies in meadow/village by day
+    if (this.butterflies.length < 10 && this.night < 0.5 && (this.currentZone === 'meadow' || this.currentZone === 'village') && Math.random() < 0.03) {
+      const x = v.x + Math.random() * v.width, y = v.y + Math.random() * v.height;
+      const s = this.add.image(x, y, 'fx_bfly').setTint([0xffb0d8, 0xfff07a, 0xa8d8ff, 0xffffff][Math.floor(Math.random() * 4)]).setDepth(99950);
+      this.butterflies.push({ s, t: Math.random() * 10, x, y, vx: 0, vy: 0 });
+    }
+    for (const b of this.butterflies) {
+      b.t += dt / 1000;
+      b.vx += (Math.random() - 0.5) * 0.08; b.vy += (Math.random() - 0.5) * 0.06;
+      b.vx = Phaser.Math.Clamp(b.vx, -0.5, 0.5); b.vy = Phaser.Math.Clamp(b.vy, -0.35, 0.35);
+      b.x += b.vx * dt * 0.06; b.y += b.vy * dt * 0.06;
+      b.s.setPosition(b.x, b.y + Math.sin(b.t * 6) * 2).setScale(Math.abs(Math.sin(b.t * 14)) * 0.9 + 0.15, 1).setFlipX(b.vx < 0);
+      const off = b.x < v.x - 40 || b.x > v.right + 40 || b.y < v.y - 40 || b.y > v.bottom + 40 || this.night > 0.6;
+      if (off) { b.s.destroy(); b.t = -1; }
+    }
+    this.butterflies = this.butterflies.filter(b => b.t >= 0);
+  }
+
+  /** Draw hi-res (2x) art at world scale. */
+  fit<T extends Phaser.GameObjects.Image>(img: T): T { const r = resOf(img.texture.key); if (r !== 1) img.setScale(1 / r); return img; }
+
+  /** Rising, drifting chimney smoke at a point given as a fraction of the building sprite. */
+  addChimney(img: Phaser.GameObjects.Image, at: [number, number] | null) {
+    if (!at) return;
+    const x = img.x - img.displayWidth / 2 + at[0] * img.displayWidth;
+    const y = img.y - img.displayHeight + at[1] * img.displayHeight;
+    this.time.addEvent({ delay: 420, loop: true, callback: () => {
+      if (!this.cameras.main.worldView.contains(x, y + 40)) return;
+      const p = this.add.image(x + Math.random() * 3, y, 'fx_glow').setTint(0xc8c0c8).setAlpha(0.32).setScale(0.12).setDepth(99960);
+      const life = 2600 + Math.random() * 1200;
+      this.tweens.add({ targets: p, y: y - 34 - Math.random() * 10, x: p.x + 10 + Math.random() * 12, scale: 0.42, alpha: 0, duration: life, ease: 'Sine.easeOut', onComplete: () => p.destroy() });
+    } });
+  }
+
+  /** Dust puff at the feet (footsteps, running animals). */
+  dust(x: number, y: number, col = 0xb8a080) {
+    for (let i = 0; i < 2; i++) {
+      const p = this.add.image(x + Math.random() * 6 - 3, y, 'fx_px').setTint(col).setAlpha(0.7).setDepth(y - 1).setScale(1);
+      this.tweens.add({ targets: p, y: y - 3 - Math.random() * 3, x: p.x + Math.random() * 6 - 3, alpha: 0, scale: 1.8, duration: 400 + Math.random() * 200, onComplete: () => p.destroy() });
+    }
+  }
+
   /** Build (and cache) a pixel-art cast-shadow texture: the silhouette sheared onto the ground, sun from the upper-left. */
   shadowTex(img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite): { key: string; ox: number; oy: number } {
     const fr = img.frame;
@@ -259,7 +328,7 @@ export class WorldScene extends Phaser.Scene {
 
   castShadow(img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, strength = 1) {
     const t = this.shadowTex(img);
-    const sh = this.add.image(img.x, img.y, t.key).setOrigin(t.ox, t.oy).setDepth(1.2).setAlpha(0.32 * strength);
+    const sh = this.add.image(img.x, img.y, t.key).setOrigin(t.ox, t.oy).setDepth(1.2).setAlpha(0.32 * strength).setScale(Math.abs(img.scaleX), Math.abs(img.scaleY));
     sh.setData('a', 0.32 * strength);
     this.shadows.push(sh);
     return sh;
@@ -270,6 +339,7 @@ export class WorldScene extends Phaser.Scene {
     const t = this.shadowTex(img);
     if (!sh) sh = this.add.image(baseX, baseY, t.key).setDepth(1.3);
     if (sh.texture.key !== t.key) sh.setTexture(t.key);
+    sh.setScale(1 / resOf(img.texture.key));
     sh.setOrigin(t.ox, t.oy).setPosition(Math.round(baseX), Math.round(baseY)).setAlpha(alpha * (1 - this.night * 0.75));
     return sh;
   }
@@ -477,6 +547,8 @@ export class WorldScene extends Phaser.Scene {
     this.updateLoot(time);
     this.respawnTick(time);
     this.updateAmbient(time, dt);
+    this.animateNature(time, dt);
+    if (h.state === 'walk' && time - this.lastStep > 210) { this.lastStep = time; this.dust(h.x, h.y); }
     this.heroRing.setPosition(h.x, h.y).setVisible(h.state !== 'dead');
     this.heroShadow = this.followShadow(h.sprite, this.heroShadow, h.x, h.y, h.state === 'dead' ? 0 : 0.3);
     for (const m of this.monsters) {

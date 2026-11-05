@@ -119,7 +119,7 @@ def to_game(img: Image.Image, width: int = 0, height: int = 0, crisp: bool = Tru
     res = Image.fromarray(out, 'RGBA')
     if crisp:
         # slight sharpening of colours via palette reduction keeps a pixel-art look
-        rgbq = res.convert('RGB').quantize(96, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB')
+        rgbq = res.convert('RGB').quantize(160, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB')
         res = Image.merge('RGBA', (*rgbq.split(), res.split()[3]))
     return res
 
