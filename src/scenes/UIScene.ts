@@ -15,13 +15,14 @@ import { saveGame } from '../core/save';
 import { buildingAt } from '../systems/settlement';
 import { BUILDINGS, type BuildingId } from '../data/buildings';
 
-const VH = 360; // virtual UI height
+const VH = 400; // virtual UI height
 
 export class UIScene extends Phaser.Scene {
   kit!: UIKit;
   resG!: Phaser.GameObjects.Graphics;
   resTexts: Phaser.GameObjects.Text[] = [];
   formKey = '';
+  outfitBtn!: ReturnType<UIKit['roundButton']>;
   u = 1; VW = 640;
   hud!: Phaser.GameObjects.Graphics;
   hpText!: Phaser.GameObjects.Text; mpText!: Phaser.GameObjects.Text; lvText!: Phaser.GameObjects.Text; goldText!: Phaser.GameObjects.Text; expText!: Phaser.GameObjects.Text;
@@ -271,6 +272,17 @@ export class UIScene extends Phaser.Scene {
     });
     this.root.add(this.autoBtn.c);
 
+    // Outfit toggle: hunting gear <-> gathering clothes
+    this.outfitBtn = k.roundButton(ax - 46, ay - 96, 15, null, '⚔');
+    (this.outfitBtn.c.getData('label') as Phaser.GameObjects.Text).setFontSize(13);
+    this.outfitBtn.c.add(k.text(0, 17, 'ชุด', 6.5, '#ffe7a0').setOrigin(0.5, 0));
+    this.outfitBtn.zone.on('pointerup', () => {
+      const s = S(); s.outfit = s.outfit === 'gather' ? 'hunt' : 'gather'; sfx.click();
+      this.toast(s.outfit === 'gather' ? '⛏ ชุดหาทรัพยากร: เก็บไม้/หินได้ x2 แต่โจมตีมอน -40%' : '⚔ ชุดล่ามอนสเตอร์: พลังเต็มที่', s.outfit === 'gather' ? '#c8e8a0' : '#ffe7a0');
+      this.refresh();
+    });
+    this.root.add(this.outfitBtn.c);
+
     // Talk button (appears near NPCs)
     this.talkBtn = k.button(ax - 70, ay - 140, 70, 24, '💬 พูดคุย', () => this.world.interact(), { size: 10, color: 0x2a4a2a });
     this.talkBtn.setVisible(false);
@@ -310,11 +322,11 @@ export class UIScene extends Phaser.Scene {
     for (const b of this.skillBtns) {
       const sk = SKILLS.find(q => q.id === b.id)!;
       b.cd.clear();
-      const locked = s.level < sk.unlockLevel;
+      const locked = false;
       const cdms = this.world.getCooldown(b.id);
       if (locked) {
         b.cd.fillStyle(0x000000, 0.7).fillCircle(0, 0, b.r);
-        b.lock.setText('Lv' + sk.unlockLevel);
+        b.lock.setText('');
       } else if (cdms > 0) {
         const frac = cdms / sk.cooldown;
         b.cd.fillStyle(0x000000, 0.65); b.cd.beginPath(); b.cd.slice(0, 0, b.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac, false); b.cd.fillPath();
@@ -385,6 +397,7 @@ export class UIScene extends Phaser.Scene {
     this.autoBtn.c.setData('active', s.auto);
     this.autoBtn.draw(false, s.auto);
     (this.autoBtn.c.getData('label') as Phaser.GameObjects.Text).setColor(s.auto ? '#9fffb0' : '#ffe7a0');
+    (this.outfitBtn.c.getData('label') as Phaser.GameObjects.Text).setText(s.outfit === 'gather' ? '⛏' : '⚔');
     this.potionCount.setText(String(this.world.countItem('hp_potion') + this.world.countItem('hp_potion_l')));
     this.statBadge.setVisible(false);
     if (this.panels?.isOpen) this.panels.rebuild();

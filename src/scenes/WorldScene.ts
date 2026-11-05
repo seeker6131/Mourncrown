@@ -14,7 +14,7 @@ import { derive, gainExp, calcDamage, type Derived } from '../systems/stats';
 import { addItem, useItem, countItem } from '../systems/inventory';
 import { onKill, refreshCollect } from '../systems/quests';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
-import { SKILLS, SKILL_BY_ID, type SkillId } from '../data/skills';
+import { SKILLS, SKILL_BY_ID, type SkillId, type SkillDef } from '../data/skills';
 import { itemDef, RARITY_COLORS, RARITY_NAMES } from '../data/items';
 import { isGear, GEAR_BASES, baseTier, pickBase, rollRarity, makeGear } from '../systems/loot';
 import { FONT } from '../ui/kit';
@@ -27,7 +27,7 @@ export const controls = { mx: 0, my: 0, attackHeld: false, joyActive: false };
 interface Projectile {
   sprite: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; glow?: Phaser.GameObjects.Image;
   vx: number; vy: number; life: number; owner: 'hero' | 'enemy';
-  dmg: number; radius: number; onHit?: (x: number, y: number) => void; homing?: boolean; trail?: number;
+  dmg: number; radius: number; onHit?: (x: number, y: number) => void; homing?: boolean; trail?: number; pierce?: boolean; onTouch?: (m: Monster) => void;
 }
 
 interface Loot { sprite: Phaser.GameObjects.Image; id: string; qty: number; born: number; x: number; y: number; gear?: { rar?: number; aff?: { k: string; v: number }[] } }
@@ -66,6 +66,8 @@ export class WorldScene extends Phaser.Scene {
   targetRing!: Phaser.GameObjects.Image;
   night = 0;
   rays: Phaser.GameObjects.Image[] = [];
+  shieldHp = 0;
+  shieldUntil = 0;
   nodes: { img: Phaser.GameObjects.Image; sh: Phaser.GameObjects.Image | null; x: number; y: number; tx: number; ty: number; hp: number; max: number; kind: ResKey; solid: boolean; regrowAt: number; tex: string }[] = [];
   plotViews: { x: number; y: number; objs: Phaser.GameObjects.GameObject[]; bubble: Phaser.GameObjects.Container | null; key: string }[] = [];
   lastSettle = 0;
@@ -234,10 +236,7 @@ export class WorldScene extends Phaser.Scene {
     // keyboard (desktop testing)
     if (this.input.keyboard) {
       this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,ONE,TWO,THREE,FOUR,E,Q') as Record<string, Phaser.Input.Keyboard.Key>;
-      this.input.keyboard.on('keydown-ONE', () => this.castSkill('cyclone'));
-      this.input.keyboard.on('keydown-TWO', () => this.castSkill('flame'));
-      this.input.keyboard.on('keydown-THREE', () => this.castSkill('thunder'));
-      this.input.keyboard.on('keydown-FOUR', () => this.castSkill('heal'));
+      ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard!.on('keydown-' + k, () => { const id = currentSkills(S())[i]; if (id) this.castSkill(id); }));
       this.input.keyboard.on('keydown-E', () => this.interact());
       this.input.keyboard.on('keydown-Q', () => this.quickPotion());
     }
@@ -259,7 +258,7 @@ export class WorldScene extends Phaser.Scene {
   applyZoom() {
     const h = this.scale.height, w = this.scale.width;
     // ~250 world px tall view, but keep at least 420 px wide
-    const z = Math.max(1, Math.min(h / 250, w / 420));
+    const z = Math.max(1, Math.min(h / 320, w / 560));
     this.cameras.main.setZoom(z);
   }
 
@@ -589,6 +588,8 @@ export class WorldScene extends Phaser.Scene {
     this.respawnTick(time);
     this.updateAmbient(time, dt);
     this.animateNature(time, dt);
+    { const t = unIso(h.x, h.y); const inTown = this.currentZone === 'village' || (t.tx >= 3 && t.tx <= 27 && t.ty >= 49 && t.ty <= 68);
+      h.casual = inTown || s.outfit === 'gather'; }
     this.updateSettlement(time);
     if (time % 1000 < 20) this.regrowNodes(time);
     if (h.state === 'walk' && time - this.lastStep > 210) { this.lastStep = time; this.dust(h.x, h.y); }
@@ -637,7 +638,10 @@ export class WorldScene extends Phaser.Scene {
       const mp = s.inventory.find(i => i.id === 'mp_potion');
       if (mp) { this.lastPotion = time; useItem(s, mp.uid); sfx.potion(); this.floatText(h.x, h.y - 30, '+MP', '#7ab8ff'); bus.emit(EV.STATE_CHANGED); }
     }
-    if (s.hp < this.der.maxHp * 0.55 && this.skillReady('heal', time)) { this.castSkill('heal'); return false; }
+    for (const id of currentSkills(s)) {
+      const k = SKILL_BY_ID[id];
+      if ((k.kind === 'heal') && s.hp < this.der.maxHp * 0.55 && this.skillReady(id, time)) { this.castSkill(id); return false; }
+    }
 
     if (!this.target || !this.target.alive || Math.hypot(this.target.x - h.x, this.target.y - h.y) > 300) {
       this.target = null;
@@ -662,13 +666,13 @@ export class WorldScene extends Phaser.Scene {
     // skills
     if (!h.busy(time)) {
       const near = this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46).length;
-      if (this.skillReady('warcry', time)) { this.castSkill('warcry'); return false; }
-      if (d < 40 && this.skillReady('bash', time)) { h.setFacing(t.x - h.x, t.y - h.y); this.castSkill('bash'); return false; }
-      if (d < 120 && this.skillReady('multishot', time)) { h.setFacing(t.x - h.x, t.y - h.y); this.castSkill('multishot'); return false; }
-      if (d < 130 && this.skillReady('arrowrain', time)) { this.castSkill('arrowrain'); return false; }
-      if (near >= 1 && this.skillReady('cyclone', time) && (near >= 2 || t.def.boss || t.hp > t.maxHp * 0.5)) { this.castSkill('cyclone'); return false; }
-      if (d < 140 && this.skillReady('thunder', time) && (this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 130).length >= 2 || t.def.boss || t.hp > 150)) { this.castSkill('thunder'); return false; }
-      if (d < 150 && d > 30 && this.skillReady('flame', time)) { h.setFacing(t.x - h.x, t.y - h.y); this.castSkill('flame'); return false; }
+      for (const id of currentSkills(s)) {
+        const k = SKILL_BY_ID[id];
+        if (!this.skillReady(id, time) || k.kind === 'heal') continue;
+        if (k.kind === 'buff' || k.kind === 'shield') { if (d < 120) { this.castSkill(id); return false; } continue; }
+        const aoe = k.kind === 'spin' || k.kind === 'nova' || k.kind === 'rain';
+        if (d <= k.range + t.def.bodyRadius && (!aoe || near >= 2 || t.def.boss || t.hp > t.maxHp * 0.4)) { this.castSkill(id); return false; }
+      }
     }
     const ranged = CLASSES[s.cls ?? 'novice'].ranged && (s.tier ?? 0) > 0;
     const reach = ranged ? 95 : t.def.bodyRadius + 14;
@@ -742,6 +746,7 @@ export class WorldScene extends Phaser.Scene {
     n.hp--;
     const big = n.kind === 'wood' ? 2 : n.max > 4 ? 2 : 1;
     let amt = big + (Math.random() < 0.3 ? 1 : 0);
+    if (s.outfit === 'gather') amt *= 2;
     if (n.hp <= 0) amt += n.kind === 'wood' ? 6 : 4;
     s.res[n.kind] += amt;
     sfx.hit();
@@ -915,7 +920,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   hitMonster(m: Monster, atk: number, mult: number, kind: 'phys' | 'magic', knock = 6) {
-    const r = calcDamage(atk, m.def.def, mult, this.der.crit);
+    const r = calcDamage(atk * (S().outfit === 'gather' ? 0.6 : 1), m.def.def, mult, this.der.crit);
     m.takeHit(r.dmg, this.hero.x, this.hero.y, knock);
     if (this.der.leech > 0) { const st = S(); st.hp = Math.min(this.der.maxHp, st.hp + r.dmg * this.der.leech); }
     if (r.crit) sfx.crit(); else sfx.hit();
@@ -932,8 +937,8 @@ export class WorldScene extends Phaser.Scene {
 
   castSkill(id: SkillId) {
     const time = this.time.now, s = S(), h = this.hero, sk = SKILL_BY_ID[id];
-    if (h.state === 'dead') return;
-    if (!currentSkills(s).includes(id)) { bus.emit(EV.TOAST, 'ยังไม่ได้เรียนสกิลนี้', '#ff8a8a'); sfx.error(); return; }
+    if (!sk || h.state === 'dead') return;
+    if (!currentSkills(s).includes(id)) { sfx.error(); return; }
     if ((this.cooldowns[id] ?? 0) > time) return;
     if (s.mp < sk.mp) { bus.emit(EV.TOAST, 'MP ไม่พอ', '#7ab8ff'); sfx.error(); return; }
     if (h.busy(time) && h.state !== 'attack') return;
@@ -942,110 +947,191 @@ export class WorldScene extends Phaser.Scene {
     bus.emit(EV.SKILL_CAST, id, sk.cooldown);
     bus.emit(EV.STATE_CHANGED);
     const d = this.der;
-    switch (id) {
-      case 'bash': {
-        const t = this.nearestEnemy(48);
-        if (t) h.setFacing(t.x - h.x, t.y - h.y);
-        h.doAttack(time, 320);
-        sfx.crit();
-        const ang = Math.atan2(h.facing.y, h.facing.x);
-        this.playFx('fxa_slash', h.x + h.facing.x * 14, h.y - 9 + h.facing.y * 10, h.y + 5, { scale: 0.85, rot: ang })?.setOrigin(0.4, 0.5);
-        this.time.delayedCall(90, () => { if (t && t.alive) { this.hitMonster(t, d.atk, sk.power * skillMult(s, id), 'phys', 12); this.playFx('fxa_hit', t.x, t.cy, 99600, { scale: 0.7 }); } });
+    const base = (sk.stat === 'matk' ? d.matk : d.atk);
+    const mult = sk.power * skillMult(s, id);
+    const kind = sk.stat === 'matk' ? 'magic' : 'phys';
+    const col = sk.color ?? 0xffffff;
+    const tgt = this.nearestEnemy(Math.max(60, sk.range + 30));
+    if (tgt) h.setFacing(tgt.x - h.x, tgt.y - h.y);
+    const fx = h.facing.x, fy = h.facing.y, ang = Math.atan2(fy, fx);
+    const hitArea = (x: number, y: number, r: number, m2 = mult, knock = 8) => {
+      for (const m of this.monsters) if (m.alive && Math.hypot(m.x - x, (m.y - y) * 1.3) < r + m.def.bodyRadius) this.hitMonster(m, base, m2, kind, knock);
+    };
+    switch (sk.kind) {
+      case 'strike': {
+        const n = sk.count ?? 1;
+        h.doAttack(time, 260 * n);
+        for (let i = 0; i < n; i++) this.time.delayedCall(80 + i * 200, () => {
+          sfx.crit();
+          const fxs = this.playFx('fxa_slash', h.x + fx * 14, h.y - 9 + fy * 10, h.y + 5, { scale: 0.8, rot: ang + (i % 2 ? Math.PI * 0.9 : 0) });
+          fxs?.setOrigin(0.4, 0.5).setTint(col);
+          hitArea(h.x + fx * 18, h.y + fy * 14, 18, mult, 14);
+        });
         break;
       }
-      case 'multishot': {
-        const t = this.nearestEnemy(170);
-        let ang = Math.atan2(h.facing.y, h.facing.x);
-        if (t) { ang = Math.atan2(t.cy - (h.y - 10), t.x - h.x); h.setFacing(Math.cos(ang), Math.sin(ang)); }
-        h.doAttack(time, 300);
-        sfx.arrow();
-        for (let i = -2; i <= 2; i++) this.heroArrow(ang + i * 0.16, d.atk * sk.power * skillMult(s, id));
-        break;
-      }
-      case 'arrowrain': {
-        h.doCast(time, 380);
-        const targets = this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 140).slice(0, 6);
-        targets.forEach((m, i) => this.time.delayedCall(100 + i * 70, () => {
-          if (!m.alive) return;
-          for (let k = 0; k < 3; k++) {
-            const a = this.add.image(m.x + (k - 1) * 6, m.y - 70, 'fx_arrow').setRotation(Math.PI / 2).setDepth(99000);
-            this.tweens.add({ targets: a, y: m.y - 4, duration: 180 + k * 30, ease: 'Quad.easeIn', onComplete: () => { a.destroy(); this.burst(m.x, m.y - 2, 0xd8c090, 4, 30); } });
-          }
-          this.time.delayedCall(200, () => { if (m.alive) this.hitMonster(m, d.atk, sk.power * skillMult(s, id), 'phys', 3); });
-        }));
-        sfx.arrow();
-        break;
-      }
-      case 'warcry': {
-        h.doCast(time, 400);
-        (s as typeof s & { warcryUntil?: number }).warcryUntil = Date.now() + 12000;
-        this.der = derive(s);
-        sfx.bossRoar();
-        this.surround(h.x, h.y, 0xff6a3a, { rings: 3, height: 30, radius: 16, motes: 14, dur: 900 });
-        this.floatText(h.x, h.y - 40, 'ATK +25%', '#ff9a6a', 1.2);
-        this.time.delayedCall(12100, () => { this.der = derive(S()); bus.emit(EV.STATE_CHANGED); });
-        break;
-      }
-      case 'cyclone': {
-        h.doAttack(time, 420);
-        h.sprite.anims.timeScale = 1.6;
+      case 'spin': {
+        const n = sk.count ?? 1, R = sk.radius ?? 42;
+        h.doAttack(time, 220 * n + 100);
         sfx.cyclone();
-        const ring = this.add.image(h.x, h.y - 8, 'fx_slash').setBlendMode(Phaser.BlendModes.ADD).setDepth(h.y + 6).setScale(1.2);
-        const ring2 = this.add.image(h.x, h.y - 8, 'fx_slash').setBlendMode(Phaser.BlendModes.ADD).setDepth(h.y + 6).setScale(1.5).setRotation(Math.PI).setTint(0x9ad8ff);
-        this.tweens.add({ targets: [ring, ring2], rotation: '+=12', scale: 2.4, alpha: 0, duration: 450, onComplete: () => { ring.destroy(); ring2.destroy(); } });
-        this.burst(h.x, h.y - 6, 0xbfe8ff, 18, 60);
-        this.surround(h.x, h.y, 0xbfe8ff, { rings: 2, height: 14, radius: 26, motes: 10, dur: 450 });
-        for (const delay of [60, 220]) this.time.delayedCall(delay, () => {
-          for (const m of this.monsters) if (m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46 + m.def.bodyRadius) this.hitMonster(m, d.atk, (sk.power / 2 + 0.1) * skillMult(s, id), 'phys', 10);
+        for (let i = 0; i < n; i++) this.time.delayedCall(60 + i * 220, () => {
+          const r1 = this.add.image(h.x, h.y - 8, 'fx_slash').setBlendMode(Phaser.BlendModes.ADD).setDepth(h.y + 6).setScale(R / 22).setTint(col);
+          const r2 = this.add.image(h.x, h.y - 8, 'fx_slash').setBlendMode(Phaser.BlendModes.ADD).setDepth(h.y + 6).setScale(R / 18).setRotation(Math.PI).setTint(col);
+          this.tweens.add({ targets: [r1, r2], rotation: '+=9', alpha: 0, duration: 260, onComplete: () => { r1.destroy(); r2.destroy(); } });
+          this.surround(h.x, h.y, col, { rings: 1, height: 12, radius: R * 0.7, motes: 6, dur: 300 });
+          hitArea(h.x, h.y, R, mult, 10);
         });
         break;
       }
-      case 'flame': {
-        h.doCast(time, 300);
-        sfx.flame();
-        let vx = h.facing.x, vy = h.facing.y;
-        // aim at nearest enemy in front if any
-        let best: Monster | null = null, bd = 170;
-        for (const m of this.monsters) { if (!m.alive) continue; const dd = Math.hypot(m.x - h.x, m.y - h.y); if (dd < bd) { bd = dd; best = m; } }
-        if (best) { vx = best.x - h.x; vy = best.cy - (h.y - 10); const l = Math.hypot(vx, vy); vx /= l; vy /= l; h.setFacing(vx, vy); }
-        const fb = this.playFx('fxa_fireball', h.x + vx * 10, h.y - 10 + vy * 8, 99000, { scale: 0.5, rot: Math.atan2(vy, vx) }) ?? this.add.image(h.x + vx * 10, h.y - 10 + vy * 8, 'fx_fireball').setDepth(99000).setBlendMode(Phaser.BlendModes.ADD);
-        if (fb instanceof Phaser.GameObjects.Sprite) fb.setOrigin(0.75, 0.5);
-        const glow = this.add.image(fb.x, fb.y, 'fx_glow').setTint(0xff7a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.8).setAlpha(0.7).setDepth(98999);
-        this.projectiles.push({
-          sprite: fb, glow, vx: vx * 220, vy: vy * 220, life: 900, owner: 'hero', dmg: 0, radius: 10, trail: 0xff8a3a,
-          onHit: (x, y) => this.explode(x, y, d.matk, sk.power * skillMult(s, id)),
-        });
+      case 'dash': case 'leap': {
+        const dist = sk.kind === 'leap' && tgt ? Math.min(sk.radius ? sk.range : 90, Math.hypot(tgt.x - h.x, tgt.y - h.y) - 8) : (sk.radius ?? 70);
+        const sx = h.x, sy = h.y;
+        let ex = sx + fx * dist, ey = sy + fy * dist;
+        // stop at obstacles
+        for (let t = 0.1; t <= 1; t += 0.1) if (!this.canMove(sx + fx * dist * t, sy + fy * dist * t, 5)) { ex = sx + fx * dist * (t - 0.1); ey = sy + fy * dist * (t - 0.1); break; }
+        h.doAttack(time, 360);
+        h.invulnUntil = time + 400;
+        sfx.swing();
+        const hitSet = new Set<Monster>();
+        this.tweens.addCounter({ from: 0, to: 1, duration: sk.kind === 'leap' ? 320 : 200, ease: sk.kind === 'leap' ? 'Sine.easeInOut' : 'Quad.easeOut',
+          onUpdate: tw => {
+            const t = tw.getValue()!;
+            h.x = sx + (ex - sx) * t; h.y = sy + (ey - sy) * t;
+            if (sk.kind === 'leap') h.sprite.y -= Math.sin(t * Math.PI) * 26;
+            else {
+              const g = this.add.image(h.x, h.y - 10, h.sprite.texture.key, h.sprite.frame.name).setScale(h.sprite.scaleX, h.sprite.scaleY).setFlipX(h.sprite.flipX).setTint(col).setAlpha(0.45).setDepth(h.y - 1).setOrigin(h.sprite.originX, h.sprite.originY).setPosition(h.x, h.y);
+              this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
+              for (const m of this.monsters) if (m.alive && !hitSet.has(m) && Math.hypot(m.x - h.x, m.y - h.y) < 16 + m.def.bodyRadius) { hitSet.add(m); this.hitMonster(m, base, mult, kind, 16); }
+            }
+          },
+          onComplete: () => {
+            if (sk.kind === 'leap') {
+              sfx.boom();
+              this.playFx('fxa_explode', h.x, h.y + 8, h.y + 20, { scale: 0.45, normal: true })?.setOrigin(0.5, 0.85).setTint(col);
+              const ring = this.add.image(h.x, h.y, 'fx_ring').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2, 0.1).setDepth(2);
+              this.tweens.add({ targets: ring, scaleX: (sk.radius ?? 50) / 26, scaleY: (sk.radius ?? 50) / 52, alpha: 0, duration: 450, onComplete: () => ring.destroy() });
+              this.burst(h.x, h.y, col, 22, 90);
+              hitArea(h.x, h.y, sk.radius ?? 50, mult, 14);
+            }
+          } });
         break;
       }
-      case 'thunder': {
-        h.doCast(time, 420);
-        const targets = this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 130)
-          .sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y)).slice(0, 5);
-        if (!targets.length) {
-          // strike in front anyway for feedback
-          this.boltAt(h.x + h.facing.x * 50, h.y + h.facing.y * 40);
+      case 'shot': {
+        const n = sk.count ?? 1, sp = sk.spread ?? 0;
+        h.doAttack(time, 300);
+        if (sk.proj === 'arrow') sfx.arrow(); else sfx.flame();
+        for (let i = 0; i < n; i++) {
+          const a2 = ang + (i - (n - 1) / 2) * sp;
+          const delay = sp === 0 || sp < 0.08 ? i * 120 : 0;
+          this.time.delayedCall(delay, () => this.skillProjectile(sk, a2, base, mult, kind, false));
         }
+        break;
+      }
+      case 'pierce': {
+        const n = sk.count ?? 1, sp = sk.spread ?? 0;
+        h.doAttack(time, 320);
+        sfx.magic();
+        for (let i = 0; i < n; i++) this.skillProjectile(sk, ang + (i - (n - 1) / 2) * sp, base, mult, kind, true);
+        break;
+      }
+      case 'rain': {
+        h.doCast(time, 420);
+        const targets = this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < (sk.radius ?? 130))
+          .sort((p, q) => Math.hypot(p.x - h.x, p.y - h.y) - Math.hypot(q.x - h.x, q.y - h.y)).slice(0, sk.count ?? 5);
+        if (sk.fall === 'bolt') { sfx.thunder(); this.cameras.main.flash(100, 200, 220, 255, false); }
         targets.forEach((m, i) => this.time.delayedCall(120 + i * 90, () => {
           if (!m.alive) return;
-          this.boltAt(m.x, m.y);
-          this.surround(m.x, m.y, 0xbfe0ff, { rings: 2, height: 22, radius: m.def.bodyRadius + 8, motes: 8, dur: 450 });
-          this.hitMonster(m, d.matk, sk.power * skillMult(s, id), 'magic', 2);
+          this.fallOn(m, sk, () => { if (m.alive) this.hitMonster(m, base, mult, kind, 3); });
         }));
-        sfx.thunder();
-        this.cameras.main.flash(120, 200, 220, 255, false);
+        if (!targets.length) this.fallOn(null, sk, () => undefined, h.x + fx * 50, h.y + fy * 40);
+        break;
+      }
+      case 'nova': {
+        const R = sk.radius ?? 52;
+        h.doCast(time, 380);
+        sfx.boom();
+        this.surround(h.x, h.y, col, { rings: 2, height: 22, radius: R * 0.6, motes: 16, dur: 500 });
+        const ring = this.add.image(h.x, h.y, 'fx_ring').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2, 0.1).setDepth(2);
+        this.tweens.add({ targets: ring, scaleX: R / 26, scaleY: R / 52, alpha: 0, duration: 500, onComplete: () => ring.destroy() });
+        this.burst(h.x, h.y - 6, col, 26, R * 1.6);
+        this.time.delayedCall(120, () => hitArea(h.x, h.y, R, mult, 18));
+        if (id === 'm4_dread') { const st = S(); st.hp = Math.min(this.der.maxHp, st.hp + this.der.maxHp * 0.08); }
+        break;
+      }
+      case 'buff': {
+        h.doCast(time, 400);
+        sfx.bossRoar();
+        (s as typeof s & { skillBuff?: unknown }).skillBuff = { ...sk.buff, until: Date.now() + (sk.buff?.dur ?? 10000) };
+        this.der = derive(s);
+        this.surround(h.x, h.y, col, { rings: 3, height: 30, radius: 16, motes: 14, dur: 900 });
+        this.floatText(h.x, h.y - 40, sk.name, '#' + col.toString(16).padStart(6, '0'), 1.1);
+        this.time.delayedCall((sk.buff?.dur ?? 10000) + 100, () => { this.der = derive(S()); bus.emit(EV.STATE_CHANGED); });
         break;
       }
       case 'heal': {
         h.doCast(time, 450);
-        const amt = Math.round((d.maxHp * sk.power + d.matk * 0.8) * skillMult(s, id));
+        const amt = Math.round((d.maxHp * sk.power + (sk.stat === 'matk' ? d.matk * 0.8 : 0)) * skillMult(s, id));
         const real = Math.min(amt, d.maxHp - s.hp);
         s.hp += real;
         sfx.heal();
         this.healFx();
         this.floatText(h.x, h.y - 30, '+' + real, '#7aff8a', 1.2);
-        bus.emit(EV.STATE_CHANGED);
         break;
       }
+      case 'shield': {
+        h.doCast(time, 400);
+        sfx.upgradeOk();
+        this.shieldHp = Math.round(d.maxHp * sk.power * skillMult(s, id));
+        this.shieldUntil = time + 12000;
+        this.surround(h.x, h.y, col, { rings: 3, height: 34, radius: 17, motes: 16, beam: true, dur: 900 });
+        this.floatText(h.x, h.y - 40, `โล่ ${this.shieldHp}`, '#ffe080', 1.1);
+        break;
+      }
+    }
+    bus.emit(EV.STATE_CHANGED);
+  }
+
+  /** Projectile fired by a skill (arrow / orb / fire / dark). */
+  skillProjectile(sk: SkillDef, ang: number, base: number, mult: number, kind: 'phys' | 'magic', pierce: boolean) {
+    const h = this.hero;
+    const col = sk.color ?? (sk.proj === 'fire' ? 0xff8a3a : sk.proj === 'dark' ? 0xff3a5a : 0x8ad0ff);
+    const x = h.x + Math.cos(ang) * 10, y = h.y - 12 + Math.sin(ang) * 6;
+    let spr: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite;
+    if (sk.proj === 'arrow') spr = this.add.image(x, y, 'fx_arrow').setRotation(ang).setScale(pierce ? 1.4 : 1).setTint(sk.color ?? 0xffffff);
+    else if (sk.proj === 'fire') spr = this.playFx('fxa_fireball', x, y, 99000, { scale: 0.5, rot: ang })?.setOrigin(0.75, 0.5) ?? this.add.image(x, y, 'fx_fireball');
+    else spr = this.add.image(x, y, 'fx_orb').setBlendMode(Phaser.BlendModes.ADD).setTint(col).setScale(pierce ? 1.6 : 1.1);
+    spr.setDepth(99000);
+    const glow = sk.proj === 'arrow' && !sk.color ? undefined : this.add.image(x, y, 'fx_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.5).setAlpha(0.6).setDepth(98999);
+    const hitSet = new Set<Monster>();
+    const speed = sk.proj === 'arrow' ? 280 : 210;
+    this.projectiles.push({
+      sprite: spr, glow, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, life: (sk.range + 40) / speed * 1000, owner: 'hero', dmg: 0, radius: 7, trail: col, pierce,
+      onTouch: (m: Monster) => {
+        if (hitSet.has(m)) return;
+        hitSet.add(m);
+        if (sk.radius && !pierce) { this.explode(spr.x, spr.y, base, mult); return; }
+        this.hitMonster(m, base, mult, kind, pierce ? 4 : 6);
+      },
+    });
+  }
+
+  /** Something falls from the sky onto a monster (or a point). */
+  fallOn(m: Monster | null, sk: SkillDef, onHit: () => void, px?: number, py?: number) {
+    const x = m ? m.x : px!, y = m ? m.y : py!;
+    const col = sk.color ?? 0xffffff;
+    if (sk.fall === 'bolt') { this.boltAt(x, y); onHit(); return; }
+    const tex = sk.fall === 'arrow' ? 'fx_arrow' : sk.fall === 'blade' ? 'fx_slash' : 'fx_fireball';
+    const n = sk.fall === 'meteor' ? 1 : 3;
+    for (let k = 0; k < n; k++) {
+      const ox = (k - (n - 1) / 2) * 6;
+      const sp = this.add.image(x + ox + (sk.fall === 'meteor' ? -40 : 0), y - 90, tex).setDepth(99000)
+        .setRotation(sk.fall === 'meteor' ? Math.PI * 0.3 : Math.PI / 2).setScale(sk.fall === 'meteor' ? 1.4 : sk.fall === 'blade' ? 0.6 : 1).setTint(col);
+      if (sk.fall !== 'arrow') sp.setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: sp, x: x + ox, y: y - 4, duration: 200 + k * 40, ease: 'Quad.easeIn', onComplete: () => {
+        sp.destroy();
+        this.burst(x, y - 2, col, sk.fall === 'meteor' ? 18 : 5, sk.fall === 'meteor' ? 80 : 30);
+        if (sk.fall === 'meteor') { sfx.boom(); this.playFx('fxa_explode', x, y + 8, y + 20, { scale: 0.4, normal: true })?.setOrigin(0.5, 0.85).setTint(0xff6a6a); }
+        if (k === 0) onHit();
+      } });
     }
   }
 
@@ -1174,6 +1260,11 @@ export class WorldScene extends Phaser.Scene {
     const r = calcDamage(atk, this.der.def, mult, 0.05, Math.random, this.der.evade);
     this.lastHurt = time;
     if (r.miss) { this.floatText(h.x, h.y - 30, 'MISS', '#c8c8ff', 0.9); return; }
+    if (this.shieldHp > 0 && time < this.shieldUntil) {
+      const ab = Math.min(this.shieldHp, r.dmg); this.shieldHp -= ab; r.dmg -= ab;
+      this.floatText(h.x + 10, h.y - 34, `🛡${ab}`, '#ffe080', 0.85);
+      if (r.dmg <= 0) return;
+    }
     s.hp = Math.max(0, s.hp - r.dmg);
     sfx.hurt();
     h.hurtFlash();
@@ -1276,7 +1367,10 @@ export class WorldScene extends Phaser.Scene {
       }
       let hit = false;
       if (p.owner === 'hero') {
-        for (const m of this.monsters) if (m.alive && Math.hypot(m.x - p.sprite.x, m.cy - p.sprite.y) < p.radius + m.def.bodyRadius) { hit = true; break; }
+        for (const m of this.monsters) if (m.alive && Math.hypot(m.x - p.sprite.x, m.cy - p.sprite.y) < p.radius + m.def.bodyRadius) {
+          if (p.onTouch) p.onTouch(m);
+          if (!p.pierce) { hit = true; break; }
+        }
       } else if (h.state !== 'dead' && Math.hypot(h.x - p.sprite.x, (h.y - 8) - p.sprite.y) < p.radius + 4) {
         hit = true; this.damageHero(p.dmg, null);
       }

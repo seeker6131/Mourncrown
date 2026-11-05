@@ -14,12 +14,12 @@ import { reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, r
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
-import { CLASSES, FORM_LEVEL, formName, classSkills, type ClassId } from '../data/classes';
+import { CLASSES, FORM_LEVEL, formName, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job';
+type PanelId = 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -92,6 +92,7 @@ export class Panels {
       case 'menu': this.buildMenu(c); break;
       case 'plot': this.buildPlot(c); break;
       case 'job': this.buildJob(c); break;
+      case 'forms': this.buildForms(c); break;
       case 'dialog': this.buildDialog(c); break;
       case 'shop': this.buildShop(c); break;
       case 'smith': this.buildSmith(c); break;
@@ -277,7 +278,7 @@ export class Panels {
       const locked = false;
       c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
       const slv = s.skillLv[sk.id] ?? 1;
-      c.add(k.text(rx + 38, sy + 2, sk.name + (locked ? `  🔒 Lv${sk.unlockLevel}` : `  Lv ${slv}`), 9, locked ? '#8a7a60' : '#9ad8ff'));
+      c.add(k.text(rx + 38, sy + 2, sk.name + `  Lv ${slv}`, 9, locked ? '#8a7a60' : '#9ad8ff'));
       if (!locked && slv < SKILL_MAX) c.add(k.button(x + W - 50, sy + 2, 30, 20, '+', () => { if (upSkill(s, sk.id)) { sfx.levelUp(); bus.emit(EV.STATE_CHANGED); } }, { size: 11, disabled: s.skillPts < 1, color: 0x1f4a2a }));
       c.add(k.text(rx + 38, sy + 15, `${sk.desc}\nMP ${sk.mp}  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 46 }, lineSpacing: 1 }));
     });
@@ -426,6 +427,28 @@ export class Panels {
     c.add(k.button(x + W / 2 - 80, top + H - 90, 160, 30, '✨ เปลี่ยนร่าง', () => doIt(), { size: 12, color: 0x6a3a8a, disabled: nf === null }));
   }
 
+  // ---------------- TEST: FORM SWITCHER ----------------
+  buildForms(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(600, ui.VW - 16), H = 330;
+    const { x, y } = this.window(c, W, H, '🧪 ทดสอบ: สลับร่าง (สำหรับหาบั๊ก)');
+    const cols = 4, bw = (W - 28 - (cols - 1) * 6) / cols;
+    ALL_FORMS.forEach((f, i) => {
+      const r = i === 0 ? 0 : 1 + Math.floor((i - 1) / 3), col = i === 0 ? 0 : Math.floor((i - 1) / 3);
+      const row = i === 0 ? 0 : 1 + ((i - 1) % 3);
+      void r;
+      const bx = x + 14 + col * (bw + 6), by = y + 32 + row * 52;
+      const cur = s.cls === f.cls && s.tier === f.tier;
+      c.add(k.button(bx, by, bw, 44, `${formName(f.cls, f.tier)}\nร่าง ${f.tier + 1} • Lv${FORM_LEVEL[f.tier]}+`, () => {
+        s.cls = f.cls; s.tier = f.tier; s.level = Math.max(s.level, FORM_LEVEL[f.tier]);
+        const d0 = derive(s); s.hp = d0.maxHp; s.mp = d0.maxMp;
+        sfx.levelUp(); bus.emit(EV.TOAST, `สลับเป็น ${formName(f.cls, f.tier)}`, '#9ad8ff');
+        this.close(); bus.emit(EV.STATE_CHANGED);
+      }, { size: 8.5, color: cur ? 0x6a4a10 : 0x2a1d12 }));
+    });
+    c.add(k.text(x + 14, y + H - 22, 'ปุ่มนี้สำหรับทดสอบเท่านั้น จะเอาออกก่อนเปิดให้คนอื่นเล่น', 7.5, '#a89878'));
+  }
+
   // ---------------- QUEST ----------------
   buildQuest(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
@@ -449,7 +472,7 @@ export class Panels {
   // ---------------- MENU ----------------
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = 260, H = 300;
+    const W = 260, H = 330;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let yy = y + 34;
     const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 26, label, cb, { size: 10, color })); yy += 31; };
@@ -465,6 +488,7 @@ export class Panels {
     b(`🔊 เสียงเอฟเฟกต์: ${s.sfx ? 'เปิด' : 'ปิด'}`, () => { s.sfx = !s.sfx; audioState.sfx = s.sfx; this.rebuild(); });
     b(`🎵 เพลง: ${s.music ? 'เปิด' : 'ปิด'}`, () => { s.music = !s.music; setMusic(s.music); this.rebuild(); });
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
+    b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
     b(`✏ เส้นขอบตัวละคร/วัตถุ: ${strokeEnabled() ? 'เปิด' : 'ปิด'}`, () => { saveGame(s); setStroke(!strokeEnabled()); location.reload(); });
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
@@ -483,7 +507,9 @@ export class Panels {
     c.add([blocker, g]);
     g.fillStyle(0x0a0705, 1).fillRoundedRect(x + 10, y + 10, 64, 64, 4);
     g.lineStyle(1.5, GOLD, 1).strokeRoundedRect(x + 10, y + 10, 64, 64, 4);
-    const por = ui.add.sprite(x + 42, y + 44, info.tex, 'idle_0').setScale(2.2);
+    const hi = ui.textures.exists(`an_${info.tex}_idle`);
+    const por = hi ? ui.add.sprite(x + 42, y + 74, `an_${info.tex}_idle`, 0).setOrigin(0.5, 1) : ui.add.sprite(x + 42, y + 44, info.tex, 'idle_0').setScale(2.2);
+    if (hi) por.setScale(60 / por.height);
     c.add(por);
     c.add(k.text(x + 42, y + 78, info.name, 8.5, '#ffd84a').setOrigin(0.5, 0));
     c.add(k.text(x + 84, y + 10, this.dialogText, 9.5, '#f3e6c4', { wordWrap: { width: W - 96 }, lineSpacing: 3 }));

@@ -5,6 +5,8 @@ import { S } from '../core/events';
 import { equippedLook } from '../systems/inventory';
 import { hasAi, recolorHero } from '../art/aiAssets';
 import { ensureHeroAnims, hasAnim } from '../art/animAssets';
+import { hasForms, formAnim, portraitKey, FORM_RES } from '../art/formAssets';
+import { formCode } from '../data/classes';
 
 export type HeroState = 'idle' | 'walk' | 'attack' | 'cast' | 'hurt' | 'dead';
 
@@ -29,12 +31,17 @@ export class Hero {
   anim = false;
   animPre = 'h_novice0_';
   actionDur = 260;
+  forms = false;
+  /** villager outfit override (in the village / gathering mode) */
+  casual = false;
+  formTint: number | undefined;
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.x = x; this.y = y;
     this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.75, 0.9);
     this.ai = hasAi(scene, 'hero_0');
     this.anim = hasAnim(scene, 'h_novice0_idle');
+    this.forms = hasForms(scene);
     this.sprite = scene.add.sprite(x, y, this.ai ? 'ai_hero_0' : 'hero_a0_w0').setOrigin(0.5, this.ai ? 0.97 : 36 / 40);
     this.refreshLook();
   }
@@ -43,6 +50,7 @@ export class Hero {
     const s = S();
     const a = equippedLook(s, 'armor');
     const w = Math.max(0, equippedLook(s, 'weapon'));
+    if (this.forms) { this.texKey = 'fs_V0_idle'; return; }
     if (this.anim) { this.animPre = ensureHeroAnims(this.scene, s.cls ?? 'novice', s.tier ?? 0); this.texKey = 'an_hero_idle'; }
     if (this.ai) {
       this.aiKeys = recolorHero(this.scene, Math.max(0, a));
@@ -57,10 +65,12 @@ export class Hero {
   }
 
   /** Texture + frame to show the hero in UI portraits. */
-  portrait(): { key: string; frame?: string | number } { if (this.anim) { const k = `an_hero_idle_${this.animPre.slice(2, -1)}`; return { key: this.scene.textures.exists(k) ? k : 'an_hero_idle', frame: 0 }; } return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
+  code() { const s = S(); return this.casual ? 'V0' : formCode(s.cls ?? 'novice', s.tier ?? 0); }
+
+  portrait(): { key: string; frame?: string | number } { if (this.forms) { const k = portraitKey(this.scene, formCode(S().cls ?? 'novice', S().tier ?? 0)); if (k) return { key: k }; } if (this.anim) { const k = `an_hero_idle_${this.animPre.slice(2, -1)}`; return { key: this.scene.textures.exists(k) ? k : 'an_hero_idle', frame: 0 }; } return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
 
   play(anim: string, force = false) {
-    if (this.ai) return;
+    if (this.ai || this.forms) return;
     const key = `${this.texKey}_${this.dir}_${anim}`;
     if (!force && this.sprite.anims.currentAnim?.key === key && this.sprite.anims.isPlaying) return;
     this.sprite.play(key);
@@ -71,7 +81,7 @@ export class Hero {
     this.facing.set(vx, vy).normalize();
     if (Math.abs(vx) > Math.abs(vy) * 0.9) { this.dir = 'side'; this.flip = vx < 0; }
     else { this.dir = vy < 0 ? 'up' : 'down'; this.flip = false; }
-    if (this.ai) { this.diag = (vy < -0.25 ? 2 : 0) + (vx >= 0 ? 1 : 0) as 0 | 1 | 2 | 3; return; }
+    if (this.ai || this.forms) { this.diag = (vy < -0.25 ? 2 : 0) + (vx >= 0 ? 1 : 0) as 0 | 1 | 2 | 3; return; }
     this.sprite.setFlipX(this.flip);
   }
 
@@ -96,13 +106,18 @@ export class Hero {
   hurtFlash() {
     this.sprite.setTintFill(0xffffff);
     this.scene.time.delayedCall(70, () => { this.sprite.clearTint(); this.sprite.setTint(0xff8080); });
-    this.scene.time.delayedCall(220, () => this.sprite.clearTint());
+    this.scene.time.delayedCall(220, () => { this.sprite.clearTint(); if (this.formTint) this.sprite.setTint(this.formTint); });
   }
 
   die() {
     this.state = 'dead';
     this.sprite.anims.timeScale = 1;
     this.play('hurt', true);
+    if (this.forms) {
+      const r = this.formPlay('die', true); this.sprite.setFlipX((this.diag & 1) === 0);
+      if (r.fake) this.scene.tweens.add({ targets: this.sprite, angle: (this.diag & 1) ? 90 : -90, duration: 500, ease: 'Bounce.easeOut' });
+      return;
+    }
     if (this.anim) { this.sprite.setFlipX((this.diag & 1) === 0).setRotation(0).setScale(0.5); this.sprite.play(this.animPre + 'die'); return; }
     if (this.ai) this.setPose(7, (this.diag & 1) === 0);
     this.scene.tweens.add({ targets: this.sprite, angle: this.flip || (this.ai && !(this.diag & 1)) ? -90 : 90, alpha: 0.7, duration: 500, ease: 'Bounce.easeOut' });
@@ -113,7 +128,8 @@ export class Hero {
     this.x = x; this.y = y;
     this.sprite.setAngle(0).setAlpha(1);
     this.dir = 'down'; this.diag = 1;
-    if (this.anim) this.sprite.play(this.animPre + 'idle');
+    if (this.forms) this.formPlay('idle', true);
+    else if (this.anim) this.sprite.play(this.animPre + 'idle');
     this.play('idle', true);
   }
 
@@ -125,7 +141,8 @@ export class Hero {
       this.sprite.anims.timeScale = 1;
       this.play(this.state);
     }
-    if (this.anim) this.animPose(now);
+    if (this.forms) this.formPose(now);
+    else if (this.anim) this.animPose(now);
     else if (this.ai) this.aiPose(now, moving);
     this.sync();
   }
@@ -137,6 +154,31 @@ export class Hero {
   }
 
   /** Pose selection + procedural motion for the single-frame AI hero art. */
+  formPlay(anim: string, restart = false) {
+    const r = formAnim(this.scene, this.code(), anim);
+    if (restart || this.sprite.anims.currentAnim?.key !== r.key) this.sprite.play(r.key);
+    if (r.tint !== this.formTint) { this.formTint = r.tint; if (r.tint) this.sprite.setTint(r.tint); else this.sprite.clearTint(); }
+    return r;
+  }
+
+  /** Frame animation from the Director's per-form sheets. */
+  formPose(now: number) {
+    const left = (this.diag & 1) === 0, up = this.diag >= 2;
+    this.sprite.setFlipX(left).setRotation(0).setScale(1 / FORM_RES);
+    if (this.state === 'attack') {
+      const r = this.formPlay('attack', now - this.actionStart < 20);
+      if (now - this.actionStart < 20) this.sprite.anims.timeScale = Math.max(1, 300 / Math.max(120, this.actionDur));
+      void r;
+    } else if (this.state === 'cast') {
+      this.formPlay('skill', now - this.actionStart < 20); this.sprite.anims.timeScale = 1;
+    } else if (this.state === 'walk') { this.formPlay(up ? 'walkup' : 'walk'); this.sprite.anims.timeScale = 1; }
+    else {
+      if (up) { this.formPlay('walkup'); this.sprite.anims.pause(this.sprite.anims.currentAnim!.frames[0]); }
+      else { this.formPlay('idle'); if (this.sprite.anims.isPaused) this.sprite.anims.resume(); }
+      this.sprite.anims.timeScale = 1;
+    }
+  }
+
   playA(name: string, ts = 1) {
     const key = this.animPre + name;
     if (this.sprite.anims.currentAnim?.key !== key || !this.sprite.anims.isPlaying && this.sprite.anims.currentAnim?.repeat === -1) this.sprite.play(key);

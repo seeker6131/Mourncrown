@@ -47,6 +47,7 @@ export interface GameState {
   introSeen: boolean;
   cls: 'novice' | 'sword' | 'archer' | 'mage' | 'cleric';
   tier: number;
+  outfit: 'hunt' | 'gather';
   dayTime: number;
 }
 
@@ -86,6 +87,7 @@ export function newGameState(): GameState {
     introSeen: false,
     cls: 'novice',
     tier: 0,
+    outfit: 'hunt',
     dayTime: 0.15,
   };
   return s;

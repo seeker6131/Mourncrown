@@ -48,11 +48,13 @@ export function derive(s: GameState): Derived {
   const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
   const cb = CLASSES[s.cls ?? 'novice'].bonus, tf = Math.max(0, s.tier ?? 0);
   g.crit += (cb.crit ?? 0) * tf; g.aspd += (cb.aspd ?? 0) * tf;
-  const war = (s as GameState & { warcryUntil?: number }).warcryUntil ?? 0;
-  const ab = (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (war > Date.now() ? 1.25 : 1), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
+  const sb = (s as GameState & { skillBuff?: { atk?: number; def?: number; aspd?: number; until: number } }).skillBuff;
+  const sbOn = sb && sb.until > Date.now() ? sb : null;
+  g.aspd += sbOn?.aspd ?? 0;
+  const ab = (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (1 + (sbOn?.atk ?? 0) / 100), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
   const atk = Math.round((8 + L * 2.5 + g.atk) * ab * (1 + (cb.atk ?? 0) * tf / 100));
   const matk = Math.round((6 + L * 2.5 + g.matk) * ab * (1 + (cb.matk ?? 0) * tf / 100));
-  const def = Math.round((L * 1 + g.def) * hb);
+  const def = Math.round((L * 1 + g.def) * hb * (1 + ((cb.def ?? 0) * tf + (sbOn?.def ?? 0)) / 100));
   const maxHp = Math.round((140 + L * 22 + g.hp) * hb * (1 + (cb.hp ?? 0) * tf / 100));
   const crit = Math.min(0.75, 0.05 + g.crit / 100);
   const attackInterval = Math.max(300, Math.round(700 / (1 + g.aspd / 100)));

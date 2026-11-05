@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { generateAll } from '../art/textures';
 import { preloadAi, applyAiArt } from '../art/aiAssets';
 import { preloadAnims, applyAnims } from '../art/animAssets';
+import { preloadForms, applyForms } from '../art/formAssets';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
@@ -13,12 +14,14 @@ export class BootScene extends Phaser.Scene {
     this.load.on('complete', () => { t.setText('กำลังสร้างโลก...'); });
     preloadAi(this);
     preloadAnims(this);
+    preloadForms(this);
   }
   create() {
     this.time.delayedCall(30, () => {
       generateAll(this);
       applyAiArt(this);
       applyAnims(this);
+      applyForms(this);
       this.children.removeAll(true);
       const q = new URLSearchParams(location.search);
       this.scene.start(q.has('preview') ? 'Preview' : 'Title');

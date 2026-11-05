@@ -18,7 +18,7 @@ export function installDebug(game: Phaser.Game) {
       addItem(s, 'knight_plate', 1, 0, makeGear(Math.random, 'knight_plate', 3)); equip(s, s.inventory[s.inventory.length - 1].uid);
       addItem(s, 'hp_potion_l', 10);
       const d = derive(s); s.hp = d.maxHp; s.mp = d.maxMp;
-      s.auto = true;
+      s.auto = true; s.cls = 'sword'; s.tier = 2;
       const w = game.scene.getScene('World') as unknown as { hero: { x: number; y: number }; map: { bossPos: { x: number; y: number } }; onState(): void };
       w.hero.x = w.map.bossPos.x - 90; w.hero.y = w.map.bossPos.y;
       w.onState();

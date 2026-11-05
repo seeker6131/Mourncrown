@@ -76,22 +76,36 @@ import { advanceClass, currentSkills, nextForm } from '../src/systems/stats';
 describe('classes', () => {
   it('villager -> class at Lv5 -> next forms at Lv20/35', () => {
     const s = startNewGame();
-    expect(currentSkills(s)).toEqual(['bash']);
+    expect(currentSkills(s)).toEqual(['v_bash']);
     expect(advanceClass(s, 'archer')).toBe(false);
     s.level = 5;
     expect(advanceClass(s, 'archer')).toBe(true);
     expect(s.tier).toBe(1);
-    expect(currentSkills(s)).toContain('multishot');
+    expect(currentSkills(s)).toContain('a2_fan');
     expect(nextForm(s)).toBeNull();
     s.level = 20;
     expect(advanceClass(s)).toBe(true);
     expect(s.tier).toBe(2);
-    expect(currentSkills(s)).toContain('warcry');
+    expect(currentSkills(s)).toContain('a3_rain');
+    expect(currentSkills(s)).not.toContain('a2_fan');
   });
   it('class bonus raises power', () => {
     const s = startNewGame(); s.level = 5;
     const a = derive(s).matk;
     advanceClass(s, 'mage');
     expect(derive(s).matk).toBeGreaterThan(a);
+  });
+});
+
+import { CLASSES } from '../src/data/classes';
+import { SKILL_BY_ID } from '../src/data/skills';
+describe('skills are unique per form', () => {
+  it('no skill repeats across any form, all exist, swordsman has no ranged skills', () => {
+    const all: string[] = [];
+    for (const c of Object.values(CLASSES)) for (const t of c.skills) all.push(...t);
+    expect(new Set(all).size).toBe(all.length);
+    for (const id of all) expect(SKILL_BY_ID[id]).toBeTruthy();
+    for (const id of CLASSES.sword.skills.flat()) expect(['shot', 'pierce', 'nova']).not.toContain(SKILL_BY_ID[id].kind);
+    for (const id of CLASSES.sword.skills.flat()) expect(SKILL_BY_ID[id].stat).toBe('atk');
   });
 });

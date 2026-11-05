@@ -108,6 +108,16 @@
 - W1/W2 หันซ้าย (ต้อง flip), ภาพอื่นหันขวา
 - ⚠️ ผู้ใช้ติ: รอบก่อน "ขอบขาวติดมาบางเฟรม" → ตอน import ต้อง defringe: ลบช่องขาวปิดล้อม (holes เล็กลง), กัดขอบ alpha 1px ที่สีใกล้ขาว, ลดสีขาวที่ขอบ (unpremultiply/decontaminate), แล้วตรวจด้วยการวางบนพื้นสีเข้มทุกเฟรม
 
+## v0.8 ร่างตัวละครจริง (ภาพผู้ใช้ 76 แผ่น)
+- `tools/import_forms.py` → `src/assets/forms/<CODE>_<anim>.png` (R=3 px/world px, HERO_H=32, defringe, scale เดียวต่อร่าง, ยึดเท้า) ~4.5MB
+- `art/formAssets.ts`: anim `f_<CODE>_<idle|walk|walkup|attack|skill|die>`, fallback: T* → S* ย้อมสีเหล็ก, ขาด skill→attack, ขาด die→หมุนล้ม
+- Hero.formPose(); hero.casual = ในหมู่บ้าน/เขตก่อสร้าง หรือ state.outfit='gather' → ใช้ชุดชาวบ้าน V0
+- ปุ่ม ⚔/⛏ เปลี่ยนชุด: ⛏ เก็บไม้/หิน x2 แต่ตีมอน -40%
+- สกิลใหม่ data-driven `data/skills.ts` (kind: strike/spin/dash/leap/shot/pierce/rain/nova/buff/heal/shield), ร่างละ 3 สกิลไม่ซ้ำ (เทสต์ยืนยัน), นักดาบไม่มีสกิลระยะไกล/เวท
+- เมนู → 🧪 ทดสอบสลับร่าง (13 ร่าง) — เอาออกก่อนเปิดให้คนอื่นเล่น
+- กล้องซูมออก (h/320), UI VH=400
+- ยังขาดภาพ: T2-T4 ทั้งชุด, M3d, M4k, M4d (+ ภาพ L/H/W เก่าไม่ได้ใช้เพราะเป็นตัวละครชุดเก่า)
+
 ## ไอเดียถัดไป (หลัง v0.3)
 - APK ด้วย Capacitor + GitHub Actions (ผู้ใช้สนใจ)
 - Character creator / map editor ในเกม, ระบบนำเข้าภาพจากผู้ใช้

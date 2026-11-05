@@ -15,6 +15,7 @@ export function preloadAi(scene: Phaser.Scene) {
 const HIRES = new Set<string>();
 /** Texture resolution factor: AI world art is stored at 2x and drawn at 0.5 scale. */
 export function resOf(key: string): number {
+  if (key.startsWith('fs_')) return 3;
   if (HIRES.has(key)) return 2;
   if (key.startsWith('aihero_') || key.startsWith('an_')) return 2;
   if (key.startsWith('ai_') && !key.startsWith('ai_icon_') && !key.startsWith('ai_tile_') && key !== 'ai_keyart') return 2;
