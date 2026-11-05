@@ -68,6 +68,7 @@ export class WorldScene extends Phaser.Scene {
   night = 0;
   rays: Phaser.GameObjects.Image[] = [];
   shieldHp = 0;
+  gatherHint = 0;
   wardrobe: { x: number; y: number } | null = null;
   shieldUntil = 0;
   nodes: { img: Phaser.GameObjects.Image; sh: Phaser.GameObjects.Image | null; x: number; y: number; tx: number; ty: number; hp: number; max: number; kind: ResKey; solid: boolean; regrowAt: number; tex: string }[] = [];
@@ -704,7 +705,7 @@ export class WorldScene extends Phaser.Scene {
     }
     const t = this.target;
     if (!t) {
-      const n = this.nearestNode(170);
+      const n = this.canGather() ? this.nearestNode(170) : null;
       if (!n) return false;
       const dn = Math.hypot(n.x - h.x, n.y - h.y);
       if (dn > 18) { if (h.busy(time)) return false; const sp = this.der.moveSpeed * (dt / 1000); const vx = (n.x - h.x) / dn, vy = (n.y + 6 - h.y) / dn; const mv = this.moveHero(vx * sp, vy * sp); h.setFacing(vx, vy); return mv; }
@@ -788,6 +789,9 @@ export class WorldScene extends Phaser.Scene {
       bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind as keyof typeof DAILY_NAMES]} สำเร็จ! +${t.gold} G +ผลึก ${t.shards}`, '#9fffb0');
     }
   }
+
+  /** Only the gathering (villager) form can chop trees and mine rocks. */
+  canGather() { const s = S(); return s.outfit === 'gather' || activeTier(s) === 0; }
 
   // ---------- Gathering ----------
   nearestNode(maxD: number) {
@@ -934,13 +938,14 @@ export class WorldScene extends Phaser.Scene {
     }
     let node: WorldScene['nodes'][number] | null = null;
     if (best) h.setFacing(best.x - h.x, best.y - h.y);
-    else { node = this.nearestNode(30); if (node) h.setFacing(node.x - h.x, node.y - 6 - h.y); }
+    else if (this.canGather()) { node = this.nearestNode(30); if (node) h.setFacing(node.x - h.x, node.y - 6 - h.y); }
+    else if (this.nearestNode(24) && this.time.now - this.gatherHint > 6000) { this.gatherHint = this.time.now; bus.emit(EV.TOAST, 'ร่างนักรบตัดไม้/ขุดหินไม่ได้ — เปลี่ยนเป็นชุดหาทรัพยากรที่ห้องแต่งตัว', '#ffd08a'); }
     h.toolAnim = node ? (node.kind === 'wood' ? 'chop' : 'mine') : null;
     const dur = Math.min(260, this.der.attackInterval * 0.8);
     const st = S(), rng = CLASSES[st.cls ?? 'novice'].ranged && activeTier(st) > 0 ? CLASSES[st.cls].ranged : false;
     if (rng) {
       const t = this.nearestEnemy(140);
-      if (!t) { node = this.nearestNode(30); }
+      if (!t && this.canGather()) { node = this.nearestNode(30); }
       if (t) {
         const ang = Math.atan2(t.cy - (h.y - 10), t.x - h.x);
         h.setFacing(Math.cos(ang), Math.sin(ang));
