@@ -2,6 +2,7 @@
 import { runtime } from './events';
 import { saveGame } from './save';
 import { addItem, equip } from '../systems/inventory';
+import { makeGear } from '../systems/loot';
 import { derive, gainExp, expToNext } from '../systems/stats';
 import type Phaser from 'phaser';
 
@@ -12,9 +13,8 @@ export function installDebug(game: Phaser.Game) {
       const s = runtime.state!;
       let need = 0; for (let l = s.level; l < 15; l++) need += expToNext(l);
       gainExp(s, need - s.exp);
-      s.base.str += 20; s.base.vit += 20; s.base.int += 10; s.statPoints = 0;
-      addItem(s, 'flame_saber'); equip(s, s.inventory[s.inventory.length - 1].uid);
-      addItem(s, 'knight_plate'); equip(s, s.inventory[s.inventory.length - 1].uid);
+      addItem(s, 'flame_saber', 1, 0, makeGear(Math.random, 'flame_saber', 3)); equip(s, s.inventory[s.inventory.length - 1].uid);
+      addItem(s, 'knight_plate', 1, 0, makeGear(Math.random, 'knight_plate', 3)); equip(s, s.inventory[s.inventory.length - 1].uid);
       addItem(s, 'hp_potion_l', 10);
       const d = derive(s); s.hp = d.maxHp; s.mp = d.maxMp;
       s.auto = true;

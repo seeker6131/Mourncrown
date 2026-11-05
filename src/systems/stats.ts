@@ -1,63 +1,64 @@
 // Character / Stats / Progression — pure functions over GameState.
-import type { GameState, StatKey } from '../core/state';
-import { STAT_KEYS } from '../core/state';
+import type { GameState, InvItem } from '../core/state';
 import { itemDef, upgradeMult } from '../data/items';
+import { rarMult } from './loot';
 
 export interface Derived {
-  str: number; agi: number; vit: number; int: number; luk: number;
   maxHp: number; maxMp: number;
   atk: number; matk: number; def: number;
   crit: number; // 0..1
   evade: number; // 0..1
   attackInterval: number; // ms
   moveSpeed: number; // px/s
-  dropBonus: number; // multiplier
+  leech: number; // 0..1 of damage dealt healed
+  mf: number; // magic find %
+  expBonus: number; // multiplier
+  power: number; // combat power score
 }
 
-export const POINTS_PER_LEVEL = 4;
-export const MAX_LEVEL = 50;
+export const MAX_LEVEL = 60;
 
 export function expToNext(level: number): number {
   return Math.round(25 * Math.pow(level, 1.65));
 }
 
 export function equippedItems(s: GameState) {
-  const out = [] as { def: ReturnType<typeof itemDef>; upg: number }[];
+  const out = [] as InvItem[];
   for (const slot of ['weapon', 'armor', 'accessory'] as const) {
     const uid = s.equip[slot];
     if (uid == null) continue;
     const it = s.inventory.find(i => i.uid === uid);
-    if (it) out.push({ def: itemDef(it.id), upg: it.upg });
+    if (it) out.push(it);
   }
   return out;
 }
 
+/** Character power = small level growth + equipment (rarity, upgrades, affixes). */
 export function derive(s: GameState): Derived {
-  const st: Record<StatKey, number> = { ...s.base };
-  let atk = 0, matk = 0, def = 0, hp = 0, mp = 0, crit = 0;
-  for (const { def: d, upg } of equippedItems(s)) {
-    const m = upgradeMult(upg);
-    atk += (d.atk ?? 0) * m;
-    matk += (d.matk ?? 0) * m;
-    def += (d.def ?? 0) * m;
-    hp += (d.hp ?? 0) * m;
-    mp += d.mp ?? 0;
-    crit += d.crit ?? 0;
-    for (const k of STAT_KEYS) st[k] += d[k] ?? 0;
-  }
   const L = s.level;
+  const g = { atk: 0, matk: 0, def: 0, hp: 0, mp: 0, crit: 0, aspd: 0, move: 0, leech: 0, mf: 0, exp: 0 } as Record<string, number>;
+  for (const it of equippedItems(s)) {
+    const d = itemDef(it.id);
+    const m = upgradeMult(it.upg) * rarMult(it);
+    g.atk += (d.atk ?? 0) * m; g.matk += (d.matk ?? 0) * m; g.def += (d.def ?? 0) * m; g.hp += (d.hp ?? 0) * m;
+    g.mp += d.mp ?? 0; g.crit += d.crit ?? 0; g.aspd += d.aspd ?? 0; g.mf += d.mf ?? 0;
+    for (const a of it.aff ?? []) g[a.k] = (g[a.k] ?? 0) + a.v;
+  }
+  const atk = Math.round(8 + L * 1.5 + g.atk);
+  const matk = Math.round(6 + L * 1.5 + g.matk);
+  const def = Math.round(L * 0.6 + g.def);
+  const maxHp = Math.round(140 + L * 16 + g.hp);
+  const crit = Math.min(0.75, 0.05 + g.crit / 100);
+  const attackInterval = Math.max(300, Math.round(700 / (1 + g.aspd / 100)));
   return {
-    ...st,
-    maxHp: Math.round(90 + st.vit * 14 + L * 12 + hp),
-    maxMp: Math.round(30 + st.int * 7 + L * 4 + mp),
-    atk: Math.round(6 + st.str * 2.2 + L * 1.2 + atk),
-    matk: Math.round(4 + st.int * 2.6 + L * 1.2 + matk),
-    def: Math.round(st.vit * 1.2 + L * 0.5 + def),
-    crit: Math.min(0.75, 0.05 + st.luk * 0.006 + st.agi * 0.002 + crit / 100),
-    evade: Math.min(0.4, st.agi * 0.004 + st.luk * 0.001),
-    attackInterval: Math.max(320, 760 - st.agi * 9),
-    moveSpeed: Math.min(130, 78 + st.agi * 0.8),
-    dropBonus: 1 + st.luk * 0.012,
+    maxHp, maxMp: Math.round(60 + L * 5 + g.mp), atk, matk, def, crit,
+    evade: 0.03,
+    attackInterval,
+    moveSpeed: Math.min(140, 92 * (1 + g.move / 100)),
+    leech: Math.min(0.3, g.leech / 100),
+    mf: g.mf,
+    expBonus: 1 + g.exp / 100,
+    power: Math.round(atk * 2 + matk * 1.5 + def * 3 + maxHp / 5 + crit * 400 + (1000 / attackInterval) * 40),
   };
 }
 
@@ -68,7 +69,6 @@ export function gainExp(s: GameState, amount: number): number {
   while (s.level < MAX_LEVEL && s.exp >= expToNext(s.level)) {
     s.exp -= expToNext(s.level);
     s.level++;
-    s.statPoints += POINTS_PER_LEVEL;
     gained++;
   }
   if (gained) {
@@ -76,13 +76,6 @@ export function gainExp(s: GameState, amount: number): number {
     s.hp = d.maxHp; s.mp = d.maxMp;
   }
   return gained;
-}
-
-export function allocate(s: GameState, k: StatKey, n = 1): boolean {
-  if (s.statPoints < n) return false;
-  s.statPoints -= n;
-  s.base[k] += n;
-  return true;
 }
 
 export interface DamageResult { dmg: number; crit: boolean; miss: boolean }

@@ -3,6 +3,8 @@ import type { GameState } from '../core/state';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { addItem, countItem, removeItem } from './inventory';
 import { gainExp } from './stats';
+import { itemDef } from '../data/items';
+import { isGear, makeGear } from './loot';
 
 export function activeQuest(s: GameState) {
   return s.quests.find(q => q.status !== 'done') ?? null;
@@ -56,6 +58,10 @@ export function completeQuest(s: GameState, id: string): number {
   if (d.kind === 'collect' && !removeItem(s, d.target, d.count)) return -1;
   p.status = 'done';
   s.gold += d.reward.gold;
-  for (const it of d.reward.items ?? []) addItem(s, it.id, it.qty);
+  for (const it of d.reward.items ?? []) {
+    const def = itemDef(it.id);
+    if (isGear(def)) addItem(s, it.id, it.qty, 0, makeGear(Math.random, it.id, 2));
+    else addItem(s, it.id, it.qty);
+  }
   return gainExp(s, d.reward.exp);
 }

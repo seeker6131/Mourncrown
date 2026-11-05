@@ -10,14 +10,17 @@ export interface ItemDef {
   icon: string;
   desc: string;
   price: number; // buy price (sell = 40%)
-  rarity: 0 | 1 | 2 | 3; // common, uncommon, rare, epic
+  rarity: number; // shop/base rarity (instances roll their own)
   atk?: number;
   matk?: number;
   def?: number;
   hp?: number;
   mp?: number;
   crit?: number; // percent
-  str?: number; agi?: number; vit?: number; int?: number; luk?: number;
+  aspd?: number; // attack speed %
+  mf?: number; // magic find % (better drop rarity)
+  /** equipment base tier 1..5 (drop level band) */
+  tier?: number;
   heal?: number; // consumable HP
   mana?: number; // consumable MP
   /** visual tier for hero sprite (weapon/armor look) */
@@ -25,8 +28,10 @@ export interface ItemDef {
   stack?: boolean;
 }
 
-export const RARITY_COLORS = [0xe8e2d0, 0x7ee08a, 0x6fb6ff, 0xd48cff];
-export const RARITY_NAMES = ['ธรรมดา', 'ดี', 'หายาก', 'มหากาพย์'];
+// Rarity drives power: Common, Uncommon, Rare, Epic, Legendary
+export const RARITY_COLORS = [0xe8e2d0, 0x7ee08a, 0x6fb6ff, 0xd48cff, 0xffa53a];
+export const RARITY_NAMES = ['ธรรมดา', 'ดี', 'หายาก', 'มหากาพย์', 'ตำนาน'];
+export const RARITY_MULT = [1, 1.35, 1.8, 2.5, 3.6];
 
 export const ITEMS: Record<string, ItemDef> = {
   // Weapons
@@ -34,17 +39,17 @@ export const ITEMS: Record<string, ItemDef> = {
   iron_sword: { id: 'iron_sword', name: 'ดาบเหล็กกล้า', type: 'weapon', icon: 'sword1', desc: 'ดาบเหล็กคมกริบจากช่างตีเหล็ก', price: 180, rarity: 1, atk: 12, look: 1 },
   knight_blade: { id: 'knight_blade', name: 'ดาบอัศวินเงิน', type: 'weapon', icon: 'sword2', desc: 'ดาบเงินของอัศวินแห่งเอลเดอร์โกรฟ', price: 650, rarity: 2, atk: 24, crit: 3, look: 2 },
   flame_saber: { id: 'flame_saber', name: 'ดาบเพลิงอัคคี', type: 'weapon', icon: 'sword3', desc: 'ดาบที่ลุกโชนด้วยไฟนิรันดร์ เพิ่มพลังเวท', price: 2400, rarity: 3, atk: 40, matk: 20, crit: 5, look: 3 },
-  oak_staff: { id: 'oak_staff', name: 'คทาไม้โอ๊ค', type: 'weapon', icon: 'staff0', desc: 'คทาเวทที่ขยายพลังเวทมนตร์', price: 220, rarity: 1, atk: 5, matk: 16, int: 2, look: 4 },
+  oak_staff: { id: 'oak_staff', name: 'คทาไม้โอ๊ค', type: 'weapon', icon: 'staff0', desc: 'คทาเวทที่ขยายพลังเวทมนตร์', price: 220, rarity: 1, atk: 5, matk: 18, look: 4 },
   // Armors
   cloth_tunic: { id: 'cloth_tunic', name: 'เสื้อผ้าป่าน', type: 'armor', icon: 'armor0', desc: 'เสื้อผ้าธรรมดา', price: 20, rarity: 0, def: 2, hp: 10, look: 0 },
-  leather_armor: { id: 'leather_armor', name: 'เกราะหนังพราน', type: 'armor', icon: 'armor1', desc: 'เกราะหนังเบา คล่องตัว', price: 200, rarity: 1, def: 7, hp: 40, agi: 1, look: 1 },
+  leather_armor: { id: 'leather_armor', name: 'เกราะหนังพราน', type: 'armor', icon: 'armor1', desc: 'เกราะหนังเบา คล่องตัว', price: 200, rarity: 1, def: 7, hp: 40, aspd: 4, look: 1 },
   chain_mail: { id: 'chain_mail', name: 'เกราะโซ่ถัก', type: 'armor', icon: 'armor2', desc: 'เกราะโซ่ที่แข็งแรง', price: 700, rarity: 2, def: 15, hp: 90, look: 2 },
-  knight_plate: { id: 'knight_plate', name: 'เกราะอัศวินทองคำ', type: 'armor', icon: 'armor3', desc: 'เกราะเต็มตัวประดับทอง พร้อมผ้าคลุมแดง', price: 2600, rarity: 3, def: 28, hp: 200, vit: 3, look: 3 },
+  knight_plate: { id: 'knight_plate', name: 'เกราะอัศวินทองคำ', type: 'armor', icon: 'armor3', desc: 'เกราะเต็มตัวประดับทอง พร้อมผ้าคลุมแดง', price: 2600, rarity: 3, def: 28, hp: 240, look: 3 },
   // Accessories
-  copper_ring: { id: 'copper_ring', name: 'แหวนทองแดง', type: 'accessory', icon: 'ring0', desc: 'เพิ่มโชคเล็กน้อย', price: 120, rarity: 1, luk: 3, crit: 2 },
-  ruby_amulet: { id: 'ruby_amulet', name: 'สร้อยทับทิม', type: 'accessory', icon: 'amulet0', desc: 'เพิ่มพลังโจมตีและพลังชีวิต', price: 600, rarity: 2, atk: 6, hp: 60, str: 2 },
-  sage_pendant: { id: 'sage_pendant', name: 'จี้ปราชญ์', type: 'accessory', icon: 'amulet1', desc: 'เพิ่มมานาและพลังเวท', price: 650, rarity: 2, matk: 12, mp: 40, int: 3 },
-  heart_of_forest: { id: 'heart_of_forest', name: 'หัวใจแห่งพงไพร', type: 'accessory', icon: 'gem0', desc: 'อัญมณีจากผู้พิทักษ์ป่า', price: 3000, rarity: 3, atk: 12, matk: 12, hp: 150, vit: 3, luk: 3 },
+  copper_ring: { id: 'copper_ring', name: 'แหวนทองแดง', type: 'accessory', icon: 'ring0', desc: 'เพิ่มโชคเล็กน้อย', price: 120, rarity: 1, crit: 4, mf: 10 },
+  ruby_amulet: { id: 'ruby_amulet', name: 'สร้อยทับทิม', type: 'accessory', icon: 'amulet0', desc: 'เพิ่มพลังโจมตีและพลังชีวิต', price: 600, rarity: 2, atk: 10, hp: 60 },
+  sage_pendant: { id: 'sage_pendant', name: 'จี้ปราชญ์', type: 'accessory', icon: 'amulet1', desc: 'เพิ่มมานาและพลังเวท', price: 650, rarity: 2, matk: 16, mp: 40 },
+  heart_of_forest: { id: 'heart_of_forest', name: 'หัวใจแห่งพงไพร', type: 'accessory', icon: 'gem0', desc: 'อัญมณีจากผู้พิทักษ์ป่า', price: 3000, rarity: 3, atk: 12, matk: 12, hp: 190, crit: 4 },
   // Consumables
   hp_potion: { id: 'hp_potion', name: 'ยาฟื้นพลัง', type: 'consumable', icon: 'potion_hp', desc: 'ฟื้นฟู HP 120', price: 25, rarity: 0, heal: 120, stack: true },
   hp_potion_l: { id: 'hp_potion_l', name: 'ยาฟื้นพลังใหญ่', type: 'consumable', icon: 'potion_hp_l', desc: 'ฟื้นฟู HP 400', price: 90, rarity: 1, heal: 400, stack: true },

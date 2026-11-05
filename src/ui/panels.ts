@@ -3,8 +3,9 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GOLD, GOLD_D } from './kit';
 import { S, bus, EV, runtime } from '../core/events';
-import { STAT_KEYS, STAT_NAMES, STAT_DESC, INV_SIZE, type InvItem } from '../core/state';
-import { derive, allocate, expToNext } from '../systems/stats';
+import { INV_SIZE, type InvItem } from '../core/state';
+import { derive, expToNext } from '../systems/stats';
+import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
 import { equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
@@ -118,7 +119,7 @@ export class Panels {
     for (const [slot, label, sx, sy] of slots) {
       const uid = s.equip[slot];
       const it = uid != null ? s.inventory.find(i => i.uid === uid) : undefined;
-      k.iconSlot(g, sx, sy, 28, it ? RARITY_COLORS[itemDef(it.id).rarity] : undefined, it?.uid === this.selUid && !!it);
+      k.iconSlot(g, sx, sy, 28, it ? RARITY_COLORS[rarOf(it)] : undefined, it?.uid === this.selUid && !!it);
       c.add(k.text(sx + 14, sy + 30, label, 6.5, '#b8a078').setOrigin(0.5, 0));
       if (it) {
         c.add(ui.add.image(sx + 14, sy + 14, `icon_${itemDef(it.id).icon}`).setScale(0.7));
@@ -139,7 +140,7 @@ export class Panels {
       const cx = gx + (i % cols) * (cs + 3), cy = gy + Math.floor(i / cols) * (cs + 3);
       const it = s.inventory[i];
       const def = it ? itemDef(it.id) : null;
-      k.iconSlot(g, cx, cy, cs, def ? RARITY_COLORS[def.rarity] : undefined, !!it && it.uid === this.selUid);
+      k.iconSlot(g, cx, cy, cs, it ? RARITY_COLORS[rarOf(it)] : undefined, !!it && it.uid === this.selUid);
       if (it && def) {
         c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.75));
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
@@ -162,11 +163,26 @@ export class Panels {
     const it = s.inventory.find(i => i.uid === this.selUid);
     if (!it) { c.add(k.text(x + w / 2, y + h / 2, 'แตะไอเทม\nเพื่อดูรายละเอียด', 9, '#8a7a60', { align: 'center' }).setOrigin(0.5)); return; }
     const def = itemDef(it.id);
-    k.iconSlot(g, x + 6, y + 6, 30, RARITY_COLORS[def.rarity]);
+    const rr = rarOf(it), rcol = '#' + RARITY_COLORS[rr].toString(16).padStart(6, '0');
+    k.iconSlot(g, x + 6, y + 6, 30, RARITY_COLORS[rr]);
+    if (rr >= 2) g.fillStyle(RARITY_COLORS[rr], 0.18).fillRoundedRect(x + 7, y + 7, 28, 28, 3);
     c.add(ui.add.image(x + 21, y + 21, `icon_${def.icon}`).setScale(0.8));
-    c.add(k.text(x + 42, y + 6, def.name + (it.upg ? ` +${it.upg}` : ''), 9.5, '#' + RARITY_COLORS[def.rarity].toString(16).padStart(6, '0'), { wordWrap: { width: w - 46 } }));
-    c.add(k.text(x + 42, y + 24, RARITY_NAMES[def.rarity], 7.5, '#a89878'));
-    c.add(k.text(x + 6, y + 42, statLines(def, it.upg).join('\n') + (statLines(def, it.upg).length ? '\n' : '') + def.desc, 8, '#e8dcc0', { wordWrap: { width: w - 12 }, lineSpacing: 2 }));
+    c.add(k.text(x + 42, y + 6, def.name + (it.upg ? ` +${it.upg}` : ''), 9.5, rcol, { wordWrap: { width: w - 46 } }));
+    c.add(k.text(x + 42, y + 24, isGear(def) ? `★ ${RARITY_NAMES[rr]}` : RARITY_NAMES[def.rarity], 7.5, rcol));
+    const lines = statLines(def, it);
+    let info = lines.join('\n');
+    const aff = (it.aff ?? []).map(a => '✦ ' + affixText(a as never)).join('\n');
+    if (aff) info += '\n' + aff;
+    if (isGear(def) && mode === 'bag' && !isEquipped(s, it.uid)) {
+      const cur = derive(s).power;
+      const slot = def.type as 'weapon' | 'armor' | 'accessory';
+      const old = s.equip[slot];
+      s.equip[slot] = it.uid; const nxt = derive(s).power; s.equip[slot] = old;
+      const diff = nxt - cur;
+      info += `\n${diff >= 0 ? '▲' : '▼'} พลังรบ ${diff >= 0 ? '+' : ''}${diff}`;
+    }
+    info += (info ? '\n' : '') + def.desc;
+    c.add(k.text(x + 6, y + 42, info, 8, '#e8dcc0', { wordWrap: { width: w - 12 }, lineSpacing: 2 }));
     let by = y + h - 26;
     const bw = w - 12;
     const btn = (label: string, cb: () => void, color?: number, disabled = false) => {
@@ -214,32 +230,35 @@ export class Panels {
     bus.emit(EV.STATE_CHANGED);
   }
 
-  // ---------------- STATS ----------------
+  // ---------------- CHARACTER ----------------
   buildStats(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(560, ui.VW - 20), H = 320;
-    const { x, y, g } = this.window(c, W, H, 'สเตตัส & สกิล');
+    const { x, y, g } = this.window(c, W, H, 'ตัวละคร & สกิล');
     const d = derive(s);
     const lx = x + 14, ly = y + 32;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(lx, ly, 250, H - 44, 4);
     c.add(k.text(lx + 8, ly + 6, `${s.name}   Lv ${s.level}   EXP ${s.exp}/${expToNext(s.level)}`, 9, '#ffe7a0'));
-    c.add(k.text(lx + 8, ly + 22, `แต้มคงเหลือ: ${s.statPoints}`, 10, s.statPoints ? '#9fffb0' : '#a89878'));
-    STAT_KEYS.forEach((key, i) => {
-      const ry = ly + 42 + i * 34;
-      g.fillStyle(0x2a1d12, 0.8).fillRoundedRect(lx + 6, ry, 238, 30, 3);
-      c.add(k.text(lx + 12, ry + 3, STAT_NAMES[key], 11, '#ffd84a'));
-      c.add(k.text(lx + 50, ry + 4, String(d[key]), 11, '#ffffff'));
-      if (d[key] !== s.base[key]) c.add(k.text(lx + 74, ry + 6, `(+${d[key] - s.base[key]})`, 8, '#9fffb0'));
-      c.add(k.text(lx + 12, ry + 18, STAT_DESC[key], 7, '#b8a078'));
-      const can = s.statPoints > 0;
-      c.add(k.button(lx + 160, ry + 4, 36, 22, '+1', () => { if (allocate(s, key)) { sfx.pickup(); bus.emit(EV.STATE_CHANGED); } }, { size: 10, disabled: !can, color: 0x1f4a2a }));
-      c.add(k.button(lx + 200, ry + 4, 38, 22, '+5', () => { if (allocate(s, key, Math.min(5, s.statPoints))) { sfx.pickup(); bus.emit(EV.STATE_CHANGED); } }, { size: 10, disabled: !can, color: 0x1f4a2a }));
+    g.fillStyle(0x2a1d12, 1).fillRoundedRect(lx + 6, ly + 22, 238, 34, 4);
+    g.lineStyle(1, GOLD, 1).strokeRoundedRect(lx + 6, ly + 22, 238, 34, 4);
+    c.add(k.text(lx + 125, ly + 27, `พลังรบ  ${d.power.toLocaleString()}`, 15, '#ffd84a').setOrigin(0.5, 0));
+    const rows: [string, string][] = [
+      ['HP', String(d.maxHp)], ['MP', String(d.maxMp)], ['ATK', String(d.atk)], ['MATK', String(d.matk)], ['DEF', String(d.def)],
+      ['คริติคอล', (d.crit * 100).toFixed(1) + '%'], ['ความเร็วโจมตี', (1000 / d.attackInterval).toFixed(2) + '/วิ'],
+      ['ความเร็วเดิน', String(Math.round(d.moveSpeed))], ['ดูดเลือด', (d.leech * 100).toFixed(0) + '%'],
+      ['โอกาสดรอปของแรร์', '+' + Math.round(d.mf) + '%'], ['EXP', '+' + Math.round((d.expBonus - 1) * 100) + '%'],
+    ];
+    rows.forEach(([a, v], i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      c.add(k.text(lx + 12 + col * 120, ly + 64 + row * 20, a, 8, '#b8a078'));
+      c.add(k.text(lx + 118 + col * 120, ly + 64 + row * 20, v, 9, '#ffffff').setOrigin(1, 0));
     });
+    c.add(k.text(lx + 8, ly + H - 70, 'พลังมาจากอุปกรณ์: ยิ่งแรร์ (ขาว→เขียว→ฟ้า→ม่วง→ส้ม) ยิ่งแรง และมีค่าพิเศษสุ่มมากขึ้น', 7.5, '#d8ccb0', { wordWrap: { width: 232 } }));
     const rx = lx + 260, rw = x + W - 14 - rx;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, ly, rw, H - 44, 4);
-    c.add(k.text(rx + 8, ly + 6, `HP ${d.maxHp}   MP ${d.maxMp}\nATK ${d.atk}   MATK ${d.matk}   DEF ${d.def}\nคริ ${(d.crit * 100).toFixed(1)}%  หลบ ${(d.evade * 100).toFixed(1)}%\nความเร็วโจมตี ${(1000 / d.attackInterval).toFixed(2)}/วิ  เดิน ${Math.round(d.moveSpeed)}`, 8, '#f3e6c4', { lineSpacing: 2, wordWrap: { width: rw - 12 } }));
+    c.add(k.text(rx + 8, ly + 6, 'สกิล', 10, '#ffe7a0'));
     SKILLS.forEach((sk, i) => {
-      const sy = ly + 74 + i * 52;
+      const sy = ly + 24 + i * 60;
       const locked = s.level < sk.unlockLevel;
       c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setScale(0.7).setAlpha(locked ? 0.4 : 1));
       c.add(k.text(rx + 38, sy + 2, sk.name + (locked ? `  🔒 Lv${sk.unlockLevel}` : ''), 9, locked ? '#8a7a60' : '#9ad8ff'));
@@ -351,7 +370,7 @@ export class Panels {
         g.lineStyle(1, RARITY_COLORS[def.rarity], 0.6).strokeRoundedRect(cx, cy, cw, ch, 3);
         c.add(ui.add.image(cx + 20, cy + ch / 2, `icon_${def.icon}`).setScale(0.8));
         c.add(k.text(cx + 38, cy + 4, def.name, 9, '#' + RARITY_COLORS[def.rarity].toString(16).padStart(6, '0')));
-        c.add(k.text(cx + 38, cy + 20, statLines(def, 0).join('  ') || def.desc, 7, '#c8b898', { wordWrap: { width: cw - 110 } }));
+        c.add(k.text(cx + 38, cy + 20, statLines(def).join('  ') || def.desc, 7, '#c8b898', { wordWrap: { width: cw - 110 } }));
         const can = s.gold >= def.price;
         c.add(k.button(cx + cw - 66, cy + 9, 60, 22, `${def.price} G`, () => {
           if (s.gold < def.price) { sfx.error(); bus.emit(EV.TOAST, 'ทองไม่พอ', '#ff8a8a'); return; }
@@ -403,8 +422,8 @@ export class Panels {
   }
 }
 
-function statLines(def: ItemDef, upg: number): string[] {
-  const m = upgradeMult(upg);
+function statLines(def: ItemDef, it?: InvItem): string[] {
+  const m = it ? upgradeMult(it.upg) * rarMult(it) : 1;
   const out: string[] = [];
   if (def.atk) out.push(`ATK +${Math.round(def.atk * m)}`);
   if (def.matk) out.push(`MATK +${Math.round(def.matk * m)}`);
@@ -412,7 +431,8 @@ function statLines(def: ItemDef, upg: number): string[] {
   if (def.hp) out.push(`HP +${Math.round(def.hp * m)}`);
   if (def.mp) out.push(`MP +${def.mp}`);
   if (def.crit) out.push(`คริ +${def.crit}%`);
-  for (const k of STAT_KEYS) if (def[k]) out.push(`${STAT_NAMES[k]} +${def[k]}`);
+  if (def.aspd) out.push(`ความเร็วโจมตี +${def.aspd}%`);
+  if (def.mf) out.push(`โอกาสดรอปของแรร์ +${def.mf}%`);
   if (def.heal) out.push(`ฟื้น HP ${def.heal}`);
   if (def.mana) out.push(`ฟื้น MP ${def.mana}`);
   return out;

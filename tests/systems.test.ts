@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { startNewGame } from '../src/core/save';
-import { derive, gainExp, expToNext, allocate, calcDamage } from '../src/systems/stats';
+import { derive, gainExp, expToNext, calcDamage } from '../src/systems/stats';
+import { makeGear, rollRarity } from '../src/systems/loot';
 import { addItem, countItem, equip, tryUpgrade, useItem, removeItem } from '../src/systems/inventory';
 import { acceptQuest, onKill, completeQuest, nextAvailable, refreshCollect } from '../src/systems/quests';
 import type { GameState } from '../src/core/state';
@@ -14,18 +15,28 @@ describe('progression', () => {
     const d = derive(s);
     expect(s.hp).toBe(d.maxHp);
   });
-  it('levels up and grants stat points', () => {
-    const pts = s.statPoints;
+  it('levels up and raises base power', () => {
+    const before = derive(s).maxHp;
     const gained = gainExp(s, expToNext(1) + expToNext(2));
     expect(gained).toBe(2);
     expect(s.level).toBe(3);
-    expect(s.statPoints).toBe(pts + 8);
+    expect(derive(s).maxHp).toBeGreaterThan(before);
   });
-  it('allocates stats and changes derived values', () => {
-    const before = derive(s).atk;
-    expect(allocate(s, 'str', 3)).toBe(true);
-    expect(derive(s).atk).toBeGreaterThan(before);
-    expect(allocate(s, 'str', 99)).toBe(false);
+  it('rarer gear is stronger and has more affixes', () => {
+    const common = makeGear(() => 0.5, 'iron_sword', 0);
+    const legend = makeGear(() => 0.5, 'iron_sword', 4);
+    expect(common.aff!.length).toBe(0);
+    expect(legend.aff!.length).toBe(4);
+    addItem(s, 'iron_sword', 1, 0, common); equip(s, s.inventory[s.inventory.length - 1].uid);
+    const p1 = derive(s).power;
+    addItem(s, 'iron_sword', 1, 0, legend); equip(s, s.inventory[s.inventory.length - 1].uid);
+    expect(derive(s).power).toBeGreaterThan(p1);
+  });
+  it('rarity roll respects floor and magic find', () => {
+    expect(rollRarity(() => 0, 0, 3)).toBeGreaterThanOrEqual(3);
+    let hi = 0; let r = 1; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 2000; i++) if (rollRarity(rnd, 200) >= 2) hi++;
+    expect(hi).toBeGreaterThan(100);
   });
   it('damage respects defence and crit', () => {
     const fixed = () => 0.5;

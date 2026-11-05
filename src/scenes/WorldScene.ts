@@ -11,7 +11,9 @@ import { addItem, useItem, countItem } from '../systems/inventory';
 import { onKill, refreshCollect } from '../systems/quests';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { SKILLS, SKILL_BY_ID, type SkillId } from '../data/skills';
-import { itemDef } from '../data/items';
+import { itemDef, RARITY_COLORS, RARITY_NAMES } from '../data/items';
+import { isGear, GEAR_BASES, baseTier, pickBase, rollRarity, makeGear } from '../systems/loot';
+import { FONT } from '../ui/kit';
 import { saveGame } from '../core/save';
 import { sfx, startMusic } from '../audio/sfx';
 
@@ -24,7 +26,7 @@ interface Projectile {
   dmg: number; radius: number; onHit?: (x: number, y: number) => void; homing?: boolean; trail?: number;
 }
 
-interface Loot { sprite: Phaser.GameObjects.Image; id: string; qty: number; born: number; x: number; y: number }
+interface Loot { sprite: Phaser.GameObjects.Image; id: string; qty: number; born: number; x: number; y: number; gear?: { rar?: number; aff?: { k: string; v: number }[] } }
 
 export class WorldScene extends Phaser.Scene {
   map!: WorldMap;
@@ -711,6 +713,7 @@ export class WorldScene extends Phaser.Scene {
   hitMonster(m: Monster, atk: number, mult: number, kind: 'phys' | 'magic', knock = 6) {
     const r = calcDamage(atk, m.def.def, mult, this.der.crit);
     m.takeHit(r.dmg, this.hero.x, this.hero.y, knock);
+    if (this.der.leech > 0) { const st = S(); st.hp = Math.min(this.der.maxHp, st.hp + r.dmg * this.der.leech); }
     if (r.crit) sfx.crit(); else sfx.hit();
     this.floatText(m.x + (Math.random() * 10 - 5), m.cy - 10, String(r.dmg), r.crit ? '#ffd040' : kind === 'magic' ? '#9ad8ff' : '#ffffff', r.crit ? 1.4 : 1);
     this.hitSpark(m.x, m.cy, r.crit ? 0xffd040 : kind === 'magic' ? 0x8ad0ff : 0xffffff);
@@ -786,7 +789,7 @@ export class WorldScene extends Phaser.Scene {
       }
       case 'heal': {
         h.doCast(time, 450);
-        const amt = Math.round(d.maxHp * sk.power + d.int * 4);
+        const amt = Math.round(d.maxHp * sk.power + d.matk * 0.8);
         const real = Math.min(amt, d.maxHp - s.hp);
         s.hp += real;
         sfx.heal();
@@ -980,16 +983,24 @@ export class WorldScene extends Phaser.Scene {
   // ---------- Rewards ----------
   onMonsterKilled(m: Monster) {
     const s = S();
-    const lv = gainExp(s, m.def.exp);
+    const lv = gainExp(s, m.def.exp * this.der.expBonus);
     onKill(s, m.def.kind);
     this.floatText(m.x, m.cy - 18, `+${m.def.exp} EXP`, '#c89aff', 0.9);
     const gold = Math.round(Phaser.Math.Between(m.def.gold[0], m.def.gold[1]));
     this.dropLoot(m.x, m.y, 'gold', gold);
     for (const d of m.def.drops) {
-      if (Math.random() < d.chance * (d.chance < 1 ? this.der.dropBonus : 1)) {
+      if (isGear(itemDef(d.id))) continue; // gear comes from the rarity roll below
+      if (Math.random() < d.chance) {
         const q = d.min ? Phaser.Math.Between(d.min, d.max ?? d.min) : 1;
         this.dropLoot(m.x, m.y, d.id, q);
       }
+    }
+    // equipment drops: random base, random rarity (magic find helps), random affixes
+    const gearDrops = m.def.boss ? 3 : Math.random() < 0.16 + m.def.level * 0.004 ? 1 : 0;
+    for (let i = 0; i < gearDrops; i++) {
+      const base = m.def.boss ? GEAR_BASES.filter(b => baseTier(b) >= 3)[Math.floor(Math.random() * GEAR_BASES.filter(b => baseTier(b) >= 3).length)] : pickBase(Math.random, m.def.level);
+      const rar = rollRarity(Math.random, this.der.mf, m.def.boss ? (i === 0 ? 3 : 2) : 0);
+      this.dropLoot(m.x, m.y, base.id, 1, makeGear(Math.random, base.id, rar));
     }
     this.burst(m.x, m.cy, 0xffffff, 10, 50);
     if (m.def.boss) {
@@ -1022,17 +1033,29 @@ export class WorldScene extends Phaser.Scene {
     this.floatText(h.x, h.y - 44, 'LEVEL UP!', '#ffd040', 1.5);
   }
 
-  dropLoot(x: number, y: number, id: string, qty: number) {
+  dropLoot(x: number, y: number, id: string, qty: number, gear?: { rar?: number; aff?: { k: string; v: number }[] }) {
     const icon = id === 'gold' ? 'icon_gold' : `icon_${itemDef(id).icon}`;
     const tx = x + Phaser.Math.Between(-16, 16), ty = y + Phaser.Math.Between(-8, 10);
     const sp = this.add.image(x, y - 8, icon).setDepth(ty).setScale(0.45);
     this.tweens.add({ targets: sp, x: tx, duration: 450 });
     this.tweens.add({ targets: sp, y: { from: y - 8, to: ty - 22 }, duration: 220, ease: 'Quad.easeOut', yoyo: false, onComplete: () => this.tweens.add({ targets: sp, y: ty - 6, duration: 230, ease: 'Bounce.easeOut' }) });
-    if (id !== 'gold' && itemDef(id).rarity >= 1) {
-      const g = this.add.image(tx, ty - 6, 'fx_glow').setTint(itemDef(id).rarity >= 2 ? 0x6fb6ff : 0x7ee08a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.5).setAlpha(0.6).setDepth(ty - 1);
-      sp.setData('glow', g);
+    const rar = id === 'gold' ? -1 : gear ? gear.rar ?? 0 : itemDef(id).rarity;
+    const extras: Phaser.GameObjects.GameObject[] = [];
+    if (rar >= 1) {
+      const col = RARITY_COLORS[rar];
+      extras.push(this.add.image(tx, ty - 6, 'fx_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.35 + rar * 0.12).setAlpha(0.7).setDepth(ty - 1));
+      if (gear && rar >= 2) {
+        // loot beam for rare+ gear, taller for epic/legendary
+        const beam = this.add.image(tx, ty - 2, 'fx_ray').setOrigin(0.5, 1).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.35, 0.25 + rar * 0.12).setAlpha(0.8).setDepth(ty + 1);
+        this.tweens.add({ targets: beam, alpha: { from: 0.45, to: 0.9 }, duration: 700, yoyo: true, repeat: -1 });
+        extras.push(beam);
+        const label = this.add.text(tx, ty - 18, `${RARITY_NAMES[rar]} ${itemDef(id).name}`, { fontFamily: FONT, fontSize: '7px', color: '#' + col.toString(16).padStart(6, '0'), stroke: '#0b0705', strokeThickness: 2, resolution: Math.max(3, this.cameras.main.zoom * 1.5) }).setOrigin(0.5, 1).setDepth(100002);
+        extras.push(label);
+        if (rar >= 3) { sfx.levelUp(); this.cameras.main.flash(150, 255, 200, 120); }
+      }
     }
-    this.loot.push({ sprite: sp, id, qty, born: this.time.now, x: tx, y: ty });
+    sp.setData('extras', extras);
+    this.loot.push({ sprite: sp, id, qty, born: this.time.now, x: tx, y: ty, gear });
   }
 
   updateLoot(time: number) {
@@ -1044,19 +1067,20 @@ export class WorldScene extends Phaser.Scene {
         // magnet
         l.x += (h.x - l.x) * 0.15; l.y += (h.y - l.y) * 0.15;
         l.sprite.setPosition(l.x, l.y - 6);
-        (l.sprite.getData('glow') as Phaser.GameObjects.Image | undefined)?.setPosition(l.x, l.y - 6);
+        for (const e of (l.sprite.getData('extras') as (Phaser.GameObjects.Image | Phaser.GameObjects.Text)[]) ?? []) e.setPosition(l.x, e.type === 'Text' ? l.y - 18 : l.y - (e.texture?.key === 'fx_ray' ? 2 : 6));
       }
       if (d < 10) {
         if (l.id === 'gold') { s.gold += l.qty; sfx.coin(); this.floatText(h.x, h.y - 34, `+${l.qty} G`, '#ffd040', 0.85); }
         else {
-          if (!addItem(s, l.id, l.qty)) { bus.emit(EV.TOAST, 'กระเป๋าเต็ม!', '#ff8a8a'); l.born = time + 3000; continue; }
+          if (!addItem(s, l.id, l.qty, 0, l.gear)) { bus.emit(EV.TOAST, 'กระเป๋าเต็ม!', '#ff8a8a'); l.born = time + 3000; continue; }
           sfx.pickup();
           const def = itemDef(l.id);
-          bus.emit(EV.TOAST, `ได้รับ ${def.name}${l.qty > 1 ? ' x' + l.qty : ''}`, '#' + [0xe8e2d0, 0x7ee08a, 0x6fb6ff, 0xd48cff][def.rarity].toString(16));
+          const rr = l.gear ? l.gear.rar ?? 0 : def.rarity;
+          bus.emit(EV.TOAST, `ได้รับ ${l.gear ? '[' + RARITY_NAMES[rr] + '] ' : ''}${def.name}${l.qty > 1 ? ' x' + l.qty : ''}`, '#' + RARITY_COLORS[rr].toString(16).padStart(6, '0'));
           refreshCollect(s);
         }
         l.sprite.destroy();
-        (l.sprite.getData('glow') as Phaser.GameObjects.Image | undefined)?.destroy();
+        for (const e of (l.sprite.getData('extras') as Phaser.GameObjects.GameObject[]) ?? []) e.destroy();
         l.qty = 0;
         bus.emit(EV.STATE_CHANGED);
       }

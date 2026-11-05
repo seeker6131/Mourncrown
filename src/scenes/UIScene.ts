@@ -144,7 +144,7 @@ export class UIScene extends Phaser.Scene {
     const by = my + mmH + 18;
     const menuDefs: [string, string, () => void][] = [
       ['icon_armor0', 'กระเป๋า', () => this.panels.open('bag')],
-      ['icon_sword2', 'สเตตัส', () => this.panels.open('stats')],
+      ['icon_sword2', 'ตัวละคร', () => this.panels.open('stats')],
       ['icon_spore', 'เควสต์', () => this.panels.open('quest')],
       ['icon_gem0', 'เมนู', () => this.panels.open('menu')],
     ];
@@ -340,7 +340,7 @@ export class UIScene extends Phaser.Scene {
     this.mpText.setText(`${Math.ceil(s.mp)} / ${d.maxMp}`);
     this.expText.setText('');
     this.lvText.setText('Lv ' + s.level);
-    this.goldText.setText(s.gold.toLocaleString() + ' G');
+    this.goldText.setText(s.gold.toLocaleString() + ' G   พลัง ' + d.power.toLocaleString());
     const pr2 = this.world.hero.portrait();
     this.portrait.setTexture(pr2.key, pr2.frame);
     this.fitPortrait();
@@ -361,7 +361,7 @@ export class UIScene extends Phaser.Scene {
     this.autoBtn.draw(false, s.auto);
     (this.autoBtn.c.getData('label') as Phaser.GameObjects.Text).setColor(s.auto ? '#9fffb0' : '#ffe7a0');
     this.potionCount.setText(String(this.world.countItem('hp_potion') + this.world.countItem('hp_potion_l')));
-    this.statBadge.setVisible(s.statPoints > 0);
+    this.statBadge.setVisible(false);
     if (this.panels?.isOpen) this.panels.rebuild();
   }
 
@@ -396,7 +396,7 @@ export class UIScene extends Phaser.Scene {
   onLevel(level: number) {
     const k = this.kit;
     const t = k.text(this.VW / 2, VH / 2 - 60, `LEVEL UP!  Lv ${level}`, 20, '#ffd84a', { strokeThickness: 5 }).setOrigin(0.5).setScale(0.3);
-    const t2 = k.text(this.VW / 2, VH / 2 - 36, `+4 แต้มสเตตัส — กดปุ่ม "สเตตัส" เพื่อแจกแต้ม`, 9, '#ffffff').setOrigin(0.5).setAlpha(0);
+    const t2 = k.text(this.VW / 2, VH / 2 - 36, `HP / ATK พื้นฐานเพิ่มขึ้น — ตีมอนสเตอร์หาอุปกรณ์แรร์ต่อ!`, 9, '#ffffff').setOrigin(0.5).setAlpha(0);
     this.root.add([t, t2]);
     this.tweens.add({ targets: t, scale: 1, duration: 400, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t2, alpha: 1, duration: 300, delay: 300 });

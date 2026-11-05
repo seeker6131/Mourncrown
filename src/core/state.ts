@@ -12,7 +12,7 @@ export const STAT_DESC: Record<StatKey, string> = {
   luk: 'โอกาสคริติคอล และดรอปไอเทม',
 };
 
-export interface InvItem { uid: number; id: string; qty: number; upg: number }
+export interface InvItem { uid: number; id: string; qty: number; upg: number; rar?: number; aff?: { k: string; v: number }[] }
 
 export interface QuestProgress { id: string; progress: number; status: 'active' | 'ready' | 'done' }
 

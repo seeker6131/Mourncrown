@@ -8,7 +8,7 @@ export function countItem(s: GameState, id: string): number {
   return s.inventory.filter(i => i.id === id).reduce((a, b) => a + b.qty, 0);
 }
 
-export function addItem(s: GameState, id: string, qty = 1, upg = 0): boolean {
+export function addItem(s: GameState, id: string, qty = 1, upg = 0, gear?: { rar?: number; aff?: { k: string; v: number }[] }): boolean {
   const d = itemDef(id);
   if (d.stack) {
     const ex = s.inventory.find(i => i.id === id);
@@ -19,7 +19,7 @@ export function addItem(s: GameState, id: string, qty = 1, upg = 0): boolean {
   }
   for (let n = 0; n < qty; n++) {
     if (s.inventory.length >= INV_SIZE) return false;
-    s.inventory.push({ uid: s.nextUid++, id, qty: 1, upg });
+    s.inventory.push({ uid: s.nextUid++, id, qty: 1, upg, ...(gear ?? {}) });
   }
   return true;
 }
@@ -108,5 +108,5 @@ export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.r
 
 export function sellPrice(it: InvItem): number {
   const d = itemDef(it.id);
-  return Math.max(1, Math.floor(d.price * 0.4 * (1 + it.upg * 0.25)));
+  return Math.max(1, Math.floor(d.price * 0.4 * (1 + it.upg * 0.25) * (1 + (it.rar ?? 0) * (it.rar ?? 0) * 0.6)));
 }
