@@ -237,9 +237,9 @@ export function generateWorld(seed = 1337): WorldMap {
     if (!free(x, y)) continue;
     const r2 = rnd();
     if (vd < 0.95 && g !== G.Plaza) { if (r2 < 0.08) put('flower', x, y, Math.floor(rnd() * 4)); continue; }
-    if (r2 < 0.012) put('rock', x, y, Math.floor(rnd() * 2), { w: 1, h: 1 });
+    if (r2 < 0.012) put('rock', x, y, Math.floor(rnd() * 2));
     else if (r2 < 0.018 && g !== G.Grass) put('bigrock', x, y, 0, { w: 2, h: 1 });
-    else if (r2 < 0.04) put('bush', x, y, Math.floor(rnd() * 2), { w: 1, h: 1 });
+    else if (r2 < 0.04) put('bush', x, y, Math.floor(rnd() * 2));
     else if (r2 < 0.05 && g === G.Forest) put('log', x, y, 0, { w: 2, h: 1 });
     else if (r2 < 0.075 && g !== G.Grass) put('mushrooms', x, y, g === G.Grove ? 1 : 0);
     else if (r2 < 0.13 && g === G.Grass) put('flower', x, y, Math.floor(rnd() * 4));
