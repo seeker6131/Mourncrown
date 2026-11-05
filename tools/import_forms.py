@@ -146,6 +146,37 @@ def downscale(f, s):
     return defringe(out, 1)
 
 
+def register(frames, ax, name):
+    """Lock the head/torso in place across frames: find each frame's horizontal shift that best matches
+    frame 0 (bottom-aligned), so capes/effects flaring sideways don't make the body slide."""
+    H = max(f.shape[0] for f in frames)
+    W = max(f.shape[1] for f in frames) + 40
+    def canvas(f, x):
+        c = np.zeros((H, W, 4), np.float32)
+        y = H - f.shape[0]
+        c[y:, x:x + f.shape[1]] = f
+        return c
+    lo, hi = int(H * 0.08), int(H * (0.55 if name != 'idle' else 0.7))
+    ref = canvas(frames[0], 20)[lo:hi]
+    refm = ref[:, :, 3] > 0
+    refl = ref[:, :, :3].mean(2)
+    base = 20 + ax[0]
+    out = [ax[0]]
+    for f in frames[1:]:
+        best, bx = 1e18, 0
+        for dx in range(-14, 15):
+            x0 = int(round(base - ax[0])) if False else 20 + dx
+            if x0 < 0 or x0 + f.shape[1] > W: continue
+            c = canvas(f, x0)[lo:hi]
+            m = c[:, :, 3] > 0
+            both = m & refm
+            cost = (m ^ refm).sum() * 60 + np.abs(c[:, :, :3].mean(2) - refl)[both].sum()
+            if cost < best: best, bx = cost, x0
+        # frame drawn at x=bx aligns with ref drawn at x=20 => its anchor = ax0 + (20 - bx)
+        out.append(ax[0] + (20 - bx))
+    return out
+
+
 meta = {}
 for form in FORMS:
     have = {suf: os.path.join(SRC, form + suf + '.png') for suf, _, _ in ANIMS if os.path.exists(os.path.join(SRC, form + suf + '.png'))}
@@ -175,6 +206,8 @@ for form in FORMS:
             if mode == 'center':
                 m = f[:, :, 3] > 0; xs = np.nonzero(m.any(0))[0]; ax.append((xs[0] + xs[-1]) / 2)
             else: ax.append(anchor_x(f, mode))
+        if name in ('idle', 'walk', 'walkup', 'skill'):
+            ax = register(small, ax, name)
         left = int(np.ceil(max(ax))) + 2
         right = int(np.ceil(max(f.shape[1] - a for f, a in zip(small, ax)))) + 2
         H = max(f.shape[0] for f in small) + 2
