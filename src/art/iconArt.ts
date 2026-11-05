@@ -153,12 +153,17 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
   grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.35, 'rgba(255,255,255,0.45)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
   out.glow = glow;
-  // shadow ellipse
+  // pixel-art contact shadow: hard-edged two-tone ellipse
   const sh = document.createElement('canvas'); sh.width = 32; sh.height = 12;
-  const s = sh.getContext('2d')!;
-  const sg = s.createRadialGradient(16, 6, 0, 16, 6, 16);
-  sg.addColorStop(0, 'rgba(10,6,20,0.55)'); sg.addColorStop(1, 'rgba(10,6,20,0)');
-  s.setTransform(1, 0, 0, 0.375, 0, 0); s.fillStyle = sg; s.fillRect(0, 0, 32, 32);
+  const s2 = sh.getContext('2d')!;
+  const sd = s2.createImageData(32, 12);
+  for (let y = 0; y < 12; y++) for (let x = 0; x < 32; x++) {
+    const dx = (x + 0.5 - 16) / 15.5, dy = (y + 0.5 - 6) / 5.5, d = dx * dx + dy * dy;
+    if (d > 1) continue;
+    const i = (y * 32 + x) * 4;
+    sd.data[i] = 16; sd.data[i + 1] = 8; sd.data[i + 2] = 30; sd.data[i + 3] = d < 0.55 ? 120 : 70;
+  }
+  s2.putImageData(sd, 0, 0);
   out.shadow = sh;
   // slash crescent
   const sl = new PixelCanvas(40, 40);

@@ -60,12 +60,15 @@ export class WorldScene extends Phaser.Scene {
   targetRing!: Phaser.GameObjects.Image;
   night = 0;
   rays: Phaser.GameObjects.Image[] = [];
+  shadows: Phaser.GameObjects.Image[] = [];
+  lastShadowNight = -1;
+  heroShadow: Phaser.GameObjects.Image | null = null;
 
   constructor() { super('World'); }
 
   create() {
     this.monsters = []; this.projectiles = []; this.loot = []; this.npcs = []; this.cooldowns = {}; this.fireflies = []; this.clouds = [];
-    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = [];
+    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = []; this.shadows = []; this.heroShadow = null;
     const s = S();
     this.map = generateWorld();
     this.der = derive(s);
@@ -91,9 +94,10 @@ export class WorldScene extends Phaser.Scene {
         const w = o.solid!.w, h = o.solid!.h;
         const sx0 = o.tx - Math.floor((w - 1) / 2), sy0 = o.ty - h + 1;
         const c = iso(sx0 + w / 2, sy0 + h / 2), bot = iso(sx0 + w, sy0 + h);
-        this.add.image(c.x + 10, c.y + 4, 'fx_shadow').setScale(w * 1.15, h * 1.25).setAlpha(0.8).setDepth(1);
+        if (!ai) this.add.image(c.x + 10, c.y + 4, 'fx_shadow').setScale(w * 1.15, h * 1.25).setAlpha(0.8).setDepth(1);
         if (ai) {
-          this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10);
+          const bimg = this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10);
+          this.castShadow(bimg);
         } else {
           const n = iso(o.tx - 2, o.ty - 2);
           const img = this.add.image(n.x, n.y, `obj_house_${o.v % 2}`);
@@ -108,6 +112,7 @@ export class WorldScene extends Phaser.Scene {
       if (o.type === 'chest') {
         const opened = S().chests.includes(o.v);
         const img = this.add.image(o.x, o.y + 4, opened ? 'obj_chest_1' : 'obj_chest_0').setOrigin(0.5, 0.95).setDepth(o.y);
+        this.castShadow(img, 0.8);
         this.add.image(o.x, o.y + 3, 'fx_shadow').setScale(0.8, 0.7).setDepth(1);
         const glow = opened ? null : this.addGlow(o.x, o.y - 4, 0xffd060, 0.45, true);
         this.chests.push({ id: o.v, x: o.x, y: o.y, img, glow });
@@ -116,7 +121,7 @@ export class WorldScene extends Phaser.Scene {
       if (o.type === 'wall') {
         if (ai && o.v < 6) {
           if ((o.tx + o.ty) % 2) continue; // ai wall pieces span ~2 tiles
-          this.add.image(o.x, o.y + 6, `obj_wall_${o.v}`).setOrigin(0.5, 0.92).setDepth(o.y + 2);
+          this.castShadow(this.add.image(o.x, o.y + 6, `obj_wall_${o.v}`).setOrigin(0.5, 0.92).setDepth(o.y + 2), 0.8);
           continue;
         }
         const img = this.add.image(o.x, o.y + 4, `obj_wall_${o.v}`);
@@ -124,7 +129,7 @@ export class WorldScene extends Phaser.Scene {
         img.setOrigin(19 / img.width, (hh + 12) / img.height).setDepth(o.y + 2);
         continue;
       }
-      if (o.type === 'tree' || o.type === 'pine') this.add.image(o.x + 5, o.y + 4, 'fx_shadow').setScale(o.type === 'tree' ? 2.4 : 1.8, 1.7).setAlpha(0.85).setDepth(1);
+      if (o.type === 'tree' || o.type === 'pine') this.add.image(o.x, o.y + 4, 'fx_shadow').setScale(1.2, 1).setAlpha(0.7).setDepth(1);
       if (['bigrock', 'bush', 'tent', 'stall', 'well', 'statue', 'haystack', 'stairs', 'altar'].includes(o.type)) this.add.image(o.x + 3, o.y + 3, 'fx_shadow').setScale(1.4, 1.1).setDepth(1);
       let key = `obj_${o.type}_${o.v}`;
       if (!this.textures.exists(key)) key = `obj_${o.type}_0`;
@@ -136,8 +141,9 @@ export class WorldScene extends Phaser.Scene {
         : { fence: 0.78, crate: 0.75, stall: 0.85, altar: 0.86, tent: 0.92 };
       const img = this.add.image(o.x, o.y + oy, key).setOrigin(0.5, originY[o.type] ?? 0.97);
       img.setDepth(o.type === 'lily' ? 1 : flat ? o.y - 12 : o.type === 'arch' ? o.y + 6 : o.y);
+      if (o.type === 'tree' || o.type === 'pine') img.setFlipX(((o.x * 7 + o.y * 3) & 8) > 0);
+      if (!flat && o.type !== 'mushrooms') this.castShadow(img, o.type === 'tree' || o.type === 'pine' ? 1 : 0.85);
       if (o.type === 'tree' || o.type === 'pine') {
-        img.setFlipX(((o.x * 7 + o.y * 3) & 8) > 0);
         // gentle canopy sway
         this.tweens.add({ targets: img, scaleX: { from: 1, to: 1.015 }, duration: 1800 + (o.x % 700), yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: o.y % 1000 });
         if (o.v === 2) this.addGlow(o.x, o.y - 30, 0x5ae0d0, 1.2, true);
@@ -153,6 +159,7 @@ export class WorldScene extends Phaser.Scene {
       const { x, y } = iso(n.x + 0.5, n.y + 0.5);
       this.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.8);
       const sp = this.add.sprite(x, y, `npc_${n.id}`).setOrigin(0.5, 0.95).setDepth(y).play(`npc_${n.id}_idle`);
+      this.castShadow(sp, 0.8);
       const marker = this.add.image(x, y - 40, 'fx_qmark').setDepth(99999).setVisible(false);
       this.tweens.add({ targets: marker, y: y - 44, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       sp.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.tryTalk(n.id));
@@ -216,6 +223,57 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- Ambient / atmosphere ----------
+  /** Build (and cache) a pixel-art cast-shadow texture: the silhouette sheared onto the ground, sun from the upper-left. */
+  shadowTex(img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite): { key: string; ox: number; oy: number } {
+    const fr = img.frame;
+    const flip = img.flipX;
+    const key = `sh_${fr.texture.key}_${fr.name}_${flip ? 1 : 0}_${img.originY.toFixed(2)}`;
+    if (!this.textures.exists(key)) {
+      const W = fr.cutWidth, H = fr.cutHeight;
+      const ox = img.originX * W, oy = img.originY * H;
+      const SH = 0.75, SQ = 0.3;
+      const src = fr.source.image as HTMLImageElement | HTMLCanvasElement;
+      const sil = document.createElement('canvas'); sil.width = W; sil.height = H;
+      const sc = sil.getContext('2d')!;
+      sc.imageSmoothingEnabled = false;
+      if (flip) { sc.translate(W, 0); sc.scale(-1, 1); }
+      sc.drawImage(src, fr.cutX, fr.cutY, W, H, 0, 0, W, H);
+      sc.setTransform(1, 0, 0, 1, 0, 0);
+      sc.globalCompositeOperation = 'source-in';
+      sc.fillStyle = '#140a24'; sc.fillRect(0, 0, W, H);
+      const top = Math.ceil(oy * SQ);
+      const cv = document.createElement('canvas'); cv.width = Math.ceil(W + oy * SH) + 2; cv.height = Math.ceil(top + (H - oy)) + 2;
+      const c = cv.getContext('2d')!;
+      c.imageSmoothingEnabled = false;
+      for (let y = 0; y < H; y++) {
+        const h = oy - y;
+        if (h < 0) { c.drawImage(sil, 0, y, W, 1, 0, Math.round(top - h * 0.3), W, 1); continue; }
+        c.drawImage(sil, 0, y, W, 1, Math.round(h * SH), Math.round(top - h * SQ), W, 1);
+      }
+      this.textures.addCanvas(key, cv);
+      this.textures.get(key).customData = { ox: ox / cv.width, oy: top / cv.height };
+    }
+    const d = this.textures.get(key).customData as { ox: number; oy: number };
+    return { key, ox: d.ox, oy: d.oy };
+  }
+
+  castShadow(img: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, strength = 1) {
+    const t = this.shadowTex(img);
+    const sh = this.add.image(img.x, img.y, t.key).setOrigin(t.ox, t.oy).setDepth(1.2).setAlpha(0.32 * strength);
+    sh.setData('a', 0.32 * strength);
+    this.shadows.push(sh);
+    return sh;
+  }
+
+  /** Moving cast shadow that follows an animated sprite (hero, monsters). */
+  followShadow(img: Phaser.GameObjects.Sprite, sh: Phaser.GameObjects.Image | null, baseX: number, baseY: number, alpha: number): Phaser.GameObjects.Image {
+    const t = this.shadowTex(img);
+    if (!sh) sh = this.add.image(baseX, baseY, t.key).setDepth(1.3);
+    if (sh.texture.key !== t.key) sh.setTexture(t.key);
+    sh.setOrigin(t.ox, t.oy).setPosition(Math.round(baseX), Math.round(baseY)).setAlpha(alpha * (1 - this.night * 0.75));
+    return sh;
+  }
+
   burstLoop(x: number, y: number) {
     this.time.addEvent({ delay: 220, loop: true, callback: () => {
       const v = this.cameras.main.worldView;
@@ -302,6 +360,7 @@ export class WorldScene extends Phaser.Scene {
     this.nightOverlay.setTint(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
     this.nightOverlay.setPosition(v.centerX, v.centerY).setDisplaySize(v.width + 64, v.height + 64);
     for (const l of this.nightLights) { const b0 = (l.getData('base') as number | undefined) ?? (l.setData('base', l.scaleX), l.scaleX); l.setScale(b0 * (1 + night * 0.9)); }
+    if (Math.abs(this.lastShadowNight - night) > 0.02) { this.lastShadowNight = night; for (const sh of this.shadows) sh.setAlpha((sh.getData('a') as number) * (1 - night * 0.75)); }
     this.rays.forEach((r, i) => r.setAlpha((0.14 + Math.sin(time * 0.0006 + i * 1.7) * 0.07) * (1 - night) * (1 - dusk * 0.5)));
     this.heroLight.setPosition(this.hero.x, this.hero.y - 10).setAlpha(night * 0.35);
     for (const c of this.clouds) {
@@ -419,6 +478,15 @@ export class WorldScene extends Phaser.Scene {
     this.respawnTick(time);
     this.updateAmbient(time, dt);
     this.heroRing.setPosition(h.x, h.y).setVisible(h.state !== 'dead');
+    this.heroShadow = this.followShadow(h.sprite, this.heroShadow, h.x, h.y, h.state === 'dead' ? 0 : 0.3);
+    for (const m of this.monsters) {
+      if (!m.sprite.active) { (m as unknown as { cast?: Phaser.GameObjects.Image }).cast?.destroy(); continue; }
+      const mm = m as unknown as { cast?: Phaser.GameObjects.Image };
+      const near = Math.abs(m.x - h.x) < 400 && Math.abs(m.y - h.y) < 260;
+      if (!near) { mm.cast?.setVisible(false); continue; }
+      mm.cast = this.followShadow(m.sprite, mm.cast ?? null, m.x, m.y, m.alive ? (m.def.kind === 'wisp' ? 0.15 : 0.28) : 0);
+      mm.cast.setVisible(true);
+    }
     const tgt = this.target && this.target.alive ? this.target : this.nearestEnemy(60);
     if (tgt) this.targetRing.setVisible(true).setPosition(tgt.x, tgt.y).setScale(tgt.def.boss ? 2.2 : tgt.def.bodyRadius / 8);
     else this.targetRing.setVisible(false);

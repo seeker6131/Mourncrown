@@ -1,4 +1,4 @@
-# Eldergrove Saga — Fantasy Pixel Action RPG (v0.2)
+# Eldergrove Saga — Fantasy Pixel Action RPG (v0.3)
 
 เกม Pixel Action RPG แนวนอนสำหรับ Android (เล่นผ่าน Chrome) สร้างด้วย **Phaser 3 + TypeScript + Vite**
 
@@ -12,6 +12,10 @@
 - Manual / Auto Battle, สกิล 4 อย่าง, EXP/Level, STR AGI VIT INT LUK แจกแต้ม
 - กระเป๋า 30 ช่อง, สวมอุปกรณ์, ร้านค้า ซื้อ/ขาย, ช่างตีเหล็ก ตีบวก +10
 - เควสต์ต่อเนื่อง 6 เควสต์, เซฟอัตโนมัติ + เซฟ/โหลดในเมนู (localStorage)
+
+## v0.3
+- ภาพจริงจาก Game Director (สร้างด้วย GPT) นำเข้าผ่าน `tools/import_ai_assets.py` → `src/assets/ai/` : บ้าน 5 แบบ ต้นไม้ 6 ของตกแต่ง ซากวิหาร ไอคอน ฮีโร่ มอนสเตอร์ บอส ภาพหน้าเปิด
+- เงาทอดแบบ pixel art ทุกวัตถุและตัวละคร
 
 ## v0.2
 - มุมมอง Isometric 2.5D ทั้งแผนที่, แม่น้ำ/บ่อจมลงมีตลิ่ง, บ้านไม้ครึ่งปูน 3 มิติ

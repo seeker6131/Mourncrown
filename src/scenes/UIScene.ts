@@ -74,6 +74,16 @@ export class UIScene extends Phaser.Scene {
 
   zoneNameNow() { return ''; }
 
+  /** Head-and-shoulders crop of the hero inside the round portrait frame. */
+  fitPortrait() {
+    const p = this.portrait;
+    if (this.world.hero.ai) {
+      const w = p.frame.width, h = p.frame.height;
+      const ch = Math.round(h * 0.62);
+      p.setCrop(0, 0, w, ch).setScale(30 / ch).setOrigin(0.5, 0.31);
+    } else p.setCrop(4, 4, 32, 26).setScale(1.15).setOrigin(0.5);
+  }
+
   controlsReset() {
     controls.mx = 0; controls.my = 0; controls.attackHeld = false; controls.joyActive = false;
     this.joy.id = -1; this.joy.bx = 70; this.joy.by = VH - 70;
@@ -101,7 +111,9 @@ export class UIScene extends Phaser.Scene {
     this.hud = this.add.graphics();
     this.root.add(this.hud);
     // portrait
-    this.portrait = this.add.image(26, 25, this.world.hero.texKey, 'down_idle_0').setScale(1.15).setCrop(4, 4, 32, 26);
+    const pr = this.world.hero.portrait();
+    this.portrait = this.add.image(26, 25, pr.key, pr.frame);
+    this.fitPortrait();
     this.root.add(this.portrait);
     this.lvText = k.text(26, 47, 'Lv1', 9, '#ffe7a0').setOrigin(0.5);
     this.hpText = k.text(110, 11, '', 8, '#ffffff').setOrigin(0.5, 0);
@@ -329,7 +341,9 @@ export class UIScene extends Phaser.Scene {
     this.expText.setText('');
     this.lvText.setText('Lv ' + s.level);
     this.goldText.setText(s.gold.toLocaleString() + ' G');
-    this.portrait.setTexture(this.world.hero.texKey, 'down_idle_0').setCrop(4, 4, 32, 26);
+    const pr2 = this.world.hero.portrait();
+    this.portrait.setTexture(pr2.key, pr2.frame);
+    this.fitPortrait();
     // quest tracker
     const q = s.quests.find(x => x.status !== 'done');
     if (q) {

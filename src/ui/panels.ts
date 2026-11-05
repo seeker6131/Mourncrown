@@ -111,7 +111,8 @@ export class Panels {
     const ex = x + 14, ey = y + 32;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(ex, ey, 112, H - 44, 4);
     c.add(k.text(ex + 56, ey + 4, 'สวมใส่', 9, '#d9b45a').setOrigin(0.5, 0));
-    const heroImg = ui.add.image(ex + 56, ey + 62, this.ui.world.hero.texKey, 'down_idle_0').setScale(1.8);
+    const pr = this.ui.world.hero.portrait();
+    const heroImg = ui.add.image(ex + 56, ey + 62, pr.key, pr.frame).setScale(this.ui.world.hero.ai ? 1.5 : 1.8);
     c.add(heroImg);
     const slots: [keyof typeof s.equip, string, number, number][] = [['weapon', 'อาวุธ', ex + 8, ey + 100], ['armor', 'เกราะ', ex + 42, ey + 100], ['accessory', 'เครื่องประดับ', ex + 76, ey + 100]];
     for (const [slot, label, sx, sy] of slots) {
@@ -287,7 +288,7 @@ export class Panels {
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
-    c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.1`, 7.5, '#8a7a60').setOrigin(0.5));
+    c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
   }
 
   // ---------------- DIALOG ----------------

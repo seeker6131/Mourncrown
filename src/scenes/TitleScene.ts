@@ -12,27 +12,36 @@ export class TitleScene extends Phaser.Scene {
     const u = this.scale.height / 360, VW = this.scale.width / u;
     this.cameras.main.setOrigin(0, 0).setZoom(u);
     const k = new UIKit(this, () => u);
+    if (this.textures.exists('ai_keyart')) {
+      const bg = this.add.image(VW / 2, 180, 'ai_keyart');
+      bg.setScale(Math.max(VW / bg.width, 360 / bg.height));
+      this.tweens.add({ targets: bg, scale: bg.scale * 1.04, duration: 12000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const sh = this.add.graphics();
+      sh.fillGradientStyle(0x0b0906, 0x0b0906, 0x0b0906, 0x0b0906, 0.75, 0.75, 0, 0).fillRect(0, 0, VW, 140);
+      sh.fillGradientStyle(0x0b0906, 0x0b0906, 0x0b0906, 0x0b0906, 0, 0, 0.7, 0.7).fillRect(0, 260, VW, 100);
+    } else {
     // sky gradient
-    const g = this.add.graphics();
-    g.fillGradientStyle(0x1a1438, 0x1a1438, 0x3a6a5a, 0x3a6a5a, 1).fillRect(0, 0, VW, 360);
-    g.fillStyle(0xffe8b0, 0.15).fillCircle(VW * 0.7, 90, 60);
-    g.fillStyle(0xfff4d0, 0.9).fillCircle(VW * 0.7, 90, 22);
-    // distant hills
-    g.fillStyle(0x24483e, 1);
-    for (let x = 0; x <= VW; x += 4) g.fillRect(x, 220 + Math.sin(x * 0.02) * 16 + Math.sin(x * 0.05) * 6, 4, 200);
-    g.fillStyle(0x2e5a3a, 1);
-    for (let x = 0; x <= VW; x += 4) g.fillRect(x, 260 + Math.sin(x * 0.03 + 1) * 10, 4, 200);
-    g.fillStyle(0x4a8a3a, 1).fillRect(0, 300, VW, 60);
-    // trees
-    const trees = [[20, 0], [70, 1], [VW - 60, 3], [VW - 120, 2], [VW - 20, 1], [120, 4]] as const;
-    for (const [x, v] of trees) this.add.image(x, 318, `obj_tree_${v}`).setOrigin(0.5, 1).setScale(1.6);
-    this.add.image(VW / 2 + 90, 318, 'obj_house_0').setOrigin(0.5, 1).setScale(1.1);
-    // hero
-    const key = ensureHeroTexture(this, 3, 3);
-    this.add.image(VW / 2 - 40, 322, 'fx_shadow').setScale(1.6);
-    this.add.sprite(VW / 2 - 40, 322, key).setOrigin(0.5, 0.9).setScale(2.4).play(`${key}_down_idle`);
-    const slime = this.add.sprite(VW / 2 + 10, 324, 'mon_slime').setOrigin(0.5, 1).setScale(2).play('mon_slime_idle').setFlipX(true);
-    void slime;
+      const g = this.add.graphics();
+      g.fillGradientStyle(0x1a1438, 0x1a1438, 0x3a6a5a, 0x3a6a5a, 1).fillRect(0, 0, VW, 360);
+      g.fillStyle(0xffe8b0, 0.15).fillCircle(VW * 0.7, 90, 60);
+      g.fillStyle(0xfff4d0, 0.9).fillCircle(VW * 0.7, 90, 22);
+      // distant hills
+      g.fillStyle(0x24483e, 1);
+      for (let x = 0; x <= VW; x += 4) g.fillRect(x, 220 + Math.sin(x * 0.02) * 16 + Math.sin(x * 0.05) * 6, 4, 200);
+      g.fillStyle(0x2e5a3a, 1);
+      for (let x = 0; x <= VW; x += 4) g.fillRect(x, 260 + Math.sin(x * 0.03 + 1) * 10, 4, 200);
+      g.fillStyle(0x4a8a3a, 1).fillRect(0, 300, VW, 60);
+      // trees
+      const trees = [[20, 0], [70, 1], [VW - 60, 3], [VW - 120, 2], [VW - 20, 1], [120, 4]] as const;
+      for (const [x, v] of trees) this.add.image(x, 318, `obj_tree_${v}`).setOrigin(0.5, 1).setScale(1.6);
+      this.add.image(VW / 2 + 90, 318, 'obj_house_0').setOrigin(0.5, 1).setScale(1.1);
+      // hero
+      const key = ensureHeroTexture(this, 3, 3);
+      this.add.image(VW / 2 - 40, 322, 'fx_shadow').setScale(1.6);
+      this.add.sprite(VW / 2 - 40, 322, key).setOrigin(0.5, 0.9).setScale(2.4).play(`${key}_down_idle`);
+      const slime = this.add.sprite(VW / 2 + 10, 324, 'mon_slime').setOrigin(0.5, 1).setScale(2).play('mon_slime_idle').setFlipX(true);
+      void slime;
+    }
     // motes
     for (let i = 0; i < 30; i++) {
       const m = this.add.image(Math.random() * VW, Math.random() * 360, 'fx_glow').setScale(0.08).setTint(0xe0ff8a).setBlendMode(Phaser.BlendModes.ADD);
@@ -58,7 +67,7 @@ export class TitleScene extends Phaser.Scene {
     let by = 150;
     if (hasSave()) { this.add.existing(k.button(VW / 2 - 80, by, 160, 30, '▶ เล่นต่อ', () => start(false), { size: 12, color: 0x1f4a2a })); by += 38; }
     this.add.existing(k.button(VW / 2 - 80, by, 160, 30, hasSave() ? 'เริ่มเกมใหม่' : '▶ เริ่มผจญภัย', () => start(!hasSave() ? true : true), { size: 12 }));
-    k.text(VW / 2, 350, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.1 prototype', 8, '#c8d8c0').setOrigin(0.5);
+    k.text(VW / 2, 350, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
     this.cameras.main.fadeIn(400);
   }
 }
