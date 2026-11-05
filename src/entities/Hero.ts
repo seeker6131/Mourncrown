@@ -169,7 +169,13 @@ export class Hero {
     const left = (this.diag & 1) === 0, up = this.diag >= 2;
     this.sprite.setFlipX(left).setRotation(0).setScale(1 / FORM_RES);
     if (this.state === 'attack') {
-      const r = this.formPlay(this.toolAnim ?? 'attack', now - this.actionStart < 20);
+      // axe / pickaxe only for the gathering (villager) form; fighter forms hit trees with their own weapon
+      const tool = this.toolAnim && this.code() === 'V0' && this.scene.anims.exists(`f_V0_${this.toolAnim}`) ? `f_V0_${this.toolAnim}` : null;
+      let r: unknown = null;
+      if (tool) {
+        if (this.sprite.anims.currentAnim?.key !== tool || now - this.actionStart < 20) this.sprite.play(tool);
+        if (this.formTint) { this.formTint = undefined; this.sprite.clearTint(); }
+      } else r = this.formPlay('attack', now - this.actionStart < 20);
       if (now - this.actionStart < 20) this.sprite.anims.timeScale = Math.max(1, 300 / Math.max(120, this.actionDur));
       void r;
     } else if (this.state === 'cast') {

@@ -1001,6 +1001,7 @@ export class WorldScene extends Phaser.Scene {
     if (s.mp < sk.mp) { bus.emit(EV.TOAST, 'MP ไม่พอ', '#7ab8ff'); sfx.error(); return; }
     if (h.busy(time) && h.state !== 'attack') return;
     s.mp -= sk.mp;
+    h.toolAnim = null;
     this.cooldowns[id] = time + sk.cooldown;
     bus.emit(EV.SKILL_CAST, id, sk.cooldown);
     bus.emit(EV.STATE_CHANGED);
