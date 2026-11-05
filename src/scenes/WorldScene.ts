@@ -13,6 +13,7 @@ import { bus, EV, S, runtime } from '../core/events';
 import { derive, gainExp, calcDamage, type Derived } from '../systems/stats';
 import { addItem, useItem, countItem } from '../systems/inventory';
 import { onKill, refreshCollect } from '../systems/quests';
+import { dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { SKILLS, SKILL_BY_ID, type SkillId, type SkillDef } from '../data/skills';
 import { itemDef, RARITY_COLORS, RARITY_NAMES } from '../data/items';
@@ -695,6 +696,7 @@ export class WorldScene extends Phaser.Scene {
       let best = 260;
       for (const m of this.monsters) {
         if (!m.alive) continue;
+        if (s.outfit === 'gather' && m.state !== 'chase' && m.state !== 'attack') continue; // gathering: only fight back
         if (m.def.boss && m.state === 'idle' && s.level < 10) continue; // don't suicide into the boss early
         const d = Math.hypot(m.x - h.x, m.y - h.y);
         if (d < best) { best = d; this.target = m; }
@@ -780,6 +782,13 @@ export class WorldScene extends Phaser.Scene {
       onHit: (x, y) => { const m = this.monsters.find(q => q.alive && Math.hypot(q.x - x, q.cy - y) < 7 + q.def.bodyRadius + 2); if (m) this.hitMonster(m, matk, 1, 'magic', 3); } });
   }
 
+  dailyDone(list: { kind: string; gold: number; shards: number }[]) {
+    for (const t of list) {
+      sfx.levelUp();
+      bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind as keyof typeof DAILY_NAMES]} สำเร็จ! +${t.gold} G +ผลึก ${t.shards}`, '#9fffb0');
+    }
+  }
+
   // ---------- Gathering ----------
   nearestNode(maxD: number) {
     let best: WorldScene['nodes'][number] | null = null, bd = maxD;
@@ -796,6 +805,7 @@ export class WorldScene extends Phaser.Scene {
     if (s.outfit === 'gather') amt *= 2;
     if (n.hp <= 0) amt += n.kind === 'wood' ? 6 : 4;
     s.res[n.kind] += amt;
+    this.dailyDone(dailyProgress(s, n.kind as 'wood' | 'stone', amt));
     sfx.hit();
     const x0 = n.img.x;
     this.tweens.add({ targets: n.img, x: x0 + 1.5, duration: 40, yoyo: true, repeat: 2, onComplete: () => n.img.setX(x0) });
@@ -925,6 +935,7 @@ export class WorldScene extends Phaser.Scene {
     let node: WorldScene['nodes'][number] | null = null;
     if (best) h.setFacing(best.x - h.x, best.y - h.y);
     else { node = this.nearestNode(30); if (node) h.setFacing(node.x - h.x, node.y - 6 - h.y); }
+    h.toolAnim = node ? (node.kind === 'wood' ? 'chop' : 'mine') : null;
     const dur = Math.min(260, this.der.attackInterval * 0.8);
     const st = S(), rng = CLASSES[st.cls ?? 'novice'].ranged && activeTier(st) > 0 ? CLASSES[st.cls].ranged : false;
     if (rng) {
@@ -967,7 +978,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   hitMonster(m: Monster, atk: number, mult: number, kind: 'phys' | 'magic', knock = 6) {
-    const r = calcDamage(atk * (S().outfit === 'gather' ? 0.6 : 1), m.def.def, mult, this.der.crit);
+    const r = calcDamage(atk * (S().outfit === 'gather' ? 0.35 : 1), m.def.def, mult, this.der.crit);
     m.takeHit(r.dmg, this.hero.x, this.hero.y, knock);
     if (this.der.leech > 0) { const st = S(); st.hp = Math.min(this.der.maxHp, st.hp + r.dmg * this.der.leech); }
     if (r.crit) sfx.crit(); else sfx.hit();
@@ -1436,6 +1447,8 @@ export class WorldScene extends Phaser.Scene {
     const s = S();
     const lv = gainExp(s, m.def.exp * this.der.expBonus);
     onKill(s, m.def.kind);
+    this.dailyDone(dailyProgress(s, 'kill'));
+    if (m.def.boss) this.dailyDone(dailyProgress(s, 'boss'));
     this.floatText(m.x, m.cy - 18, `+${m.def.exp} EXP`, '#c89aff', 0.9);
     const gold = Math.round(Phaser.Math.Between(m.def.gold[0], m.def.gold[1]));
     this.dropLoot(m.x, m.y, 'gold', gold);

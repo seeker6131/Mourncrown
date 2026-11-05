@@ -42,6 +42,7 @@ def remove_white_bg(im: Image.Image, thr: int = 236, sat: int = 28, holes: int =
             if len(region) >= holes:
                 for y, x in region: mask[y, x] = True
     rgba = np.dstack([a.astype(np.uint8), np.where(mask, 0, 255).astype(np.uint8)])
+    rgba = defringe_rgba(rgba, 2)
     return Image.fromarray(rgba, 'RGBA')
 
 
@@ -116,7 +117,7 @@ def to_game(img: Image.Image, width: int = 0, height: int = 0, crisp: bool = Tru
     rgb = np.where(alpha > 0, sa[:, :, :3] * 255.0 / np.maximum(alpha, 1), 0)
     hard = np.where(alpha > 110, 255, 0)
     out = np.concatenate([np.clip(rgb, 0, 255), hard], axis=2).astype(np.uint8)
-    res = Image.fromarray(out, 'RGBA')
+    res = Image.fromarray(defringe_rgba(out, 1, 185, 45), 'RGBA')
     if crisp:
         # slight sharpening of colours via palette reduction keeps a pixel-art look
         rgbq = res.convert('RGB').quantize(160, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB')
@@ -132,3 +133,16 @@ def outline(img: Image.Image, color=(24, 14, 20, 255)) -> Image.Image:
     edge = nb & ~al
     a[edge] = color
     return Image.fromarray(a, 'RGBA')
+
+
+def defringe_rgba(a, passes=2, lo=170, sat=50):
+    """Peel whitish, low-saturation pixels on the silhouette edge (left over from white backgrounds)."""
+    a = a.copy()
+    for _ in range(passes):
+        al = a[:, :, 3] > 0
+        pad = np.pad(al, 1)
+        edge = al & ~(pad[:-2, 1:-1] & pad[2:, 1:-1] & pad[1:-1, :-2] & pad[1:-1, 2:])
+        rgb = a[:, :, :3].astype(np.int16)
+        light = (rgb.min(2) > lo) & ((rgb.max(2) - rgb.min(2)) < sat)
+        a[edge & light, 3] = 0
+    return a

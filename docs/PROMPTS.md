@@ -55,6 +55,26 @@ Pixel art animation sprite sheet of the attached chibi hero (same face, brown sp
 
 _ร่าง 1 ชาวบ้าน • ร่าง 2 (Lv5) • ร่าง 3 (Lv20) ชุดเท่ขึ้น • ร่าง 4 (Lv35) สวยที่สุด • ร่าง 3-4 ใส่หมวก/หน้ากากปิดหน้า • สายที่ 4 = แทงค์ (T) แทนนักบวช • ทำ "รูปหลัก" ก่อน แล้วแนบรูปนั้นไปกับท่าที่เหลือของร่างเดียวกัน • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม_
 
+**V0c — ชาวบ้าน — ตัดไม้ด้วยขวาน (ไม่มีดาบ)**
+```
+Pixel art animation sprite sheet of the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions), chibi, wearing a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots (same villager as the attached V0 reference), holding a woodcutter axe instead of a sword (no sword visible). Chopping a tree with an axe animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Raise axe over shoulder, swing down, impact with wood chips flying, recover. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**V0m — ชาวบ้าน — ขุดหินด้วยจอบ (ไม่มีดาบ)**
+```
+Pixel art animation sprite sheet of the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions), chibi, wearing a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots (same villager as the attached V0 reference), holding a mining pickaxe instead of a sword (no sword visible). Mining a rock with a pickaxe animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Raise pickaxe, swing down, impact with stone sparks, recover. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**V0g — ชาวบ้าน — เดินแบกตะกร้า (ชุดหาของ)**
+```
+Pixel art animation sprite sheet of the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions), chibi, wearing a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots (same villager as the attached V0 reference), carrying a woven basket of wood and stones on his back, small axe tucked in the belt (no sword). Walking animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Full walk cycle, basket bobbing. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**V0i — ชาวบ้าน — ยืน (ชุดหาของ ไม่มีดาบ)**
+```
+Pixel art animation sprite sheet of the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions), chibi, wearing a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots (same villager as the attached V0 reference), basket on his back, small axe in hand (no sword). Idle breathing animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Subtle breathing, wiping sweat. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
 **V0 — ชาวบ้าน — รูปหลัก (ยืน 4 เฟรม)**
 ```
 Pixel art animation sprite sheet of the same young hero with brown spiky hair and brown eyes (same character as the attached reference; for helmeted/masked forms keep the same body proportions), chibi, wearing a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots, holding a wooden practice sword. Idle breathing animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Subtle chest rise, cape/scarf gently waving. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
@@ -1086,6 +1106,234 @@ Pixel art game asset sheet: a set of 8 modular isometric riverbank edge pieces: 
 **M9 — ต้นไม้ใหญ่บังฉาก (ด้านหน้า)**
 ```
 Pixel art game asset sheet: a set of 4 large foreground tree canopies and hanging branches seen from above at an isometric angle, used to frame the screen edges and add depth, slightly darker and more saturated. TRUE ISOMETRIC 2:1 projection, orthographic, no perspective, camera high above looking down about 30 degrees; edges slant at 26.5 degrees. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Pieces separated by large empty white space. No characters. Plain pure white background, no shadow, no text, no watermark.
+```
+
+## ชุด UI ดำทอง (หน้าต่าง ปุ่ม แถบ)
+
+_ภาพมองตรง ไม่ต้อง isometric • ใช้แทน UI ที่วาดด้วยโค้ด_
+
+**U1 — กรอบหน้าต่าง 9 ส่วน**
+```
+Pixel art sprite sheet of a 9-slice window frame: 4 corner pieces with gold dragon-scroll ornaments, 4 edge pieces that can tile (top, bottom, left, right), and 1 dark leather center tile, arranged in a 3 by 3 grid with white space. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U2 — ปุ่ม 3 สถานะ**
+```
+Pixel art sprite sheet of rectangular game buttons in 3 states in one row (normal, pressed, disabled) plus 3 color variants in a second row (green confirm, red cancel, purple special), dark wood face with gold rim and rivets. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U3 — ปุ่มกลม/ช่องสกิล**
+```
+Pixel art sprite sheet: 6 round button frames in one row: large attack button frame with crossed swords ornament, skill slot frame, small menu button frame, joystick base ring, joystick knob, auto-battle toggle frame. Empty centers. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U4 — แถบ HP/MP/EXP**
+```
+Pixel art sprite sheet: ornate horizontal bar frames with gold ends and 3 fill textures (red glossy HP, blue glossy MP, purple EXP), plus a boss health bar frame with skull ornament, each on its own row. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U5 — ช่องไอเทมตามความแรร์**
+```
+Pixel art sprite sheet: 6 square inventory slot frames in one row: empty dark slot, common (silver), uncommon (green gems), rare (blue gems), epic (purple glowing), legendary (orange flaming gold). Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U6 — ป้ายชื่อ/แบนเนอร์**
+```
+Pixel art sprite sheet: 4 decorative banners and title plates: long ribbon title banner, zone name plate with leaves, level-up banner with wings, reward chest banner. Empty for text. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U7 — ไอคอนเมนู HUD**
+```
+Pixel art sprite sheet: 10 round HUD menu icons in a 5 by 2 grid: backpack, character helmet, quest scroll, settings gear, fullscreen arrows, map, village house, guild shield, shop coin bag, mail letter. Same size, gold rim. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+**U8 — ไอคอนทรัพยากร**
+```
+Pixel art sprite sheet: 8 small resource icons in one row: gold coins, wood logs, stone blocks, meat, iron ore, crystal, gem, scroll. Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark.
+```
+
+## สัตว์เลี้ยงติดตาม & พาหนะ
+
+_สัตว์เลี้ยงเดินตามตัว ช่วยเก็บของ • พาหนะเพิ่มความเร็ว_
+
+**P1 — ลูกจิ้งจอกไฟ — เดิน**
+```
+Pixel art animation sprite sheet of a cute baby fire fox with a flaming tail, pet companion. Walking / floating animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**P2 — สไลม์น้อยสวมมงกุฎ — เดิน**
+```
+Pixel art animation sprite sheet of a tiny green slime wearing a little gold crown, pet companion. Walking / floating animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**P3 — นกฮูกเวท — เดิน**
+```
+Pixel art animation sprite sheet of a small magical owl with glowing blue runes, pet companion. Walking / floating animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**P4 — มังกรน้อย — เดิน**
+```
+Pixel art animation sprite sheet of a chubby baby purple dragon with tiny wings, pet companion. Walking / floating animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**P5 — หมาป่าน้อย — เดิน**
+```
+Pixel art animation sprite sheet of a fluffy grey wolf pup, pet companion. Walking / floating animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**P6 — ภูติดอกไม้ — เดิน**
+```
+Pixel art animation sprite sheet of a tiny flower fairy with petal wings, pet companion. Walking / floating animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R1a — ม้าศึก — วิ่ง (มีคนขี่)**
+```
+Pixel art animation sprite sheet of the attached chibi hero riding a brown war horse with leather saddle and gold bridle. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R1b — ม้าศึก — วิ่ง (ไม่มีคนขี่)**
+```
+Pixel art animation sprite sheet of a brown war horse with leather saddle and gold bridle, riderless. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R2a — หมาป่ายักษ์ — วิ่ง (มีคนขี่)**
+```
+Pixel art animation sprite sheet of the attached chibi hero riding a giant grey dire wolf with a saddle. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R2b — หมาป่ายักษ์ — วิ่ง (ไม่มีคนขี่)**
+```
+Pixel art animation sprite sheet of a giant grey dire wolf with a saddle, riderless. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R3a — กริฟฟอน — วิ่ง (มีคนขี่)**
+```
+Pixel art animation sprite sheet of the attached chibi hero riding a majestic griffon with a saddle. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R3b — กริฟฟอน — วิ่ง (ไม่มีคนขี่)**
+```
+Pixel art animation sprite sheet of a majestic griffon with a saddle, riderless. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R4a — กวางเรืองแสง — วิ่ง (มีคนขี่)**
+```
+Pixel art animation sprite sheet of the attached chibi hero riding a glowing spirit stag with crystal antlers and a saddle. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**R4b — กวางเรืองแสง — วิ่ง (ไม่มีคนขี่)**
+```
+Pixel art animation sprite sheet of a glowing spirit stag with crystal antlers and a saddle, riderless. Galloping run animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+## สงครามหมู่บ้าน/ปล้น (ออนไลน์อนาคต)
+
+_ใช้ตอนทำระบบบุก-ป้องกันหมู่บ้าน_
+
+**X5 — ป้อมป้องกัน**
+```
+Pixel art sprite sheet: 6 separate village defense structures in a 3 by 2 grid with large empty white space between them, all at the same scale: wooden archer tower, stone cannon tower, magic crystal tower, spike trap, bear trap, barricade. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**X6 — อาวุธล้อมเมือง**
+```
+Pixel art sprite sheet: 6 separate siege weapons in a 3 by 2 grid with large empty white space between them, all at the same scale: wooden catapult, battering ram with roof, ballista, siege tower, bomb barrel, war drum. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**X7 — ทหารยามหมู่บ้าน**
+```
+Pixel art animation sprite sheet of a chibi village spearman guard with leather armor and round helmet. Facing down-left. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Two rows, every frame in an equal-size cell, feet on the same baseline, identical design and size in every frame. Row 1: marching, exactly 4 frames. Row 2: spear thrust, exactly 4 frames. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**X8 — ทหารบุก**
+```
+Pixel art animation sprite sheet of a chibi raider soldier with a red bandana, leather armor and an axe. Facing down-left. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Two rows, every frame in an equal-size cell, feet on the same baseline, identical design and size in every frame. Row 1: running, exactly 4 frames. Row 2: axe swing, exactly 4 frames. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**X9 — ธงกิลด์ 8 แบบ**
+```
+Pixel art sprite sheet: 8 fantasy RPG item icons in a 4 by 2 grid with white space between them, each the same size, front view, centered in its cell: red lion banner, blue eagle banner, green tree banner, purple dragon banner, black wolf banner, gold sun banner, white swan banner, orange phoenix banner. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. rich colors. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**X10 — ห้องโถงกิลด์**
+```
+Pixel art game asset: a grand guild hall building with large wooden doors, stone towers, hanging guild banners, torches and a courtyard statue. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Object only: no ground, no grass base, no floor tile, no cast shadow. Single object centered. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**X11 — ไฟไหม้/ซาก (โดนปล้น)**
+```
+Pixel art sprite sheet: 6 separate damage effects for buildings in a 3 by 2 grid with large empty white space between them, all at the same scale: small fire on a roof, large fire, smoking rubble pile, broken fence, collapsed wall, repair scaffolding. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+## ชีวิตในหมู่บ้านเพิ่มเติม
+
+_ทำให้หมู่บ้านมีชีวิตชีวา_
+
+**Y1 — เด็กวิ่งเล่น**
+```
+Pixel art animation sprite sheet of a chibi village child with a wooden toy sword. Running and playing animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y2 — แมวส้ม**
+```
+Pixel art animation sprite sheet of a fat orange tabby cat. Walking with tail up animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y3 — หมาบ้าน**
+```
+Pixel art animation sprite sheet of a friendly brown village dog. Trotting animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 6 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y4 — ชาวประมง**
+```
+Pixel art animation sprite sheet of a chibi old fisherman with a straw hat and a fishing rod. Fishing, casting and waiting, looping animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y5 — นักดนตรีเร่**
+```
+Pixel art animation sprite sheet of a chibi bard with a lute and feathered hat. Playing the lute, looping animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y6 — ไก่จิกพื้น**
+```
+Pixel art animation sprite sheet of a white chicken. Pecking the ground, looping animation facing down-right. Seen from a high isometric camera angle (about 30 degrees down). Chibi proportions: big head, small body. Exactly 4 frames in one horizontal row, evenly spaced in equal-size cells, feet on the same baseline in every frame, identical design and size in every frame. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y7 — เฟอร์นิเจอร์ในบ้าน**
+```
+Pixel art sprite sheet: 12 separate house interior furniture in a 4 by 3 grid with large empty white space between them, all at the same scale: wooden bed with quilt, dining table with chairs, bookshelf, fireplace with fire, kitchen counter with pots, wardrobe closet, rug, potted plant, treasure display stand, weapon rack with swords, armor mannequin, chest of drawers. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y8 — ร้านค้าเพิ่ม**
+```
+Pixel art sprite sheet: 6 separate village shop stalls in a 3 by 2 grid with large empty white space between them, all at the same scale: potion shop stall with bottles, fish market stall, fruit and vegetable stall, blacksmith weapon display, jewelry stall, bakery stall with bread. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Y9 — ของตกแต่งตามเทศกาล**
+```
+Pixel art sprite sheet: 8 separate seasonal festival decorations in a 4 by 2 grid with large empty white space between them, all at the same scale: paper lanterns string, harvest pumpkin pile, snowy christmas tree, flower arch, fireworks stand, festival flag garland, candle shrine, big gift box. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+## อื่นๆ ที่ทำให้เกมดีขึ้น
+
+**Z1 — ปลา 12 ชนิด (ระบบตกปลา)**
+```
+Pixel art sprite sheet: 12 fantasy RPG item icons in a 4 by 3 grid with white space between them, each the same size, front view, centered in its cell: small river fish, golden carp, blue trout, catfish, piranha, glowing jellyfish, eel, crab, shrimp, old boot, treasure bottle with map, legendary rainbow fish. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. rich colors. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Z2 — แร่และพืชเก็บได้**
+```
+Pixel art sprite sheet: 8 separate gatherable resource nodes in a 4 by 2 grid with large empty white space between them, all at the same scale: iron ore rock, gold ore rock, crystal cluster, herb bush, mushroom patch, berry bush, beehive tree, magic flower. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Z3 — หีบสมบัติตามระดับ**
+```
+Pixel art sprite sheet: 8 separate treasure chests by rarity, closed and open pairs in a 4 by 2 grid with large empty white space between them, all at the same scale: wooden chest closed, wooden chest open, silver chest closed, silver chest open, gold chest closed, gold chest open, legendary glowing chest closed, legendary chest open with light. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
+```
+
+**Z4 — ประตูมิติ/วาร์ป**
+```
+Pixel art sprite sheet: 6 separate teleport and portal pieces in a 3 by 2 grid with large empty white space between them, all at the same scale: stone teleport circle glowing blue, dungeon entrance stairs, magic portal arch purple, waypoint obelisk, cave entrance, boss gate with chains. TRUE ISOMETRIC 2:1 projection: orthographic, no perspective, camera high above looking down about 30 degrees; bottom edges slant at 26.5 degrees (2 pixels across for 1 up); the front corner points straight down toward the viewer; both side walls equally visible; roof clearly visible from above. Objects only: no ground, no cast shadow. Cozy medieval fantasy village style like a premium mobile pixel game: warm earthy palette (browns, mossy greens, golden lamplight), soft hue-shifted shading, light from top-left. Crisp high-detail 16-bit pixel art: every pixel sharp and visible, no anti-aliasing, no gradients, no blur, no painterly texture, dark 1-pixel outline. Plain pure white background, no shadow, no text, no watermark.
 ```
 
 ## ไอคอนไอเทม

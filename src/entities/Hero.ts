@@ -33,6 +33,8 @@ export class Hero {
   animPre = 'h_novice0_';
   actionDur = 260;
   forms = false;
+  /** gathering animation for the current swing (chop / mine), if any */
+  toolAnim: 'chop' | 'mine' | null = null;
   /** villager outfit override (in the village / gathering mode) */
   casual = false;
   formTint: number | undefined;
@@ -167,7 +169,7 @@ export class Hero {
     const left = (this.diag & 1) === 0, up = this.diag >= 2;
     this.sprite.setFlipX(left).setRotation(0).setScale(1 / FORM_RES);
     if (this.state === 'attack') {
-      const r = this.formPlay('attack', now - this.actionStart < 20);
+      const r = this.formPlay(this.toolAnim ?? 'attack', now - this.actionStart < 20);
       if (now - this.actionStart < 20) this.sprite.anims.timeScale = Math.max(1, 300 / Math.max(120, this.actionDur));
       void r;
     } else if (this.state === 'cast') {

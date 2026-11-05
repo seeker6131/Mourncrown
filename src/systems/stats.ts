@@ -126,5 +126,5 @@ export function advanceClass(s: GameState, cls?: ClassId): boolean {
 }
 
 /** Form currently worn (chosen in the changing room; can be any unlocked form). */
-export function activeTier(s: GameState) { return Math.max(0, Math.min(s.useTier ?? s.tier ?? 0, s.tier ?? 0)); }
+export function activeTier(s: GameState) { if (s.outfit === 'gather') return 0; return Math.max(0, Math.min(s.useTier ?? s.tier ?? 0, s.tier ?? 0)); }
 export function currentSkills(s: GameState) { return classSkills(s.cls ?? 'novice', activeTier(s)); }

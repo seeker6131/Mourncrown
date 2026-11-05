@@ -73,6 +73,12 @@ ACTS = [
     ('k', 'ใช้สกิล', 'Skill casting', 4, 'down-right', 'Powerful pose, weapon or hand glowing, release of energy.'),
     ('d', 'โดนตี+ล้ม', 'Hurt and defeat', 5, 'down-right', 'Flinch, stagger, fall to knees, falling, lying on the ground.'),
 ]
+VG = f"{HERO_FACE}, chibi, wearing a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots (same villager as the attached V0 reference)"
+P('V0c', 'ชาวบ้าน — ตัดไม้ด้วยขวาน (ไม่มีดาบ)', char_anim(VG + ', holding a woodcutter axe instead of a sword (no sword visible)', 'Chopping a tree with an axe', 4, 'down-right', 'Raise axe over shoulder, swing down, impact with wood chips flying, recover.'))
+P('V0m', 'ชาวบ้าน — ขุดหินด้วยจอบ (ไม่มีดาบ)', char_anim(VG + ', holding a mining pickaxe instead of a sword (no sword visible)', 'Mining a rock with a pickaxe', 4, 'down-right', 'Raise pickaxe, swing down, impact with stone sparks, recover.'))
+P('V0g', 'ชาวบ้าน — เดินแบกตะกร้า (ชุดหาของ)', char_anim(VG + ', carrying a woven basket of wood and stones on his back, small axe tucked in the belt (no sword)', 'Walking', 6, 'down-right', 'Full walk cycle, basket bobbing.'))
+P('V0i', 'ชาวบ้าน — ยืน (ชุดหาของ ไม่มีดาบ)', char_anim(VG + ', basket on his back, small axe in hand (no sword)', 'Idle breathing', 4, 'down-right', 'Subtle breathing, wiping sweat.'))
+
 for code, name, outfit in FORMS:
     who = f"{HERO_FACE}, chibi, wearing {outfit}"
     for suf, an, act, n, face, ex in ACTS:
@@ -206,6 +212,64 @@ TER = [
 ]
 for c, name, d in TER:
     P(c, name, f"Pixel art game asset sheet: {d}. TRUE ISOMETRIC 2:1 projection, orthographic, no perspective, camera high above looking down about 30 degrees; edges slant at 26.5 degrees. {LOOK} {PIX} Pieces separated by large empty white space. No characters. {BG}")
+
+def icons(n, grid, items):
+    return f"Pixel art sprite sheet: {n} fantasy RPG item icons in a {grid} grid with white space between them, each the same size, front view, centered in its cell: {', '.join(items)}. {PIX} rich colors. {BG}"
+
+# ---------------- 7c. UI art kit ----------------
+sec('ui', 'ชุด UI ดำทอง (หน้าต่าง ปุ่ม แถบ)', 'ภาพมองตรง ไม่ต้อง isometric • ใช้แทน UI ที่วาดด้วยโค้ด')
+UIP = "Fantasy RPG mobile game UI asset, front view, black and gold ornate style with dark wood and engraved gold filigree, high-detail 16-bit pixel art, crisp pixels, no text, no letters. Plain pure white background, no watermark."
+P('U1', 'กรอบหน้าต่าง 9 ส่วน', f"Pixel art sprite sheet of a 9-slice window frame: 4 corner pieces with gold dragon-scroll ornaments, 4 edge pieces that can tile (top, bottom, left, right), and 1 dark leather center tile, arranged in a 3 by 3 grid with white space. {UIP}")
+P('U2', 'ปุ่ม 3 สถานะ', f"Pixel art sprite sheet of rectangular game buttons in 3 states in one row (normal, pressed, disabled) plus 3 color variants in a second row (green confirm, red cancel, purple special), dark wood face with gold rim and rivets. {UIP}")
+P('U3', 'ปุ่มกลม/ช่องสกิล', f"Pixel art sprite sheet: 6 round button frames in one row: large attack button frame with crossed swords ornament, skill slot frame, small menu button frame, joystick base ring, joystick knob, auto-battle toggle frame. Empty centers. {UIP}")
+P('U4', 'แถบ HP/MP/EXP', f"Pixel art sprite sheet: ornate horizontal bar frames with gold ends and 3 fill textures (red glossy HP, blue glossy MP, purple EXP), plus a boss health bar frame with skull ornament, each on its own row. {UIP}")
+P('U5', 'ช่องไอเทมตามความแรร์', f"Pixel art sprite sheet: 6 square inventory slot frames in one row: empty dark slot, common (silver), uncommon (green gems), rare (blue gems), epic (purple glowing), legendary (orange flaming gold). {UIP}")
+P('U6', 'ป้ายชื่อ/แบนเนอร์', f"Pixel art sprite sheet: 4 decorative banners and title plates: long ribbon title banner, zone name plate with leaves, level-up banner with wings, reward chest banner. Empty for text. {UIP}")
+P('U7', 'ไอคอนเมนู HUD', f"Pixel art sprite sheet: 10 round HUD menu icons in a 5 by 2 grid: backpack, character helmet, quest scroll, settings gear, fullscreen arrows, map, village house, guild shield, shop coin bag, mail letter. Same size, gold rim. {UIP}")
+P('U8', 'ไอคอนทรัพยากร', f"Pixel art sprite sheet: 8 small resource icons in one row: gold coins, wood logs, stone blocks, meat, iron ore, crystal, gem, scroll. {UIP}")
+
+# ---------------- 7d. pets & mounts ----------------
+sec('pets', 'สัตว์เลี้ยงติดตาม & พาหนะ', 'สัตว์เลี้ยงเดินตามตัว ช่วยเก็บของ • พาหนะเพิ่มความเร็ว')
+PET = [('P1', 'ลูกจิ้งจอกไฟ', 'a cute baby fire fox with a flaming tail'), ('P2', 'สไลม์น้อยสวมมงกุฎ', 'a tiny green slime wearing a little gold crown'),
+       ('P3', 'นกฮูกเวท', 'a small magical owl with glowing blue runes'), ('P4', 'มังกรน้อย', 'a chubby baby purple dragon with tiny wings'),
+       ('P5', 'หมาป่าน้อย', 'a fluffy grey wolf pup'), ('P6', 'ภูติดอกไม้', 'a tiny flower fairy with petal wings')]
+for c, name, who in PET:
+    P(c, f'{name} — เดิน', char_anim(who + ', pet companion', 'Walking / floating', 6, 'down-right'))
+MNT = [('R1', 'ม้าศึก', 'a brown war horse with leather saddle and gold bridle'), ('R2', 'หมาป่ายักษ์', 'a giant grey dire wolf with a saddle'),
+       ('R3', 'กริฟฟอน', 'a majestic griffon with a saddle'), ('R4', 'กวางเรืองแสง', 'a glowing spirit stag with crystal antlers and a saddle')]
+for c, name, who in MNT:
+    P(c + 'a', f'{name} — วิ่ง (มีคนขี่)', char_anim(f"the attached chibi hero riding {who}", 'Galloping run', 6, 'down-right'))
+    P(c + 'b', f'{name} — วิ่ง (ไม่มีคนขี่)', char_anim(who + ', riderless', 'Galloping run', 6, 'down-right'))
+
+# ---------------- 7e. village war / raid ----------------
+sec('raid', 'สงครามหมู่บ้าน/ปล้น (ออนไลน์อนาคต)', 'ใช้ตอนทำระบบบุก-ป้องกันหมู่บ้าน')
+P('X5', 'ป้อมป้องกัน', sheet('village defense structures', '3 by 2', ['wooden archer tower', 'stone cannon tower', 'magic crystal tower', 'spike trap', 'bear trap', 'barricade']))
+P('X6', 'อาวุธล้อมเมือง', sheet('siege weapons', '3 by 2', ['wooden catapult', 'battering ram with roof', 'ballista', 'siege tower', 'bomb barrel', 'war drum']))
+P('X7', 'ทหารยามหมู่บ้าน', mon('a chibi village spearman guard with leather armor and round helmet', 'marching', 'spear thrust'))
+P('X8', 'ทหารบุก', mon('a chibi raider soldier with a red bandana, leather armor and an axe', 'running', 'axe swing'))
+P('X9', 'ธงกิลด์ 8 แบบ', icons(8, '4 by 2', ['red lion banner', 'blue eagle banner', 'green tree banner', 'purple dragon banner', 'black wolf banner', 'gold sun banner', 'white swan banner', 'orange phoenix banner']))
+P('X10', 'ห้องโถงกิลด์', iso_obj('a grand guild hall building with large wooden doors, stone towers, hanging guild banners, torches and a courtyard statue'))
+P('X11', 'ไฟไหม้/ซาก (โดนปล้น)', sheet('damage effects for buildings', '3 by 2', ['small fire on a roof', 'large fire', 'smoking rubble pile', 'broken fence', 'collapsed wall', 'repair scaffolding']))
+
+# ---------------- 7f. more village life ----------------
+sec('life', 'ชีวิตในหมู่บ้านเพิ่มเติม', 'ทำให้หมู่บ้านมีชีวิตชีวา')
+for c, name, who, act in [('Y1', 'เด็กวิ่งเล่น', 'a chibi village child with a wooden toy sword', 'Running and playing'),
+                          ('Y2', 'แมวส้ม', 'a fat orange tabby cat', 'Walking with tail up'),
+                          ('Y3', 'หมาบ้าน', 'a friendly brown village dog', 'Trotting'),
+                          ('Y4', 'ชาวประมง', 'a chibi old fisherman with a straw hat and a fishing rod', 'Fishing, casting and waiting, looping'),
+                          ('Y5', 'นักดนตรีเร่', 'a chibi bard with a lute and feathered hat', 'Playing the lute, looping'),
+                          ('Y6', 'ไก่จิกพื้น', 'a white chicken', 'Pecking the ground, looping')]:
+    P(c, name, char_anim(who, act, 6 if 'Walk' in act or 'Run' in act or 'Trot' in act else 4))
+P('Y7', 'เฟอร์นิเจอร์ในบ้าน', sheet('house interior furniture', '4 by 3', ['wooden bed with quilt', 'dining table with chairs', 'bookshelf', 'fireplace with fire', 'kitchen counter with pots', 'wardrobe closet', 'rug', 'potted plant', 'treasure display stand', 'weapon rack with swords', 'armor mannequin', 'chest of drawers']))
+P('Y8', 'ร้านค้าเพิ่ม', sheet('village shop stalls', '3 by 2', ['potion shop stall with bottles', 'fish market stall', 'fruit and vegetable stall', 'blacksmith weapon display', 'jewelry stall', 'bakery stall with bread']))
+P('Y9', 'ของตกแต่งตามเทศกาล', sheet('seasonal festival decorations', '4 by 2', ['paper lanterns string', 'harvest pumpkin pile', 'snowy christmas tree', 'flower arch', 'fireworks stand', 'festival flag garland', 'candle shrine', 'big gift box']))
+
+# ---------------- 7g. weather / fishing / misc ----------------
+sec('misc', 'อื่นๆ ที่ทำให้เกมดีขึ้น', '')
+P('Z1', 'ปลา 12 ชนิด (ระบบตกปลา)', icons(12, '4 by 3', ['small river fish', 'golden carp', 'blue trout', 'catfish', 'piranha', 'glowing jellyfish', 'eel', 'crab', 'shrimp', 'old boot', 'treasure bottle with map', 'legendary rainbow fish']))
+P('Z2', 'แร่และพืชเก็บได้', sheet('gatherable resource nodes', '4 by 2', ['iron ore rock', 'gold ore rock', 'crystal cluster', 'herb bush', 'mushroom patch', 'berry bush', 'beehive tree', 'magic flower']))
+P('Z3', 'หีบสมบัติตามระดับ', sheet('treasure chests by rarity, closed and open pairs', '4 by 2', ['wooden chest closed', 'wooden chest open', 'silver chest closed', 'silver chest open', 'gold chest closed', 'gold chest open', 'legendary glowing chest closed', 'legendary chest open with light']))
+P('Z4', 'ประตูมิติ/วาร์ป', sheet('teleport and portal pieces', '3 by 2', ['stone teleport circle glowing blue', 'dungeon entrance stairs', 'magic portal arch purple', 'waypoint obelisk', 'cave entrance', 'boss gate with chains']))
 
 # ---------------- 8. items ----------------
 sec('items', 'ไอคอนไอเทม', 'ไอคอนมองตรง ไม่ต้อง isometric')

@@ -23,7 +23,7 @@ os.makedirs(OUT, exist_ok=True)
 
 R = 3            # texture px per world px
 HERO_H = 32      # standing height in world px
-ANIMS = [('', 'idle', 4), ('w', 'walk', 6), ('u', 'walkup', 6), ('a', 'attack', 5), ('k', 'skill', 4), ('d', 'die', 5)]
+ANIMS = [('', 'idle', 4), ('w', 'walk', 6), ('u', 'walkup', 6), ('a', 'attack', 5), ('k', 'skill', 4), ('d', 'die', 5), ('c', 'chop', 4), ('m', 'mine', 4)]
 FORMS = ['V0', 'S2', 'S3', 'S4', 'A2', 'A3', 'A4', 'M2', 'M3', 'M4', 'T2', 'T3', 'T4']
 
 

@@ -18,7 +18,7 @@ export function preloadForms(scene: Phaser.Scene) {
   }
 }
 
-const RATE: Record<string, [number, number]> = { idle: [5, -1], walk: [11, -1], walkup: [11, -1], attack: [16, 0], skill: [9, 0], die: [8, 0] };
+const RATE: Record<string, [number, number]> = { chop: [12, 0], mine: [12, 0], carry: [10, -1], idle: [5, -1], walk: [11, -1], walkup: [11, -1], attack: [16, 0], skill: [9, 0], die: [8, 0] };
 
 export function applyForms(scene: Phaser.Scene) {
   for (const [k, m] of Object.entries(M)) {
@@ -42,7 +42,7 @@ export function formAnim(scene: Phaser.Scene, code: string, anim: string): { key
   let c = code, tint: number | undefined;
   if (!scene.anims.exists(`f_${c}_idle`) && c.startsWith('T')) { c = 'S' + c.slice(1); tint = 0x9098b0; } // tank art pending -> steel-tinted knight
   if (!scene.anims.exists(`f_${c}_idle`)) c = 'V0';
-  const order: Record<string, string[]> = { skill: ['skill', 'attack', 'idle'], attack: ['attack', 'idle'], die: ['die'], walkup: ['walkup', 'walk'], walk: ['walk'], idle: ['idle'] };
+  const order: Record<string, string[]> = { chop: ['chop', 'attack'], mine: ['mine', 'chop', 'attack'], skill: ['skill', 'attack', 'idle'], attack: ['attack', 'idle'], die: ['die'], walkup: ['walkup', 'walk'], walk: ['walk'], idle: ['idle'] };
   for (const a of order[anim] ?? [anim]) if (scene.anims.exists(`f_${c}_${a}`)) return { key: `f_${c}_${a}`, tint };
   return { key: `f_${c}_idle`, tint, fake: anim === 'die' ? 'die' : undefined };
 }

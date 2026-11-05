@@ -109,3 +109,21 @@ describe('skills are unique per form', () => {
     for (const id of CLASSES.sword.skills.flat()) expect(SKILL_BY_ID[id].stat).toBe('atk');
   });
 });
+
+import { ensureDaily, dailyProgress } from '../src/systems/daily';
+describe('daily tasks', () => {
+  it('three distinct tasks per day that pay out once', () => {
+    const s = startNewGame();
+    const now = Date.UTC(2026, 10, 6, 12);
+    const d = ensureDaily(s, now);
+    expect(d.tasks.length).toBe(3);
+    expect(new Set(d.tasks.map(t => t.kind)).size).toBe(3);
+    const t = d.tasks[0];
+    const g = s.gold;
+    dailyProgress(s, t.kind, t.need + 5, now);
+    expect(t.done).toBe(true);
+    expect(s.gold).toBe(g + t.gold);
+    dailyProgress(s, t.kind, 10, now);
+    expect(s.gold).toBe(g + t.gold);
+  });
+});

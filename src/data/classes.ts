@@ -31,6 +31,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
 
 /** Skills of the current form only (each form has its own set). */
 export function classSkills(cls: ClassId, tier: number): string[] {
+  if (tier <= 0) return [...CLASSES.novice.skills[0]];
   const c = CLASSES[cls];
   return [...(c.skills[Math.min(tier, c.skills.length - 1)] ?? c.skills[0])];
 }

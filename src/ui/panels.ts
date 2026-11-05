@@ -8,6 +8,7 @@ import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mea
 import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf } from '../systems/settlement';
 import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass, activeTier } from '../systems/stats';
 import { portraitKey } from '../art/formAssets';
+import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
@@ -360,6 +361,7 @@ export class Panels {
         c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'หลอม', () => {
           const res = craft(s, slot);
           if (res.ok) {
+            for (const t of dailyProgress(s, 'craft')) bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind]} สำเร็จ! +${t.gold} G`, '#9fffb0');
             sfx.upgradeOk(); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
             bus.emit(EV.TOAST, `หลอมได้ [${RARITY_NAMES[res.rar]}] ${itemDef(res.id).name}!`, col);
             const fl = ui.add.rectangle(0, 0, ui.VW, 360, RARITY_COLORS[res.rar], 0.35).setOrigin(0);
@@ -493,9 +495,15 @@ export class Panels {
   // ---------------- QUEST ----------------
   buildQuest(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = Math.min(440, ui.VW - 20), H = 300;
+    const W = Math.min(500, ui.VW - 20), H = 360;
     const { x, y, g } = this.window(c, W, H, 'บันทึกภารกิจ');
-    let yy = y + 34;
+    const dl = ensureDaily(s);
+    c.add(this.k.text(x + 16, y + 30, '☀ ภารกิจประจำวัน (รีเซ็ตทุกวัน)', 9.5, '#ffd84a'));
+    dl.tasks.forEach((t, i) => {
+      const tx = x + 16 + i * ((W - 32) / 3);
+      c.add(this.k.text(tx, y + 46, `${t.done ? '✔' : '◇'} ${DAILY_NAMES[t.kind]} ${t.got}/${t.need}\n   +${t.gold} G  ผลึก ${t.shards}`, 8, t.done ? '#9fffb0' : '#f3e6c4', { lineSpacing: 1 }));
+    });
+    let yy = y + 78;
     for (const q of QUESTS) {
       const p = s.quests.find(z => z.id === q.id);
       const status = !p ? (q.minLevel > s.level ? `ต้องการ Lv ${q.minLevel}` : 'ยังไม่ได้รับ') : p.status === 'done' ? '✔ สำเร็จ' : p.status === 'ready' ? 'ส่งเควสต์ได้!' : `${p.progress}/${q.count}`;

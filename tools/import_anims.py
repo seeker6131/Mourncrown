@@ -105,8 +105,12 @@ def build(name, im, rowspec, scale, anchor='feet', dark=False):
             sa = np.asarray(pre).astype(np.float32)
             al = sa[:, :, 3:4]
             rgb = np.where(al > 0, sa[:, :, :3] * 255 / np.maximum(al, 1), 0)
-            alpha = al if dark else np.where(al > 110, 255, 0)
-            strip.paste(Image.fromarray(np.concatenate([np.clip(rgb, 0, 255), alpha], 2).astype(np.uint8), 'RGBA'), (i * fw, 0))
+            alpha = al if dark else np.where(al > 128, 255, 0)
+            px = np.concatenate([np.clip(rgb, 0, 255), alpha], 2).astype(np.uint8)
+            if not dark:
+                from sprite_tools import defringe_rgba
+                px = defringe_rgba(px, 1, 185, 45)
+            strip.paste(Image.fromarray(px, 'RGBA'), (i * fw, 0))
         key = f'{name}_{anim}'
         strip.save(os.path.join(OUT, key + '.png'), optimize=True)
         meta[key] = {'w': fw, 'h': fh, 'n': n, 'ax': round(left * scale, 2), 'ay': fh}
