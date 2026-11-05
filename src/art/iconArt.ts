@@ -127,6 +127,13 @@ function resFood() {
   p.thickLine(11, 10, 14, 14, 0xf2e8d0, 2); p.set(14, 13, 0xffffff); p.set(15, 14, 0xffffff);
   p.outline(OUT, false); return p;
 }
+function resLock() {
+  const p = new PixelCanvas(16, 16);
+  p.ellipse(8, 5, 4, 4, 0x8a5ae0); p.ellipse(8, 5, 2, 2.2, -1 as Color);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = (x + 0.5 - 8) / 2, dy = (y + 0.5 - 5) / 2.2; if (dx * dx + dy * dy <= 1) p.set(x, y, -1); }
+  p.shadedRect(3, 7, 10, 8, 0xb08aff); p.rect(7, 9, 2, 3, 0x2a1a40);
+  p.outline(OUT, false); return p;
+}
 function resHammer() {
   const p = new PixelCanvas(16, 16);
   p.thickLine(3, 14, 10, 7, 0x8a5a2a, 2); p.shadedRect(7, 2, 8, 5, 0x9aa0b0); p.rect(7, 2, 8, 1, 0xd8dce8);
@@ -166,6 +173,7 @@ export function buildIcons(): Record<string, PixelCanvas> {
     res_stone: resStone(),
     res_food: resFood(),
     res_hammer: resHammer(),
+    res_lock: resLock(),
   };
 }
 

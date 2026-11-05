@@ -1,6 +1,7 @@
 // Inventory / Equipment / Upgrade — pure functions over GameState.
 import type { GameState, InvItem } from '../core/state';
-import { INV_SIZE } from '../core/state';
+import { invSize } from '../core/state';
+import { baseTier, isGear } from './loot';
 import { itemDef, MAX_UPGRADE, upgradeChance, upgradeCost, type EquipSlot } from '../data/items';
 import { derive } from './stats';
 
@@ -13,12 +14,12 @@ export function addItem(s: GameState, id: string, qty = 1, upg = 0, gear?: { rar
   if (d.stack) {
     const ex = s.inventory.find(i => i.id === id);
     if (ex) { ex.qty += qty; return true; }
-    if (s.inventory.length >= INV_SIZE) return false;
+    if (s.inventory.length >= invSize(s)) return false;
     s.inventory.push({ uid: s.nextUid++, id, qty, upg: 0 });
     return true;
   }
   for (let n = 0; n < qty; n++) {
-    if (s.inventory.length >= INV_SIZE) return false;
+    if (s.inventory.length >= invSize(s)) return false;
     s.inventory.push({ uid: s.nextUid++, id, qty: 1, upg, ...(gear ?? {}) });
   }
   return true;
@@ -53,6 +54,7 @@ export function equip(s: GameState, uid: number): boolean {
   if (!it) return false;
   const d = itemDef(it.id);
   if (d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') return false;
+  if (s.level < reqLevel(it.id)) return false;
   s.equip[d.type as EquipSlot] = uid;
   clampVitals(s);
   return true;
@@ -109,4 +111,24 @@ export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.r
 export function sellPrice(it: InvItem): number {
   const d = itemDef(it.id);
   return Math.max(1, Math.floor(d.price * 0.4 * (1 + it.upg * 0.25) * (1 + (it.rar ?? 0) * (it.rar ?? 0) * 0.6)));
+}
+
+/** Character level needed to equip an item (by base tier). */
+export function reqLevel(id: string): number {
+  const d = itemDef(id);
+  if (!isGear(d)) return 1;
+  return [1, 1, 4, 8, 12][baseTier(d)] ?? 1;
+}
+
+/** Break gear into upgrade materials. */
+export function dismantle(s: GameState, uid: number): { shards: number; cores: number } | null {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it || !isGear(itemDef(it.id)) || isEquipped(s, uid)) return null;
+  const r = it.rar ?? 0;
+  const shards = [1, 1, 2, 4, 8][r] + it.upg;
+  const cores = r >= 4 ? 2 : r >= 3 ? 1 : 0;
+  removeUid(s, uid, 1);
+  addItem(s, 'mana_shard', shards);
+  if (cores) addItem(s, 'ancient_core', cores);
+  return { shards, cores };
 }

@@ -41,11 +41,19 @@ export interface GameState {
   mapVer: number;
   res: { wood: number; stone: number; food: number };
   buildings: { plot: number; type: string; level: number; stored: number; last: number }[];
+  skillPts: number;
+  skillLv: Record<string, number>;
+  buff: { stat: string; pct: number; until: number } | null;
+  introSeen: boolean;
+  cls: 'novice' | 'sword' | 'archer' | 'mage' | 'cleric';
+  tier: number;
   dayTime: number;
 }
 
 export const SAVE_VERSION = 1;
 export const INV_SIZE = 30;
+/** Bag size grows with the warehouse. */
+export function invSize(s: { buildings: { type: string; level: number }[] }) { return INV_SIZE + 5 * (s.buildings.find(b => b.type === 'warehouse')?.level ?? 0); }
 
 export function newGameState(): GameState {
   const s: GameState = {
@@ -72,6 +80,12 @@ export function newGameState(): GameState {
     mapVer: 2,
     res: { wood: 0, stone: 0, food: 0 },
     buildings: [],
+    skillPts: 0,
+    skillLv: {},
+    buff: null,
+    introSeen: false,
+    cls: 'novice',
+    tier: 0,
     dayTime: 0.15,
   };
   return s;

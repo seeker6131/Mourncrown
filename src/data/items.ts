@@ -60,6 +60,7 @@ export const ITEMS: Record<string, ItemDef> = {
   wolf_pelt: { id: 'wolf_pelt', name: 'หนังหมาป่า', type: 'material', icon: 'pelt', desc: 'หนังนุ่มคุณภาพดี', price: 20, rarity: 0, stack: true },
   goblin_fang: { id: 'goblin_fang', name: 'เขี้ยวก็อบลิน', type: 'material', icon: 'fang', desc: 'ของสะสมจากก็อบลิน', price: 22, rarity: 0, stack: true },
   wisp_essence: { id: 'wisp_essence', name: 'แก่นวิญญาณ', type: 'material', icon: 'essence', desc: 'พลังงานเวทบริสุทธิ์', price: 35, rarity: 1, stack: true },
+  ancient_core: { id: 'ancient_core', name: 'แก่นโบราณ', type: 'material', icon: 'gem0', desc: 'แกนพลังจากของแรร์/บอส ใช้อัปเกรดอาคารขั้นสูง', price: 300, rarity: 3, stack: true },
   mana_shard: { id: 'mana_shard', name: 'ผลึกมานา', type: 'material', icon: 'shard', desc: 'ใช้ในการตีบวกอุปกรณ์', price: 40, rarity: 1, stack: true },
 };
 

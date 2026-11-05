@@ -16,7 +16,7 @@ export interface QuestDef {
 export const QUESTS: QuestDef[] = [
   {
     id: 'q_slime', title: 'สไลม์บุกทุ่งหญ้า', giver: 'elder', kind: 'kill', target: 'slime', count: 8, minLevel: 1,
-    intro: 'นักผจญภัยหนุ่ม! สไลม์ล้นทุ่งหญ้าทางตะวันออกของหมู่บ้าน ช่วยกำจัดพวกมันสัก 8 ตัวได้ไหม?',
+    intro: 'คำสาปทำให้สไลม์ล้นทุ่งหญ้าทางตะวันออก ฝึกดาบไม้ของเจ้ากับพวกมันสัก 8 ตัว แล้วกลับมาหาข้า',
     done: 'ยอดเยี่ยม! ทุ่งหญ้าปลอดภัยขึ้นแล้ว รับยาและเงินนี้ไปเถิด',
     reward: { exp: 60, gold: 80, items: [{ id: 'hp_potion', qty: 4 }, { id: 'mp_potion', qty: 2 }] },
   },

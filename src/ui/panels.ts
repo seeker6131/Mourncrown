@@ -3,19 +3,23 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GOLD, GOLD_D } from './kit';
 import { S, bus, EV, runtime } from '../core/events';
-import { INV_SIZE, type InvItem } from '../core/state';
+import { invSize, type InvItem } from '../core/state';
+import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
+import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf } from '../systems/settlement';
+import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass } from '../systems/stats';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
-import { equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
+import { reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
-import { SKILLS } from '../data/skills';
+import { SKILL_BY_ID } from '../data/skills';
+import { CLASSES, FORM_LEVEL, formName, classSkills, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog';
+type PanelId = 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -27,6 +31,7 @@ export class Panels {
   cur: PanelId | null = null;
   c: Phaser.GameObjects.Container | null = null;
   selUid: number | null = null;
+  plot = 0;
   shopTab: 'buy' | 'sell' = 'buy';
   dialogNpc = '';
   dialogText = '';
@@ -51,9 +56,10 @@ export class Panels {
     this.c?.destroy(); this.c = null;
   }
 
-  openDialog(npc: string) {
+  openDialog(npc: string, text?: string) {
     this.dialogNpc = npc;
     const s = S();
+    if (text) { this.dialogText = text; this.open('dialog'); return; }
     if (npc === 'elder') {
       const a = activeQuest(s);
       if (a?.status === 'ready') this.dialogText = 'เจ้ากลับมาแล้ว! ภารกิจสำเร็จหรือยัง?';
@@ -84,6 +90,8 @@ export class Panels {
       case 'stats': this.buildStats(c); break;
       case 'quest': this.buildQuest(c); break;
       case 'menu': this.buildMenu(c); break;
+      case 'plot': this.buildPlot(c); break;
+      case 'job': this.buildJob(c); break;
       case 'dialog': this.buildDialog(c); break;
       case 'shop': this.buildShop(c); break;
       case 'smith': this.buildSmith(c); break;
@@ -136,8 +144,9 @@ export class Panels {
     c.add(k.text(ex + 20, ey + H - 72, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
 
     // grid
-    const gx = ex + 122, gy = ey, cols = 6, cs = 30;
-    for (let i = 0; i < INV_SIZE; i++) {
+    const N = invSize(s), cols = Math.ceil(N / 5), cs = Math.min(30, Math.floor(198 / cols) - 3);
+    const gx = ex + 122, gy = ey;
+    for (let i = 0; i < N; i++) {
       const cx = gx + (i % cols) * (cs + 3), cy = gy + Math.floor(i / cols) * (cs + 3);
       const it = s.inventory[i];
       const def = it ? itemDef(it.id) : null;
@@ -194,7 +203,12 @@ export class Panels {
       if (def.type === 'consumable') btn('ใช้', () => { const r = useItem(s, it.uid); if (r) { sfx.potion(); bus.emit(EV.TOAST, `ฟื้นฟู ${r.heal ? 'HP +' + r.heal : 'MP +' + r.mana}`, '#9fffb0'); } this.selUid = null; bus.emit(EV.STATE_CHANGED); }, 0x1f4a2a);
       if (def.type === 'weapon' || def.type === 'armor' || def.type === 'accessory') {
         if (isEquipped(s, it.uid)) btn('ถอดออก', () => { unequipUid(s, it.uid); bus.emit(EV.STATE_CHANGED); });
-        else btn('สวมใส่', () => { equip(s, it.uid); sfx.pickup(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
+        else {
+          const rq = reqLevel(it.id);
+          if (s.level < rq) btn(`ต้อง Lv ${rq} ถึงจะใส่ได้`, () => undefined, undefined, true);
+          else btn('สวมใส่', () => { equip(s, it.uid); sfx.pickup(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
+          btn('ย่อยเป็นวัตถุดิบ', () => { const r = dismantle(s, it.uid); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; bus.emit(EV.STATE_CHANGED); } }, 0x4a2a5a);
+        }
       }
     } else if (mode === 'sell') {
       const price = sellPrice(it);
@@ -239,7 +253,7 @@ export class Panels {
     const d = derive(s);
     const lx = x + 14, ly = y + 32;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(lx, ly, 250, H - 44, 4);
-    c.add(k.text(lx + 8, ly + 6, `${s.name}   Lv ${s.level}   EXP ${s.exp}/${expToNext(s.level)}`, 9, '#ffe7a0'));
+    c.add(k.text(lx + 8, ly + 6, `${s.name} • ${formName(s.cls, s.tier)} (ร่าง ${s.tier + 1})   Lv ${s.level}   EXP ${s.exp}/${expToNext(s.level)}`, 9, '#ffe7a0'));
     g.fillStyle(0x2a1d12, 1).fillRoundedRect(lx + 6, ly + 22, 238, 34, 4);
     g.lineStyle(1, GOLD, 1).strokeRoundedRect(lx + 6, ly + 22, 238, 34, 4);
     c.add(k.text(lx + 125, ly + 27, `พลังรบ  ${d.power.toLocaleString()}`, 15, '#ffd84a').setOrigin(0.5, 0));
@@ -254,17 +268,162 @@ export class Panels {
       c.add(k.text(lx + 12 + col * 120, ly + 64 + row * 20, a, 8, '#b8a078'));
       c.add(k.text(lx + 118 + col * 120, ly + 64 + row * 20, v, 9, '#ffffff').setOrigin(1, 0));
     });
-    c.add(k.text(lx + 8, ly + H - 70, 'พลังมาจากอุปกรณ์: ยิ่งแรร์ (ขาว→เขียว→ฟ้า→ม่วง→ส้ม) ยิ่งแรง และมีค่าพิเศษสุ่มมากขึ้น', 7.5, '#d8ccb0', { wordWrap: { width: 232 } }));
+    c.add(k.text(lx + 8, ly + H - 70, 'พลังมาจาก เลเวล (ปลดล็อกอุปกรณ์ขั้นสูง + แต้มสกิล) และอุปกรณ์ (ยิ่งแรร์ ขาว→เขียว→ฟ้า→ม่วง→ส้ม ยิ่งแรง)' + (s.buff && s.buff.until > Date.now() ? `\n🍲 บัฟอาหาร +${s.buff.pct}% เหลือ ${Math.ceil((s.buff.until - Date.now()) / 60000)} นาที` : ''), 7.5, '#d8ccb0', { wordWrap: { width: 232 } }));
     const rx = lx + 260, rw = x + W - 14 - rx;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, ly, rw, H - 44, 4);
-    c.add(k.text(rx + 8, ly + 6, 'สกิล', 10, '#ffe7a0'));
-    SKILLS.forEach((sk, i) => {
-      const sy = ly + 24 + i * 60;
-      const locked = s.level < sk.unlockLevel;
+    c.add(k.text(rx + 8, ly + 6, `สกิล   แต้มสกิล: ${s.skillPts}`, 10, s.skillPts ? '#9fffb0' : '#ffe7a0'));
+    currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
+      const sy = ly + 24 + i * 56;
+      const locked = false;
       c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
-      c.add(k.text(rx + 38, sy + 2, sk.name + (locked ? `  🔒 Lv${sk.unlockLevel}` : ''), 9, locked ? '#8a7a60' : '#9ad8ff'));
+      const slv = s.skillLv[sk.id] ?? 1;
+      c.add(k.text(rx + 38, sy + 2, sk.name + (locked ? `  🔒 Lv${sk.unlockLevel}` : `  Lv ${slv}`), 9, locked ? '#8a7a60' : '#9ad8ff'));
+      if (!locked && slv < SKILL_MAX) c.add(k.button(x + W - 50, sy + 2, 30, 20, '+', () => { if (upSkill(s, sk.id)) { sfx.levelUp(); bus.emit(EV.STATE_CHANGED); } }, { size: 11, disabled: s.skillPts < 1, color: 0x1f4a2a }));
       c.add(k.text(rx + 38, sy + 15, `${sk.desc}\nMP ${sk.mp}  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 46 }, lineSpacing: 1 }));
     });
+  }
+
+  // ---------------- VILLAGE PLOT ----------------
+  openPlot(i: number) { this.plot = i; this.open('plot'); }
+
+  costText(c: Cost) {
+    const s = S();
+    const parts: [string, boolean][] = [];
+    if (c.gold) parts.push([`ทอง ${c.gold}`, s.gold >= c.gold]);
+    for (const k of ['wood', 'stone', 'food'] as const) if (c[k]) parts.push([`${RES_NAMES[k]} ${c[k]}`, s.res[k] >= c[k]!]);
+    for (const [id, n] of Object.entries(c.items ?? {})) parts.push([`${itemDef(id).name} ${n}`, countItem(s, id) >= n]);
+    return parts;
+  }
+
+  addCost(c: Phaser.GameObjects.Container, x: number, y: number, w: number, cost: Cost) {
+    let cx = x, cy = y;
+    for (const [t, ok] of this.costText(cost)) {
+      const tx = this.k.text(cx, cy, t, 7.5, ok ? '#c8e8b0' : '#ff8a7a');
+      if (cx + tx.width > x + w) { cx = x; cy += 11; tx.setPosition(cx, cy); }
+      c.add(tx); cx += tx.width + 8;
+    }
+    return cy + 12;
+  }
+
+  buildPlot(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const b = buildingAt(s, this.plot);
+    const W = Math.min(560, ui.VW - 20), H = 300;
+    const { x, y, g } = this.window(c, W, H, b ? `${BUILDINGS[b.type as BuildingId].name}  Lv ${b.level}` : `ที่ดินแปลง ${this.plot + 1} — เลือกสิ่งก่อสร้าง`);
+    const top = y + 34;
+    if (!b) {
+      const ids = Object.keys(BUILDINGS) as BuildingId[];
+      const cw = (W - 28 - (ids.length - 1) * 6) / ids.length;
+      ids.forEach((id, i) => {
+        const d = BUILDINGS[id], cx = x + 14 + i * (cw + 6);
+        const have = s.buildings.some(q => q.type === id);
+        g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(cx, top, cw, H - 50, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(cx, top, cw, H - 50, 4);
+        c.add(k.text(cx + 8, top + 6, d.name, 11, '#ffd84a'));
+        c.add(k.text(cx + 8, top + 24, d.desc, 8, '#e8dcc0', { wordWrap: { width: cw - 16 }, lineSpacing: 2 }));
+        c.add(k.text(cx + 8, top + 76, 'Lv1: ' + d.effect(1), 8, '#9ad8ff', { wordWrap: { width: cw - 16 } }));
+        c.add(k.text(cx + 8, top + 112, 'ค่าก่อสร้าง', 8, '#b8a078'));
+        this.addCost(c, cx + 8, top + 126, cw - 16, levelCost(d, 1));
+        const ok = !have && canAfford(s, levelCost(d, 1));
+        c.add(k.button(cx + 8, top + H - 84, cw - 16, 24, have ? 'สร้างแล้ว' : 'สร้าง', () => {
+          if (build(s, this.plot, id)) { sfx.levelUp(); bus.emit(EV.TOAST, `สร้าง${d.name}สำเร็จ!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
+          else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ', '#ff8a8a'); }
+        }, { size: 10, disabled: !ok, color: 0x1f4a2a }));
+      });
+      return;
+    }
+    const d = BUILDINGS[b.type as BuildingId];
+    const lx = x + 14, lw = 230;
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(lx, top, lw, H - 48, 4);
+    c.add(k.text(lx + 8, top + 6, d.desc, 8.5, '#e8dcc0', { wordWrap: { width: lw - 16 }, lineSpacing: 2 }));
+    c.add(k.text(lx + 8, top + 50, `ตอนนี้: ${d.effect(b.level)}`, 8.5, '#9ad8ff', { wordWrap: { width: lw - 16 } }));
+    if (b.level < d.maxLevel) {
+      c.add(k.text(lx + 8, top + 86, `อัปเกรดเป็น Lv ${b.level + 1}: ${d.effect(b.level + 1)}`, 8.5, '#9fffb0', { wordWrap: { width: lw - 16 } }));
+      const ey = this.addCost(c, lx + 8, top + 122, lw - 16, levelCost(d, b.level + 1));
+      c.add(k.button(lx + 8, Math.max(ey + 4, top + H - 82), lw - 16, 26, `⬆ อัปเกรด Lv ${b.level + 1}`, () => {
+        if (upgrade(s, this.plot)) { sfx.levelUp(); bus.emit(EV.TOAST, `${d.name} Lv ${b.level}!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
+        else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ — ออกล่ามอนสเตอร์เพื่อหาวัตถุดิบ', '#ff8a8a'); }
+      }, { size: 10, color: 0x1f4a2a, disabled: !canAfford(s, levelCost(d, b.level + 1)) }));
+    } else c.add(k.text(lx + 8, top + 90, 'เลเวลสูงสุดแล้ว', 9, '#ffd84a'));
+    const rx = lx + lw + 8, rw = x + W - 14 - rx;
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, top, rw, H - 48, 4);
+    if (b.type === 'forge') {
+      c.add(k.text(rx + 8, top + 6, `หลอมของ (ใช้ผลึกมานา ${b.level} ชิ้น • มี ${countItem(s, 'mana_shard')})`, 9, '#ffe7a0'));
+      (['weapon', 'armor', 'accessory'] as const).forEach((slot, i) => {
+        const r = forgeRecipe(b.level, slot), yy = top + 26 + i * 72;
+        g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(rx + 6, yy, rw - 12, 66, 3);
+        c.add(k.text(rx + 12, yy + 4, `${['อาวุธ', 'เกราะ', 'เครื่องประดับ'][i]}  • ขั้นต่ำ ${RARITY_NAMES[r.minRarity]}`, 9, '#' + RARITY_COLORS[r.minRarity].toString(16).padStart(6, '0')));
+        this.addCost(c, rx + 12, yy + 20, rw - 110, r.cost);
+        c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'หลอม', () => {
+          const res = craft(s, slot);
+          if (res.ok) {
+            sfx.upgradeOk(); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
+            bus.emit(EV.TOAST, `หลอมได้ [${RARITY_NAMES[res.rar]}] ${itemDef(res.id).name}!`, col);
+            const fl = ui.add.rectangle(0, 0, ui.VW, 360, RARITY_COLORS[res.rar], 0.35).setOrigin(0);
+            ui.tweens.add({ targets: fl, alpha: 0, duration: 500, onComplete: () => fl.destroy() });
+            bus.emit(EV.STATE_CHANGED); this.rebuild();
+          } else { sfx.error(); bus.emit(EV.TOAST, { no_res: 'วัตถุดิบไม่พอ', no_shard: 'ผลึกมานาไม่พอ', bag_full: 'กระเป๋าเต็ม', no_forge: 'ยังไม่มีโรงหลอม' }[res.reason], '#ff8a8a'); }
+        }, { size: 10, color: 0x7a2a10 }));
+      });
+    } else if (b.type === 'kitchen') {
+      const p = mealPower(b.level);
+      c.add(k.text(rx + 8, top + 6, `ทำอาหาร (ใช้อาหาร ${p.food} • มี ${s.res.food})`, 9, '#ffe7a0'));
+      (Object.keys(MEALS) as MealId[]).forEach((m, i) => {
+        const md = MEALS[m], yy = top + 26 + i * 72, lockd = b.level < md.minLv;
+        g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(rx + 6, yy, rw - 12, 66, 3);
+        c.add(k.text(rx + 12, yy + 4, md.name + (lockd ? `  🔒 ครัว Lv${md.minLv}` : ''), 10, lockd ? '#8a7a60' : '#ffd84a'));
+        c.add(k.text(rx + 12, yy + 22, `${md.desc} +${p.pct}% นาน ${p.mins} นาที`, 8, '#e8dcc0', { wordWrap: { width: rw - 110 } }));
+        c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'ทำ', () => {
+          const r = cook(s, m);
+          if (r === 'ok') { sfx.heal(); bus.emit(EV.TOAST, `กิน${md.name}! +${p.pct}%`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
+          else { sfx.error(); bus.emit(EV.TOAST, r === 'no_food' ? 'อาหารไม่พอ — ล่ามอนสเตอร์เพื่อหาอาหาร' : 'ยังทำไม่ได้', '#ff8a8a'); }
+        }, { size: 10, color: 0x5a3a10, disabled: lockd }));
+      });
+    } else if (b.type === 'warehouse') {
+      c.add(k.text(rx + 8, top + 6, `กระเป๋าตอนนี้ ${invSize(s)} ช่อง`, 11, '#ffe7a0'));
+      c.add(k.text(rx + 8, top + 30, 'ยิ่งกระเป๋าใหญ่ ยิ่งเก็บของดรอปได้มากก่อนต้องกลับเมือง', 8.5, '#e8dcc0', { wordWrap: { width: rw - 16 } }));
+    }
+  }
+
+  // ---------------- CLASS / FORMS ----------------
+  buildJob(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(580, ui.VW - 16), H = 310;
+    const nf = nextForm(s);
+    const { x, y, g } = this.window(c, W, H, s.tier === 0 ? 'เลือกสายอาชีพ — ร่างที่ 2' : `เปลี่ยนร่างที่ ${(nf ?? s.tier) + 1}`);
+    const top = y + 32;
+    const doIt = (cls?: ClassId) => {
+      if (advanceClass(s, cls)) {
+        sfx.levelUp();
+        const nm = formName(s.cls, s.tier);
+        bus.emit(EV.TOAST, `กลายเป็น ${nm}!`, '#ffd84a');
+        this.close();
+        bus.emit(EV.STATE_CHANGED);
+        (ui.world as unknown as { levelUpFx(): void }).levelUpFx();
+      }
+    };
+    if (s.tier === 0) {
+      const ids: ClassId[] = ['sword', 'archer', 'mage', 'cleric'];
+      const cw = (W - 28 - 18) / 4;
+      ids.forEach((id, i) => {
+        const d = CLASSES[id], cx = x + 14 + i * (cw + 6);
+        g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(cx, top, cw, H - 46, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(cx, top, cw, H - 46, 4);
+        c.add(k.text(cx + cw / 2, top + 6, d.forms[1], 12, '#ffd84a').setOrigin(0.5, 0));
+        c.add(k.text(cx + 6, top + 26, d.desc, 7.5, '#e8dcc0', { wordWrap: { width: cw - 12 }, lineSpacing: 2 }));
+        const b = d.bonus;
+        const bt = [b.atk && `ATK +${b.atk}%`, b.matk && `MATK +${b.matk}%`, b.hp && `HP +${b.hp}%`, b.crit && `คริ +${b.crit}%`, b.aspd && `ตีเร็ว +${b.aspd}%`].filter(Boolean).join('  ');
+        c.add(k.text(cx + 6, top + 74, `โบนัสต่อร่าง: ${bt}`, 7.5, '#9fffb0', { wordWrap: { width: cw - 12 } }));
+        c.add(k.text(cx + 6, top + 106, 'สกิล: ' + classSkills(id, 1).map(q => SKILL_BY_ID[q].name).join(', '), 7.5, '#9ad8ff', { wordWrap: { width: cw - 12 } }));
+        c.add(k.text(cx + 6, top + 146, 'ร่างถัดไป:\n' + d.forms.slice(2).map((f, j) => `Lv${FORM_LEVEL[j + 2]} ${f}`).join('\n'), 7.5, '#c8b898', { lineSpacing: 2 }));
+        c.add(k.button(cx + 6, top + H - 80, cw - 12, 24, 'เลือกสายนี้', () => doIt(id), { size: 9.5, color: 0x1f4a2a }));
+      });
+      return;
+    }
+    const d = CLASSES[s.cls];
+    const t = nf ?? s.tier;
+    c.add(k.text(x + W / 2, top + 10, `${d.forms[s.tier]}  ➜  ${d.forms[t]}`, 16, '#ffd84a').setOrigin(0.5, 0));
+    const ns = CLASSES[s.cls].skills[t] ?? [];
+    c.add(k.text(x + W / 2, top + 50, `โบนัสสายเพิ่มอีกขั้น • ชุดใหม่${ns.length ? ` • สกิลใหม่: ${ns.map(q => SKILL_BY_ID[q].name).join(', ')}` : ''}`, 9, '#9fffb0', { align: 'center', wordWrap: { width: W - 40 } }).setOrigin(0.5, 0));
+    c.add(k.button(x + W / 2 - 80, top + H - 90, 160, 30, '✨ เปลี่ยนร่าง', () => doIt(), { size: 12, color: 0x6a3a8a, disabled: nf === null }));
   }
 
   // ---------------- QUEST ----------------
@@ -330,6 +489,7 @@ export class Panels {
     c.add(k.text(x + 84, y + 10, this.dialogText, 9.5, '#f3e6c4', { wordWrap: { width: W - 96 }, lineSpacing: 3 }));
     const btns: [string, () => void, number?][] = [];
     if (this.dialogNpc === 'elder') {
+      if (nextForm(s) !== null) btns.push(['✨ เปลี่ยนร่าง', () => this.open('job'), 0x6a3a8a]);
       const a = activeQuest(s);
       if (a?.status === 'ready') btns.push(['✔ ส่งภารกิจ', () => {
         const def = QUEST_BY_ID[a.id];
@@ -348,7 +508,11 @@ export class Panels {
         if (n && s.level >= n.minLevel) btns.push(['📜 รับภารกิจ', () => { acceptQuest(s, n.id); sfx.pickup(); bus.emit(EV.TOAST, `รับภารกิจ: ${n.title}`, '#ffe7a0'); this.close(); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a]);
       }
     } else if (this.dialogNpc === 'merchant') btns.push(['🛒 ร้านค้า', () => { this.shopTab = 'buy'; this.open('shop'); }, 0x1f3a5a]);
-    else btns.push(['⚒ ตีบวกอุปกรณ์', () => this.open('smith'), 0x6a3a10]);
+    else {
+      btns.push(['⚒ ตีบวก', () => this.open('smith'), 0x6a3a10]);
+      const fp = s.buildings.find(b => b.type === 'forge');
+      if (fp) btns.push(['🔥 หลอมของ', () => { this.plot = fp.plot; this.open('plot'); }, 0x7a2a10]);
+    }
     btns.push(['ลาก่อน', () => this.close()]);
     btns.forEach(([label, cb, col], i) => c.add(k.button(x + W - 10 - (btns.length - i) * 104, y + H - 32, 98, 24, label, cb, { size: 9.5, color: col })));
   }

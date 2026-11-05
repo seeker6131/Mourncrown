@@ -47,8 +47,40 @@ P('H2', 'โดนตี หันซ้าย', char_anim(HERO, 'Short hurt rea
 P('W1', 'ตัดไม้ (ฟันขวาน)', char_anim(HERO, 'Chopping wood with a small axe instead of the sword', 4, 'down-right', 'Raise axe, swing down, impact with wood chips, recover.'))
 P('W2', 'ขุดหิน (จอบ)', char_anim(HERO, 'Mining with a pickaxe instead of the sword', 4, 'down-right', 'Raise pickaxe, swing down, impact with stone sparks, recover.'))
 
+# ---------------- 1b. player classes & forms ----------------
+sec('forms', 'ร่างตัวละคร: ชาวบ้าน → 4 สาย × 3 ร่าง', 'ร่าง 1 ชาวบ้าน • ร่าง 2 (Lv5) • ร่าง 3 (Lv20) ชุดเท่ขึ้น • ร่าง 4 (Lv35) สวยที่สุด • ทำ "รูปหลัก" ก่อน แล้วแนบรูปนั้นไปกับท่าที่เหลือของร่างเดียวกัน • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม')
+HERO_FACE = 'the same young hero with brown spiky hair and brown eyes (same face as the attached reference)'
+FORMS = [
+    ('V0', 'ชาวบ้าน', 'a simple peasant villager outfit: plain beige linen shirt, brown trousers, rope belt, worn boots, holding a wooden practice sword'),
+    ('S2', 'นักดาบ', 'a swordsman: blue tunic with leather pauldron, red headband, green scarf, steel short sword and small round shield'),
+    ('S3', 'อัศวิน', 'a knight: polished steel plate armor with blue tabard, red cape, steel longsword and kite shield with a gold emblem'),
+    ('S4', 'ลอร์ดอัศวิน', 'a legendary lord knight: ornate white-and-gold plate armor with glowing blue runes, flowing royal blue cape with gold trim, winged helmet circlet, radiant holy greatsword with light particles'),
+    ('A2', 'นักธนู', 'an archer: green hooded tunic, leather bracers, quiver on the back, simple wooden bow'),
+    ('A3', 'พรานป่า', 'a forest ranger: layered green and brown leather armor, fur-lined hood, feathered cloak, carved composite longbow'),
+    ('A4', 'เรนเจอร์ราชันย์', 'a legendary royal ranger: elegant emerald and gold elven armor, flowing leaf-pattern cape, glowing magical bow made of light with spirit arrows, golden laurel circlet'),
+    ('M2', 'จอมเวท', 'a mage: purple hooded robe with gold trim, belt with potion pouches, wooden staff with a blue crystal'),
+    ('M3', 'ปราชญ์เวท', 'a sage mage: long violet robe with star embroidery, high collar, floating spellbook beside him, ornate silver staff with orbiting crystal'),
+    ('M4', 'อาร์คเมจ', 'a legendary archmage: deep midnight-blue and gold robe with glowing constellation patterns, crown-like circlet, floating arcane rings around him, staff with a blazing cosmic crystal'),
+    ('C2', 'นักบวช', 'a cleric: white and gold robe, holy symbol necklace, small mace and a prayer book'),
+    ('C3', 'นักบุญ', 'a saint: layered white robe with gold armor pieces, blue sash, golden halo, holy hammer'),
+    ('C4', 'ไฮพรีสต์', 'a legendary high priest: radiant white and gold vestments with feather wings motif, glowing golden halo and floating holy light orbs, ornate scepter with a sun emblem'),
+]
+ACTS = [
+    ('', 'รูปหลัก (ยืน 4 เฟรม)', 'Idle breathing', 4, 'down-right', 'Subtle chest rise, cape/scarf gently waving.'),
+    ('w', 'เดินหันหน้า', 'Walking', 6, 'down-right', 'Full walk cycle, legs alternating, small bounce.'),
+    ('u', 'เดินหันหลัง', 'Walking (back view)', 6, 'up-right', 'Full walk cycle.'),
+    ('a', 'โจมตี', 'Basic attack with the class weapon', 5, 'down-right', 'Wind-up, strike (sword slash / bow shot / magic bolt / holy strike), follow-through, recover.'),
+    ('k', 'ใช้สกิล', 'Skill casting', 4, 'down-right', 'Powerful pose, weapon or hand glowing, release of energy.'),
+    ('d', 'โดนตี+ล้ม', 'Hurt and defeat', 5, 'down-right', 'Flinch, stagger, fall to knees, falling, lying on the ground.'),
+]
+for code, name, outfit in FORMS:
+    who = f"{HERO_FACE}, chibi, wearing {outfit}"
+    for suf, an, act, n, face, ex in ACTS:
+        P(code + suf, f'{name} — {an}', char_anim(who, act, n, face, ex))
+    P(code + 'P', f'{name} — รูปโปรไฟล์', f"Pixel art character portrait bust (head and shoulders) of {who}, facing slightly right, confident expression. {PIX} {LOOK} {BG}")
+
 # ---------------- 2. companions ----------------
-sec('party', 'ฮีโร่เพื่อนร่วมทีม (รับที่โรงเตี๊ยม)', 'สั่งตัวละ 5 แผ่น • แผ่นแรกได้แล้ว แนบแผ่นนั้นไปกับแผ่นต่อๆ ไป เพื่อให้หน้าเหมือนเดิม')
+sec('party', 'ฮีโร่เพื่อนร่วมทีม NPC (รับที่โรงเตี๊ยม — ทำทีหลัง)', 'สั่งตัวละ 5 แผ่น • แผ่นแรกได้แล้ว แนบแผ่นนั้นไปกับแผ่นต่อๆ ไป เพื่อให้หน้าเหมือนเดิม')
 COMP = [
     ('E', 'นักธนูเอลฟ์', 'a chibi blonde elf archer girl with green hood, leather vest and a longbow', 'drawing the bow and shooting an arrow'),
     ('M', 'จอมเวท', 'a chibi young mage girl with silver hair, big blue pointed witch hat, blue robe and a crystal staff', 'raising the staff and casting a glowing blue spell'),

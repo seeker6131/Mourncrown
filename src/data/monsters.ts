@@ -50,6 +50,6 @@ export const MONSTERS: Record<MonsterKind, MonsterDef> = {
   treant: {
     kind: 'treant', name: 'ผู้พิทักษ์ธอร์นวูด', level: 15, hp: 4200, atk: 48, def: 16, exp: 900, gold: [400, 600], speed: 34, aggro: 170,
     attackRange: 40, attackCooldown: 1600, boss: true, bodyRadius: 20,
-    drops: [{ id: 'heart_of_forest', chance: 1 }, { id: 'flame_saber', chance: 0.5 }, { id: 'knight_plate', chance: 0.5 }, { id: 'mana_shard', chance: 1, min: 3, max: 6 }, { id: 'hp_potion_l', chance: 1, min: 2, max: 3 }],
+    drops: [{ id: 'heart_of_forest', chance: 1 }, { id: 'ancient_core', chance: 1, min: 2, max: 3 }, { id: 'flame_saber', chance: 0.5 }, { id: 'knight_plate', chance: 0.5 }, { id: 'mana_shard', chance: 1, min: 3, max: 6 }, { id: 'hp_potion_l', chance: 1, min: 2, max: 3 }],
   },
 };

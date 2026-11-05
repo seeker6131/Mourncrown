@@ -2,6 +2,7 @@
 import type { GameState, InvItem } from '../core/state';
 import { itemDef, upgradeMult } from '../data/items';
 import { rarMult } from './loot';
+import { CLASSES, FORM_LEVEL, classSkills, type ClassId } from '../data/classes';
 
 export interface Derived {
   maxHp: number; maxMp: number;
@@ -44,10 +45,15 @@ export function derive(s: GameState): Derived {
     g.mp += d.mp ?? 0; g.crit += d.crit ?? 0; g.aspd += d.aspd ?? 0; g.mf += d.mf ?? 0;
     for (const a of it.aff ?? []) g[a.k] = (g[a.k] ?? 0) + a.v;
   }
-  const atk = Math.round(8 + L * 1.5 + g.atk);
-  const matk = Math.round(6 + L * 1.5 + g.matk);
-  const def = Math.round(L * 0.6 + g.def);
-  const maxHp = Math.round(140 + L * 16 + g.hp);
+  const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
+  const cb = CLASSES[s.cls ?? 'novice'].bonus, tf = Math.max(0, s.tier ?? 0);
+  g.crit += (cb.crit ?? 0) * tf; g.aspd += (cb.aspd ?? 0) * tf;
+  const war = (s as GameState & { warcryUntil?: number }).warcryUntil ?? 0;
+  const ab = (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (war > Date.now() ? 1.25 : 1), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
+  const atk = Math.round((8 + L * 2.5 + g.atk) * ab * (1 + (cb.atk ?? 0) * tf / 100));
+  const matk = Math.round((6 + L * 2.5 + g.matk) * ab * (1 + (cb.matk ?? 0) * tf / 100));
+  const def = Math.round((L * 1 + g.def) * hb);
+  const maxHp = Math.round((140 + L * 22 + g.hp) * hb * (1 + (cb.hp ?? 0) * tf / 100));
   const crit = Math.min(0.75, 0.05 + g.crit / 100);
   const attackInterval = Math.max(300, Math.round(700 / (1 + g.aspd / 100)));
   return {
@@ -69,6 +75,7 @@ export function gainExp(s: GameState, amount: number): number {
   while (s.level < MAX_LEVEL && s.exp >= expToNext(s.level)) {
     s.exp -= expToNext(s.level);
     s.level++;
+    s.skillPts = (s.skillPts ?? 0) + 1;
     gained++;
   }
   if (gained) {
@@ -89,3 +96,31 @@ export function calcDamage(atk: number, def: number, mult: number, critChance: n
   if (crit) dmg *= 1.8;
   return { dmg: Math.max(1, Math.round(dmg)), crit, miss: false };
 }
+
+export const SKILL_MAX = 10;
+/** Skill damage/heal multiplier from its level (1 + 15% per level above 1). */
+export function skillMult(s: GameState, id: string) { return 1 + 0.15 * ((s.skillLv?.[id] ?? 1) - 1); }
+export function upSkill(s: GameState, id: string): boolean {
+  const lv = s.skillLv[id] ?? 1;
+  if (s.skillPts < 1 || lv >= SKILL_MAX) return false;
+  s.skillPts--; s.skillLv[id] = lv + 1;
+  return true;
+}
+
+/** Next form the character can take (or null). */
+export function nextForm(s: GameState): number | null {
+  const t = s.tier ?? 0;
+  if (t >= 3) return null;
+  return s.level >= FORM_LEVEL[t + 1] ? t + 1 : null;
+}
+
+/** Change class (from villager) or advance to the next form. */
+export function advanceClass(s: GameState, cls?: ClassId): boolean {
+  const nt = nextForm(s);
+  if (nt === null) return false;
+  if ((s.tier ?? 0) === 0) { if (!cls || cls === 'novice') return false; s.cls = cls; }
+  s.tier = nt;
+  return true;
+}
+
+export function currentSkills(s: GameState) { return classSkills(s.cls ?? 'novice', s.tier ?? 0); }

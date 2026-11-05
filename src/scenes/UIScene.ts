@@ -3,18 +3,25 @@ import { UIKit, GOLD, GOLD_D, GOLD_L } from '../ui/kit';
 import { bus, EV, S } from '../core/events';
 import { controls, type WorldScene } from './WorldScene';
 import { derive, expToNext } from '../systems/stats';
-import { SKILLS, type SkillId } from '../data/skills';
+import { SKILLS, SKILL_BY_ID, type SkillId } from '../data/skills';
+import { currentSkills, nextForm } from '../systems/stats';
+import { formName } from '../data/classes';
 import { paintMinimapIso } from '../art/isoArt';
 import { WORLD_PX_W, WORLD_PX_H } from '../world/mapgen';
 import { QUEST_BY_ID } from '../data/quests';
 import { Panels } from '../ui/panels';
 import { sfx } from '../audio/sfx';
 import { saveGame } from '../core/save';
+import { buildingAt } from '../systems/settlement';
+import { BUILDINGS, type BuildingId } from '../data/buildings';
 
 const VH = 360; // virtual UI height
 
 export class UIScene extends Phaser.Scene {
   kit!: UIKit;
+  resG!: Phaser.GameObjects.Graphics;
+  resTexts: Phaser.GameObjects.Text[] = [];
+  formKey = '';
   u = 1; VW = 640;
   hud!: Phaser.GameObjects.Graphics;
   hpText!: Phaser.GameObjects.Text; mpText!: Phaser.GameObjects.Text; lvText!: Phaser.GameObjects.Text; goldText!: Phaser.GameObjects.Text; expText!: Phaser.GameObjects.Text;
@@ -61,15 +68,21 @@ export class UIScene extends Phaser.Scene {
     bus.on(EV.LEVEL_UP, this.onLevel, this);
     bus.on(EV.BOSS_HP, this.onBoss, this);
     bus.on(EV.HERO_DIED, this.onDied, this);
+    bus.on(EV.PLOT, this.onPlot, this);
     this.events.once('shutdown', () => {
       bus.off(EV.STATE_CHANGED, this.refresh, this); bus.off(EV.TOAST, this.toast, this); bus.off(EV.ZONE, this.showZone, this);
       bus.off(EV.NEAR_NPC, this.onNearNpc, this); bus.off(EV.NPC_TALK, this.onTalk, this); bus.off(EV.LEVEL_UP, this.onLevel, this);
-      bus.off(EV.BOSS_HP, this.onBoss, this); bus.off(EV.HERO_DIED, this.onDied, this);
+      bus.off(EV.BOSS_HP, this.onBoss, this); bus.off(EV.HERO_DIED, this.onDied, this); bus.off(EV.PLOT, this.onPlot, this);
       this.scale.off('resize', this.onResize, this);
     });
     this.scale.on('resize', this.onResize, this);
     this.refresh();
     this.showZone(this.zoneNameNow());
+    const st = S();
+    if (!st.introSeen) {
+      st.introSeen = true;
+      this.time.delayedCall(600, () => this.panels.openDialog('elder', 'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... หมู่บ้านเราคือที่หลบภัยสุดท้าย เจ้าเป็นแค่ชาวบ้านถือดาบไม้ แต่ถ้าแกร่งพอถึงเลเวล 5 กลับมาหาข้า แล้วเลือกเส้นทางนักรบของเจ้า ล่ามอนสเตอร์ เก็บวัตถุดิบ สร้างหมู่บ้านทางใต้ แล้วชำระคำสาปให้สิ้น!'));
+    }
   }
 
   zoneNameNow() { return ''; }
@@ -123,8 +136,15 @@ export class UIScene extends Phaser.Scene {
     this.questText = k.text(8, 70, '', 8, '#f3e6c4', { wordWrap: { width: 150 }, lineSpacing: 2 });
     this.zoneText = k.text(this.VW / 2, 54, '', 14, '#ffe7a0', { strokeThickness: 4 }).setOrigin(0.5).setAlpha(0);
     this.root.add([this.lvText, this.hpText, this.mpText, this.expText, this.goldText, this.questText, this.zoneText]);
-    const gold = this.add.image(55, 52, 'icon_gold').setScale(0.35);
-    this.root.add(gold);
+    this.resG = this.add.graphics();
+    this.root.add(this.resG);
+    this.resTexts = [];
+    (['gold', 'wood', 'stone', 'food'] as const).forEach((r, i) => {
+      const x0 = 190 + i * 62;
+      const ic = this.add.image(x0 + 8, 13, r === 'gold' ? 'icon_gold' : `icon_res_${r}`).setDisplaySize(13, 13);
+      const t = k.text(x0 + 17, 13, '0', 9, '#ffe7a0').setOrigin(0, 0.5);
+      this.root.add([ic, t]); this.resTexts.push(t);
+    });
     const qz = this.add.zone(4, 64, 160, 40).setOrigin(0).setInteractive();
     qz.on('pointerup', () => this.panels.open('quest'));
     this.root.add(qz);
@@ -164,7 +184,7 @@ export class UIScene extends Phaser.Scene {
 
     // boss bar
     this.bossBar = this.add.graphics();
-    this.bossText = k.text(this.VW / 2, 8, '', 9, '#ffb0a0').setOrigin(0.5, 0);
+    this.bossText = k.text(this.VW / 2, 28, '', 9, '#ffb0a0').setOrigin(0.5, 0);
     this.root.add([this.bossBar, this.bossText]);
 
     // fullscreen hint button (top centre-left)
@@ -221,7 +241,7 @@ export class UIScene extends Phaser.Scene {
 
     // Skills arc around attack
     const angles = [180, 213, 247, 280];
-    SKILLS.forEach((sk, i) => {
+    currentSkills(S()).slice(0, 4).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const a = (angles[i] * Math.PI) / 180, R = 58;
       const r = 17;
       const b = k.roundButton(ax + Math.cos(a) * R, ay + Math.sin(a) * R, r, `icon_${sk.icon}`, null);
@@ -341,7 +361,11 @@ export class UIScene extends Phaser.Scene {
     this.mpText.setText(`${Math.ceil(s.mp)} / ${d.maxMp}`);
     this.expText.setText('');
     this.lvText.setText('Lv ' + s.level);
-    this.goldText.setText(s.gold.toLocaleString() + ' G   พลัง ' + d.power.toLocaleString());
+    if (this.formKey !== `${s.cls}${s.tier}`) { const first = !this.formKey; this.formKey = `${s.cls}${s.tier}`; if (!first) { this.time.delayedCall(10, () => this.scene.restart()); return; } }
+    this.goldText.setText('พลังรบ ' + d.power.toLocaleString() + (s.buff && s.buff.until > Date.now() ? '  🍲' : ''));
+    const fmt = (n: number) => n >= 10000 ? (n / 1000).toFixed(1) + 'K' : String(Math.floor(n));
+    [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i].setText(fmt(v)));
+    this.resG.clear().fillStyle(0x0a0705, 0.72).fillRoundedRect(184, 4, 4 * 62 + 4, 18, 9).lineStyle(1, GOLD_D, 1).strokeRoundedRect(184, 4, 4 * 62 + 4, 18, 9);
     const pr2 = this.world.hero.portrait();
     this.portrait.setTexture(pr2.key, pr2.frame);
     this.fitPortrait();
@@ -388,22 +412,25 @@ export class UIScene extends Phaser.Scene {
     this.talkBtn.setVisible(!!id);
     if (id) {
       const names: Record<string, string> = { elder: 'ผู้เฒ่าอัลดริค', merchant: 'พ่อค้ามิร่า', smith: 'ช่างตีเหล็กบรอม' };
-      (this.talkBtn.getData('label') as Phaser.GameObjects.Text).setText('💬 ' + (names[id] ?? 'พูดคุย'));
+      let label = '💬 ' + (names[id] ?? 'พูดคุย');
+      if (id.startsWith('plot:')) { const b = buildingAt(S(), Number(id.slice(5))); label = '🔨 ' + (b ? BUILDINGS[b.type as BuildingId].name : 'ก่อสร้าง'); }
+      (this.talkBtn.getData('label') as Phaser.GameObjects.Text).setText(label);
     }
   }
 
   onTalk(id: string) { this.panels.openDialog(id); }
+  onPlot(i: number) { this.panels.openPlot(i); }
 
   onLevel(level: number) {
     const k = this.kit;
     const t = k.text(this.VW / 2, VH / 2 - 60, `LEVEL UP!  Lv ${level}`, 20, '#ffd84a', { strokeThickness: 5 }).setOrigin(0.5).setScale(0.3);
-    const t2 = k.text(this.VW / 2, VH / 2 - 36, `HP / ATK พื้นฐานเพิ่มขึ้น — ตีมอนสเตอร์หาอุปกรณ์แรร์ต่อ!`, 9, '#ffffff').setOrigin(0.5).setAlpha(0);
+    const nf = nextForm(S());
+    const t2 = k.text(this.VW / 2, VH / 2 - 36, nf !== null ? `✨ เปลี่ยนร่างได้แล้ว! ไปคุยกับผู้เฒ่าที่หมู่บ้าน` : `ได้แต้มสกิล +1 — อัปสกิลได้ที่หน้า "ตัวละคร"`, 9, '#ffffff').setOrigin(0.5).setAlpha(0);
     this.root.add([t, t2]);
     this.tweens.add({ targets: t, scale: 1, duration: 400, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t2, alpha: 1, duration: 300, delay: 300 });
     this.tweens.add({ targets: [t, t2], alpha: 0, delay: 2400, duration: 500, onComplete: () => { t.destroy(); t2.destroy(); } });
-    const unlocked = SKILLS.find(sk => sk.unlockLevel === level);
-    if (unlocked) this.time.delayedCall(900, () => this.toast(`ปลดล็อกสกิลใหม่: ${unlocked.name}!`, '#9ad8ff'));
+
     saveGame(S());
   }
 
@@ -414,7 +441,7 @@ export class UIScene extends Phaser.Scene {
   drawBoss() {
     const g = this.bossBar; g.clear();
     if (!this.bossInfo) { this.bossText.setText(''); return; }
-    const w = Math.min(240, this.VW * 0.4), x = this.VW / 2 - w / 2, y = 22;
+    const w = Math.min(240, this.VW * 0.4), x = this.VW / 2 - w / 2, y = 42;
     this.kit.bar(g, x, y, w, 8, this.bossInfo.hp / this.bossInfo.max, 0xc02a2a, 0x2a0a0a);
     this.kit.diamond(g, x - 6, y + 4, 5); this.kit.diamond(g, x + w + 6, y + 4, 5);
     this.bossText.setText(`☠ ${this.bossInfo.name}  ${Math.ceil(this.bossInfo.hp)}/${this.bossInfo.max}`);

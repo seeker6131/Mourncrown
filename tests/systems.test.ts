@@ -27,6 +27,7 @@ describe('progression', () => {
     const legend = makeGear(() => 0.5, 'iron_sword', 4);
     expect(common.aff!.length).toBe(0);
     expect(legend.aff!.length).toBe(4);
+    s.level = 5;
     addItem(s, 'iron_sword', 1, 0, common); equip(s, s.inventory[s.inventory.length - 1].uid);
     const p1 = derive(s).power;
     addItem(s, 'iron_sword', 1, 0, legend); equip(s, s.inventory[s.inventory.length - 1].uid);
@@ -56,7 +57,7 @@ describe('inventory', () => {
   });
   it('equipping iron sword raises atk', () => {
     const before = derive(s).atk;
-    addItem(s, 'iron_sword');
+    addItem(s, 'iron_sword'); s.level = 5;
     equip(s, s.inventory[s.inventory.length - 1].uid);
     expect(derive(s).atk).toBeGreaterThan(before);
   });

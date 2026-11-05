@@ -1,21 +1,22 @@
 // Settlement: resources, building, upgrading, production and forge crafting — pure logic.
 import type { GameState } from '../core/state';
-import { BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, type BuildingId, type Cost, type ResKey } from '../data/buildings';
+import { BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type ResKey, type MealId } from '../data/buildings';
 import { addItem, countItem, removeItem } from './inventory';
 import { GEAR_BASES, baseTier, rollRarity, makeGear } from './loot';
 import { itemDef } from '../data/items';
 
 export function canAfford(s: GameState, c: Cost): boolean {
-  for (const [k, v] of Object.entries(c)) {
-    const have = k === 'gold' ? s.gold : s.res[k as ResKey];
-    if (have < (v ?? 0)) return false;
-  }
+  if ((c.gold ?? 0) > s.gold) return false;
+  for (const k of ['wood', 'stone', 'food'] as ResKey[]) if ((c[k] ?? 0) > s.res[k]) return false;
+  for (const [id, n] of Object.entries(c.items ?? {})) if (countItem(s, id) < n) return false;
   return true;
 }
 
 export function pay(s: GameState, c: Cost): boolean {
   if (!canAfford(s, c)) return false;
-  for (const [k, v] of Object.entries(c)) { if (k === 'gold') s.gold -= v!; else s.res[k as ResKey] -= v!; }
+  s.gold -= c.gold ?? 0;
+  for (const k of ['wood', 'stone', 'food'] as ResKey[]) s.res[k] -= c[k] ?? 0;
+  for (const [id, n] of Object.entries(c.items ?? {})) removeItem(s, id, n);
   return true;
 }
 
@@ -23,7 +24,8 @@ export function buildingAt(s: GameState, plot: number) { return s.buildings.find
 
 export function build(s: GameState, plot: number, type: BuildingId, now = Date.now()): boolean {
   if (buildingAt(s, plot)) return false;
-  if (type === 'forge' && s.buildings.some(b => b.type === 'forge')) return false;
+  if (plot >= unlockedPlots(s.bossDefeated)) return false;
+  if (s.buildings.some(b => b.type === type)) return false; // one of each
   if (!pay(s, levelCost(BUILDINGS[type], 1))) return false;
   s.buildings.push({ plot, type, level: 1, stored: 0, last: now });
   return true;
@@ -81,4 +83,17 @@ export function craft(s: GameState, slot: 'weapon' | 'armor' | 'accessory', rnd:
   removeItem(s, 'mana_shard', r.shards);
   const it = s.inventory[s.inventory.length - 1];
   return { ok: true, uid: it.uid, rar, id: itemDef(base.id).id };
+}
+
+export function levelOf(s: GameState, type: BuildingId) { return s.buildings.find(b => b.type === type)?.level ?? 0; }
+
+export function cook(s: GameState, meal: MealId, now = Date.now()): 'ok' | 'no_kitchen' | 'no_food' | 'locked' {
+  const lv = levelOf(s, 'kitchen');
+  if (!lv) return 'no_kitchen';
+  if (lv < MEALS[meal].minLv) return 'locked';
+  const p = mealPower(lv);
+  if (s.res.food < p.food) return 'no_food';
+  s.res.food -= p.food;
+  s.buff = { stat: MEALS[meal].stat, pct: p.pct, until: now + p.mins * 60000 };
+  return 'ok';
 }

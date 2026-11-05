@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, PLOTS, type WorldMap } from '../world/mapgen';
 import { tick as settleTick, collect as settleCollect, buildingAt } from '../systems/settlement';
-import { BUILDINGS, RES_NAMES, type BuildingId, type ResKey } from '../data/buildings';
+import { BUILDINGS, RES_NAMES, unlockedPlots, type BuildingId, type ResKey } from '../data/buildings';
+import { skillMult, currentSkills } from '../systems/stats';
+import { CLASSES } from '../data/classes';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
 import { HOUSE_ANCHOR } from '../art/textures';
 import { hasAi, resOf } from '../art/aiAssets';
@@ -660,11 +662,16 @@ export class WorldScene extends Phaser.Scene {
     // skills
     if (!h.busy(time)) {
       const near = this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46).length;
+      if (this.skillReady('warcry', time)) { this.castSkill('warcry'); return false; }
+      if (d < 40 && this.skillReady('bash', time)) { h.setFacing(t.x - h.x, t.y - h.y); this.castSkill('bash'); return false; }
+      if (d < 120 && this.skillReady('multishot', time)) { h.setFacing(t.x - h.x, t.y - h.y); this.castSkill('multishot'); return false; }
+      if (d < 130 && this.skillReady('arrowrain', time)) { this.castSkill('arrowrain'); return false; }
       if (near >= 1 && this.skillReady('cyclone', time) && (near >= 2 || t.def.boss || t.hp > t.maxHp * 0.5)) { this.castSkill('cyclone'); return false; }
       if (d < 140 && this.skillReady('thunder', time) && (this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 130).length >= 2 || t.def.boss || t.hp > 150)) { this.castSkill('thunder'); return false; }
       if (d < 150 && d > 30 && this.skillReady('flame', time)) { h.setFacing(t.x - h.x, t.y - h.y); this.castSkill('flame'); return false; }
     }
-    const reach = t.def.bodyRadius + 14;
+    const ranged = CLASSES[s.cls ?? 'novice'].ranged && (s.tier ?? 0) > 0;
+    const reach = ranged ? 95 : t.def.bodyRadius + 14;
     if (d > reach) {
       if (h.busy(time)) return false;
       const sp = this.der.moveSpeed * (dt / 1000);
@@ -706,6 +713,20 @@ export class WorldScene extends Phaser.Scene {
       bus.emit(EV.TOAST, 'พบหีบสมบัติ!', '#ffd84a');
       saveGame(s);
     }
+  }
+
+  heroArrow(ang: number, atk: number) {
+    const h = this.hero;
+    const a = this.add.image(h.x + Math.cos(ang) * 8, h.y - 10 + Math.sin(ang) * 6, 'fx_arrow').setRotation(ang).setDepth(99000);
+    this.projectiles.push({ sprite: a, vx: Math.cos(ang) * 260, vy: Math.sin(ang) * 260, life: 650, owner: 'hero', dmg: 0, radius: 6,
+      onHit: (x, y) => { const m = this.monsters.find(q => q.alive && Math.hypot(q.x - x, q.cy - y) < 6 + q.def.bodyRadius + 2); if (m) this.hitMonster(m, atk, 1, 'phys', 3); } });
+  }
+
+  heroOrb(ang: number, matk: number) {
+    const h = this.hero;
+    const o = this.add.image(h.x + Math.cos(ang) * 8, h.y - 12 + Math.sin(ang) * 6, 'fx_orb').setDepth(99000).setBlendMode(Phaser.BlendModes.ADD).setTint(S().cls === 'cleric' ? 0xffe890 : 0xffffff);
+    this.projectiles.push({ sprite: o, vx: Math.cos(ang) * 200, vy: Math.sin(ang) * 200, life: 750, owner: 'hero', dmg: 0, radius: 7, trail: S().cls === 'cleric' ? 0xffe890 : 0x8ad0ff,
+      onHit: (x, y) => { const m = this.monsters.find(q => q.alive && Math.hypot(q.x - x, q.cy - y) < 7 + q.def.bodyRadius + 2); if (m) this.hitMonster(m, matk, 1, 'magic', 3); } });
   }
 
   // ---------- Gathering ----------
@@ -762,7 +783,10 @@ export class WorldScene extends Phaser.Scene {
       const b = buildingAt(s, i);
       const objs: Phaser.GameObjects.GameObject[] = [];
       this.map.blocked[py * MAP_W + px] = b ? 1 : 0;
-      if (!b) {
+      if (!b && i >= unlockedPlots(s.bossDefeated)) {
+        const lock = this.add.image(c.x, c.y - 10, 'icon_res_lock').setDepth(c.y).setAlpha(0.85);
+        objs.push(lock);
+      } else if (!b) {
         const sign = this.fit(this.add.image(c.x, c.y + 4, 'obj_sign_0').setOrigin(0.5, 0.95).setDepth(c.y));
         const ham = this.add.image(c.x, c.y - 30, 'icon_res_hammer').setDepth(99999).setScale(0.6);
         this.tweens.add({ targets: ham, y: c.y - 34, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -785,10 +809,12 @@ export class WorldScene extends Phaser.Scene {
       o.push(im, this.castShadow(im, 0.8));
     };
     if (this.textures.exists(`ai_bld_${type}`)) { add(`ai_bld_${type}`, 0, 12); return o; }
-    if (type === 'lumber') { add('obj_log_0', -10, 2); add('obj_log_0', 6, 8); add('obj_log_0', -2, -4); add('obj_crate_0', 16, -2); add('obj_barrel_0', -18, 10); }
-    else if (type === 'quarry') { add('obj_bigrock_0', -6, 2, 1.1); add('obj_rock_0', 12, 8); add('obj_rock_1', -16, 10); add('obj_crate_0', 14, -6); }
-    else if (type === 'farm') { const f = this.add.image(x, y + 2, 'fx_field').setDepth(1.4); o.push(f); add('obj_haystack_0', 18, 0); }
-    else if (type === 'forge') { add('obj_building_0', 0, 14, 0.8); }
+    if (type === 'forge') { add('obj_building_0', 0, 14, 0.8); }
+    else if (type === 'kitchen') {
+      add('obj_stall_0', -4, 4, 0.9); add('obj_barrel_0', 18, 6);
+      if (this.anims.exists('env_campfire')) { const cf = this.add.sprite(x - 20, y + 10, '__DEFAULT').setScale(0.4).setDepth(y + 10).play('env_campfire'); o.push(cf); }
+    }
+    else if (type === 'warehouse') { add('obj_crate_0', -14, 2); add('obj_crate_0', -2, 8); add('obj_crate_0', -8, -4, 1.1); add('obj_barrel_0', 12, 2); add('obj_barrel_0', 18, 10); add('obj_crate_0', 8, -6); add('obj_haystack_0', -20, 10); }
     if (level >= 3) add('obj_lamp_0', -22, -4);
     return o;
   }
@@ -848,6 +874,19 @@ export class WorldScene extends Phaser.Scene {
     if (best) h.setFacing(best.x - h.x, best.y - h.y);
     else { node = this.nearestNode(30); if (node) h.setFacing(node.x - h.x, node.y - 6 - h.y); }
     const dur = Math.min(260, this.der.attackInterval * 0.8);
+    const st = S(), rng = CLASSES[st.cls ?? 'novice'].ranged && (st.tier ?? 0) > 0 ? CLASSES[st.cls].ranged : false;
+    if (rng) {
+      const t = this.nearestEnemy(140);
+      if (!t) { node = this.nearestNode(30); }
+      if (t) {
+        const ang = Math.atan2(t.cy - (h.y - 10), t.x - h.x);
+        h.setFacing(Math.cos(ang), Math.sin(ang));
+        h.doAttack(time, dur);
+        if (rng === 'arrow') { sfx.arrow(); this.heroArrow(ang, this.der.atk); }
+        else { sfx.magic(); this.heroOrb(ang, this.der.matk); }
+        return;
+      }
+    }
     h.doAttack(time, dur);
     sfx.swing();
     // slash visual
@@ -888,13 +927,13 @@ export class WorldScene extends Phaser.Scene {
 
   skillReady(id: SkillId, time: number) {
     const sk = SKILL_BY_ID[id], s = S();
-    return s.level >= sk.unlockLevel && (this.cooldowns[id] ?? 0) <= time && s.mp >= sk.mp;
+    return currentSkills(s).includes(id) && (this.cooldowns[id] ?? 0) <= time && s.mp >= sk.mp;
   }
 
   castSkill(id: SkillId) {
     const time = this.time.now, s = S(), h = this.hero, sk = SKILL_BY_ID[id];
     if (h.state === 'dead') return;
-    if (s.level < sk.unlockLevel) { bus.emit(EV.TOAST, `ปลดล็อกที่เลเวล ${sk.unlockLevel}`, '#ff8a8a'); sfx.error(); return; }
+    if (!currentSkills(s).includes(id)) { bus.emit(EV.TOAST, 'ยังไม่ได้เรียนสกิลนี้', '#ff8a8a'); sfx.error(); return; }
     if ((this.cooldowns[id] ?? 0) > time) return;
     if (s.mp < sk.mp) { bus.emit(EV.TOAST, 'MP ไม่พอ', '#7ab8ff'); sfx.error(); return; }
     if (h.busy(time) && h.state !== 'attack') return;
@@ -904,6 +943,49 @@ export class WorldScene extends Phaser.Scene {
     bus.emit(EV.STATE_CHANGED);
     const d = this.der;
     switch (id) {
+      case 'bash': {
+        const t = this.nearestEnemy(48);
+        if (t) h.setFacing(t.x - h.x, t.y - h.y);
+        h.doAttack(time, 320);
+        sfx.crit();
+        const ang = Math.atan2(h.facing.y, h.facing.x);
+        this.playFx('fxa_slash', h.x + h.facing.x * 14, h.y - 9 + h.facing.y * 10, h.y + 5, { scale: 0.85, rot: ang })?.setOrigin(0.4, 0.5);
+        this.time.delayedCall(90, () => { if (t && t.alive) { this.hitMonster(t, d.atk, sk.power * skillMult(s, id), 'phys', 12); this.playFx('fxa_hit', t.x, t.cy, 99600, { scale: 0.7 }); } });
+        break;
+      }
+      case 'multishot': {
+        const t = this.nearestEnemy(170);
+        let ang = Math.atan2(h.facing.y, h.facing.x);
+        if (t) { ang = Math.atan2(t.cy - (h.y - 10), t.x - h.x); h.setFacing(Math.cos(ang), Math.sin(ang)); }
+        h.doAttack(time, 300);
+        sfx.arrow();
+        for (let i = -2; i <= 2; i++) this.heroArrow(ang + i * 0.16, d.atk * sk.power * skillMult(s, id));
+        break;
+      }
+      case 'arrowrain': {
+        h.doCast(time, 380);
+        const targets = this.monsters.filter(m => m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 140).slice(0, 6);
+        targets.forEach((m, i) => this.time.delayedCall(100 + i * 70, () => {
+          if (!m.alive) return;
+          for (let k = 0; k < 3; k++) {
+            const a = this.add.image(m.x + (k - 1) * 6, m.y - 70, 'fx_arrow').setRotation(Math.PI / 2).setDepth(99000);
+            this.tweens.add({ targets: a, y: m.y - 4, duration: 180 + k * 30, ease: 'Quad.easeIn', onComplete: () => { a.destroy(); this.burst(m.x, m.y - 2, 0xd8c090, 4, 30); } });
+          }
+          this.time.delayedCall(200, () => { if (m.alive) this.hitMonster(m, d.atk, sk.power * skillMult(s, id), 'phys', 3); });
+        }));
+        sfx.arrow();
+        break;
+      }
+      case 'warcry': {
+        h.doCast(time, 400);
+        (s as typeof s & { warcryUntil?: number }).warcryUntil = Date.now() + 12000;
+        this.der = derive(s);
+        sfx.bossRoar();
+        this.surround(h.x, h.y, 0xff6a3a, { rings: 3, height: 30, radius: 16, motes: 14, dur: 900 });
+        this.floatText(h.x, h.y - 40, 'ATK +25%', '#ff9a6a', 1.2);
+        this.time.delayedCall(12100, () => { this.der = derive(S()); bus.emit(EV.STATE_CHANGED); });
+        break;
+      }
       case 'cyclone': {
         h.doAttack(time, 420);
         h.sprite.anims.timeScale = 1.6;
@@ -914,7 +996,7 @@ export class WorldScene extends Phaser.Scene {
         this.burst(h.x, h.y - 6, 0xbfe8ff, 18, 60);
         this.surround(h.x, h.y, 0xbfe8ff, { rings: 2, height: 14, radius: 26, motes: 10, dur: 450 });
         for (const delay of [60, 220]) this.time.delayedCall(delay, () => {
-          for (const m of this.monsters) if (m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46 + m.def.bodyRadius) this.hitMonster(m, d.atk, sk.power / 2 + 0.1, 'phys', 10);
+          for (const m of this.monsters) if (m.alive && Math.hypot(m.x - h.x, m.y - h.y) < 46 + m.def.bodyRadius) this.hitMonster(m, d.atk, (sk.power / 2 + 0.1) * skillMult(s, id), 'phys', 10);
         });
         break;
       }
@@ -931,7 +1013,7 @@ export class WorldScene extends Phaser.Scene {
         const glow = this.add.image(fb.x, fb.y, 'fx_glow').setTint(0xff7a2a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.8).setAlpha(0.7).setDepth(98999);
         this.projectiles.push({
           sprite: fb, glow, vx: vx * 220, vy: vy * 220, life: 900, owner: 'hero', dmg: 0, radius: 10, trail: 0xff8a3a,
-          onHit: (x, y) => this.explode(x, y, d.matk, sk.power),
+          onHit: (x, y) => this.explode(x, y, d.matk, sk.power * skillMult(s, id)),
         });
         break;
       }
@@ -947,7 +1029,7 @@ export class WorldScene extends Phaser.Scene {
           if (!m.alive) return;
           this.boltAt(m.x, m.y);
           this.surround(m.x, m.y, 0xbfe0ff, { rings: 2, height: 22, radius: m.def.bodyRadius + 8, motes: 8, dur: 450 });
-          this.hitMonster(m, d.matk, sk.power, 'magic', 2);
+          this.hitMonster(m, d.matk, sk.power * skillMult(s, id), 'magic', 2);
         }));
         sfx.thunder();
         this.cameras.main.flash(120, 200, 220, 255, false);
@@ -955,7 +1037,7 @@ export class WorldScene extends Phaser.Scene {
       }
       case 'heal': {
         h.doCast(time, 450);
-        const amt = Math.round(d.maxHp * sk.power + d.matk * 0.8);
+        const amt = Math.round((d.maxHp * sk.power + d.matk * 0.8) * skillMult(s, id));
         const real = Math.min(amt, d.maxHp - s.hp);
         s.hp += real;
         sfx.heal();
@@ -1319,7 +1401,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   tryTalk(id: string) {
-    if (id.startsWith('plot:')) { sfx.click(); bus.emit(EV.PLOT, Number(id.slice(5))); return; }
+    if (id.startsWith('plot:')) {
+      const i = Number(id.slice(5));
+      if (i >= unlockedPlots(S().bossDefeated) && !buildingAt(S(), i)) { sfx.error(); bus.emit(EV.TOAST, 'ที่ดินถูกคำสาปปกคลุม — ปราบผู้พิทักษ์ธอร์นวูดเพื่อชำระ', '#c89aff'); return; }
+      sfx.click(); bus.emit(EV.PLOT, i); return;
+    }
     const n = this.npcs.find(q => q.id === id);
     if (!n) return;
     if (Math.hypot(n.x - this.hero.x, n.y - this.hero.y) > 40) { bus.emit(EV.TOAST, 'เดินเข้าไปใกล้กว่านี้', '#e8c872'); return; }

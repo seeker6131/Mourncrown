@@ -27,14 +27,14 @@ export class Hero {
   diag: 0 | 1 | 2 | 3 = 1; // 0 down-left, 1 down-right, 2 up-left, 3 up-right
   actionStart = 0;
   anim = false;
-  animPre = 'h0_';
+  animPre = 'h_novice0_';
   actionDur = 260;
 
   constructor(private scene: Phaser.Scene, x: number, y: number) {
     this.x = x; this.y = y;
     this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(0.75, 0.9);
     this.ai = hasAi(scene, 'hero_0');
-    this.anim = hasAnim(scene, 'h0_idle');
+    this.anim = hasAnim(scene, 'h_novice0_idle');
     this.sprite = scene.add.sprite(x, y, this.ai ? 'ai_hero_0' : 'hero_a0_w0').setOrigin(0.5, this.ai ? 0.97 : 36 / 40);
     this.refreshLook();
   }
@@ -43,7 +43,7 @@ export class Hero {
     const s = S();
     const a = equippedLook(s, 'armor');
     const w = Math.max(0, equippedLook(s, 'weapon'));
-    if (this.anim) { this.animPre = ensureHeroAnims(this.scene, a); this.texKey = 'an_hero_idle'; }
+    if (this.anim) { this.animPre = ensureHeroAnims(this.scene, s.cls ?? 'novice', s.tier ?? 0); this.texKey = 'an_hero_idle'; }
     if (this.ai) {
       this.aiKeys = recolorHero(this.scene, Math.max(0, a));
       this.texKey = this.aiKeys[0];
@@ -57,7 +57,7 @@ export class Hero {
   }
 
   /** Texture + frame to show the hero in UI portraits. */
-  portrait(): { key: string; frame?: string | number } { if (this.anim) return { key: this.animPre === 'h0_' ? 'an_hero_idle' : `an_hero_idle_a${this.animPre[1]}`, frame: 0 }; return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
+  portrait(): { key: string; frame?: string | number } { if (this.anim) { const k = `an_hero_idle_${this.animPre.slice(2, -1)}`; return { key: this.scene.textures.exists(k) ? k : 'an_hero_idle', frame: 0 }; } return this.ai ? { key: this.aiKeys[1] } : { key: this.texKey, frame: 'down_idle_0' }; }
 
   play(anim: string, force = false) {
     if (this.ai) return;
