@@ -1,0 +1,113 @@
+<title>Eldergrove Prompt Book</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Cinzel:wght@700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: single column of prompt cards grouped by section, sticky progress bar + section chips on top. Deliberate single dark "tavern ledger" look. */
+:root {
+  --bg: #15100c; --panel: #211912; --panel2: #2b2018; --ink: #f1e4c6; --muted: #b5a07c;
+  --gold: #d9b45a; --gold-d: #7a5a24; --done: #6fcf7f;
+  --display: 'Cinzel', Georgia, serif; --body: 'Sarabun', 'Noto Sans Thai', Tahoma, sans-serif; --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { margin: 0; font: 15px/1.55 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 760px; margin: 0 auto; }
+header { padding: 22px 0 10px; }
+h1 { font: 700 26px/1.15 var(--display); color: var(--gold); margin: 0 0 6px; letter-spacing: .04em; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0; font-size: 14px; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 10px 0 8px; border-bottom: 1px solid var(--gold-d); }
+.prog { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.track { flex: 1; height: 8px; background: var(--panel2); border: 1px solid var(--gold-d); border-radius: 4px; overflow: hidden; }
+.fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--gold-d), var(--gold)); transition: width .3s; }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; scrollbar-width: none; }
+.chips button { flex: none; font: 600 13px var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--gold-d); border-radius: 999px; padding: 5px 12px; }
+.chips button[aria-pressed="true"] { background: var(--gold); color: #1b1208; border-color: var(--gold); }
+section { margin-top: 26px; }
+h2 { font: 700 18px/1.3 var(--body); color: var(--gold); margin: 0 0 4px; text-wrap: balance; }
+.note { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.card { background: var(--panel); border: 1px solid #3a2c1e; border-radius: 6px; padding: 12px; margin-top: 10px; }
+.card.done { border-color: #2f5a35; opacity: .62; }
+.top { display: flex; gap: 10px; align-items: baseline; }
+.code { font: 700 13px var(--mono); color: #1b1208; background: var(--gold); border-radius: 4px; padding: 1px 7px; flex: none; }
+.card.done .code { background: var(--done); }
+.t { font-weight: 600; min-width: 0; }
+pre { margin: 10px 0; padding: 10px; background: #0f0b08; border: 1px solid #2f2418; border-radius: 4px; white-space: pre-wrap; word-break: break-word; font: 12px/1.5 var(--mono); color: #d8ccb0; max-height: 9.5em; overflow: hidden; position: relative; }
+pre.open { max-height: none; }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.acts button { font: 600 14px var(--body); border-radius: 5px; padding: 8px 14px; border: 1px solid var(--gold); background: #3a2414; color: #ffe7a0; min-height: 40px; }
+.acts .cp { background: var(--gold); color: #1b1208; flex: 1; }
+.acts button:focus-visible, .chips button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--gold); color: #1b1208; font-weight: 700; padding: 8px 16px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .fill, .toast { transition: none; } }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Eldergrove Prompt Book</h1>
+    <p class="lede">Prompt ภาพทั้งหมด __COUNT__ ชิ้น • กด "คัดลอก" แล้ววางใน GPT • เจนเสร็จกด "เจนแล้ว" ไว้กันลืม • ส่งภาพกลับพร้อมบอกรหัส • ตัวละครเดิมให้แนบภาพเดิมไปด้วย</p>
+  </header>
+  <div class="bar">
+    <div class="prog"><div class="track"><div class="fill" id="fill"></div></div><span id="cnt">0/0</span></div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <main id="list"></main>
+</div>
+<div class="toast" id="toast">คัดลอกแล้ว</div>
+<script>
+const DATA = __DATA__;
+const KEY = 'eg_prompt_done';
+let done = {};
+try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
+const total = DATA.reduce((a, s) => a + s.items.length, 0);
+let filter = 'all';
+function prog() {
+  const n = Object.values(done).filter(Boolean).length;
+  document.getElementById('cnt').textContent = n + '/' + total + ' เจนแล้ว';
+  document.getElementById('fill').style.width = (100 * n / total) + '%';
+}
+function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 1200); }
+function render() {
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  [{ id: 'all', title: 'ทั้งหมด' }, ...DATA].forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.id === 'all' ? 'ทั้งหมด' : s.title.split(' (')[0].split(' —')[0];
+    b.setAttribute('aria-pressed', String(filter === s.id));
+    b.onclick = () => { filter = s.id; render(); window.scrollTo({ top: 0 }); };
+    chips.appendChild(b);
+  });
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  DATA.filter(s => filter === 'all' || s.id === filter).forEach(s => {
+    const sec = document.createElement('section');
+    sec.innerHTML = '<h2></h2>' + (s.note ? '<p class="note"></p>' : '');
+    sec.querySelector('h2').textContent = s.title;
+    if (s.note) sec.querySelector('.note').textContent = s.note;
+    s.items.forEach(it => {
+      const c = document.createElement('div');
+      c.className = 'card' + (done[it.code] ? ' done' : '');
+      c.innerHTML = '<div class="top"><span class="code"></span><span class="t"></span></div><pre></pre><div class="acts"><button class="cp">คัดลอก</button><button class="mk"></button></div>';
+      c.querySelector('.code').textContent = it.code;
+      c.querySelector('.t').textContent = it.title;
+      const pre = c.querySelector('pre'); pre.textContent = it.prompt;
+      pre.onclick = () => pre.classList.toggle('open');
+      const mk = c.querySelector('.mk');
+      mk.textContent = done[it.code] ? '✔ เจนแล้ว' : 'เจนแล้ว';
+      mk.onclick = () => { done[it.code] = !done[it.code]; save(); c.classList.toggle('done', !!done[it.code]); mk.textContent = done[it.code] ? '✔ เจนแล้ว' : 'เจนแล้ว'; prog(); };
+      c.querySelector('.cp').onclick = () => {
+        const ok = () => toast('คัดลอก ' + it.code + ' แล้ว');
+        const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); pre.classList.add('open'); toast('เลือกข้อความแล้ว กดค้างเพื่อคัดลอก'); };
+        try { navigator.clipboard.writeText(it.prompt).then(ok, fallback); } catch (e) { fallback(); }
+      };
+      sec.appendChild(c);
+    });
+    list.appendChild(sec);
+  });
+  prog();
+}
+render();
+</script>
