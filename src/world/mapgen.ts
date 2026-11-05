@@ -55,6 +55,9 @@ export const ZONES: Zone[] = [
 
 const PATH: [number, number][] = [[6, 39], [15, 39], [28, 40], [40, 37], [52, 38], [60, 42], [68, 42], [80, 38], [90, 40], [98, 40]];
 const PATH2: [number, number][] = [[66, 42], [68, 32], [72, 22], [76, 14], [86, 10]];
+const PATH3: [number, number][] = [[15, 40], [15, 52], [15, 63]];
+/** Building plots of the player's settlement (tile centres), south of the village. */
+export const PLOTS: [number, number][] = [[9, 56], [15, 56], [21, 56], [9, 62], [15, 62], [21, 62]];
 
 function distToPolyline(x: number, y: number, pts: [number, number][]): number {
   let best = 1e9;
@@ -82,7 +85,7 @@ export const CHEST_LOOT: { gold: number; items: { id: string; qty: number }[] }[
 export function riverX(y: number) { return 50 + Math.sin(y * 0.12) * 3 + Math.sin(y * 0.31) * 1.2; }
 
 export function pathDist(x: number, y: number) {
-  return Math.min(distToPolyline(x, y, PATH), distToPolyline(x, y, PATH2));
+  return Math.min(distToPolyline(x, y, PATH), distToPolyline(x, y, PATH2), distToPolyline(x, y, PATH3));
 }
 
 export function generateWorld(seed = 1337): WorldMap {
@@ -119,6 +122,8 @@ export function generateWorld(seed = 1337): WorldMap {
     if (pdist < 1.3 && g !== G.Ruins && g !== G.Plaza) {
       g = g === G.Water ? G.Bridge : (g === G.Sand && rd < 3.1 ? G.Bridge : G.Path);
     }
+    for (const [px, py] of PLOTS) if (Math.abs(x - px) <= 1 && Math.abs(y - py) <= 1 && g !== G.Water) g = G.Plaza;
+    if (x >= 5 && x <= 25 && y >= 52 && y <= 66 && g === G.Water) g = G.Sand;
     ground[idx(x, y)] = g;
     if (g === G.Water) blocked[idx(x, y)] = 1;
   }
@@ -220,6 +225,7 @@ export function generateWorld(seed = 1337): WorldMap {
     else if (g === G.Grove) p = 0.07;
     if (border < 3) p = 0.7;
     if (vd < 1.15) p = 0;
+    if (x >= 4 && x <= 26 && y >= 50 && y <= 67) p = 0;
     if (zoneDist('arena', x, y) < 1.1) p = 0;
     if (pathDist(x, y) < 2.6) p = 0;
     if (Math.abs(x - riverX(y)) < 4) p *= 0.3;

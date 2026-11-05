@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, type WorldMap } from '../world/mapgen';
+import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, PLOTS, type WorldMap } from '../world/mapgen';
+import { tick as settleTick, collect as settleCollect, buildingAt } from '../systems/settlement';
+import { BUILDINGS, RES_NAMES, type BuildingId, type ResKey } from '../data/buildings';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
 import { HOUSE_ANCHOR } from '../art/textures';
 import { hasAi, resOf } from '../art/aiAssets';
@@ -62,6 +64,9 @@ export class WorldScene extends Phaser.Scene {
   targetRing!: Phaser.GameObjects.Image;
   night = 0;
   rays: Phaser.GameObjects.Image[] = [];
+  nodes: { img: Phaser.GameObjects.Image; sh: Phaser.GameObjects.Image | null; x: number; y: number; tx: number; ty: number; hp: number; max: number; kind: ResKey; solid: boolean; regrowAt: number; tex: string }[] = [];
+  plotViews: { x: number; y: number; objs: Phaser.GameObjects.GameObject[]; bubble: Phaser.GameObjects.Container | null; key: string }[] = [];
+  lastSettle = 0;
   shadows: Phaser.GameObjects.Image[] = [];
   lastShadowNight = -1;
   heroShadow: Phaser.GameObjects.Image | null = null;
@@ -73,7 +78,7 @@ export class WorldScene extends Phaser.Scene {
 
   create() {
     this.monsters = []; this.projectiles = []; this.loot = []; this.npcs = []; this.cooldowns = {}; this.fireflies = []; this.clouds = [];
-    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = []; this.shadows = []; this.heroShadow = null; this.swayers = []; this.butterflies = [];
+    this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = []; this.nodes = []; this.plotViews = []; this.shadows = []; this.heroShadow = null; this.swayers = []; this.butterflies = [];
     const s = S();
     this.map = generateWorld();
     this.der = derive(s);
@@ -158,7 +163,12 @@ export class WorldScene extends Phaser.Scene {
       const img = this.fit(this.add.image(o.x, o.y + oy, key).setOrigin(0.5, originY[o.type] ?? 0.97));
       img.setDepth(o.type === 'lily' ? 1 : flat ? o.y - 12 : o.type === 'arch' ? o.y + 6 : o.y);
       if (o.type === 'tree' || o.type === 'pine') img.setFlipX(((o.x * 7 + o.y * 3) & 8) > 0);
-      if (!flat && o.type !== 'mushrooms') this.castShadow(img, o.type === 'tree' || o.type === 'pine' ? 1 : 0.85);
+      const shd = !flat && o.type !== 'mushrooms' ? this.castShadow(img, o.type === 'tree' || o.type === 'pine' ? 1 : 0.85) : null;
+      if (o.type === 'tree' || o.type === 'pine' || o.type === 'rock' || o.type === 'bigrock') {
+        const wood = o.type === 'tree' || o.type === 'pine';
+        const max = wood ? 6 : o.type === 'bigrock' ? 7 : 3;
+        this.nodes.push({ img, sh: shd, x: o.x, y: o.y, tx: o.tx, ty: o.ty, hp: max, max, kind: wood ? 'wood' : 'stone', solid: !!o.solid, regrowAt: 0, tex: img.texture.key });
+      }
       if (o.type === 'tree' || o.type === 'pine') {
         if (o.v === 2) this.addGlow(o.x, o.y - 30, 0x5ae0d0, 1.2, true);
       }
@@ -192,6 +202,8 @@ export class WorldScene extends Phaser.Scene {
       sp.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.tryTalk(n.id));
       this.npcs.push({ id: n.id, x, y, sprite: sp, marker });
     }
+
+    this.buildPlots();
 
     // hero
     let start = s.pos.x > 0 ? s.pos : this.map.heroStart;
@@ -575,6 +587,8 @@ export class WorldScene extends Phaser.Scene {
     this.respawnTick(time);
     this.updateAmbient(time, dt);
     this.animateNature(time, dt);
+    this.updateSettlement(time);
+    if (time % 1000 < 20) this.regrowNodes(time);
     if (h.state === 'walk' && time - this.lastStep > 210) { this.lastStep = time; this.dust(h.x, h.y); }
     this.heroRing.setPosition(h.x, h.y).setVisible(h.state !== 'dead');
     this.heroShadow = this.followShadow(h.sprite, this.heroShadow, h.x, h.y, h.state === 'dead' ? 0 : 0.3);
@@ -606,6 +620,7 @@ export class WorldScene extends Phaser.Scene {
     if (z.id !== this.currentZone) { this.currentZone = z.id; bus.emit(EV.ZONE, z.name, z.id); }
     let near: string | null = null;
     for (const n of this.npcs) if (Math.hypot(n.x - h.x, n.y - h.y) < 30) near = n.id;
+    this.plotViews.forEach((v, i) => { if (Math.hypot(v.x - h.x, v.y - h.y) < 30) near = 'plot:' + i; });
     if (near !== this.nearNpc) { this.nearNpc = near; bus.emit(EV.NEAR_NPC, near); }
 
     s.pos = { x: Math.round(h.x), y: Math.round(h.y) };
@@ -633,7 +648,14 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     const t = this.target;
-    if (!t) return false;
+    if (!t) {
+      const n = this.nearestNode(170);
+      if (!n) return false;
+      const dn = Math.hypot(n.x - h.x, n.y - h.y);
+      if (dn > 18) { if (h.busy(time)) return false; const sp = this.der.moveSpeed * (dt / 1000); const vx = (n.x - h.x) / dn, vy = (n.y + 6 - h.y) / dn; const mv = this.moveHero(vx * sp, vy * sp); h.setFacing(vx, vy); return mv; }
+      this.basicAttack(time);
+      return false;
+    }
     const d = Math.hypot(t.x - h.x, t.y - h.y);
     // skills
     if (!h.busy(time)) {
@@ -686,6 +708,118 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  // ---------- Gathering ----------
+  nearestNode(maxD: number) {
+    let best: WorldScene['nodes'][number] | null = null, bd = maxD;
+    for (const n of this.nodes) { if (n.hp <= 0) continue; const d = Math.hypot(n.x - this.hero.x, n.y - this.hero.y); if (d < bd) { bd = d; best = n; } }
+    return best;
+  }
+
+  hitNode(n: WorldScene['nodes'][number]) {
+    const s = S();
+    if (n.hp <= 0) return;
+    n.hp--;
+    const big = n.kind === 'wood' ? 2 : n.max > 4 ? 2 : 1;
+    let amt = big + (Math.random() < 0.3 ? 1 : 0);
+    if (n.hp <= 0) amt += n.kind === 'wood' ? 6 : 4;
+    s.res[n.kind] += amt;
+    sfx.hit();
+    const x0 = n.img.x;
+    this.tweens.add({ targets: n.img, x: x0 + 1.5, duration: 40, yoyo: true, repeat: 2, onComplete: () => n.img.setX(x0) });
+    this.burst(n.x, n.y - (n.kind === 'wood' ? 10 : 4), n.kind === 'wood' ? 0xc89050 : 0xb0aab8, 6, 40);
+    if (n.kind === 'wood') for (let i = 0; i < 3; i++) {
+      const lf = this.add.image(n.x + Math.random() * 30 - 15, n.y - 30 - Math.random() * 20, 'fx_leaf').setDepth(n.y + 1);
+      this.tweens.add({ targets: lf, y: n.y, x: lf.x + Math.random() * 16 - 8, rotation: 4, alpha: 0, duration: 900, onComplete: () => lf.destroy() });
+    }
+    this.floatText(n.x, n.y - 24, `+${amt} ${RES_NAMES[n.kind]}`, n.kind === 'wood' ? '#e8b878' : '#d0d0e0', 0.85);
+    if (n.hp <= 0) {
+      n.img.setVisible(false); n.sh?.setVisible(false);
+      n.img.setData('stump', this.add.image(n.x, n.y + 4, n.kind === 'wood' ? 'fx_stump' : 'fx_rubble').setOrigin(0.5, 0.9).setDepth(n.y));
+      if (n.solid) this.map.blocked[n.ty * MAP_W + n.tx] = 0;
+      n.regrowAt = this.time.now + (n.kind === 'wood' ? 120000 : 180000);
+    }
+    bus.emit(EV.STATE_CHANGED);
+  }
+
+  regrowNodes(time: number) {
+    for (const n of this.nodes) {
+      if (n.hp > 0 || time < n.regrowAt) continue;
+      if (Math.hypot(n.x - this.hero.x, n.y - this.hero.y) < 20) continue;
+      n.hp = n.max; n.img.setVisible(true).setAlpha(0); n.sh?.setVisible(true);
+      (n.img.getData('stump') as Phaser.GameObjects.Image | undefined)?.destroy();
+      this.tweens.add({ targets: n.img, alpha: 1, duration: 800 });
+      if (n.solid) this.map.blocked[n.ty * MAP_W + n.tx] = 1;
+    }
+  }
+
+  // ---------- Settlement ----------
+  buildPlots() {
+    for (const v of this.plotViews) { v.objs.forEach(o => o.destroy()); v.bubble?.destroy(); }
+    this.plotViews = [];
+    const s = S();
+    PLOTS.forEach(([px, py], i) => {
+      const c = iso(px + 0.5, py + 0.5);
+      const b = buildingAt(s, i);
+      const objs: Phaser.GameObjects.GameObject[] = [];
+      this.map.blocked[py * MAP_W + px] = b ? 1 : 0;
+      if (!b) {
+        const sign = this.fit(this.add.image(c.x, c.y + 4, 'obj_sign_0').setOrigin(0.5, 0.95).setDepth(c.y));
+        const ham = this.add.image(c.x, c.y - 30, 'icon_res_hammer').setDepth(99999).setScale(0.6);
+        this.tweens.add({ targets: ham, y: c.y - 34, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        objs.push(sign, ham);
+      } else {
+        objs.push(...this.drawBuilding(b.type as BuildingId, b.level, c.x, c.y));
+        const lv = this.add.text(c.x, c.y + 10, `Lv${b.level}`, { fontFamily: FONT, fontSize: '7px', color: '#ffe7a0', stroke: '#0b0705', strokeThickness: 2, resolution: 4 }).setOrigin(0.5, 0).setDepth(c.y + 30);
+        objs.push(lv);
+      }
+      this.plotViews.push({ x: c.x, y: c.y, objs, bubble: null, key: b ? `${b.type}${b.level}` : 'empty' });
+    });
+  }
+
+  drawBuilding(type: BuildingId, level: number, x: number, y: number): Phaser.GameObjects.GameObject[] {
+    const o: Phaser.GameObjects.GameObject[] = [];
+    const add = (k: string, dx: number, dy: number, s = 1) => {
+      if (!this.textures.exists(k)) return;
+      const im = this.fit(this.add.image(x + dx, y + dy, k).setOrigin(0.5, 0.95));
+      im.setScale(im.scaleX * s).setDepth(y + dy);
+      o.push(im, this.castShadow(im, 0.8));
+    };
+    if (this.textures.exists(`ai_bld_${type}`)) { add(`ai_bld_${type}`, 0, 12); return o; }
+    if (type === 'lumber') { add('obj_log_0', -10, 2); add('obj_log_0', 6, 8); add('obj_log_0', -2, -4); add('obj_crate_0', 16, -2); add('obj_barrel_0', -18, 10); }
+    else if (type === 'quarry') { add('obj_bigrock_0', -6, 2, 1.1); add('obj_rock_0', 12, 8); add('obj_rock_1', -16, 10); add('obj_crate_0', 14, -6); }
+    else if (type === 'farm') { const f = this.add.image(x, y + 2, 'fx_field').setDepth(1.4); o.push(f); add('obj_haystack_0', 18, 0); }
+    else if (type === 'forge') { add('obj_building_0', 0, 14, 0.8); }
+    if (level >= 3) add('obj_lamp_0', -22, -4);
+    return o;
+  }
+
+  updateSettlement(time: number) {
+    if (time - this.lastSettle < 1000) return;
+    this.lastSettle = time;
+    const s = S();
+    settleTick(s);
+    PLOTS.forEach((_, i) => {
+      const b = buildingAt(s, i), v = this.plotViews[i];
+      if (!v) return;
+      const key = b ? `${b.type}${b.level}` : 'empty';
+      if (key !== v.key) { this.buildPlots(); return; }
+      const res = b ? BUILDINGS[b.type as BuildingId].produces : undefined;
+      const show = !!res && b!.stored >= 1;
+      if (show && !v.bubble) {
+        const bub = this.add.container(v.x, v.y - 44).setDepth(99998);
+        const g = this.add.graphics().fillStyle(0xffffff, 0.95).fillCircle(0, 0, 9).fillTriangle(-4, 7, 4, 7, 0, 13).lineStyle(1.5, 0x3a8a3a, 1).strokeCircle(0, 0, 9);
+        bub.add([g, this.add.image(0, 0, `icon_res_${res}`).setScale(0.5)]);
+        this.tweens.add({ targets: bub, y: v.y - 48, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        v.bubble = bub;
+      } else if (!show && v.bubble) { v.bubble.destroy(); v.bubble = null; }
+      // walk close to collect
+      if (show && Math.hypot(v.x - this.hero.x, v.y - this.hero.y) < 34) {
+        const r = settleCollect(s, i);
+        if (r) { sfx.coin(); this.floatText(v.x, v.y - 30, `+${r.amount} ${RES_NAMES[r.res]}`, '#9fffb0', 1); bus.emit(EV.STATE_CHANGED); }
+      }
+    });
+  }
+
   quickPotion(auto = false) {
     const s = S(), now = this.time.now;
     if (now - this.lastPotion < (auto ? 1500 : 400)) return;
@@ -710,7 +844,9 @@ export class WorldScene extends Phaser.Scene {
       const d = Math.hypot(m.x - h.x, m.y - h.y) - m.def.bodyRadius;
       if (d < bd) { bd = d; best = m; }
     }
+    let node: WorldScene['nodes'][number] | null = null;
     if (best) h.setFacing(best.x - h.x, best.y - h.y);
+    else { node = this.nearestNode(30); if (node) h.setFacing(node.x - h.x, node.y - 6 - h.y); }
     const dur = Math.min(260, this.der.attackInterval * 0.8);
     h.doAttack(time, dur);
     sfx.swing();
@@ -735,6 +871,7 @@ export class WorldScene extends Phaser.Scene {
         this.hitMonster(m, this.der.atk, 1, 'phys');
         hitAny = true;
       }
+      if (!hitAny && node) this.hitNode(node);
     });
   }
 
@@ -1094,6 +1231,9 @@ export class WorldScene extends Phaser.Scene {
       this.dropLoot(m.x, m.y, base.id, 1, makeGear(Math.random, base.id, rar));
     }
     this.burst(m.x, m.cy, 0xffffff, 10, 50);
+    const food = ({ slime: 1, shroom: 2, wolf: 4, goblin: 3, wisp: 1, treant: 40 } as Record<string, number>)[m.def.kind] ?? 1;
+    s.res.food += food;
+    this.floatText(m.x + 12, m.cy - 6, `+${food} อาหาร`, '#ffb090', 0.8);
     if (m.def.boss) {
       this.bossDeadAt = this.time.now;
       s.bossDefeated++;
@@ -1179,6 +1319,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   tryTalk(id: string) {
+    if (id.startsWith('plot:')) { sfx.click(); bus.emit(EV.PLOT, Number(id.slice(5))); return; }
     const n = this.npcs.find(q => q.id === id);
     if (!n) return;
     if (Math.hypot(n.x - this.hero.x, n.y - this.hero.y) > 40) { bus.emit(EV.TOAST, 'เดินเข้าไปใกล้กว่านี้', '#e8c872'); return; }

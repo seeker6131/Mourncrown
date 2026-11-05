@@ -111,6 +111,28 @@ function skHeal() {
   return p;
 }
 
+function resWood() {
+  const p = new PixelCanvas(16, 16);
+  for (const [y, x] of [[10, 2], [6, 4], [2, 6]] as const) { p.shadedRect(x, y, 10, 4, 0x9a6234); p.ellipse(x + 10, y + 2, 1.6, 2, 0xe0b878); p.set(x + 10, y + 2, 0x9a6234); }
+  p.outline(OUT, false); return p;
+}
+function resStone() {
+  const p = new PixelCanvas(16, 16);
+  p.shadedEllipse(6, 10, 5, 4, 0x9a96aa); p.shadedEllipse(11, 9, 4, 3.5, 0x8a8698); p.shadedEllipse(8, 6, 3.5, 3, 0xb0acc0);
+  p.outline(OUT, false); return p;
+}
+function resFood() {
+  const p = new PixelCanvas(16, 16);
+  p.shadedEllipse(7, 7, 5.5, 4.5, 0xc8402e); p.ellipse(7, 7, 2.5, 2, 0xf0a090);
+  p.thickLine(11, 10, 14, 14, 0xf2e8d0, 2); p.set(14, 13, 0xffffff); p.set(15, 14, 0xffffff);
+  p.outline(OUT, false); return p;
+}
+function resHammer() {
+  const p = new PixelCanvas(16, 16);
+  p.thickLine(3, 14, 10, 7, 0x8a5a2a, 2); p.shadedRect(7, 2, 8, 5, 0x9aa0b0); p.rect(7, 2, 8, 1, 0xd8dce8);
+  p.outline(OUT, false); return p;
+}
+
 export function buildIcons(): Record<string, PixelCanvas> {
   return {
     sword0: sword(0xb08850, 0x6a4126, 0x8a6030),
@@ -140,6 +162,10 @@ export function buildIcons(): Record<string, PixelCanvas> {
     sk_flame: skFlame(),
     sk_thunder: skThunder(),
     sk_heal: skHeal(),
+    res_wood: resWood(),
+    res_stone: resStone(),
+    res_food: resFood(),
+    res_hammer: resHammer(),
   };
 }
 
@@ -256,6 +282,25 @@ export function buildVfx(): Record<string, HTMLCanvasElement | PixelCanvas> {
     x.globalAlpha = 1; x.lineWidth = 3.5; x.beginPath(); x.ellipse(32, 62, 28, 9, 0, a0, a1); x.stroke();
     out[k] = cv;
   }
+  // tree stump / rubble after harvesting
+  const st = new PixelCanvas(20, 14);
+  st.shadedEllipse(10, 9, 7, 4, 0x6a4428); st.ellipse(10, 7, 5.5, 2.5, 0xc89a60); st.ellipse(10, 7, 3, 1.3, 0x9a6a3a);
+  st.rect(2, 10, 3, 2, 0x5a3a20); st.rect(15, 10, 3, 2, 0x4a2c18); st.outline(OUT); out.stump = st;
+  const rb = new PixelCanvas(20, 12);
+  for (const [x, y, r] of [[6, 8, 3], [12, 9, 2.5], [9, 6, 2], [15, 7, 1.6]] as const) rb.shadedEllipse(x, y, r, r * 0.8, 0x9a96aa);
+  rb.outline(OUT); out.rubble = rb;
+  // tilled farm field (iso 3x3 tiles) with crops
+  const fc = document.createElement('canvas'); fc.width = 96; fc.height = 48;
+  const fx2 = fc.getContext('2d')!;
+  for (let y = 0; y < 48; y++) for (let x = 0; x < 96; x++) {
+    const u = (x - 48) / 48, v = (y - 24) / 24;
+    if (Math.abs(u) + Math.abs(v) > 1) continue;
+    const row = Math.floor((x / 2 + y) / 6);
+    fx2.fillStyle = (x / 2 + y) % 6 < 2 ? '#5a3a22' : '#7a5232';
+    fx2.fillRect(x, y, 1, 1);
+    if ((x / 2 + y) % 6 > 3 && (x * 7 + row * 13) % 9 === 0) { fx2.fillStyle = row % 3 ? '#5aa83a' : '#e8c040'; fx2.fillRect(x, y - 3, 1, 3); fx2.fillStyle = '#7ad04a'; fx2.fillRect(x - 1, y - 3, 3, 1); }
+  }
+  out.field = fc;
   // butterfly (white, tinted in game; flaps via scaleX)
   const bf = new PixelCanvas(7, 5);
   bf.rect(0, 0, 3, 2, 0xffffff); bf.rect(4, 0, 3, 2, 0xffffff); bf.rect(1, 2, 2, 2, 0xe8e8e8); bf.rect(4, 2, 2, 2, 0xe8e8e8); bf.rect(3, 1, 1, 3, 0x3a2a2a);

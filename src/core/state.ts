@@ -39,6 +39,8 @@ export interface GameState {
   bossDefeated: number;
   chests: number[];
   mapVer: number;
+  res: { wood: number; stone: number; food: number };
+  buildings: { plot: number; type: string; level: number; stored: number; last: number }[];
   dayTime: number;
 }
 
@@ -68,6 +70,8 @@ export function newGameState(): GameState {
     bossDefeated: 0,
     chests: [],
     mapVer: 2,
+    res: { wood: 0, stone: 0, food: 0 },
+    buildings: [],
     dayTime: 0.15,
   };
   return s;

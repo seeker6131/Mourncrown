@@ -23,4 +23,5 @@ export const EV = {
   HERO_DIED: 'herodied',
   ZONE: 'zone',                // (zoneName)
   MINIMAP: 'minimap',
+  PLOT: 'plot',               // (plotIndex)
 };
