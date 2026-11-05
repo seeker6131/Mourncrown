@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { generateWorld, MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, type WorldMap } from '../world/mapgen';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
 import { HOUSE_ANCHOR } from '../art/textures';
+import { hasAi, aiPixels } from '../art/aiAssets';
 import { Hero } from '../entities/Hero';
 import { Monster } from '../entities/Monster';
 import { bus, EV, S, runtime } from '../core/events';
@@ -74,20 +75,34 @@ export class WorldScene extends Phaser.Scene {
     this.add.image(0, 0, 'ground').setOrigin(0).setDepth(0);
 
     // objects
+    const ai = hasAi(this, 'house_0');
     for (const o of this.map.objects) {
       if (o.type === 'campfire') {
-        this.add.sprite(o.x, o.y, 'obj_campfire').setOrigin(0.5, 0.9).setDepth(o.y).play('campfire_burn');
+        if (ai) {
+          const cf = this.add.image(o.x, o.y + 4, 'ai_campfire').setOrigin(0.5, 0.92).setDepth(o.y);
+          this.tweens.add({ targets: cf, scaleY: { from: 0.97, to: 1.04 }, duration: 160, yoyo: true, repeat: -1 });
+          this.burstLoop(o.x, o.y - 10);
+        } else this.add.sprite(o.x, o.y, 'obj_campfire').setOrigin(0.5, 0.9).setDepth(o.y).play('campfire_burn');
         this.nightLights.push(this.addGlow(o.x, o.y - 8, 0xff9a3a, 1.6, true));
         continue;
       }
-      if (o.type === 'house') {
-        const n = iso(o.tx - 2, o.ty - 2);
-        const img = this.add.image(n.x, n.y, `obj_house_${o.v}`);
-        img.setOrigin(HOUSE_ANCHOR.ax / img.width, HOUSE_ANCHOR.ay / img.height).setDepth(o.y + 10);
-        const sh = iso(o.tx + 0.5, o.ty);
-        this.add.image(sh.x + 18, sh.y + 6, 'fx_shadow').setScale(5.5, 3.2).setAlpha(0.8).setDepth(1);
-        const wl = iso(o.tx - 0.2, o.ty + 1);
-        this.nightLights.push(this.addGlow(wl.x - 14, wl.y - 20, 0xffc060, 0.7, true), this.addGlow(wl.x + 34, wl.y - 2, 0xffc060, 0.7, true));
+      if (o.type === 'house' || o.type === 'building') {
+        const key = `obj_${o.type}_${o.v}`;
+        const w = o.solid!.w, h = o.solid!.h;
+        const sx0 = o.tx - Math.floor((w - 1) / 2), sy0 = o.ty - h + 1;
+        const c = iso(sx0 + w / 2, sy0 + h / 2), bot = iso(sx0 + w, sy0 + h);
+        this.add.image(c.x + 10, c.y + 4, 'fx_shadow').setScale(w * 1.15, h * 1.25).setAlpha(0.8).setDepth(1);
+        if (ai) {
+          this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10);
+        } else {
+          const n = iso(o.tx - 2, o.ty - 2);
+          const img = this.add.image(n.x, n.y, `obj_house_${o.v % 2}`);
+          img.setOrigin(HOUSE_ANCHOR.ax / img.width, HOUSE_ANCHOR.ay / img.height).setDepth(o.y + 10);
+        }
+        // warm window light (brighter at night)
+        this.nightLights.push(this.addGlow(c.x - 14, c.y - 6, 0xffc060, 0.75, true), this.addGlow(c.x + 18, c.y - 2, 0xffc060, 0.7, true));
+        if (o.type === 'building' && o.v === 1) this.addGlow(c.x, c.y - 92, 0x7ad8ff, 1.2, true); // tower crystal
+        if (o.type === 'building' && o.v === 0) this.nightLights.push(this.addGlow(c.x + 12, c.y - 10, 0xff8a3a, 1.1, true)); // forge
         continue;
       }
       if (o.type === 'chest') {
@@ -99,28 +114,37 @@ export class WorldScene extends Phaser.Scene {
         continue;
       }
       if (o.type === 'wall') {
+        if (ai && o.v < 6) {
+          if ((o.tx + o.ty) % 2) continue; // ai wall pieces span ~2 tiles
+          this.add.image(o.x, o.y + 6, `obj_wall_${o.v}`).setOrigin(0.5, 0.92).setDepth(o.y + 2);
+          continue;
+        }
         const img = this.add.image(o.x, o.y + 4, `obj_wall_${o.v}`);
         const hh = o.v >= 6 ? 26 : 24;
         img.setOrigin(19 / img.width, (hh + 12) / img.height).setDepth(o.y + 2);
         continue;
       }
       if (o.type === 'tree' || o.type === 'pine') this.add.image(o.x + 5, o.y + 4, 'fx_shadow').setScale(o.type === 'tree' ? 2.4 : 1.8, 1.7).setAlpha(0.85).setDepth(1);
-      if (o.type === 'bigrock' || o.type === 'bush' || o.type === 'tent' || o.type === 'stall' || o.type === 'well') this.add.image(o.x + 3, o.y + 3, 'fx_shadow').setScale(1.4, 1.1).setDepth(1);
-      const key = `obj_${o.type}_${o.v}`;
+      if (['bigrock', 'bush', 'tent', 'stall', 'well', 'statue', 'haystack', 'stairs', 'altar'].includes(o.type)) this.add.image(o.x + 3, o.y + 3, 'fx_shadow').setScale(1.4, 1.1).setDepth(1);
+      let key = `obj_${o.type}_${o.v}`;
+      if (!this.textures.exists(key)) key = `obj_${o.type}_0`;
+      if (!this.textures.exists(key)) continue;
       const flat = o.type === 'flower' || o.type === 'tuft' || o.type === 'lily';
-      const oy = o.type === 'lily' ? WATER_DEPTH + 2 : flat ? 2 : 3;
-      const originY: Record<string, number> = { fence: 0.78, crate: 0.75, stall: 0.85, altar: 0.86, tent: 0.92 };
-      const img = this.add.image(o.x, o.y + oy, this.textures.exists(key) ? key : `obj_${o.type}_0`)
-        .setOrigin(0.5, originY[o.type] ?? 1);
-      img.setDepth(o.type === 'lily' ? 1 : flat ? o.y - 12 : o.y);
+      const oy = o.type === 'lily' ? WATER_DEPTH + 2 : flat ? 2 : 4;
+      const originY: Record<string, number> = ai
+        ? { fence: 0.85, crate: 0.9, stall: 0.92, altar: 0.88, tent: 0.92, wall: 0.92, barrel: 0.95, stairs: 0.9, well: 0.92, chest: 0.92 }
+        : { fence: 0.78, crate: 0.75, stall: 0.85, altar: 0.86, tent: 0.92 };
+      const img = this.add.image(o.x, o.y + oy, key).setOrigin(0.5, originY[o.type] ?? 0.97);
+      img.setDepth(o.type === 'lily' ? 1 : flat ? o.y - 12 : o.type === 'arch' ? o.y + 6 : o.y);
       if (o.type === 'tree' || o.type === 'pine') {
         img.setFlipX(((o.x * 7 + o.y * 3) & 8) > 0);
         // gentle canopy sway
         this.tweens.add({ targets: img, scaleX: { from: 1, to: 1.015 }, duration: 1800 + (o.x % 700), yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: o.y % 1000 });
+        if (o.v === 2) this.addGlow(o.x, o.y - 30, 0x5ae0d0, 1.2, true);
       }
-      if (o.type === 'lamp') this.nightLights.push(this.addGlow(o.x, o.y - 26, 0xffd060, 0.9, true));
+      if (o.type === 'lamp') this.nightLights.push(this.addGlow(o.x + (ai ? -6 : 0), o.y - (ai ? 28 : 26), 0xffd060, 0.9, true));
       if (o.type === 'crystal') this.addGlow(o.x, o.y - 12, 0x5ae0ff, 1.8, true);
-      if (o.type === 'altar') this.addGlow(o.x, o.y - 22, 0xb07aff, 1.8, true);
+      if (o.type === 'altar') this.addGlow(o.x, o.y - (ai ? 30 : 22), 0xb07aff, 1.8, true);
       if (o.type === 'mushrooms' && o.v === 1) this.addGlow(o.x, o.y - 6, 0x6ae0ff, 0.6, true);
     }
 
@@ -192,6 +216,15 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- Ambient / atmosphere ----------
+  burstLoop(x: number, y: number) {
+    this.time.addEvent({ delay: 220, loop: true, callback: () => {
+      const v = this.cameras.main.worldView;
+      if (!v.contains(x, y)) return;
+      const p = this.add.image(x + Math.random() * 10 - 5, y, 'fx_px').setTint(Math.random() < 0.5 ? 0xffb040 : 0xff6a2a).setBlendMode(Phaser.BlendModes.ADD).setDepth(y + 20).setScale(0.6);
+      this.tweens.add({ targets: p, y: y - 16 - Math.random() * 14, x: p.x + Math.random() * 8 - 4, alpha: 0, duration: 700 + Math.random() * 500, onComplete: () => p.destroy() });
+    } });
+  }
+
   addGlow(x: number, y: number, color: number, scale: number, flicker: boolean) {
     const g = this.add.image(x, y, 'fx_glow').setTint(color).setBlendMode(Phaser.BlendModes.ADD).setScale(scale).setAlpha(0.45).setDepth(99990);
     if (flicker) this.tweens.add({ targets: g, alpha: { from: 0.32, to: 0.55 }, scale: { from: scale * 0.92, to: scale * 1.05 }, duration: 300 + Math.random() * 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -852,7 +885,7 @@ export class WorldScene extends Phaser.Scene {
   dropLoot(x: number, y: number, id: string, qty: number) {
     const icon = id === 'gold' ? 'icon_gold' : `icon_${itemDef(id).icon}`;
     const tx = x + Phaser.Math.Between(-16, 16), ty = y + Phaser.Math.Between(-8, 10);
-    const sp = this.add.image(x, y - 8, icon).setDepth(ty).setScale(0.8);
+    const sp = this.add.image(x, y - 8, icon).setDepth(ty).setScale(0.45);
     this.tweens.add({ targets: sp, x: tx, duration: 450 });
     this.tweens.add({ targets: sp, y: { from: y - 8, to: ty - 22 }, duration: 220, ease: 'Quad.easeOut', yoyo: false, onComplete: () => this.tweens.add({ targets: sp, y: ty - 6, duration: 230, ease: 'Bounce.easeOut' }) });
     if (id !== 'gold' && itemDef(id).rarity >= 1) {

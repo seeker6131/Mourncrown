@@ -24,7 +24,7 @@ export function unIso(sx: number, sy: number) {
 export enum G { Grass = 0, Path = 1, Water = 2, Sand = 3, Forest = 4, Grove = 5, Plaza = 6, Ruins = 7, Bridge = 8 }
 
 export type ObjType = 'tree' | 'pine' | 'bush' | 'rock' | 'bigrock' | 'flower' | 'tuft' | 'mushrooms' | 'house' | 'well' | 'fence' | 'sign' | 'campfire'
-  | 'lamp' | 'wall' | 'chest' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
+  | 'lamp' | 'wall' | 'chest' | 'building' | 'haystack' | 'statue' | 'arch' | 'stairs' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log';
 
 export interface WorldObj { type: ObjType; x: number; y: number; v: number; tx: number; ty: number; solid?: { w: number; h: number } }
 
@@ -151,11 +151,14 @@ export function generateWorld(seed = 1337): WorldMap {
   const houses: [number, number, number][] = [[8, 32, 0], [21, 31, 1], [7, 46, 1], [22, 47, 0]];
   for (const [x, y, v] of houses) put('house', x, y, v, { w: 5, h: 3 });
   put('well', 15, 45, 0, { w: 1, h: 1 });
+  put('building', 6, 41, 0, { w: 3, h: 3 }); // blacksmith workshop
+  put('building', 12, 32, 1, { w: 2, h: 2 }); // elder's tower
+  put('haystack', 24, 34, 0, { w: 1, h: 1 }); put('haystack', 4, 44, 0, { w: 1, h: 1 });
   put('campfire', 12, 42, 0, { w: 1, h: 1 });
   put('stall', 20, 40, 0, { w: 3, h: 1 });
   put('sign', 25, 38, 0, { w: 1, h: 1 });
   put('lamp', 11, 36, 0, { w: 1, h: 1 }); put('lamp', 19, 36, 0, { w: 1, h: 1 }); put('lamp', 11, 44, 0, { w: 1, h: 1 }); put('lamp', 19, 44, 0, { w: 1, h: 1 });
-  for (const [x, y] of [[17, 41], [25, 43], [6, 37], [23, 36]] as const) put(rnd() < 0.5 ? 'barrel' : 'crate', x, y, 0, { w: 1, h: 1 });
+  for (const [x, y] of [[17, 41], [25, 43], [5, 36], [23, 36]] as const) put(rnd() < 0.5 ? 'barrel' : 'crate', x, y, 0, { w: 1, h: 1 });
   // fence ring around village (with gaps for path)
   for (let a = 0; a < Math.PI * 2; a += 0.09) {
     const fx = Math.round(15 + Math.cos(a) * 13), fy = Math.round(39 + Math.sin(a) * 11);
@@ -174,6 +177,10 @@ export function generateWorld(seed = 1337): WorldMap {
     put(i % 3 === 1 ? 'brokenpillar' : 'pillar', px, py, i, { w: 1, h: 1 });
   }
   put('altar', B.cx + 4, B.cy - 3, 0, { w: 2, h: 1 });
+  put('statue', B.cx - 4, B.cy + 4, 0, { w: 1, h: 1 });
+  put('statue', B.cx + 3, B.cy + 5, 0, { w: 1, h: 1 });
+  put('stairs', B.cx + 6, B.cy - 6, 0, { w: 2, h: 1 });
+  objects.push({ type: 'arch', ...iso(B.cx - 9.5, B.cy + 0.5), v: 0, tx: B.cx - 10, ty: B.cy });
   // ruined stone wall ring around the arena (gaps for the path and crumbled sections)
   for (let ty = B.cy - 12; ty <= B.cy + 12; ty++) for (let tx = B.cx - 12; tx <= B.cx + 12; tx++) {
     const dx = tx + 0.5 - B.cx, dy = (ty + 0.5 - B.cy) * 1.15;
@@ -222,7 +229,9 @@ export function generateWorld(seed = 1337): WorldMap {
       let v = g === G.Grove ? 2 : g === G.Forest ? 1 : 0;
       if (g === G.Grass && rnd() < 0.15) v = 3; // blossom tree
       if (g === G.Forest && rnd() < 0.08) v = 4; // autumn
-      put(type, x, y, v, { w: 1, h: 1 });
+      else if (g === G.Forest && rnd() < 0.1) v = 5; // dead tree
+      if (zoneDist('arena', x, y) < 1.6 && rnd() < 0.35) v = 5;
+      put(v === 5 ? 'tree' : type, x, y, v, { w: 1, h: 1 });
       continue;
     }
     if (!free(x, y)) continue;

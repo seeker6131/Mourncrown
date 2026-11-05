@@ -22,11 +22,13 @@ function addSheet(scene: Phaser.Scene, key: string, groups: { name: string; fram
   return tex;
 }
 
-function addSingle(scene: Phaser.Scene, key: string, p: PixelCanvas | HTMLCanvasElement) {
+function addSingle(scene: Phaser.Scene, key: string, p: PixelCanvas | HTMLCanvasElement, scale = 1) {
   if (scene.textures.exists(key)) return;
   if (p instanceof PixelCanvas) {
-    const cv = document.createElement('canvas'); cv.width = p.w; cv.height = p.h;
-    p.drawTo(cv.getContext('2d')!, 0, 0);
+    const cv0 = document.createElement('canvas'); cv0.width = p.w; cv0.height = p.h;
+    p.drawTo(cv0.getContext('2d')!, 0, 0);
+    const cv = document.createElement('canvas'); cv.width = p.w * scale; cv.height = p.h * scale;
+    const cx = cv.getContext('2d')!; cx.imageSmoothingEnabled = false; cx.drawImage(cv0, 0, 0, cv.width, cv.height);
     scene.textures.addCanvas(key, cv);
   } else scene.textures.addCanvas(key, p);
 }
@@ -94,7 +96,7 @@ export function generateAll(scene: Phaser.Scene) {
   addSheet(scene, 'obj_campfire', [{ name: 'burn', frames: [0, 1, 2, 3].map(f => W.campfire(f)) }]);
   scene.anims.create({ key: 'campfire_burn', frames: [0, 1, 2, 3].map(i => ({ key: 'obj_campfire', frame: `burn_${i}` })), frameRate: 8, repeat: -1 });
   // icons & vfx
-  for (const [k, p] of Object.entries(buildIcons())) addSingle(scene, `icon_${k}`, p);
+  for (const [k, p] of Object.entries(buildIcons())) addSingle(scene, `icon_${k}`, p, 2);
   for (const [k, p] of Object.entries(buildVfx())) addSingle(scene, `fx_${k}`, p);
   // default hero
   ensureHeroTexture(scene, 0, 0);

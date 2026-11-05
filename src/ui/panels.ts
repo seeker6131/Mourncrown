@@ -120,7 +120,7 @@ export class Panels {
       k.iconSlot(g, sx, sy, 28, it ? RARITY_COLORS[itemDef(it.id).rarity] : undefined, it?.uid === this.selUid && !!it);
       c.add(k.text(sx + 14, sy + 30, label, 6.5, '#b8a078').setOrigin(0.5, 0));
       if (it) {
-        c.add(ui.add.image(sx + 14, sy + 14, `icon_${itemDef(it.id).icon}`).setScale(1.4));
+        c.add(ui.add.image(sx + 14, sy + 14, `icon_${itemDef(it.id).icon}`).setScale(0.7));
         if (it.upg) c.add(k.text(sx + 27, sy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
         const z = ui.add.zone(sx, sy, 28, 28).setOrigin(0).setInteractive();
         z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
@@ -129,7 +129,7 @@ export class Panels {
     }
     const d = derive(s);
     c.add(k.text(ex + 6, ey + 146, `ATK ${d.atk}   MATK ${d.matk}\nDEF ${d.def}   HP ${d.maxHp}\nคริ ${(d.crit * 100).toFixed(1)}%`, 8, '#f3e6c4', { lineSpacing: 3 }));
-    c.add(ui.add.image(ex + 10, ey + H - 66, 'icon_gold').setScale(0.8));
+    c.add(ui.add.image(ex + 10, ey + H - 66, 'icon_gold').setScale(0.4));
     c.add(k.text(ex + 20, ey + H - 72, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
 
     // grid
@@ -140,7 +140,7 @@ export class Panels {
       const def = it ? itemDef(it.id) : null;
       k.iconSlot(g, cx, cy, cs, def ? RARITY_COLORS[def.rarity] : undefined, !!it && it.uid === this.selUid);
       if (it && def) {
-        c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(1.5));
+        c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.75));
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
         if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
         if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
@@ -162,7 +162,7 @@ export class Panels {
     if (!it) { c.add(k.text(x + w / 2, y + h / 2, 'แตะไอเทม\nเพื่อดูรายละเอียด', 9, '#8a7a60', { align: 'center' }).setOrigin(0.5)); return; }
     const def = itemDef(it.id);
     k.iconSlot(g, x + 6, y + 6, 30, RARITY_COLORS[def.rarity]);
-    c.add(ui.add.image(x + 21, y + 21, `icon_${def.icon}`).setScale(1.6));
+    c.add(ui.add.image(x + 21, y + 21, `icon_${def.icon}`).setScale(0.8));
     c.add(k.text(x + 42, y + 6, def.name + (it.upg ? ` +${it.upg}` : ''), 9.5, '#' + RARITY_COLORS[def.rarity].toString(16).padStart(6, '0'), { wordWrap: { width: w - 46 } }));
     c.add(k.text(x + 42, y + 24, RARITY_NAMES[def.rarity], 7.5, '#a89878'));
     c.add(k.text(x + 6, y + 42, statLines(def, it.upg).join('\n') + (statLines(def, it.upg).length ? '\n' : '') + def.desc, 8, '#e8dcc0', { wordWrap: { width: w - 12 }, lineSpacing: 2 }));
@@ -240,7 +240,7 @@ export class Panels {
     SKILLS.forEach((sk, i) => {
       const sy = ly + 74 + i * 52;
       const locked = s.level < sk.unlockLevel;
-      c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setScale(1.4).setAlpha(locked ? 0.4 : 1));
+      c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setScale(0.7).setAlpha(locked ? 0.4 : 1));
       c.add(k.text(rx + 38, sy + 2, sk.name + (locked ? `  🔒 Lv${sk.unlockLevel}` : ''), 9, locked ? '#8a7a60' : '#9ad8ff'));
       c.add(k.text(rx + 38, sy + 15, `${sk.desc}\nMP ${sk.mp}  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 46 }, lineSpacing: 1 }));
     });
@@ -338,7 +338,7 @@ export class Panels {
     const { x, y, g } = this.window(c, W, H, 'ร้านค้าของมิร่า');
     c.add(k.button(x + 14, y + 28, 70, 20, 'ซื้อ', () => { this.shopTab = 'buy'; this.selUid = null; this.rebuild(); }, { size: 9.5, color: this.shopTab === 'buy' ? 0x6a4a10 : 0x2a1d12 }));
     c.add(k.button(x + 88, y + 28, 70, 20, 'ขาย', () => { this.shopTab = 'sell'; this.selUid = null; this.rebuild(); }, { size: 9.5, color: this.shopTab === 'sell' ? 0x6a4a10 : 0x2a1d12 }));
-    c.add(ui.add.image(x + W - 90, y + 38, 'icon_gold').setScale(0.8));
+    c.add(ui.add.image(x + W - 90, y + 38, 'icon_gold').setScale(0.4));
     c.add(k.text(x + W - 80, y + 31, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
     const top = y + 54;
     if (this.shopTab === 'buy') {
@@ -348,7 +348,7 @@ export class Panels {
         const cx = x + 14 + (i % cols) * (cw + 6), cy = top + Math.floor(i / cols) * (ch + 4);
         g.fillStyle(0x2a1d12, 0.85).fillRoundedRect(cx, cy, cw, ch, 3);
         g.lineStyle(1, RARITY_COLORS[def.rarity], 0.6).strokeRoundedRect(cx, cy, cw, ch, 3);
-        c.add(ui.add.image(cx + 20, cy + ch / 2, `icon_${def.icon}`).setScale(1.6));
+        c.add(ui.add.image(cx + 20, cy + ch / 2, `icon_${def.icon}`).setScale(0.8));
         c.add(k.text(cx + 38, cy + 4, def.name, 9, '#' + RARITY_COLORS[def.rarity].toString(16).padStart(6, '0')));
         c.add(k.text(cx + 38, cy + 20, statLines(def, 0).join('  ') || def.desc, 7, '#c8b898', { wordWrap: { width: cw - 110 } }));
         const can = s.gold >= def.price;
@@ -365,7 +365,7 @@ export class Panels {
         const def = itemDef(it.id);
         const cx = x + 14 + (i % cols) * (cs + 3), cy = top + Math.floor(i / cols) * (cs + 3);
         k.iconSlot(g, cx, cy, cs, RARITY_COLORS[def.rarity], it.uid === this.selUid);
-        c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(1.5));
+        c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.75));
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
         if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
         const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
@@ -389,7 +389,7 @@ export class Panels {
       const def = itemDef(it.id);
       const cx = x + 14 + (i % cols) * (cs + 4), cy = top + Math.floor(i / cols) * (cs + 4);
       k.iconSlot(g, cx, cy, cs, RARITY_COLORS[def.rarity], it.uid === this.selUid);
-      c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(1.6));
+      c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.8));
       if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7.5, '#9fffb0').setOrigin(1, 0));
       if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
       const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();

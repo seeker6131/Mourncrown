@@ -1,0 +1,63 @@
+# HANDOFF — Eldergrove Saga (อ่านไฟล์นี้ก่อนเริ่มงานต่อ)
+
+อัปเดตล่าสุด: 2026-11-05 · branch `ccr-dcfcac78-b3qj60` (push ที่นี่เท่านั้น)
+
+## ผู้ใช้ / บทบาท
+- ผู้ใช้ = Game Director ใช้ Android อย่างเดียว ไม่เขียนโค้ด ไม่จัดการไฟล์ สื่อสารภาษาไทย
+- เราทำทุกอย่าง: โค้ด, ภาพ, build, deploy แล้วส่งลิงก์ให้ลองเล่น
+- อยากได้สไตล์ **Isometric pixel art โทนอุ่น ละเอียด** (ภาพอ้างอิงจากโฆษณาเกมมือถือ — ห้ามคัดลอก)
+
+## ลิงก์ / Deploy
+- GitHub Pages: https://seeker6131.github.io/RPG-Newgame/ (Pages ตั้งเป็น branch `gh-pages` /root แล้ว)
+- Workflow `.github/workflows/deploy.yml`: push branch นี้ → test → build → peaceiris push `dist` ไป `gh-pages` → GitHub "pages build and deployment" อัตโนมัติ
+- Artifact สำรอง (ไฟล์เดียว): https://claude.ai/artifact/7XwQPwMHyCd66SJPrJmxkM
+  - สร้างจาก `npm run build:single` → ตัด `<html><head><body>`/meta charset/viewport ออก (สคริปต์ python ในประวัติ) → publish ด้วย Artifact tool ไปที่ URL เดิม
+- github.io เข้าจาก container ไม่ได้ (proxy 403) ตรวจสถานะด้วย `gh api repos/seeker6131/RPG-Newgame/actions/runs?per_page=1`
+
+## Tech
+- Phaser 3.90 + TypeScript + Vite 6, vitest (tests/systems.test.ts 10 tests)
+- คำสั่ง: `npm test`, `npm run build`, `npm run build:single`, `npx vite --port 5173`
+- ทดสอบด้วย Playwright (Pixel 7 landscape) สคริปต์อยู่ใน scratchpad (play.cjs/play2/3/4) — ถ้าหาย ให้เขียนใหม่: เปิดหน้า, tap ปุ่มเริ่ม (กลางจอ y=165/360), ใช้ `window.__game`, `window.__dbg.boss()/info()/save()`, `window.__dbgState()`
+
+## โครงสร้างโค้ด (src/)
+- `core/` state (GameState + save v1, `mapVer:2`), save.ts, events.ts (bus/EV), debug.ts (__dbg)
+- `systems/` stats, inventory (equip/upgrade), quests — pure logic + unit tests
+- `data/` items, skills (4), monsters (5 + boss treant), quests (6)
+- `world/mapgen.ts` แผนที่ 110×76 tile, **isometric 2:1** (`iso()`, `unIso()`, ISO_HW=16, ISO_HH=8), โซน, spawn, หีบ (CHEST_SPOTS/LOOT), กำแพง, ค่ายก็อบลิน
+- `art/` procedural pixel art: pixel.ts, heroArt, monsterArt, worldArt, iconArt, isoArt (พื้น iso + บ้าน/รั้ว/กำแพง/หีบ), textures.ts
+- `art/aiAssets.ts` **ใหม่**: โหลดภาพ AI จาก `src/assets/ai/*.png` (import.meta.glob) แล้ว `applyAiArt()` แทนที่ texture เดิม (alias)
+- `scenes/` Boot (preload AI + generate), Title, World (เกมหลัก/combat/VFX/กลางวันกลางคืน/หีบ), UI (HUD/จอย/ปุ่ม), Preview (`?preview`)
+- `ui/` kit (ดำทอง), panels (กระเป๋า/สเตตัส/เควสต์/เมนู/คุย NPC/ร้าน/ตีบวก)
+
+## สิ่งที่เสร็จแล้ว
+- v0.1 เกมเล่นได้ครบ: Manual/Auto, 4 สกิล, EXP/stat, กระเป๋า/อุปกรณ์/ตีบวก, ร้าน, 6 เควสต์, บอส 2 เฟส, เซฟ/โหลด
+- v0.2 isometric + ตลิ่งน้ำ, บ้าน iso, กลางวัน/กลางคืน (6 นาที), กำแพงหิน/รั้วไม้, หีบ 8 ใบ, เงา, วงแหวนเป้า
+- **v0.3 (กำลังทำ)** นำเข้าภาพ AI ที่ผู้ใช้สร้างด้วย GPT (ผู้ใช้สร้างเองจาก prompt ที่เราให้):
+  - ต้นฉบับ `art-source/01..14.png` → `python3 tools/import_ai_assets.py` → `src/assets/ai/` (71 ไฟล์ ~0.86MB + meta.json)
+  - 01 บ้านหลังคาฟาง, 02 บ้านกระเบื้องแดง, 03 โรงตีเหล็ก, 04 แผงร้าน, 05 หอคอยผู้เฒ่า, 06 ต้นไม้ 6, 07 ของตกแต่ง 12,
+    08 ซากวิหาร 8, 09 พื้น 8, 10 ฮีโร่ 8 ท่า, 11 มอนสเตอร์ 5, 12 ไอคอน 16, 13 บอส 3 ท่า, 14 ภาพหน้าเปิด (keyart.jpg)
+  - ทำแล้ว: loader + applyAiArt (ไอคอน 32px, ต้นไม้, ของตกแต่ง, ซากวิหาร, บ้าน, monster/boss anims แบบเฟรมเดียว), Boot preload,
+    mapgen เพิ่ม `building` (โรงตีเหล็ก 6,41 / หอคอย 12,32), haystack, statue, stairs, arch, ต้นไม้ตาย v5,
+    WorldScene วางวัตถุ AI (บ้านใช้ origin ล่าง-กลาง ตาม footprint), ไอคอน UI ลดสเกลครึ่ง (เพราะ 32px), ไฟเตาไฟ/ประกายไฟ
+
+## งานที่เหลือของ v0.3 (ทำต่อตามลำดับ)
+1. **Monster AI mode** (`entities/Monster.ts`): ภาพ AI หันซ้าย → ใช้ `AI_FACES_LEFT` กลับทิศ setFlipX ทั้ง 3 จุด;
+   origin ใช้ frame จริงของ anim แทน `getFrame('mon_kind','idle_0')`; เพิ่มการขยับด้วยโค้ด (หายใจ/กระโดดตอนเดิน/พองตอนโจมตี) เพราะมีภาพเดียว
+2. **Hero AI mode** (`entities/Hero.ts`): ใช้ `recolorHero(scene, armor)` → texture `aihero_a{n}_{0..7}`
+   ท่า: 0 ยืนล่างซ้าย, 1 ยืนล่างขวา, 2 ยืนบนซ้าย, 3 ยืนบนขวา, 4 เดิน(ล่างขวา, flip=ซ้าย), 5 ฟันดาบ, 6 ร่ายเวท, 7 เจ็บ
+   เดิน = สลับท่ายืน/เดิน + เด้งขึ้นลง; แก้ portrait ใน UIScene (บรรทัด ~104, ~332) และ panels.ts (~114) ที่ใช้ `hero.texKey,'down_idle_0'`
+3. **พื้นจาก tile AI**: `aiPixels(scene,'tile_*')` (128×64 diamond ครอบ 2×2 tile) ส่งเข้า `paintGroundIso` แล้วสุ่มตัวอย่างตาม (u,v)=frac(tx/2),frac(ty/2)
+   → px=64+64(u−v), py=32(u+v); Grove=forest ผสมเขียวอมฟ้า, Water=ผสมน้ำเงินเข้ม, Bridge=planks, Plaza=cobble, Ruins=ruins
+4. **Title**: ใช้ `ai_keyart` เป็นพื้นหลัง (cover) + ไล่เฉดมืดให้ปุ่มอ่านง่าย
+5. ทดสอบ Playwright ทุกโซน + กลางคืน + บอส, `npm test`, build, commit, push (deploy อัตโนมัติ), อัปเดต artifact, ส่งภาพหน้าจอให้ผู้ใช้
+6. ข้อจำกัดที่ต้องแจ้งผู้ใช้: ภาพ AI มีท่าเดียว (ขยับด้วยโค้ด), อาวุธบนตัวฮีโร่ไม่เปลี่ยนตามอาวุธที่ใส่ (ชุดเปลี่ยนสีได้)
+
+## ไอเดียถัดไป (หลัง v0.3)
+- APK ด้วย Capacitor + GitHub Actions (ผู้ใช้สนใจ)
+- Character creator / map editor ในเกม, ระบบนำเข้าภาพจากผู้ใช้
+- ขอภาพ GPT เพิ่ม: ท่าเดิน/โจมตีมอนสเตอร์, NPC 3 ตัว, ไอคอนสกิล 4, เต็นท์/ค่ายก็อบลิน, VFX
+- Prompt ที่ใช้ได้ผล: ต้องมี "TRUE ISOMETRIC 2:1 ... 26.5 degrees ... front corner points straight down ... object only, no ground, plain pure white background"
+
+## กฎ
+- ห้ามสร้าง PR จนกว่าผู้ใช้สั่ง, commit message ลงท้าย Co-Authored-By + Claude-Session ตาม system reminder
+- อย่าอ้างว่าทดสอบบนมือถือจริง (ทดสอบได้แค่ Playwright), รายงานตามจริง

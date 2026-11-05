@@ -111,7 +111,7 @@ export class UIScene extends Phaser.Scene {
     this.questText = k.text(8, 70, '', 8, '#f3e6c4', { wordWrap: { width: 150 }, lineSpacing: 2 });
     this.zoneText = k.text(this.VW / 2, 54, '', 14, '#ffe7a0', { strokeThickness: 4 }).setOrigin(0.5).setAlpha(0);
     this.root.add([this.lvText, this.hpText, this.mpText, this.expText, this.goldText, this.questText, this.zoneText]);
-    const gold = this.add.image(55, 52, 'icon_gold').setScale(0.7);
+    const gold = this.add.image(55, 52, 'icon_gold').setScale(0.35);
     this.root.add(gold);
     const qz = this.add.zone(4, 64, 160, 40).setOrigin(0).setInteractive();
     qz.on('pointerup', () => this.panels.open('quest'));

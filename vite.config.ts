@@ -7,6 +7,6 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: mode === 'single' ? 'dist-single' : 'dist',
     chunkSizeWarningLimit: 2000,
-    assetsInlineLimit: 0,
+    assetsInlineLimit: mode === 'single' ? 100_000_000 : 0,
   },
 }));
