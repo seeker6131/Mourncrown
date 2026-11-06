@@ -40,7 +40,7 @@ export interface GameState {
   chests: number[];
   mapVer: number;
   res: { wood: number; stone: number; food: number };
-  buildings: { plot: number; type: string; level: number; stored: number; last: number }[];
+  buildings: { plot: number; type: string; level: number; stored: number; last: number; done?: number }[];
   skillPts: number;
   skillLv: Record<string, number>;
   buff: { stat: string; pct: number; until: number } | null;

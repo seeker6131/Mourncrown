@@ -20,6 +20,10 @@ export function pay(s: GameState, c: Cost): boolean {
   return true;
 }
 
+/** Construction time (scaffolding shown, production paused) in ms. */
+export function buildTime(level: number) { return [0, 20, 60, 180, 420, 900][level] * 1000; }
+export function underConstruction(b: { done?: number }, now = Date.now()) { return !!b.done && now < b.done; }
+
 export function buildingAt(s: GameState, plot: number) { return s.buildings.find(b => b.plot === plot) ?? null; }
 
 export function build(s: GameState, plot: number, type: BuildingId, now = Date.now()): boolean {
@@ -27,7 +31,7 @@ export function build(s: GameState, plot: number, type: BuildingId, now = Date.n
   if (plot >= unlockedPlots(s.bossDefeated)) return false;
   if (s.buildings.some(b => b.type === type)) return false; // one of each
   if (!pay(s, levelCost(BUILDINGS[type], 1))) return false;
-  s.buildings.push({ plot, type, level: 1, stored: 0, last: now });
+  s.buildings.push({ plot, type, level: 1, stored: 0, last: now, done: now + buildTime(1) });
   return true;
 }
 
@@ -38,6 +42,7 @@ export function upgrade(s: GameState, plot: number): boolean {
   if (b.level >= d.maxLevel) return false;
   if (!pay(s, levelCost(d, b.level + 1))) return false;
   b.level++;
+  b.done = Date.now() + buildTime(b.level);
   return true;
 }
 
@@ -45,7 +50,7 @@ export function upgrade(s: GameState, plot: number): boolean {
 export function tick(s: GameState, now = Date.now()) {
   for (const b of s.buildings) {
     const d = BUILDINGS[b.type as BuildingId];
-    if (!d.produces) { b.last = now; continue; }
+    if (!d.produces || underConstruction(b, now)) { b.last = now; continue; }
     const mins = Math.max(0, (now - b.last) / 60000);
     b.stored = Math.min(storageCap(d, b.level), b.stored + ratePerMin(d, b.level) * mins);
     b.last = now;
@@ -53,7 +58,7 @@ export function tick(s: GameState, now = Date.now()) {
 }
 
 /** Collect whole units from a building; returns amount and resource. */
-export function collect(s: GameState, plot: number): { res: ResKey; amount: number } | null {
+export function collect(s: GameState, plot: number): { res: ResKey | 'gold'; amount: number } | null {
   const b = buildingAt(s, plot);
   if (!b) return null;
   const d = BUILDINGS[b.type as BuildingId];
@@ -61,7 +66,7 @@ export function collect(s: GameState, plot: number): { res: ResKey; amount: numb
   const amount = Math.floor(b.stored);
   if (amount < 1) return null;
   b.stored -= amount;
-  s.res[d.produces] += amount;
+  if (d.produces === 'gold') s.gold += amount; else s.res[d.produces] += amount;
   return { res: d.produces, amount };
 }
 
@@ -85,7 +90,7 @@ export function craft(s: GameState, slot: 'weapon' | 'armor' | 'accessory', rnd:
   return { ok: true, uid: it.uid, rar, id: itemDef(base.id).id };
 }
 
-export function levelOf(s: GameState, type: BuildingId) { return s.buildings.find(b => b.type === type)?.level ?? 0; }
+export function levelOf(s: GameState, type: BuildingId) { const b = s.buildings.find(q => q.type === type); return b ? (underConstruction(b) ? b.level - 1 : b.level) : 0; }
 
 export function cook(s: GameState, meal: MealId, now = Date.now()): 'ok' | 'no_kitchen' | 'no_food' | 'locked' {
   const lv = levelOf(s, 'kitchen');

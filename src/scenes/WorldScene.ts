@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { MAP_W, MAP_H, G, zoneAt, iso, unIso, WORLD_PX_W, WORLD_PX_H, CHEST_LOOT, PLOTS } from '../world/mapgen';
 import { generateMap, MAP_NAMES, type GameMap, type MapId } from '../world/maps';
-import { tick as settleTick, collect as settleCollect, buildingAt } from '../systems/settlement';
+import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, unlockedPlots, type BuildingId, type ResKey } from '../data/buildings';
 import { skillMult, currentSkills, activeTier } from '../systems/stats';
 import { CLASSES } from '../data/classes';
@@ -241,6 +241,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.buildPlots();
+    this.spawnLife();
 
     // hero
     let start = s.pos.x > 0 ? s.pos : this.map.heroStart;
@@ -648,6 +649,7 @@ export class WorldScene extends Phaser.Scene {
     { const t = unIso(h.x, h.y); const inTown = this.map.id === 'main' && (this.currentZone === 'village' || (t.tx >= 3 && t.tx <= 27 && t.ty >= 49 && t.ty <= 68));
       h.casual = inTown || s.outfit === 'gather'; }
     this.updateSettlement(time);
+    this.updateLife(time, dt);
     if (time % 1000 < 20) this.regrowNodes(time);
     if (h.state === 'walk' && time - this.lastStep > 210) { this.lastStep = time; this.dust(h.x, h.y); }
     this.heroRing.setPosition(h.x, h.y).setVisible(h.state !== 'dead');
@@ -866,16 +868,25 @@ export class WorldScene extends Phaser.Scene {
         const lock = this.add.image(c.x, c.y - 10, 'icon_res_lock').setDepth(c.y).setAlpha(0.85);
         objs.push(lock);
       } else if (!b) {
+        if (this.textures.exists('ai_bld_empty')) objs.push(this.fit(this.add.image(c.x, c.y + 22, 'ai_bld_empty').setOrigin(0.5, 0.97).setDepth(2)));
         const sign = this.fit(this.add.image(c.x, c.y + 4, 'obj_sign_0').setOrigin(0.5, 0.95).setDepth(c.y));
+        sign.setVisible(!this.textures.exists('ai_bld_empty'));
         const ham = this.add.image(c.x, c.y - 30, 'icon_res_hammer').setDepth(99999).setScale(0.6);
         this.tweens.add({ targets: ham, y: c.y - 34, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         objs.push(sign, ham);
       } else {
-        objs.push(...this.drawBuilding(b.type as BuildingId, b.level, c.x, c.y));
+        const uc = underConstruction(b);
+        if (uc && this.textures.exists('ai_bld_construction')) {
+          const im = this.fit(this.add.image(c.x, c.y + 22, 'ai_bld_construction').setOrigin(0.5, 0.97).setDepth(c.y + 10));
+          objs.push(im, this.castShadow(im, 0.8));
+          const t = this.add.text(c.x, c.y - 52, '', { fontFamily: FONT, fontSize: '8px', color: '#ffe7a0', stroke: '#0b0705', strokeThickness: 2, resolution: 4 }).setOrigin(0.5).setDepth(99998).setData('timer', true);
+          objs.push(t);
+          for (let k2 = 0; k2 < 2; k2++) this.time.addEvent({ delay: 600 + k2 * 300, loop: true, callback: () => { if (im.active && Math.random() < 0.7) this.burst(c.x + Phaser.Math.Between(-20, 20), c.y - Phaser.Math.Between(10, 40), 0xffe0a0, 3, 20); } });
+        } else objs.push(...this.drawBuilding(b.type as BuildingId, b.level, c.x, c.y));
         const lv = this.add.text(c.x, c.y + 10, `Lv${b.level}`, { fontFamily: FONT, fontSize: '7px', color: '#ffe7a0', stroke: '#0b0705', strokeThickness: 2, resolution: 4 }).setOrigin(0.5, 0).setDepth(c.y + 30);
         objs.push(lv);
       }
-      this.plotViews.push({ x: c.x, y: c.y, objs, bubble: null, key: b ? `${b.type}${b.level}` : 'empty' });
+      this.plotViews.push({ x: c.x, y: c.y, objs, bubble: null, key: b ? `${b.type}${b.level}${underConstruction(b) ? 'c' : ''}` : 'empty' });
     });
   }
 
@@ -887,6 +898,23 @@ export class WorldScene extends Phaser.Scene {
       im.setScale(im.scaleX * s).setDepth(y + dy);
       o.push(im, this.castShadow(im, 0.8));
     };
+    const art = `ai_bld_${type}_${Math.min(2, level)}`;
+    if (this.textures.exists(art)) {
+      const im = this.fit(this.add.image(x, y + 22, art).setOrigin(0.5, 0.97).setDepth(y + 10));
+      o.push(im, this.castShadow(im, 0.85));
+      const top = y + 22 - im.displayHeight;
+      // higher levels: banners, lanterns, golden glow
+      if (level >= 3 && this.anims.exists('env_flag')) { const f = this.add.sprite(x + im.displayWidth * 0.36, y + 18, '__DEFAULT').setScale(0.45).setDepth(y + 12).play('env_flag'); f.anims.setProgress(Math.random()); o.push(f); }
+      if (level >= 4 && this.anims.exists('env_lamp')) { const l = this.add.sprite(x - im.displayWidth * 0.4, y + 20, '__DEFAULT').setScale(0.45).setDepth(y + 12).play('env_lamp'); o.push(l); this.nightLights.push(this.addGlow(l.x + 4, l.y - 18, 0xffd060, 0.8, true)); }
+      if (level >= 5) { const gl = this.add.image(x, top + im.displayHeight * 0.45, 'fx_glow').setTint(0xffd860).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.25).setScale(3.2, 2.2).setDepth(y + 11); this.tweens.add({ targets: gl, alpha: 0.12, duration: 1400, yoyo: true, repeat: -1 }); o.push(gl); }
+      // working villager for production buildings
+      const worker: Record<string, [string, number, number]> = { lumber: ['vil_lumberjack_work', -30, 18], quarry: ['vil_miner_work', 28, 16], forge: ['vil_blacksmith_work', 30, 18], kitchen: ['vil_cook_work', -30, 18], tavern: ['vil_barmaid_idle', 30, 18], farm: ['vil_farmgirl_walk', 24, 20], tower: ['vil_guard_idle', 22, 22] };
+      const wk = worker[type];
+      if (wk && this.anims.exists(wk[0])) { const sp = this.add.sprite(x + wk[1], y + wk[2], '__DEFAULT').setScale(0.5).setDepth(y + wk[2] + 1).play(wk[0]).setFlipX(wk[1] > 0); sp.anims.setProgress(Math.random()); o.push(sp); }
+      if (type === 'kitchen' || type === 'forge') this.nightLights.push(this.addGlow(x, y - 8, 0xff9a3a, 1.1, true));
+      if (type === 'barn' && this.anims.exists('ani_chicken_walk')) for (let i2 = 0; i2 < 2; i2++) { const ch = this.add.sprite(x - 10 + i2 * 18, y + 14, '__DEFAULT').setScale(0.5).setDepth(y + 15).play('ani_chicken_walk'); o.push(ch); this.tweens.add({ targets: ch, x: ch.x + 10, duration: 2200 + i2 * 500, yoyo: true, repeat: -1, onYoyo: () => ch.toggleFlipX(), onRepeat: () => ch.toggleFlipX() }); }
+      return o;
+    }
     if (this.textures.exists(`ai_bld_${type}`)) { add(`ai_bld_${type}`, 0, 12); return o; }
     if (type === 'forge') { add('obj_building_0', 0, 14, 0.8); }
     else if (type === 'kitchen') {
@@ -906,14 +934,15 @@ export class WorldScene extends Phaser.Scene {
     PLOTS.forEach((_, i) => {
       const b = buildingAt(s, i), v = this.plotViews[i];
       if (!v) return;
-      const key = b ? `${b.type}${b.level}` : 'empty';
+      const key = b ? `${b.type}${b.level}${underConstruction(b) ? 'c' : ''}` : 'empty';
       if (key !== v.key) { this.buildPlots(); return; }
+      if (b && underConstruction(b)) { const lt = v.objs.find(o => o.getData?.('timer')) as Phaser.GameObjects.Text | undefined; lt?.setText(`🔨 ${Math.ceil((b.done! - Date.now()) / 1000)} วิ`); }
       const res = b ? BUILDINGS[b.type as BuildingId].produces : undefined;
       const show = !!res && b!.stored >= 1;
       if (show && !v.bubble) {
         const bub = this.add.container(v.x, v.y - 44).setDepth(99998);
         const g = this.add.graphics().fillStyle(0xffffff, 0.95).fillCircle(0, 0, 9).fillTriangle(-4, 7, 4, 7, 0, 13).lineStyle(1.5, 0x3a8a3a, 1).strokeCircle(0, 0, 9);
-        bub.add([g, this.add.image(0, 0, `icon_res_${res}`).setScale(0.5)]);
+        bub.add([g, this.add.image(0, 0, res === 'gold' ? 'icon_gold' : `icon_res_${res}`).setDisplaySize(12, 12)]);
         this.tweens.add({ targets: bub, y: v.y - 48, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         v.bubble = bub;
       } else if (!show && v.bubble) { v.bubble.destroy(); v.bubble = null; }
@@ -1596,6 +1625,76 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.loot = this.loot.filter(l => l.qty > 0);
+  }
+
+  // ---------- Village life (ambient NPCs & animals) ----------
+  critters: { sp: Phaser.GameObjects.Sprite; hx: number; hy: number; r: number; tx: number; ty: number; speed: number; until: number; walk: string; idle?: string; run?: string; shadow: Phaser.GameObjects.Image | null }[] = [];
+  spawnLife() {
+    this.critters = [];
+    const place = (tx: number, ty: number) => {
+      for (let r = 0; r < 4; r++) for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+        const p = iso(tx + i + 0.5, ty + j + 0.5);
+        if (this.canMove(p.x, p.y, 4)) return p;
+      }
+      return null;
+    };
+    const station = (anim: string, tx: number, ty: number, flip = false) => {
+      if (!this.anims.exists(anim)) return;
+      const p = place(tx, ty); if (!p) return;
+      const sp = this.add.sprite(p.x, p.y, '__DEFAULT').play(anim).setScale(0.5).setDepth(p.y).setFlipX(flip);
+      sp.anims.setProgress(Math.random());
+      this.castShadow(sp, 0.8);
+      this.add.image(p.x, p.y, 'fx_shadow').setDepth(1).setScale(0.7);
+    };
+    const roam = (walk: string, tx: number, ty: number, r: number, speed: number, idle?: string, run?: string) => {
+      if (!this.anims.exists(walk)) return;
+      const p = place(tx, ty); if (!p) return;
+      const sp = this.add.sprite(p.x, p.y, '__DEFAULT').play(walk).setScale(0.5).setDepth(p.y);
+      this.critters.push({ sp, hx: p.x, hy: p.y, r: r * 16, tx: p.x, ty: p.y, speed, until: 0, walk, idle, run, shadow: null });
+    };
+    if (this.map.id === 'main') {
+      station('vil_cook_work', 13, 43);
+      station('vil_blacksmith_work', 9, 42, true);
+      station('vil_lumberjack_work', 26, 32);
+      station('vil_miner_work', 27, 46, true);
+      station('vil_guard_idle', 28, 37);
+      station('vil_guard_idle', 28, 42, true);
+      station('vil_barmaid_idle', 22, 41, true);
+      station('vil_elf_idle', 14, 35);
+      roam('vil_farmgirl_walk', 17, 40, 4, 22);
+      roam('vil_kid_run', 15, 38, 5, 48);
+      roam('ani_cat_walk', 18, 43, 4, 18, undefined, 'ani_cat_run');
+      for (const [k, n, sp] of [['ani_chicken_walk', 4, 14], ['ani_sheep_walk', 3, 10], ['ani_cow_walk', 2, 8], ['ani_pig_walk', 2, 10]] as const)
+        for (let i = 0; i < n; i++) roam(k, 28 + Math.floor(Math.random() * 4), 51 + Math.floor(Math.random() * 4), 3, sp);
+    } else if (this.map.id === 'gather') {
+      station('vil_lumberjack_work', 13, 36);
+      station('vil_elf_idle', 9, 41, true);
+      roam('ani_cat_walk', 11, 42, 3, 16);
+    }
+  }
+
+  updateLife(time: number, dt: number) {
+    const sec = dt / 1000, h = this.hero;
+    for (const c of this.critters) {
+      const d = Math.hypot(c.tx - c.sp.x, c.ty - c.sp.y);
+      if (time > c.until && d < 2) {
+        if (Math.random() < 0.45 && c.idle !== 'none') { c.until = time + 1200 + Math.random() * 2600; c.sp.anims.pause(); continue; }
+        const a = Math.random() * Math.PI * 2, r = Math.random() * c.r;
+        const nx = c.hx + Math.cos(a) * r, ny = c.hy + Math.sin(a) * r * 0.5;
+        if (this.canMove(nx, ny, 3)) { c.tx = nx; c.ty = ny; c.until = time; }
+        continue;
+      }
+      if (d < 2) continue;
+      // the cat dashes away from a running hero
+      const flee = c.run && Math.hypot(h.x - c.sp.x, h.y - c.sp.y) < 26;
+      const v = (flee ? c.speed * 2.6 : c.speed) * sec;
+      const nx = c.sp.x + (c.tx - c.sp.x) / d * Math.min(v, d), ny = c.sp.y + (c.ty - c.sp.y) / d * Math.min(v, d);
+      if (!this.canMove(nx, ny, 3)) { c.tx = c.sp.x; c.ty = c.sp.y; continue; }
+      const key = flee ? c.run! : c.walk;
+      if (c.sp.anims.currentAnim?.key !== key) c.sp.play(key); else if (c.sp.anims.isPaused) c.sp.anims.resume();
+      c.sp.setFlipX(c.tx < c.sp.x).setPosition(nx, ny).setDepth(ny);
+      c.shadow = this.followShadow(c.sp, c.shadow, nx, ny, 0.25);
+    }
   }
 
   // ---------- Maps / portals ----------

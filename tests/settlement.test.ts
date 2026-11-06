@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { startNewGame } from '../src/core/save';
-import { build, upgrade, craft, buildingAt, cook } from '../src/systems/settlement';
+import { build, upgrade, craft, buildingAt, cook, tick, collect } from '../src/systems/settlement';
 import { addItem, equip, dismantle, countItem } from '../src/systems/inventory';
 import { derive, gainExp, upSkill, skillMult } from '../src/systems/stats';
 import { invSize } from '../src/core/state';
@@ -42,8 +42,22 @@ describe('village', () => {
     const s = rich();
     const a = derive(s).atk;
     build(s, 1, 'kitchen');
+    expect(cook(s, 'hunter_stew')).toBe('no_kitchen'); // still under construction
+    s.buildings[0].done = 0;
     expect(cook(s, 'hunter_stew')).toBe('ok');
     expect(derive(s).atk).toBeGreaterThan(a);
+  });
+});
+
+describe('village production', () => {
+  it('lumber produces wood after construction, market produces gold', () => {
+    const s = rich(); const t0 = 1_000_000;
+    build(s, 0, 'lumber', t0); build(s, 1, 'market', t0);
+    tick(s, t0 + 10_000); expect(s.buildings[0].stored).toBe(0); // scaffolding: no output yet
+    for (const b of s.buildings) b.done = 0;
+    tick(s, t0 + 10 * 60_000);
+    expect(s.buildings[0].stored).toBeGreaterThan(5);
+    const g = s.gold; expect(collect(s, 1)?.res).toBe('gold'); expect(s.gold).toBeGreaterThan(g);
   });
 });
 

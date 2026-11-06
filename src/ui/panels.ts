@@ -5,7 +5,7 @@ import { GOLD, GOLD_D } from './kit';
 import { S, bus, EV, runtime } from '../core/events';
 import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
-import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf } from '../systems/settlement';
+import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf, underConstruction } from '../systems/settlement';
 import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass, activeTier } from '../systems/stats';
 import { portraitKey } from '../art/formAssets';
 import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
@@ -318,21 +318,22 @@ export class Panels {
     const top = y + 34;
     if (!b) {
       const ids = Object.keys(BUILDINGS) as BuildingId[];
-      const cw = (W - 28 - (ids.length - 1) * 6) / ids.length;
+      const cols = 5, rows = Math.ceil(ids.length / cols);
+      const cw = (W - 28 - (cols - 1) * 5) / cols, ch = (H - 44 - (rows - 1) * 5) / rows;
       ids.forEach((id, i) => {
-        const d = BUILDINGS[id], cx = x + 14 + i * (cw + 6);
+        const d = BUILDINGS[id], cx = x + 14 + (i % cols) * (cw + 5), cy = top + Math.floor(i / cols) * (ch + 5);
         const have = s.buildings.some(q => q.type === id);
-        g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(cx, top, cw, H - 50, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(cx, top, cw, H - 50, 4);
-        c.add(k.text(cx + 8, top + 6, d.name, 11, '#ffd84a'));
-        c.add(k.text(cx + 8, top + 24, d.desc, 8, '#e8dcc0', { wordWrap: { width: cw - 16 }, lineSpacing: 2 }));
-        c.add(k.text(cx + 8, top + 76, 'Lv1: ' + d.effect(1), 8, '#9ad8ff', { wordWrap: { width: cw - 16 } }));
-        c.add(k.text(cx + 8, top + 112, 'ค่าก่อสร้าง', 8, '#b8a078'));
-        this.addCost(c, cx + 8, top + 126, cw - 16, levelCost(d, 1));
+        g.fillStyle(have ? 0x1a140e : 0x2a1d12, 0.92).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(cx, cy, cw, ch, 4);
+        const art = `ai_bld_${id}_1`;
+        if (ui.textures.exists(art)) { const im = ui.add.image(cx + cw - 4, cy + 4, art).setOrigin(1, 0); const sc = Math.min(40 / im.width, 34 / im.height); im.setScale(sc).setAlpha(have ? 0.4 : 1); c.add(im); }
+        c.add(k.text(cx + 5, cy + 4, `${d.icon} ${d.name}`, 9.5, have ? '#8a7a60' : '#ffd84a'));
+        c.add(k.text(cx + 5, cy + 20, d.effect(1), 7, '#9ad8ff', { wordWrap: { width: cw - 50 } }));
+        this.addCost(c, cx + 5, cy + 42, cw - 10, levelCost(d, 1));
         const ok = !have && canAfford(s, levelCost(d, 1));
-        c.add(k.button(cx + 8, top + H - 84, cw - 16, 24, have ? 'สร้างแล้ว' : 'สร้าง', () => {
-          if (build(s, this.plot, id)) { sfx.levelUp(); bus.emit(EV.TOAST, `สร้าง${d.name}สำเร็จ!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
+        c.add(k.button(cx + 5, cy + ch - 24, cw - 10, 19, have ? 'สร้างแล้ว' : 'สร้าง', () => {
+          if (build(s, this.plot, id)) { sfx.levelUp(); bus.emit(EV.TOAST, `เริ่มก่อสร้าง${d.name}!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.close(); }
           else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ', '#ff8a8a'); }
-        }, { size: 10, disabled: !ok, color: 0x1f4a2a }));
+        }, { size: 9, disabled: !ok, color: 0x1f4a2a }));
       });
       return;
     }
@@ -341,11 +342,13 @@ export class Panels {
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(lx, top, lw, H - 48, 4);
     c.add(k.text(lx + 8, top + 6, d.desc, 8.5, '#e8dcc0', { wordWrap: { width: lw - 16 }, lineSpacing: 2 }));
     c.add(k.text(lx + 8, top + 50, `ตอนนี้: ${d.effect(b.level)}`, 8.5, '#9ad8ff', { wordWrap: { width: lw - 16 } }));
-    if (b.level < d.maxLevel) {
+    if (underConstruction(b)) {
+      c.add(k.text(lx + 8, top + 90, `🔨 กำลังก่อสร้าง Lv ${b.level}… เสร็จใน ${Math.ceil((b.done! - Date.now()) / 1000)} วินาที`, 9, '#ffd84a', { wordWrap: { width: lw - 16 } }));
+    } else if (b.level < d.maxLevel) {
       c.add(k.text(lx + 8, top + 86, `อัปเกรดเป็น Lv ${b.level + 1}: ${d.effect(b.level + 1)}`, 8.5, '#9fffb0', { wordWrap: { width: lw - 16 } }));
       const ey = this.addCost(c, lx + 8, top + 122, lw - 16, levelCost(d, b.level + 1));
       c.add(k.button(lx + 8, Math.max(ey + 4, top + H - 82), lw - 16, 26, `⬆ อัปเกรด Lv ${b.level + 1}`, () => {
-        if (upgrade(s, this.plot)) { sfx.levelUp(); bus.emit(EV.TOAST, `${d.name} Lv ${b.level}!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
+        if (upgrade(s, this.plot)) { sfx.levelUp(); bus.emit(EV.TOAST, `เริ่มอัปเกรด ${d.name} → Lv ${b.level}`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.close(); }
         else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ — ออกล่ามอนสเตอร์เพื่อหาวัตถุดิบ', '#ff8a8a'); }
       }, { size: 10, color: 0x1f4a2a, disabled: !canAfford(s, levelCost(d, b.level + 1)) }));
     } else c.add(k.text(lx + 8, top + 90, 'เลเวลสูงสุดแล้ว', 9, '#ffd84a'));
@@ -384,6 +387,10 @@ export class Panels {
           else { sfx.error(); bus.emit(EV.TOAST, r === 'no_food' ? 'อาหารไม่พอ — ล่ามอนสเตอร์เพื่อหาอาหาร' : 'ยังทำไม่ได้', '#ff8a8a'); }
         }, { size: 10, color: 0x5a3a10, disabled: lockd }));
       });
+    } else if (d.produces) {
+      const nm = d.produces === 'gold' ? 'ทอง' : RES_NAMES[d.produces];
+      c.add(k.text(rx + 8, top + 6, `ผลผลิตสะสม: ${Math.floor(b.stored)} ${nm}`, 11, '#ffe7a0'));
+      c.add(k.text(rx + 8, top + 30, `ผลิตต่อเนื่องแม้ไม่ได้เล่น (เก็บได้สูงสุด 2 ชั่วโมง) • เดินเข้าใกล้อาคารเพื่อเก็บ`, 8.5, '#e8dcc0', { wordWrap: { width: rw - 16 } }));
     } else if (b.type === 'warehouse') {
       c.add(k.text(rx + 8, top + 6, `กระเป๋าตอนนี้ ${invSize(s)} ช่อง`, 11, '#ffe7a0'));
       c.add(k.text(rx + 8, top + 30, 'ยิ่งกระเป๋าใหญ่ ยิ่งเก็บของดรอปได้มากก่อนต้องกลับเมือง', 8.5, '#e8dcc0', { wordWrap: { width: rw - 16 } }));
