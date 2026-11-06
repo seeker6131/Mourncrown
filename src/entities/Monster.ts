@@ -3,7 +3,7 @@ import { MONSTERS, type MonsterDef, type MonsterKind } from '../data/monsters';
 import type { WorldScene } from '../scenes/WorldScene';
 import { AI_FACES_LEFT, resOf } from '../art/aiAssets';
 
-export type MState = 'idle' | 'wander' | 'chase' | 'attack' | 'return' | 'dead';
+export type MState = 'idle' | 'wander' | 'chase' | 'attack' | 'return' | 'flee' | 'dead';
 
 export class Monster {
   def: MonsterDef;
@@ -37,7 +37,8 @@ export class Monster {
     this.spawnIndex = spawnIndex;
     this.hp = this.maxHp = this.def.hp;
     const boss = !!this.def.boss;
-    this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(boss ? 2.6 : kind === 'wolf' ? 1.1 : 0.8, boss ? 2 : 1);
+    const sr = kind === 'treant' ? 2.6 : kind === 'wolf' ? 1.1 : Math.max(0.6, this.def.bodyRadius / 9);
+    this.shadow = scene.add.image(x, y, 'fx_shadow').setDepth(1).setScale(sr, boss ? sr * 0.75 : 1);
     const f0 = scene.anims.get(`mon_${kind}_idle`).frames[0].frame;
     this.multi = f0.texture.key.startsWith('an_');
     this.aiArt = f0.texture.key.startsWith('ai_') || this.multi;
@@ -59,7 +60,7 @@ export class Monster {
   }
 
   get alive() { return this.state !== 'dead'; }
-  get cy() { return this.y - (this.def.boss ? 30 : 8); }
+  get cy() { return this.def.kind === 'treant' ? this.y - 30 : this.y - Math.min(60, Math.max(8, this.sprite.displayHeight * 0.4)); }
 
   playAnim(name: string) {
     const key = `mon_${this.def.kind}_${name}`;
@@ -78,8 +79,21 @@ export class Monster {
     if (this.def.boss) this.sprite.setTint(0xffa0a0); else this.sprite.setTintFill(0xffffff);
     this.hitFlashUntil = this.scene.time.now + (this.def.boss ? 60 : 80);
     if (!this.def.boss || Math.random() < 0.3) this.sprite.play(`mon_${this.def.kind}_hurt`);
+    if (this.hp <= 0) { this.die(); return; }
+    if (this.def.flee) {
+      // a cornered deer may kick back before bolting (stuns the hunter)
+      const sc = this.scene, hero = sc.hero;
+      if (Math.hypot(hero.x - this.x, hero.y - this.y) < 30 && Math.random() < (this.def.stun ?? 0) && sc.time.now - this.lastAttack > this.def.attackCooldown) {
+        this.lastAttack = sc.time.now;
+        this.face(hero.x < this.x);
+        this.sprite.play(`mon_${this.def.kind}_attack`);
+        sc.time.delayedCall(220, () => { if (this.alive && Math.hypot(hero.x - this.x, hero.y - this.y) < 34) sc.damageHero(this.def.atk, this, 1, true); });
+      }
+      this.state = 'flee'; this.stateUntil = this.scene.time.now + 2600;
+      for (const o of this.scene.monsters) if (o !== this && o.alive && o.def.kind === this.def.kind && Math.hypot(o.x - this.x, o.y - this.y) < 60 && o.state !== 'flee') { o.state = 'flee'; o.stateUntil = this.scene.time.now + 2200; }
+      return;
+    }
     if (this.state === 'idle' || this.state === 'wander' || this.state === 'return') this.provoke();
-    if (this.hp <= 0) this.die();
   }
 
   provoke() {
@@ -93,8 +107,8 @@ export class Monster {
     this.state = 'dead';
     this.hpBar.clear();
     this.sprite.clearTint();
-    if (this.def.boss && this.scene.anims.exists('mon_treant_die')) {
-      this.sprite.setScale(this.base).setRotation(0).play('mon_treant_die');
+    if (this.scene.anims.exists(`mon_${this.def.kind}_die`)) {
+      this.sprite.setScale(this.base).setRotation(0).play(`mon_${this.def.kind}_die`);
       this.scene.tweens.add({ targets: this.sprite, alpha: 0, delay: 1500, duration: 600 });
       this.scene.tweens.add({ targets: this.shadow, alpha: 0, duration: 1500 });
       this.scene.time.delayedCall(2200, () => this.destroy());
@@ -130,7 +144,7 @@ export class Monster {
     const homeD = Math.hypot(this.x - this.homeX, this.y - this.homeY);
     const leash = def.boss ? 260 : def.aggro * 2.2 + this.homeR;
 
-    if (def.boss && (this.state === 'chase' || this.state === 'attack')) sc.bossSpecials(this, time);
+    if (def.kind === 'treant' && (this.state === 'chase' || this.state === 'attack')) sc.bossSpecials(this, time);
 
     switch (this.state) {
       case 'idle':
@@ -170,9 +184,9 @@ export class Monster {
           sc.time.delayedCall(windup, () => {
             if (!this.alive) return;
             if (def.ranged) sc.enemyShoot(this);
-            else if (Math.hypot(hero.x - this.x, hero.y - this.y) < range + 10) sc.damageHero(def.atk, this);
+            else if (Math.hypot(hero.x - this.x, hero.y - this.y) < range + 10) sc.damageHero(def.atk, this, 1, !!def.stun && Math.random() < def.stun);
           });
-          if (def.kind === 'wolf' || def.kind === 'slime') {
+          if (def.kind === 'wolf' || def.kind === 'slime' || def.kind === 'boar') {
             // lunge
             const d = hd || 1;
             sc.tweens.addCounter({ from: 0, to: 1, duration: 200, onUpdate: (tw) => { const v = (1 - tw.getValue()!) * 1.6; this.tryMove(((hero.x - this.x) / d) * v, ((hero.y - this.y) / d) * v); } });
@@ -183,6 +197,15 @@ export class Monster {
       case 'attack':
         if (time > this.stateUntil) this.state = 'chase';
         break;
+      case 'flee': {
+        if (time > this.stateUntil) { this.state = 'idle'; this.stateUntil = time + 1200; this.homeX = this.x; this.homeY = this.y; break; }
+        const d = hd || 1;
+        const moved = this.tryMove(((this.x - hero.x) / d) * def.speed * 1.25 * sec, ((this.y - hero.y) / d) * def.speed * 1.25 * sec);
+        if (!moved) this.tryMove((Math.random() - 0.5) * def.speed * sec * 2, (Math.random() - 0.5) * def.speed * sec * 2);
+        this.face(hero.x > this.x);
+        this.playAnim('move');
+        break;
+      }
       case 'return':
         this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.5 * sec);
         if (this.moveToward(this.homeX, this.homeY, def.speed * 1.2 * sec) < 4) { this.state = 'idle'; this.hp = this.maxHp; }
@@ -196,7 +219,7 @@ export class Monster {
     if (this.aiArt) yOff += this.aiMotion(time, sec);
     this.sprite.setPosition(Math.round(this.x), Math.round(this.y + yOff)).setDepth(this.y);
     this.shadow.setPosition(this.x, this.y - 1);
-    if (this.state !== 'idle' && this.state !== 'wander' && Math.abs(hero.x - this.x) > 2 && this.state !== 'return') this.face(hero.x < this.x);
+    if (this.state !== 'idle' && this.state !== 'wander' && this.state !== 'flee' && Math.abs(hero.x - this.x) > 2 && this.state !== 'return') this.face(hero.x < this.x);
     else if (this.state === 'wander' || this.state === 'return') this.face((this.state === 'wander' ? this.tx : this.homeX) < this.x);
     this.drawHp();
   }
@@ -208,7 +231,7 @@ export class Monster {
   /** Procedural animation for single-image AI sprites: breathing, hopping, lunging. */
   aiMotion(time: number, sec: number): number {
     const k = this.def.kind;
-    const moving = this.state === 'chase' || this.state === 'wander' || this.state === 'return';
+    const moving = this.state === 'chase' || this.state === 'wander' || this.state === 'return' || this.state === 'flee';
     this.animT += sec * (moving ? (k === 'wolf' ? 14 : 9) : 3);
     let sx = 1, sy = 1, y = 0, rot = 0;
     const atk = time - this.lastAttack < 450 && this.state !== 'idle';
@@ -266,7 +289,9 @@ export class Monster {
   tryMove(dx: number, dy: number) {
     const r = Math.min(this.def.bodyRadius, 6);
     const flying = this.def.kind === 'wisp';
-    if (flying || this.scene.canMove(this.x + dx, this.y, r)) this.x += dx;
-    if (flying || this.scene.canMove(this.x, this.y + dy, r)) this.y += dy;
+    let m = false;
+    if (flying || this.scene.canMove(this.x + dx, this.y, r)) { this.x += dx; m = true; }
+    if (flying || this.scene.canMove(this.x, this.y + dy, r)) { this.y += dy; m = true; }
+    return m;
   }
 }

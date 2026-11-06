@@ -13,7 +13,7 @@ export const GROUND_BASE: Record<number, Color> = {
 const OUTSIDE = 0x1c2e1c;
 
 // ---------------- Ground ----------------
-export function paintGroundIso(ground: Uint8Array): HTMLCanvasElement {
+export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: number, g: number) => number = surfaceAt): HTMLCanvasElement {
   const W = WORLD_PX_W, H = WORLD_PX_H;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -31,7 +31,7 @@ export function paintGroundIso(ground: Uint8Array): HTMLCanvasElement {
     const jx = (valueNoise(sx * 0.09, sy * 0.18, 11) - 0.5) * 0.35;
     const jy = (valueNoise(sx * 0.09, sy * 0.18, 23) - 0.5) * 0.35;
     const g = gAt(t.tx + jx, t.ty + jy);
-    return g < 0 ? g : surfaceAt(t.tx + jx * 0.4, t.ty + jy * 0.4, g);
+    return g < 0 ? g : surface(t.tx + jx * 0.4, t.ty + jy * 0.4, g);
   };
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {

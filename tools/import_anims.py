@@ -208,23 +208,23 @@ def sized(name, rel, rowspec, target, axis='h', use='median', anchor='feet'):
 
 # monsters (2 rows: move 4, attack 4/5)
 for kind, tgt, ax, rel, atk in [('skeleton', 34, 'h', 'monsters/skeleton_warrior', 4), ('skarcher', 34, 'h', 'monsters/skeleton_archer', 4),
-                                 ('ghost', 32, 'h', 'monsters/ghost_lantern', 4), ('imp', 30, 'h', 'monsters/imp_fire', 4),
-                                 ('golem', 50, 'h', 'monsters/lava_golem', 4), ('salamander', 46, 'w', 'monsters/fire_salamander', 4),
-                                 ('icewolf', 50, 'w', 'monsters/ice_wolf', 4), ('yeti', 46, 'h', 'monsters/yeti', 4),
-                                 ('spider', 38, 'w', 'monsters/poison_spider', 4), ('rat', 30, 'w', 'monsters/giant_rat', 4)]:
+                                 ('ghost', 32, 'h', 'monsters/ghost_lantern', 4), ('imp', 22, 'h', 'monsters/imp_fire', 4),
+                                 ('golem', 56, 'h', 'monsters/lava_golem', 4), ('salamander', 40, 'w', 'monsters/fire_salamander', 4),
+                                 ('icewolf', 44, 'w', 'monsters/ice_wolf', 4), ('yeti', 54, 'h', 'monsters/yeti', 4),
+                                 ('spider', 34, 'w', 'monsters/poison_spider', 4), ('rat', 20, 'w', 'monsters/giant_rat', 4)]:
     sized('mon_' + kind, rel, [('move', 4), ('attack', atk)], tgt, ax)
 
 # bosses: walk 4 + attack 5, skill 4 + die 5 (same scale for both sheets)
-for kind, tgt, ax in [('stag', 104, 'h'), ('frostgiant', 112, 'h'), ('dragon', 150, 'w'), ('skking', 104, 'h')]:
+for kind, tgt, ax in [('stag', 100, 'h'), ('frostgiant', 136, 'h'), ('dragon', 200, 'w'), ('skking', 112, 'h')]:
     rel = {'stag': 'cursed_stag', 'frostgiant': 'frost_giant', 'dragon': 'lava_dragon', 'skking': 'skeleton_king'}[kind]
     sc = sized('mon_' + kind, 'bosses/' + rel + '_walk_attack', [('move', 4), ('attack', 5)], tgt, ax)
     build('mon_' + kind, loadp('bosses/' + rel + '_skill_die'), [('cast', 4), ('die', 5)], sc)
 
 # animals (walk only)
-for kind, tgt, ax, n in [('deer', 46, 'w', 6), ('boar', 40, 'w', 6), ('sheep', 30, 'w', 4), ('cow', 44, 'w', 4), ('pig', 30, 'w', 4), ('chicken', 15, 'w', 4)]:
+for kind, tgt, ax, n in [('deer', 34, 'w', 6), ('boar', 28, 'w', 6), ('sheep', 24, 'w', 4), ('cow', 42, 'w', 4), ('pig', 26, 'w', 4), ('chicken', 9, 'w', 4)]:
     sized('ani_' + kind, f'animals/{kind}_walk', [('walk', n)], tgt, ax)
-sized('ani_cat', 'chars/cat_walk6', [('walk', 6)], 20, 'w')
-sized('ani_cat', 'chars/cat_run6', [('run', 6)], 20, 'w')
+sized('ani_cat', 'chars/cat_walk6', [('walk', 6)], 11, 'w')
+sized('ani_cat', 'chars/cat_run6', [('run', 6)], 11, 'w')
 
 # villagers / NPCs
 for nid, rel, anim, n, tgt in [('lumberjack', 'npc/lumberjack_work', 'work', 4, 32), ('miner', 'npc/miner_work', 'work', 4, 34),

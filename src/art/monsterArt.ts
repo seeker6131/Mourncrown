@@ -202,7 +202,7 @@ function treant(sway: number, step: number, arms: number, glow = 0): PixelCanvas
 }
 
 export function buildMonster(kind: MonsterKind): MonsterSheet {
-  switch (kind) {
+  switch (kind as string) {
     case 'slime': return {
       w: 28, h: 26, anims: {
         idle: { frames: [slime(0, 0), slime(0.6, 0), slime(1, 0), slime(0.6, 0)], rate: 6, repeat: -1 },
@@ -252,5 +252,6 @@ export function buildMonster(kind: MonsterKind): MonsterSheet {
         cast: { frames: [treant(0, 0, 1, 1), treant(0, 0, 1, 1), treant(1, 0, 0, 1)], rate: 4, repeat: 0 },
       },
     };
+    default: return buildMonster('wolf');
   }
 }

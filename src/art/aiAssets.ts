@@ -136,4 +136,4 @@ export function applyAiArt(scene: Phaser.Scene) {
 }
 
 /** Monsters whose ai art faces left (procedural art faces right). */
-export const AI_FACES_LEFT: Record<string, boolean> = { slime: true, shroom: true, wolf: true, goblin: true, wisp: true, treant: true };
+export const AI_FACES_LEFT: Record<string, boolean> = { slime: true, shroom: true, wolf: true, goblin: true, wisp: true, treant: true, deer: false, boar: true, skeleton: false, skarcher: true, ghost: true, imp: true, golem: true, salamander: false, icewolf: true, yeti: true, spider: true, rat: false, stag: true, frostgiant: true, dragon: true, skking: true };

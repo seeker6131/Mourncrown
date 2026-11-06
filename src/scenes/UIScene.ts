@@ -153,10 +153,11 @@ export class UIScene extends Phaser.Scene {
     // minimap
     const mmW = 116, mmH = mmW * WORLD_PX_H / WORLD_PX_W;
     const mx = this.VW - mmW - 8, my = 8;
-    if (!this.textures.exists('minimap')) this.textures.addCanvas('minimap', paintMinimapIso(this.world.map.ground, this.world.map.blocked));
+    const mk = 'minimap_' + this.world.map.id;
+    if (!this.textures.exists(mk)) this.textures.addCanvas(mk, paintMinimapIso(this.world.map.ground, this.world.map.blocked));
     const mmG = this.add.graphics();
     k.frame(mmG, mx - 4, my - 4, mmW + 8, mmH + 8, 0.9);
-    this.minimap = this.add.image(mx, my, 'minimap').setOrigin(0).setDisplaySize(mmW, mmH);
+    this.minimap = this.add.image(mx, my, mk).setOrigin(0).setDisplaySize(mmW, mmH);
     this.miniDots = this.add.graphics();
     this.root.add([mmG, this.minimap, this.miniDots]);
     this.minimap.setData('rect', { mx, my, mmW, mmH });
@@ -416,6 +417,7 @@ export class UIScene extends Phaser.Scene {
       const names: Record<string, string> = { elder: 'ผู้เฒ่าอัลดริค', merchant: 'พ่อค้ามิร่า', smith: 'ช่างตีเหล็กบรอม' };
       let label = '💬 ' + (names[id] ?? 'พูดคุย');
       if (id === 'wardrobe') label = '👕 ห้องแต่งตัว';
+      if (id.startsWith('portal:')) label = '🌀 ' + (this.world.map.portals[Number(id.slice(7))]?.label ?? 'เดินทาง');
       if (id.startsWith('plot:')) { const b = buildingAt(S(), Number(id.slice(5))); label = '🔨 ' + (b ? BUILDINGS[b.type as BuildingId].name : 'ก่อสร้าง'); }
       (this.talkBtn.getData('label') as Phaser.GameObjects.Text).setText(label);
     }

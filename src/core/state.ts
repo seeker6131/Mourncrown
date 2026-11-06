@@ -50,6 +50,9 @@ export interface GameState {
   outfit: 'hunt' | 'gather';
   useTier?: number;
   dayTime: number;
+  map?: 'main' | 'gather';
+  mapPos?: Record<string, { x: number; y: number }>;
+  prevOutfit?: 'hunt' | 'gather';
 }
 
 export const SAVE_VERSION = 1;

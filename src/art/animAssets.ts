@@ -96,6 +96,32 @@ export function applyAnims(scene: Phaser.Scene) {
   mk(scene, 'mon_treant_cast', 'an_mon_treant_cast', 5, 0);
   mk(scene, 'mon_treant_hurt', 'an_mon_treant_die', 10, 0, [0]);
   mk(scene, 'mon_treant_die', 'an_mon_treant_die', 4, 0);
+  // batch-2 monsters & bosses (move/attack[/cast/die])
+  for (const k of Object.keys(M)) {
+    const mm = /^mon_(\w+)_move$/.exec(k);
+    if (!mm || ['slime', 'shroom', 'wolf', 'goblin', 'wisp', 'treant'].includes(mm[1]) || !scene.textures.exists('an_' + k)) continue;
+    const kind = mm[1], boss = !!M[`mon_${kind}_die`];
+    mk(scene, `mon_${kind}_idle`, `an_mon_${kind}_move`, boss ? 2 : 4, -1, boss ? [0, 3] : undefined);
+    mk(scene, `mon_${kind}_move`, `an_mon_${kind}_move`, boss ? 5 : 8, -1);
+    mk(scene, `mon_${kind}_attack`, `an_mon_${kind}_attack`, boss ? 7 : 9, 0);
+    mk(scene, `mon_${kind}_hurt`, `an_mon_${kind}_attack`, 10, 0, [0]);
+    if (M[`mon_${kind}_cast`]) mk(scene, `mon_${kind}_cast`, `an_mon_${kind}_cast`, 5, 0);
+    if (boss) mk(scene, `mon_${kind}_die`, `an_mon_${kind}_die`, 4, 0);
+  }
+  // wild animals hunted on the resource map (walk sheet only)
+  for (const k of ['deer', 'boar']) {
+    const t = `an_ani_${k}_walk`;
+    mk(scene, `mon_${k}_idle`, t, 1, -1, [0]);
+    mk(scene, `mon_${k}_move`, t, 11, -1);
+    mk(scene, `mon_${k}_attack`, t, 18, 0, [2, 3, 4, 5]);
+    mk(scene, `mon_${k}_hurt`, t, 10, 0, [1]);
+  }
+  // village life
+  for (const k of Object.keys(M)) {
+    const m = /^(ani|vil)_(\w+?)_(walk|run|work|idle|walkup|attack|die)$/.exec(k);
+    if (m) mk(scene, k, 'an_' + k, m[3] === 'run' ? 12 : m[3] === 'work' ? 6 : m[3] === 'idle' ? 4 : 8, m[3] === 'attack' || m[3] === 'die' ? 0 : -1);
+  }
+  for (const k of ['arrow', 'arrowrain', 'ice', 'holy', 'flame', 'poison', 'shield', 'rage', 'wood', 'rock', 'dust', 'coins']) if (M['fx2_' + k]) mk(scene, 'fx2_' + k, 'an_fx2_' + k, 14, 0);
   for (const id of ['elder', 'merchant', 'smith']) mk(scene, `npc_${id}_idle`, `an_npc_${id}_idle`, 3, -1, [0, 1, 0, 2, 0, 3]);
   const fx: [string, number, number][] = [['slash', 26, 0], ['fireball', 14, -1], ['explode', 16, 0], ['bolt', 18, 0], ['heal', 11, 0], ['lvlup', 9, 0], ['smoke', 14, 0], ['hit', 26, 0]];
   for (const [k, r, rep] of fx) mk(scene, `fxa_${k}`, `an_fx_${k}`, r, rep);
