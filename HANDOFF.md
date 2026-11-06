@@ -157,3 +157,8 @@
 ## กฎ
 - ห้ามสร้าง PR จนกว่าผู้ใช้สั่ง, commit message ลงท้าย Co-Authored-By + Claude-Session ตาม system reminder
 - อย่าอ้างว่าทดสอบบนมือถือจริง (ทดสอบได้แค่ Playwright), รายงานตามจริง
+
+## รูปที่ได้รับรอบล่าสุด (ผู้ใช้: "ท่าครบจะบอก ส่งเรื่อยๆก่อน" → เก็บไว้ ยังไม่ import)
+- T3 ครบ 7 ไฟล์ (idle/w/u/a/k/d/P) และ T4 ครบ 7 ไฟล์ → art-source/forms/T3*.png, T4*.png (ยังไม่รัน import_forms.py)
+- นักธนูเอลฟ์หญิง (ยังไม่รู้ว่าเป็นร่างไหน/สกินหญิง) → art-source/pending/FA2*.png (idle,w,u,a,d — ยังขาด k สกิล, P portrait)
+- ยังขาด: T2 ทั้งชุด, M3d, M4k, M4d
