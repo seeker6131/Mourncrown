@@ -74,23 +74,23 @@ describe('levels matter', () => {
 
 import { advanceClass, currentSkills, nextForm } from '../src/systems/stats';
 describe('classes', () => {
-  it('villager -> class at Lv5 -> next forms at Lv20/35', () => {
+  it('villager -> class at Lv10 -> next forms at Lv40/80', () => {
     const s = startNewGame();
     expect(currentSkills(s)).toEqual(['v_bash']);
     expect(advanceClass(s, 'archer')).toBe(false);
-    s.level = 5;
+    s.level = 10;
     expect(advanceClass(s, 'archer')).toBe(true);
     expect(s.tier).toBe(1);
     expect(currentSkills(s)).toContain('a2_fan');
     expect(nextForm(s)).toBeNull();
-    s.level = 20;
+    s.level = 40;
     expect(advanceClass(s)).toBe(true);
     expect(s.tier).toBe(2);
     expect(currentSkills(s)).toContain('a3_rain');
     expect(currentSkills(s)).not.toContain('a2_fan');
   });
   it('class bonus raises power', () => {
-    const s = startNewGame(); s.level = 5;
+    const s = startNewGame(); s.level = 10;
     const a = derive(s).matk;
     advanceClass(s, 'mage');
     expect(derive(s).matk).toBeGreaterThan(a);

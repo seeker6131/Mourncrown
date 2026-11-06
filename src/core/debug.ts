@@ -29,7 +29,7 @@ export function installDebug(game: Phaser.Game) {
       const w = game.scene.getScene('World') as unknown as { boss: { hp: number; alive: boolean } | null; hero: { x: number; y: number } };
       return JSON.stringify({ lv: s.level, hp: s.hp, gold: s.gold, inv: s.inventory.length, boss: w.boss ? { hp: Math.round(w.boss.hp), alive: w.boss.alive } : null, defeated: s.bossDefeated, pos: s.pos });
     },
-    cls(c: string) { const s = runtime.state!; s.level = Math.max(s.level, 5); advanceClass(s, c as never); bus.emit(EV.STATE_CHANGED); },
+    cls(c: string) { const s = runtime.state!; s.level = Math.max(s.level, 10); advanceClass(s, c as never); bus.emit(EV.STATE_CHANGED); },
     save() { return saveGame(runtime.state!); },
   };
 }

@@ -17,10 +17,12 @@ export interface Derived {
   power: number; // combat power score
 }
 
-export const MAX_LEVEL = 60;
+export const MAX_LEVEL = 100;
 
 export function expToNext(level: number): number {
-  return Math.round(25 * Math.pow(level, 1.65));
+  // early levels stay quick; from Lv20 the curve steepens so Lv100 is a long-term goal
+  const base = 25 * Math.pow(level, 1.65);
+  return Math.round(level > 20 ? base * Math.pow(level / 20, 1.25) : base);
 }
 
 export function equippedItems(s: GameState) {

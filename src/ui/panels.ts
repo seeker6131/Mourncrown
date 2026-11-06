@@ -467,7 +467,7 @@ export class Panels {
       z.on('pointerup', () => { s.useTier = t; sfx.levelUp(); bus.emit(EV.TOAST, `สวมร่าง ${formName(s.cls, t)}`, '#ffd84a'); this.close(); bus.emit(EV.STATE_CHANGED); });
       c.add(z);
     });
-    if (s.cls === 'novice') c.add(k.text(x + 180, top + 170, 'ถึง Lv5 แล้วไปคุยกับผู้เฒ่าเพื่อเลือกสายอาชีพ', 9, '#a89878'));
+    if (s.cls === 'novice') c.add(k.text(x + 180, top + 170, `ถึง Lv${FORM_LEVEL[1]} แล้วไปคุยกับผู้เฒ่าเพื่อเลือกสายอาชีพ`, 9, '#a89878'));
   }
 
   // ---------------- TEST: FORM SWITCHER ----------------

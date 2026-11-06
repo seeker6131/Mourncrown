@@ -14,7 +14,8 @@ export interface ClassDef {
 }
 
 /** Level needed for each form. */
-export const FORM_LEVEL = [1, 5, 20, 35];
+/** Level needed for each form (long-term game: level cap 100, then endless 'transcend' stars). */
+export const FORM_LEVEL = [1, 10, 40, 80];
 
 export const CLASSES: Record<ClassId, ClassDef> = {
   novice: { id: 'novice', forms: ['ชาวบ้าน'], codes: ['V0'], desc: 'ชาวบ้านธรรมดากับดาบไม้', ranged: false, bonus: {}, skills: [['v_bash']], cloth: { h: 0.08, s: 0.45, v: 0.85 } },
