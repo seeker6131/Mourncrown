@@ -169,3 +169,6 @@
   bosses/ (แต่ละตัว 2 ไฟล์: walk4+attack5 / skill4+die5): cursed_stag (ป่าผีสิง Lv20-30), skeleton_king (คุก Lv80-90), lava_dragon (ลาวา Lv50-60), frost_giant (หิมะ Lv60-70)
   buildings/ อาคารอัปเลเวลได้: townhall lv2/lv3, house hut lv1/lv2, lumber lv1/lv2 sawmill(มีกังหันน้ำ), quarry lv1/lv2, farm lv1
   แผน: อาคารเปลี่ยนรูปตามเลเวลอัป (หน้าตาเปลี่ยนจริง), สร้างระบบ ป่าไม้/เหมือง/ฟาร์ม = ผลิตทรัพยากรอัตโนมัติ
+- รอบ 4 (ยังไม่ import): buildings/ farm_lv2, barn lv1(คอก)/lv2(โรงนา+ไซโล), kitchen lv1(กองไฟหม้อ)/lv2, forge lv1/lv2, tavern lv1/lv2, warehouse lv1/lv2, market lv1/lv2, tower lv1 ไม้/lv2 หิน(หน้าไม้ยักษ์), construction(นั่งร้าน=ระหว่างสร้าง), empty_plot(ที่ดินว่างมีป้าย)
+  walls_sheet_wood_stone (6 ชิ้น: ไม้ตรง/มุม/ประตู, หิน ตรง/มุม/ประตู = กำแพงอัปเลเวล), props/haunted_autumn_sheet (8: ต้นไม้ตาย, เมเปิ้ล, ต้นไม้อีกา, หลุมศพ, เกวียนพัง, ฟักทอง, หุ่นไล่กาฟักทอง, ขอนเห็ด), props/lava_sheet (8: หินลาวา, คริสตัลแดง, บ่อลาวา, ต้นไม้ไหม้, โครงกระดูกมังกร, ปล่องควัน, แร่เงิน, เสาหักลาวา)
+  แผนอาคาร: ที่ดินว่าง → นั่งร้าน(รอเวลาสร้าง) → Lv1 → Lv2 (→ Lv3 ใช้ tint/ของประดับเพิ่ม จนกว่าจะมีรูป)
