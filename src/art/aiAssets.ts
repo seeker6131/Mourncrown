@@ -3,11 +3,11 @@
 import Phaser from 'phaser';
 import { strokeEnabled, strokeImage } from './stroke';
 
-const files = import.meta.glob('../assets/ai/*.{png,jpg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const files = import.meta.glob('../assets/ai/*.{png,jpg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
 export function preloadAi(scene: Phaser.Scene) {
   for (const [path, url] of Object.entries(files)) {
-    const name = path.split('/').pop()!.replace(/\.(png|jpg)$/, '');
+    const name = path.split('/').pop()!.replace(/\.(png|jpg|webp)$/, '');
     scene.load.image('ai_' + name, url);
   }
 }

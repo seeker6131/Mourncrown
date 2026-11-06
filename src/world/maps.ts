@@ -24,12 +24,16 @@ export function generateMap(id: MapId): GameMap {
   void cache;
   if (id === 'gather') return generateGather();
   const w = generateWorld();
-  const p = iso(4.5, 39.5);
-  // portal at the west end of the village road (clear the spot)
-  w.objects = w.objects.filter(o => Math.abs(o.tx - 4) > 1 || Math.abs(o.ty - 39) > 1);
-  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 2; i++) w.blocked[(39 + j) * MAP_W + 4 + i] = 0;
-  w.objects.push({ type: 'portal', x: p.x, y: p.y, v: 0, tx: 4, ty: 39 });
-  return { ...w, id: 'main', name: MAP_NAMES.main, hasBoss: true, surface: surfaceAt, portals: [{ tx: 4, ty: 39, x: p.x, y: p.y, to: 'gather', label: 'ไปป่าพรานไพร (หาทรัพยากร)' }] };
+  // portal on open ground south-east of the village, past the fence (clear decorations there)
+  const PX = 26, PY = 51, p = iso(PX + 0.5, PY + 0.5);
+  const veg = new Set(['tree', 'pine', 'bush', 'rock', 'bigrock', 'log', 'flower', 'tuft', 'mushrooms']);
+  w.objects = w.objects.filter(o => {
+    const near = Math.abs(o.tx - PX) <= 3 && Math.abs(o.ty - PY) <= 3;
+    if (near && veg.has(o.type)) { if (o.solid) w.blocked[o.ty * MAP_W + o.tx] = 0; if (o.type === 'bigrock') w.blocked[o.ty * MAP_W + o.tx + 1] = 0; return false; }
+    return true;
+  });
+  w.objects.push({ type: 'portal', x: p.x, y: p.y, v: 0, tx: PX, ty: PY });
+  return { ...w, id: 'main', name: MAP_NAMES.main, hasBoss: true, surface: surfaceAt, portals: [{ tx: PX, ty: PY, x: p.x, y: p.y, to: 'gather', label: 'ไปป่าพรานไพร (หาทรัพยากร)' }] };
 }
 
 function distSeg(px: number, py: number, ax: number, ay: number, bx: number, by: number) {

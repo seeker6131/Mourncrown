@@ -1665,7 +1665,7 @@ export class WorldScene extends Phaser.Scene {
       roam('vil_kid_run', 15, 38, 5, 48);
       roam('ani_cat_walk', 18, 43, 4, 18, undefined, 'ani_cat_run');
       for (const [k, n, sp] of [['ani_chicken_walk', 4, 14], ['ani_sheep_walk', 3, 10], ['ani_cow_walk', 2, 8], ['ani_pig_walk', 2, 10]] as const)
-        for (let i = 0; i < n; i++) roam(k, 28 + Math.floor(Math.random() * 4), 51 + Math.floor(Math.random() * 4), 3, sp);
+        for (let i = 0; i < n; i++) roam(k, 31 + Math.floor(Math.random() * 3), 47 + Math.floor(Math.random() * 3), 3, sp);
     } else if (this.map.id === 'gather') {
       station('vil_lumberjack_work', 13, 36);
       station('vil_elf_idle', 9, 41, true);

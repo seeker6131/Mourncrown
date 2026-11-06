@@ -5,8 +5,8 @@ import { strokeEnabled, strokeSheet } from './stroke';
 
 type Meta = { w: number; h: number; n: number; ax: number; ay: number };
 const M = meta as Record<string, Meta>;
-const files = import.meta.glob('../assets/forms/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const url = (name: string) => Object.entries(files).find(([p]) => p.endsWith('/' + name + '.png'))?.[1];
+const files = import.meta.glob('../assets/forms/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const url = (name: string) => Object.entries(files).find(([p]) => p.endsWith('/' + name + '.webp'))?.[1];
 export const FORM_RES = 3;
 
 export function preloadForms(scene: Phaser.Scene) {

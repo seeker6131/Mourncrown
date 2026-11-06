@@ -6,8 +6,11 @@ import { CLASSES, type ClassId } from '../data/classes';
 
 type Meta = { w: number; h: number; n: number; ax: number; ay: number };
 const M = meta as Record<string, Meta>;
-const files = import.meta.glob('../assets/anim/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const url = (name: string) => Object.entries(files).find(([p]) => p.endsWith('/' + name + '.png'))?.[1];
+// The single-file (artifact) build leaves out art of regions that are not playable yet (16 MB page limit).
+const files = (import.meta.env.MODE === 'single'
+  ? import.meta.glob(['../assets/anim/*.webp', '!../assets/anim/mon_{rat,skeleton,skarcher,ghost,spider,imp,golem,salamander,icewolf,yeti,stag,dragon,frostgiant,skking}_*'], { eager: true, query: '?url', import: 'default' })
+  : import.meta.glob('../assets/anim/*.webp', { eager: true, query: '?url', import: 'default' })) as Record<string, string>;
+const url = (name: string) => Object.entries(files).find(([p]) => p.endsWith('/' + name + '.webp'))?.[1];
 
 export function preloadAnims(scene: Phaser.Scene) {
   for (const [k, m] of Object.entries(M)) {
