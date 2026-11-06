@@ -3,6 +3,7 @@ import { generateAll } from '../art/textures';
 import { preloadAi, applyAiArt } from '../art/aiAssets';
 import { preloadAnims, applyAnims } from '../art/animAssets';
 import { preloadForms, applyForms } from '../art/formAssets';
+import { preloadUi, applyUi } from '../ui/skin';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
@@ -15,6 +16,7 @@ export class BootScene extends Phaser.Scene {
     preloadAi(this);
     preloadAnims(this);
     preloadForms(this);
+    preloadUi(this);
   }
   create() {
     this.time.delayedCall(30, () => {
@@ -22,6 +24,7 @@ export class BootScene extends Phaser.Scene {
       applyAiArt(this);
       applyAnims(this);
       applyForms(this);
+      applyUi(this);
       this.children.removeAll(true);
       const q = new URLSearchParams(location.search);
       this.scene.start(q.has('preview') ? 'Preview' : 'Title');

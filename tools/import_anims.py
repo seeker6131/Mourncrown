@@ -116,6 +116,8 @@ def build(name, im, rowspec, scale, anchor='feet', dark=False):
             if not dark:
                 from sprite_tools import defringe_rgba
                 px = defringe_rgba(px, 1, 185, 45)
+                from sprite_tools import clean_edges
+                px = clean_edges(px, 2)
             strip.paste(Image.fromarray(px, 'RGBA'), (i * fw, 0))
         key = f'{name}_{anim}'
         strip.save(os.path.join(OUT, key + '.png'), optimize=True)

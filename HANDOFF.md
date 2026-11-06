@@ -196,3 +196,6 @@
 - MONSTERS เพิ่มนิยามมอนดินแดนใหม่ + บอส 4 (ยังไม่วางในแมพ)
 ## ยังเหลือ (ลำดับ)
 1 UI kit ใหม่ (ui/ bars, panel 9-slice, buttons6, slots rarity, hud_icons10, res_icons8, skill_icons8, banners) 2 VFX fx2 ใส่สกิล/ตัดไม้/ขุด/เหรียญ 3 ภูมิประเทศสูงต่ำ/น้ำตก/สะพาน/ริมน้ำ/canopy/parallax 4 ดินแดนใหม่: ป่าผีสิง+บอสกวาง (tiles/props/concept haunted พร้อม) → ลาวา → หิมะ → ดันเจี้ยน 5 หอป้องกัน/กับดัก/อาวุธล้อม (ระบบปล้นออนไลน์) 6 เด็ก/แมววิ่ง ใส่แล้ว; ท่าตายมอนตัวเล็กยังไม่มี (ใช้ fade)
+- UI kit ใหม่ใส่แล้ว: tools/import_ui.py → src/assets/ui (panel 9-slice + ui_leather tile, ปุ่ม 6 สี 3-slice, แถบ HP/MP/EXP/บอส แบบภาพ, slot ตามความแรร์, ไอคอน hud/res/skill, ring, banner) — src/ui/skin.ts; kit.ts ใช้ skin อัตโนมัติถ้ามี texture
+- ขอบขาว: sprite_tools.clean_edges (ลอกพิกเซลสว่างที่ติดเส้นขอบดำ ไม่กินขนขาว/น้ำแข็งจริง) ใช้ในทุก importer; ตรวจด้วย tools/fringe_check.py (เหลือ 14 ไฟล์ = น้ำแข็ง/ขนขาวจริง)
+- ฐานอาคารกลืนพื้น: ดินเหยียบรอบแปลง (surfaceAt), groundSkirt() เงา+หญ้า/ดอกไม้/หินรอบฐาน (ทั้งบ้านเดิมและอาคารแปลง)

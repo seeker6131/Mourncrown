@@ -125,6 +125,7 @@ export class WorldScene extends Phaser.Scene {
         if (ai) {
           const bimg = this.fit(this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10));
           this.castShadow(bimg);
+          this.groundSkirt(c.x, bot.y + 3 - bimg.displayWidth * 0.22, bimg.displayWidth * 0.9, o.tx * 31 + o.ty);
           this.addChimney(bimg, o.type === 'house' ? (o.v ? [0.33, 0.04] : [0.27, 0.03]) : o.v === 0 ? [0.77, 0.05] : null);
         } else {
           const n = iso(o.tx - 2, o.ty - 2);
@@ -890,6 +891,30 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  /** Blend a building's painted base into the terrain: contact shadow + grass/pebbles over the base edge. */
+  groundSkirt(x: number, y: number, w: number, seed: number): Phaser.GameObjects.GameObject[] {
+    const o: Phaser.GameObjects.GameObject[] = [];
+    const ao = this.add.image(x, y + 2, 'fx_glow').setTint(0x000000).setAlpha(0.32).setScale(w / 30, w / 62).setDepth(1.15);
+    o.push(ao);
+    let r = seed * 9301 + 49297;
+    const rnd = () => { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+    const hw = w / 2, hh = w / 4;
+    for (let i = 0; i < 16; i++) {
+      // points along the two front edges of the iso footprint (where the base meets the ground)
+      const t = rnd(), left = rnd() < 0.5;
+      const px = left ? x - hw + t * hw : x + t * hw, py = left ? y + t * hh : y + hh - t * hh;
+      const jx = (rnd() - 0.5) * 6, jy = (rnd() - 0.2) * 4;
+      const kind = rnd();
+      const key = kind < 0.55 ? 'obj_tuft_0' : kind < 0.8 ? 'obj_flower_' + Math.floor(rnd() * 4) : kind < 0.92 ? 'obj_bush_' + Math.floor(rnd() * 2) : 'obj_rock_0';
+      if (!this.textures.exists(key)) continue;
+      const im = this.fit(this.add.image(px + jx, py + jy + 2, key).setOrigin(0.5, 0.95));
+      im.setScale(im.scaleX * (key.startsWith('obj_bush') ? 0.6 : key.startsWith('obj_rock') ? 0.55 : 0.85)).setDepth(py + jy + 30).setFlipX(rnd() < 0.5);
+      if (key.startsWith('obj_tuft') || key.startsWith('obj_flower')) this.swayers.push({ img: im, amp: 0.14, ph: px * 0.01, bend: 0, freq: 1.8 });
+      o.push(im);
+    }
+    return o;
+  }
+
   drawBuilding(type: BuildingId, level: number, x: number, y: number): Phaser.GameObjects.GameObject[] {
     const o: Phaser.GameObjects.GameObject[] = [];
     const add = (k: string, dx: number, dy: number, s = 1) => {
@@ -901,7 +926,7 @@ export class WorldScene extends Phaser.Scene {
     const art = `ai_bld_${type}_${Math.min(2, level)}`;
     if (this.textures.exists(art)) {
       const im = this.fit(this.add.image(x, y + 22, art).setOrigin(0.5, 0.97).setDepth(y + 10));
-      o.push(im, this.castShadow(im, 0.85));
+      o.push(im, this.castShadow(im, 0.85), ...this.groundSkirt(x, y + 22 - im.displayWidth / 4, im.displayWidth * 0.98, Math.round(x + y)));
       const top = y + 22 - im.displayHeight;
       // higher levels: banners, lanterns, golden glow
       if (level >= 3 && this.anims.exists('env_flag')) { const f = this.add.sprite(x + im.displayWidth * 0.36, y + 18, '__DEFAULT').setScale(0.45).setDepth(y + 12).play('env_flag'); f.anims.setProgress(Math.random()); o.push(f); }

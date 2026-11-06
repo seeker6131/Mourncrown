@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import numpy as np
 from PIL import Image
 from collections import deque
+from sprite_tools import clean_edges
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'art-source', 'forms')
@@ -143,7 +144,7 @@ def downscale(f, s):
     rgb = np.where(a > 0, small[:, :, :3] * 255 / np.maximum(a, 1), 0)
     alpha = np.where(a > 128, 255, 0)
     out = np.concatenate([np.clip(rgb, 0, 255), alpha], 2).astype(np.uint8)
-    return defringe(out, 1)
+    return clean_edges(defringe(out, 1), 2)
 
 
 def register(frames, ax, name):
@@ -222,7 +223,9 @@ for form in FORMS:
         meta[f'{form}_{name}'] = {'w': W, 'h': H, 'n': len(small), 'ax': left, 'ay': H - 1}
     if os.path.exists(os.path.join(SRC, form + 'P.png')):
         p = Image.fromarray(defringe(remove_bg(Image.open(os.path.join(SRC, form + 'P.png'))), 2), 'RGBA')
-        p = p.crop(p.getbbox()); p.thumbnail((160, 160), Image.LANCZOS)
+        p = p.crop(p.getbbox())
+        sc = min(160 / p.width, 160 / p.height)
+        p = Image.fromarray(downscale(np.asarray(p), sc), 'RGBA')
         p.save(os.path.join(OUT, f'{form}_portrait.png'), optimize=True)
         meta[f'{form}_portrait'] = {'w': p.width, 'h': p.height, 'n': 1, 'ax': 0, 'ay': 0}
     print(form, sorted(k for k in sheets))

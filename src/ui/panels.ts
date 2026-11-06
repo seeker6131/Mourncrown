@@ -1,3 +1,4 @@
+import { hasSkin, panelFrame, skillIconKey } from './skin';
 // Modal panels: Bag/Equipment, Stats/Skills, Quests, Menu, NPC dialog, Shop, Blacksmith.
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
@@ -108,11 +109,13 @@ export class Panels {
     const ui = this.ui;
     const x = Math.round(ui.VW / 2 - w / 2), y = Math.round(180 - h / 2);
     const g = ui.add.graphics();
-    this.k.frame(g, x, y, w, h, 0.97, true);
     const blocker = ui.add.zone(x, y, w, h).setOrigin(0).setInteractive();
-    c.add([blocker, g]);
-    c.add(this.k.text(x + w / 2, y + 13, title, 12, '#ffe7a0').setOrigin(0.5));
-    const close = this.k.button(x + w - 28, y + 3, 22, 18, '✕', () => this.close(), { size: 10, color: 0x5a1a1a });
+    if (hasSkin(ui)) {
+      c.add([blocker, ...panelFrame(ui, x, y, w, h), g]);
+      if (ui.textures.exists('ui_banner0')) { const bn = ui.add.image(x + w / 2, y + 6, 'ui_banner0'); bn.setScale(Math.min(w * 0.62, 30 + title.length * 7.5) / bn.width); c.add(bn); }
+    } else { this.k.frame(g, x, y, w, h, 0.97, true); c.add([blocker, g]); }
+    c.add(this.k.text(x + w / 2, y + 6, title, 12, '#ffe7a0').setOrigin(0.5));
+    const close = this.k.button(x + w - 26, y - 4, 22, 18, '✕', () => this.close(), { size: 10, color: 0x5a1a1a });
     c.add(close);
     return { x, y, w, h, g };
   }
@@ -280,7 +283,7 @@ export class Panels {
     currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const sy = ly + 24 + i * 56;
       const locked = false;
-      c.add(ui.add.image(rx + 20, sy + 16, `icon_${sk.icon}`).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
+      c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
       const slv = s.skillLv[sk.id] ?? 1;
       c.add(k.text(rx + 38, sy + 2, sk.name + `  Lv ${slv}`, 9, locked ? '#8a7a60' : '#9ad8ff'));
       if (!locked && slv < SKILL_MAX) c.add(k.button(x + W - 50, sy + 2, 30, 20, '+', () => { if (upSkill(s, sk.id)) { sfx.levelUp(); bus.emit(EV.STATE_CHANGED); } }, { size: 11, disabled: s.skillPts < 1, color: 0x1f4a2a }));

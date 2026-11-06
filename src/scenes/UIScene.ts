@@ -14,6 +14,7 @@ import { sfx } from '../audio/sfx';
 import { saveGame } from '../core/save';
 import { buildingAt } from '../systems/settlement';
 import { BUILDINGS, type BuildingId } from '../data/buildings';
+import { hasSkin, SkinBar, skillIconKey } from '../ui/skin';
 
 const VH = 400; // virtual UI height
 
@@ -38,6 +39,7 @@ export class UIScene extends Phaser.Scene {
   statBadge!: Phaser.GameObjects.Container;
   toasts: Phaser.GameObjects.Text[] = [];
   bossBar!: Phaser.GameObjects.Graphics; bossText!: Phaser.GameObjects.Text;
+  skin: { hp: SkinBar; mp: SkinBar; exp: SkinBar; boss: SkinBar } | null = null;
   bossInfo: { hp: number; max: number; name: string } | null = null;
   panels!: Panels;
   root!: Phaser.GameObjects.Container;
@@ -134,6 +136,21 @@ export class UIScene extends Phaser.Scene {
     this.mpText = k.text(110, 23, '', 8, '#ffffff').setOrigin(0.5, 0);
     this.expText = k.text(110, 34, '', 7, '#e0d0ff').setOrigin(0.5, 0);
     this.goldText = k.text(62, 46, '', 9, '#ffd84a').setOrigin(0, 0);
+    this.skin = null;
+    if (hasSkin(this)) {
+      // painted HUD: wreath portrait frame + liquid bars
+      const ring = this.add.image(26, 25, 'ui_ring0').setOrigin(0.5, 0.45); ring.setScale(58 / ring.height);
+      this.root.add(ring);
+      const hp = new SkinBar(this, 'hp', 44, 13, 158), mp = new SkinBar(this, 'mp', 44, 29, 150), exp = new SkinBar(this, 'exp', 44, 43, 136);
+      const boss = new SkinBar(this, 'boss', this.VW / 2 - 140, 50, 280).setVisible(false);
+      this.root.add([hp.empty, hp.full, mp.empty, mp.full, exp.empty, exp.full, boss.empty, boss.full]);
+      this.skin = { hp, mp, exp, boss };
+      this.hpText.setPosition(hp.tubeCenter(), 13).setOrigin(0.5);
+      this.mpText.setPosition(mp.tubeCenter(), 29).setOrigin(0.5);
+      this.expText.setPosition(exp.tubeCenter(), 43).setOrigin(0.5).setFontSize(6.5);
+      this.lvText.setPosition(26, 51);
+      this.goldText.setPosition(46, 52).setFontSize(8);
+    }
     this.questText = k.text(8, 70, '', 8, '#f3e6c4', { wordWrap: { width: 150 }, lineSpacing: 2 });
     this.zoneText = k.text(this.VW / 2, 54, '', 14, '#ffe7a0', { strokeThickness: 4 }).setOrigin(0.5).setAlpha(0);
     this.root.add([this.lvText, this.hpText, this.mpText, this.expText, this.goldText, this.questText, this.zoneText]);
@@ -142,7 +159,8 @@ export class UIScene extends Phaser.Scene {
     this.resTexts = [];
     (['gold', 'wood', 'stone', 'food'] as const).forEach((r, i) => {
       const x0 = 190 + i * 62;
-      const ic = this.add.image(x0 + 8, 13, r === 'gold' ? 'icon_gold' : `icon_res_${r}`).setDisplaySize(13, 13);
+      const sk = this.textures.exists('ui_res0') ? 'ui_res' + i : null;
+      const ic = this.add.image(x0 + 8, 13, sk ?? (r === 'gold' ? 'icon_gold' : `icon_res_${r}`)).setDisplaySize(sk ? 16 : 13, sk ? 16 * 54 / 66 : 13);
       const t = k.text(x0 + 17, 13, '0', 9, '#ffe7a0').setOrigin(0, 0.5);
       this.root.add([ic, t]); this.resTexts.push(t);
     });
@@ -246,7 +264,7 @@ export class UIScene extends Phaser.Scene {
     currentSkills(S()).slice(0, 4).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const a = (angles[i] * Math.PI) / 180, R = 58;
       const r = 17;
-      const b = k.roundButton(ax + Math.cos(a) * R, ay + Math.sin(a) * R, r, `icon_${sk.icon}`, null);
+      const b = k.roundButton(ax + Math.cos(a) * R, ay + Math.sin(a) * R, r, skillIconKey(this, sk), null);
       (b.c.getData('icon') as Phaser.GameObjects.Image).setDisplaySize(r * 2.15, r * 2.15);
       const cd = this.add.graphics();
       const lock = k.text(0, 0, '', 8, '#ffffff').setOrigin(0.5);
@@ -351,6 +369,12 @@ export class UIScene extends Phaser.Scene {
     const d = derive(s);
     const k = this.kit;
     const g = this.hud; g.clear();
+    if (this.skin) {
+      g.fillStyle(0x0a0705, 1).fillCircle(26, 26, 18);
+      g.fillStyle(0x0a0705, 0.85).fillRoundedRect(13, 46, 26, 11, 4).lineStyle(1, GOLD, 1).strokeRoundedRect(13, 46, 26, 11, 4);
+      this.skin.hp.set(s.hp / d.maxHp); this.skin.mp.set(s.mp / d.maxMp); this.skin.exp.set(s.exp / expToNext(s.level));
+      this.expText.setText(`${Math.floor(s.exp / expToNext(s.level) * 100)}%`);
+    } else {
     // portrait frame
     k.frame(g, 4, 4, 175, 54, 0.88);
     g.fillStyle(0x0a0705, 1).fillCircle(26, 25, 17);
@@ -360,9 +384,10 @@ export class UIScene extends Phaser.Scene {
     k.bar(g, 50, 11, 120, 9, s.hp / d.maxHp, 0xd83a3a);
     k.bar(g, 50, 23, 120, 8, s.mp / d.maxMp, 0x3a7ae0, 0x101a3a);
     k.bar(g, 50, 35, 120, 4, s.exp / expToNext(s.level), 0xb07aff, 0x1a102a);
+    this.expText.setText('');
+    }
     this.hpText.setText(`${Math.ceil(s.hp)} / ${d.maxHp}`);
     this.mpText.setText(`${Math.ceil(s.mp)} / ${d.maxMp}`);
-    this.expText.setText('');
     this.lvText.setText('Lv ' + s.level);
     if (this.formKey !== `${s.cls}${activeTier(s)}`) { const first = !this.formKey; this.formKey = `${s.cls}${activeTier(s)}`; if (!first) { this.time.delayedCall(10, () => this.scene.restart()); return; } }
     this.goldText.setText('พลังรบ ' + d.power.toLocaleString() + (s.buff && s.buff.until > Date.now() ? '  🍲' : ''));
@@ -445,10 +470,13 @@ export class UIScene extends Phaser.Scene {
 
   drawBoss() {
     const g = this.bossBar; g.clear();
-    if (!this.bossInfo) { this.bossText.setText(''); return; }
+    if (!this.bossInfo) { this.bossText.setText(''); this.skin?.boss.setVisible(false); return; }
+    if (this.skin) { this.skin.boss.setVisible(true).set(this.bossInfo.hp / this.bossInfo.max); this.bossText.setY(30); }
+    else {
     const w = Math.min(240, this.VW * 0.4), x = this.VW / 2 - w / 2, y = 42;
     this.kit.bar(g, x, y, w, 8, this.bossInfo.hp / this.bossInfo.max, 0xc02a2a, 0x2a0a0a);
     this.kit.diamond(g, x - 6, y + 4, 5); this.kit.diamond(g, x + w + 6, y + 4, 5);
+    }
     this.bossText.setText(`☠ ${this.bossInfo.name}  ${Math.ceil(this.bossInfo.hp)}/${this.bossInfo.max}`);
     const w2 = this.world;
     if (w2.boss && w2.boss.alive && Math.hypot(w2.boss.x - w2.hero.x, w2.boss.y - w2.hero.y) > 320) this.bossInfo = null;

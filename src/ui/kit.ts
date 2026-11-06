@@ -1,6 +1,8 @@
 // Black & gold fantasy UI kit (vector drawn, crisp at any scale).
 import Phaser from 'phaser';
 import { sfx } from '../audio/sfx';
+import { hasSkin, buttonPlate, SKINNED, UI_META, UK } from './skin';
+import { RARITY_COLORS } from '../data/items';
 
 export const GOLD = 0xd9b45a;
 export const GOLD_D = 0x7a5a24;
@@ -42,6 +44,25 @@ export class UIKit {
   button(x: number, y: number, w: number, h: number, label: string, cb: () => void, opts: { size?: number; color?: number; disabled?: boolean; textColor?: string } = {}) {
     const c = this.scene.add.container(x, y);
     const g = this.scene.add.graphics();
+    if (hasSkin(this.scene) && w >= 34 && h >= 16) {
+      // painted plate (3-slice) + centre gem on wide buttons
+      const n = buttonPlate(opts.color, opts.disabled), cap = UI_META['btn' + n].cap!;
+      const ph = h + 6;
+      const plate = this.scene.add.nineslice(w / 2, h / 2, 'ui_btn' + n, undefined, w * UK * 1.06, ph * UK, cap, cap, 0, 0).setScale(1 / UK);
+      c.add(plate);
+      if (w >= 90) { const gem = this.scene.add.image(w / 2, h / 2, `ui_btn${n}_gem`); gem.setScale(ph / gem.height); c.add(gem); }
+      const t = this.text(w / 2, h / 2, label, opts.size ?? 10, opts.disabled ? '#9a9080' : opts.textColor ?? '#fff3cf').setOrigin(0.5);
+      c.add(t); c.setSize(w, h);
+      const zone = this.scene.add.zone(w / 2, h / 2, w, h).setInteractive();
+      c.add(zone);
+      if (!opts.disabled) {
+        zone.on('pointerdown', () => { plate.setTint(0xb0a090); t.y = h / 2 + 1; });
+        zone.on('pointerout', () => { plate.clearTint(); t.y = h / 2; });
+        zone.on('pointerup', () => { plate.clearTint(); t.y = h / 2; sfx.click(); cb(); });
+      }
+      c.setData('label', t);
+      return c;
+    }
     const draw = (pressed: boolean) => {
       g.clear();
       const base = opts.disabled ? 0x2a2622 : opts.color ?? 0x3a2414;
@@ -69,8 +90,10 @@ export class UIKit {
   roundButton(x: number, y: number, r: number, icon: string | null, label: string | null, color = 0x2a1a10) {
     const c = this.scene.add.container(x, y);
     const g = this.scene.add.graphics();
+    const painted = !!icon && (SKINNED.has(icon) || icon.startsWith('ui_'));
     const draw = (pressed: boolean, active = false) => {
       g.clear();
+      if (painted) { if (active) g.lineStyle(2, 0x9fffb0, 1).strokeCircle(0, 0, r + 1); if (pressed) g.fillStyle(0x000000, 0.3).fillCircle(0, 0, r); return; }
       g.fillStyle(0x000000, 0.45).fillCircle(1, 2, r);
       g.fillStyle(pressed ? 0x120a06 : color, 0.92).fillCircle(0, 0, r);
       g.fillStyle(0xffffff, 0.07).fillEllipse(0, -r * 0.45, r * 1.4, r * 0.7);
@@ -79,7 +102,7 @@ export class UIKit {
     };
     draw(false);
     c.add(g);
-    if (icon) { const im = this.scene.add.image(0, 0, icon); im.setScale((r * 1.25) / Math.max(im.width, im.height)); c.add(im); c.setData('icon', im); }
+    if (icon) { const im = this.scene.add.image(0, 0, icon); im.setScale((painted ? r * 2.3 : r * 1.25) / Math.max(im.width, im.height)); c.add(im); c.setData('icon', im); if (painted) c.bringToTop(g); }
     if (label) { const t = this.text(0, icon ? r * 0.55 : 0, label, icon ? Math.max(7, r * 0.36) : r * 0.55, '#ffe7a0').setOrigin(0.5); c.add(t); c.setData('label', t); }
     c.setData('draw', draw);
     const zone = this.scene.add.zone(0, 0, r * 2.2, r * 2.2).setInteractive(new Phaser.Geom.Circle(r * 1.1, r * 1.1, r * 1.1), Phaser.Geom.Circle.Contains);
@@ -104,6 +127,15 @@ export class UIKit {
   }
 
   iconSlot(g: Phaser.GameObjects.Graphics, x: number, y: number, s: number, rarityColor?: number, selected = false) {
+    const pc = g.parentContainer;
+    if (pc && hasSkin(this.scene)) {
+      const ri = rarityColor === undefined ? -1 : RARITY_COLORS.indexOf(rarityColor);
+      const im = this.scene.add.image(x + s / 2, y + s / 2, 'ui_slot' + (ri < 0 ? 0 : Math.min(5, ri + 1)));
+      im.setScale((s * 1.18) / im.width);
+      pc.add(im);
+      if (selected) { const hl = this.scene.add.graphics().lineStyle(2, GOLD_L, 1).strokeRoundedRect(x - 1, y - 1, s + 2, s + 2, 4); pc.add(hl); }
+      return;
+    }
     g.fillStyle(0x0a0705, 0.95).fillRoundedRect(x, y, s, s, 3);
     g.fillStyle(0xffffff, 0.04).fillRect(x + 2, y + 2, s - 4, s / 2 - 2);
     g.lineStyle(selected ? 2 : 1, selected ? GOLD_L : rarityColor ?? GOLD_D, 1).strokeRoundedRect(x, y, s, s, 3);

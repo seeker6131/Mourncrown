@@ -42,7 +42,7 @@ def remove_white_bg(im: Image.Image, thr: int = 236, sat: int = 28, holes: int =
             if len(region) >= holes:
                 for y, x in region: mask[y, x] = True
     rgba = np.dstack([a.astype(np.uint8), np.where(mask, 0, 255).astype(np.uint8)])
-    rgba = defringe_rgba(rgba, 2)
+    rgba = clean_edges(defringe_rgba(rgba, 2))
     return Image.fromarray(rgba, 'RGBA')
 
 
@@ -117,7 +117,7 @@ def to_game(img: Image.Image, width: int = 0, height: int = 0, crisp: bool = Tru
     rgb = np.where(alpha > 0, sa[:, :, :3] * 255.0 / np.maximum(alpha, 1), 0)
     hard = np.where(alpha > 110, 255, 0)
     out = np.concatenate([np.clip(rgb, 0, 255), hard], axis=2).astype(np.uint8)
-    res = Image.fromarray(defringe_rgba(out, 1, 185, 45), 'RGBA')
+    res = Image.fromarray(clean_edges(defringe_rgba(out, 1, 185, 45), 2), 'RGBA')
     if crisp:
         # slight sharpening of colours via palette reduction keeps a pixel-art look
         rgbq = res.convert('RGB').quantize(160, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB')
@@ -145,4 +145,33 @@ def defringe_rgba(a, passes=2, lo=170, sat=50):
         rgb = a[:, :, :3].astype(np.int16)
         light = (rgb.min(2) > lo) & ((rgb.max(2) - rgb.min(2)) < sat)
         a[edge & light, 3] = 0
+    return a
+
+
+def clean_edges(a, passes=3, light_min=170, sat_max=60, dark_lum=110):
+    """Outline-aware de-fringe: peel light, low-saturation silhouette pixels that sit OUTSIDE a dark outline
+    (leftover white background), while keeping genuinely white parts (fur, ice) that have no dark rim.
+    Then one pass of near-pure-white removal. Works on uint8 RGBA arrays."""
+    a = a.copy()
+    for _ in range(passes):
+        al = a[:, :, 3] > 0
+        pad = np.pad(al, 1)
+        edge = al & ~(pad[:-2, 1:-1] & pad[2:, 1:-1] & pad[1:-1, :-2] & pad[1:-1, 2:])
+        rgb = a[:, :, :3].astype(np.int16)
+        lum = (rgb[..., 0] * 3 + rgb[..., 1] * 6 + rgb[..., 2]) // 10
+        light = (rgb.min(2) > light_min) & ((rgb.max(2) - rgb.min(2)) < sat_max)
+        dark = (lum < dark_lum) & al
+        dp = np.pad(dark, 1)
+        near_dark = np.zeros_like(dark)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                near_dark |= dp[1 + dy:1 + dy + dark.shape[0], 1 + dx:1 + dx + dark.shape[1]]
+        kill = edge & light & near_dark
+        if not kill.any(): break
+        a[kill, 3] = 0
+    al = a[:, :, 3] > 0
+    pad = np.pad(al, 1)
+    edge = al & ~(pad[:-2, 1:-1] & pad[2:, 1:-1] & pad[1:-1, :-2] & pad[1:-1, 2:])
+    rgb = a[:, :, :3].astype(np.int16)
+    a[edge & (rgb.min(2) > 222) & ((rgb.max(2) - rgb.min(2)) < 22), 3] = 0
     return a

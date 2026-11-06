@@ -91,7 +91,10 @@ export function pathDist(x: number, y: number) {
 /** Continuous (sub-tile) refinement of plaza / ruins / path borders for smooth, organic painted edges. */
 export function surfaceAt(tx: number, ty: number, tileG: number): number {
   if (tileG === G.Water || tileG === G.Sand || tileG === G.Bridge) return tileG;
-  for (const [px, py] of PLOTS) if (Math.abs(tx - px - 0.5) <= 1.5 && Math.abs(ty - py - 0.5) <= 1.5) return G.Plaza;
+  for (const [px, py] of PLOTS) {
+    const d = Math.hypot((tx - px - 0.5) / 2.3, (ty - py - 0.5) / 2.3) + (fbm(tx * 0.5, ty * 0.5, 13) - 0.5) * 0.55;
+    if (d < 1) return G.Path;
+  }
   const land = tileG === G.Forest || tileG === G.Grove ? tileG : G.Grass;
   const n = fbm(tx * 0.08, ty * 0.08, 7);
   const zd = (z: string) => { const Z = ZONES.find(q => q.id === z)!; return Math.hypot(tx - 0.5 - Z.cx, ty - 0.5 - Z.cy) / Z.r; };
