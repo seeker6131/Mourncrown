@@ -5,7 +5,7 @@ import { strokeEnabled, strokeImage } from './stroke';
 
 // artifact build (16 MB page cap): skip art that is not placed in the game yet
 const files = (import.meta.env.MODE === 'single'
-  ? import.meta.glob(['../assets/ai/*.{png,jpg,webp}', '!../assets/ai/pr_vil*', '!../assets/ai/bld_townhall*', '!../assets/ai/bld_house*'], { eager: true, query: '?url', import: 'default' })
+  ? import.meta.glob(['../assets/ai/*.{png,jpg,webp}', '!../assets/ai/pr_vil*', '!../assets/ai/bld_townhall*', '!../assets/ai/bld_house*', '!../assets/ai/splash_*', '!../assets/ai/bg_par*', '!../assets/ai/pr_canopy*', '!../assets/ai/pr_siege*', '!../assets/ai/pr_def*', '!../assets/ai/pr_wall*', '!../assets/ai/pr_cliff*', '!../assets/ai/pr_dwall*', '!../assets/ai/pr_hill*', '!../assets/ai/pr_snow*', '!../assets/ai/pr_lava*', '!../assets/ai/pr_dung*', '!../assets/ai/pr_haunt*'], { eager: true, query: '?url', import: 'default' })
   : import.meta.glob('../assets/ai/*.{png,jpg,webp}', { eager: true, query: '?url', import: 'default' })) as Record<string, string>;
 
 export function preloadAi(scene: Phaser.Scene) {

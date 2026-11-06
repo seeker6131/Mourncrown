@@ -26,6 +26,7 @@ const baseOf = (g: number): Color => (theme !== 'main' ? THEMES[theme].base[g] :
 // ---------------- Ground ----------------
 export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: number, g: number) => number = surfaceAt, th: Theme = 'main'): HTMLCanvasElement {
   theme = th;
+  const clear = th === 'main' || th === 'haunt' || th === 'snow'; // outside the world: see the parallax sky
   const W = WORLD_PX_W, H = WORLD_PX_H;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -148,8 +149,9 @@ export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: num
         }
       }
       if (theme !== 'main' && g >= 0) c = themeDetail(c, g, x, y);
+      const out = g === -1 && clear;
       g = 0;
-      d[i] = (c >> 16) & 255; d[i + 1] = (c >> 8) & 255; d[i + 2] = c & 255; d[i + 3] = 255;
+      d[i] = (c >> 16) & 255; d[i + 1] = (c >> 8) & 255; d[i + 2] = c & 255; d[i + 3] = out ? 0 : 255;
     }
   }
   ctx.putImageData(img, 0, 0);

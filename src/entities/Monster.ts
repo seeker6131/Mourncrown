@@ -45,7 +45,7 @@ export class Monster {
     this.facesLeft = this.aiArt && AI_FACES_LEFT[kind];
     const h = f0.height;
     this.sprite = scene.add.sprite(x, y, f0.texture.key, f0.name).setOrigin(0.5, (h - (this.aiArt ? 2 : 2)) / h);
-    this.base = 1 / resOf(f0.texture.key);
+    this.base = (1 / resOf(f0.texture.key)) * (({ deer: 0.82 } as Record<string, number>)[kind] ?? 1);
     this.sprite.setScale(this.base);
     this.sprite.play(`mon_${kind}_idle`);
     this.sprite.anims.setProgress(Math.random());

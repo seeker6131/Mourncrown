@@ -20,6 +20,7 @@ import { SKILLS, SKILL_BY_ID, type SkillId, type SkillDef } from '../data/skills
 import { itemDef, RARITY_COLORS, RARITY_NAMES } from '../data/items';
 import { isGear, GEAR_BASES, baseTier, pickBase, rollRarity, makeGear } from '../systems/loot';
 import { FONT } from '../ui/kit';
+import { TerrainDecor } from './terrainDecor';
 import { saveGame } from '../core/save';
 import { sfx, startMusic } from '../audio/sfx';
 
@@ -136,7 +137,8 @@ export class WorldScene extends Phaser.Scene {
         if (!ai) this.add.image(c.x + 10, c.y + 4, 'fx_shadow').setScale(w * 1.15, h * 1.25).setAlpha(0.8).setDepth(1);
         if (ai) {
           const bimg = this.fit(this.add.image(c.x, bot.y + 3, key).setOrigin(0.5, 1).setDepth(c.y + 10));
-          this.castShadow(bimg);
+          const bsh = this.castShadow(bimg);
+          if (o.type === 'building' && o.v === 1) { this.elderTower = bimg; bimg.setData('sh', bsh); }
           this.groundSkirt(c.x, bot.y + 3 - bimg.displayWidth * 0.22, bimg.displayWidth * 0.9, o.tx * 31 + o.ty);
           this.addChimney(bimg, o.type === 'house' ? (o.v ? [0.33, 0.04] : [0.27, 0.03]) : o.v === 0 ? [0.77, 0.05] : null);
         } else {
@@ -255,6 +257,9 @@ export class WorldScene extends Phaser.Scene {
 
     this.buildPlots();
     this.spawnLife();
+    this.elderTower = this.elderTower ?? null;
+    this.decor = new TerrainDecor(this);
+    this.decor.build();
 
     // hero
     let start = s.pos.x > 0 ? s.pos : this.map.heroStart;
@@ -279,6 +284,7 @@ export class WorldScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.scale.off('resize', this.applyZoom, this); bus.off(EV.STATE_CHANGED, this.onState, this); });
 
     this.createAmbient();
+    if (this.registry.get('arrived')) { this.registry.set('arrived', false); this.regionSplash(); }
 
     // keyboard (desktop testing)
     if (this.input.keyboard) {
@@ -663,6 +669,7 @@ export class WorldScene extends Phaser.Scene {
       h.casual = inTown || s.outfit === 'gather'; }
     this.updateSettlement(time);
     this.updateLife(time, dt);
+    this.decor?.update(time);
     if (time % 1000 < 20) this.regrowNodes(time);
     if (h.state === 'walk' && time - this.lastStep > 210) { this.lastStep = time; this.dust(h.x, h.y); }
     this.heroRing.setPosition(h.x, h.y).setVisible(h.state !== 'dead');
@@ -973,7 +980,7 @@ export class WorldScene extends Phaser.Scene {
       const b = buildingAt(s, i), v = this.plotViews[i];
       if (!v) return;
       const key = b ? `${b.type}${b.level}${underConstruction(b) ? 'c' : ''}` : 'empty';
-      if (key !== v.key) { this.buildPlots(); return; }
+      if (key !== v.key) { this.buildPlots(); this.decor?.villageGrowth(); return; }
       if (b && underConstruction(b)) { const lt = v.objs.find(o => o.getData?.('timer')) as Phaser.GameObjects.Text | undefined; lt?.setText(`🔨 ${Math.ceil((b.done! - Date.now()) / 1000)} วิ`); }
       const res = b ? BUILDINGS[b.type as BuildingId].produces : undefined;
       const show = !!res && b!.stored >= 1;
@@ -1773,9 +1780,27 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** Concept-art title card when entering a region. */
+  regionSplash() {
+    const k = ({ main: 'ai_splash_village', haunt: 'ai_splash_haunted_forest', lava: 'ai_splash_lava', snow: 'ai_splash_snow', dung: 'ai_splash_dungeon' } as Record<string, string>)[this.map.id];
+    const cam = this.cameras.main, z = cam.zoom;
+    if (k && this.textures.exists(k)) {
+      const im = this.add.image(cam.width / 2, cam.height / 2, k).setScrollFactor(0).setDepth(1e6);
+      im.setScale(Math.max(cam.width / im.width, cam.height / im.height) / z);
+      this.tweens.add({ targets: im, alpha: 0, scale: im.scale * 1.06, delay: 1300, duration: 900, onComplete: () => im.destroy() });
+    }
+    const t = this.add.text(cam.width / 2, cam.height / 2 + 40 / z, this.map.name, { fontFamily: FONT, fontSize: '22px', color: '#ffe7a0', stroke: '#0b0705', strokeThickness: 5, resolution: 4 })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(1e6 + 1).setScale(1 / z);
+    const lvl = this.add.text(cam.width / 2, cam.height / 2 + 62 / z, this.map.level > 1 ? `เลเวลแนะนำ ${this.map.level}+` : '', { fontFamily: FONT, fontSize: '11px', color: '#ffd0a0', stroke: '#0b0705', strokeThickness: 3, resolution: 4 })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(1e6 + 1).setScale(1 / z);
+    this.tweens.add({ targets: [t, lvl], alpha: 0, delay: 1700, duration: 700, onComplete: () => { t.destroy(); lvl.destroy(); } });
+  }
+
   // ---------- Maps / portals ----------
   portals: { x: number; y: number }[] = [];
   traveling = false;
+  decor: TerrainDecor | null = null;
+  elderTower: Phaser.GameObjects.Image | null = null;
   addPortal(x: number, y: number, idx = 0) {
     const ring = this.add.image(x, y + 2, 'fx_glow').setTint(0x7ae0ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6, 0.8).setAlpha(0.7).setDepth(1.2);
     this.tweens.add({ targets: ring, alpha: 0.35, scaleX: 1.9, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -1806,7 +1831,7 @@ export class WorldScene extends Phaser.Scene {
     this.time.delayedCall(380, () => {
       s.pos = dest ? { x: dest.x + 22, y: dest.y + 6 } : { x: -1, y: -1 };
       saveGame(s);
-      bus.emit(EV.STATE_CHANGED); this.scene.restart();
+      bus.emit(EV.STATE_CHANGED); this.registry.set('arrived', true); this.scene.restart();
     });
   }
 

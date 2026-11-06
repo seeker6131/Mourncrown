@@ -47,3 +47,32 @@ sheet('props/lava_sheet', 'pr_lava', [34, 28, 40, 44, 44, 34, 26, 34])
 sheet('props/snow_sheet', 'pr_snow', [30, 24, 36, 26, 18, 28, 22, 30])
 sheet('props/dungeon_sheet', 'pr_dung', [20, 30, 26, 30, 22, 22, 28, 30])
 sheet('props/village_props12', 'pr_vil', [26, 22, 20, 24, 22, 20, 22, 24, 22, 20, 22, 24])
+
+# terrain / defense pieces (world widths)
+sheet('terrain/bridges', 'pr_bridge', [96, 96, 96, 96], holes=300)
+sheet('terrain/canopy_overhang', 'pr_canopy', [150, 150, 150, 150])
+sheet('terrain/dungeon_walls', 'pr_dwall', [34, 34, 34, 34, 34, 34, 34, 34])
+sheet('terrain/earth_ledge', 'pr_ledge', [34, 34, 34, 34, 22, 22, 34, 34])
+sheet('terrain/grass_hills', 'pr_hill', [80, 52, 44, 70, 46, 32])
+sheet('terrain/rock_cliff', 'pr_cliff', [36, 36, 36, 36, 36, 36, 36, 36])
+sheet('terrain/shore_edges', 'pr_shore', [34, 34, 34, 34, 34, 34, 34, 34])
+sheet('terrain/stairs_ramps', 'pr_stairs', [40, 40, 40, 40, 34, 40])
+sheet('terrain/waterfall_4f', 'pr_fall', [48, 48, 48, 48])
+sheet('buildings/defense_towers_traps', 'pr_def', [36, 36, 30, 22, 18, 26])
+sheet('props/siege_weapons', 'pr_siege', [40, 44, 40, 40, 16, 22])
+sheet('buildings/walls_sheet_wood_stone', 'pr_wall', [34, 30, 60, 34, 30, 60])
+# parallax strips (stored wide, no 2x)
+pim = remove_white_bg(Image.open(os.path.join(P, 'terrain/parallax_bg.png')), holes=0)
+import numpy as _np
+al = _np.asarray(pim)[:, :, 3] > 0; rows = _np.nonzero(al.any(1))[0]
+cuts = []; s0 = rows[0]; pv = rows[0]
+for r in rows[1:]:
+    if r > pv + 6: cuts.append((s0, pv)); s0 = r
+    pv = r
+cuts.append((s0, pv))
+for i, (a, b) in enumerate(cuts[:3]):
+    c = pim.crop((0, a, pim.width, b + 1)); c = c.crop(c.getbbox()); c.save(os.path.join(OUT, f'bg_par{i}.png'), optimize=True)
+print('parallax', len(cuts))
+# concept art -> region splash
+for n in ['village', 'haunted_forest', 'lava', 'snow', 'dungeon']:
+    Image.open(os.path.join(P, 'concept', n + '.png')).convert('RGB').resize((800, 450), Image.LANCZOS).save(os.path.join(OUT, f'splash_{n}.jpg'), quality=82)

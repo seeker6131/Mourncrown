@@ -39,6 +39,7 @@ export class UIScene extends Phaser.Scene {
   statBadge!: Phaser.GameObjects.Container;
   toasts: Phaser.GameObjects.Text[] = [];
   bossBar!: Phaser.GameObjects.Graphics; bossText!: Phaser.GameObjects.Text;
+  zoneBanner: Phaser.GameObjects.Image | null = null;
   skin: { hp: SkinBar; mp: SkinBar; exp: SkinBar; boss: SkinBar } | null = null;
   bossInfo: { hp: number; max: number; name: string } | null = null;
   panels!: Panels;
@@ -431,9 +432,17 @@ export class UIScene extends Phaser.Scene {
 
   showZone(name: string) {
     if (!name) return;
-    this.zoneText.setText(`— ${name} —`).setAlpha(0).setScale(0.9);
+    this.zoneText.setText(this.textures.exists('ui_banner1') ? name : `— ${name} —`).setAlpha(0).setScale(0.9);
     this.tweens.killTweensOf(this.zoneText);
     this.tweens.add({ targets: this.zoneText, alpha: 1, scale: 1, duration: 500, hold: 1600, yoyo: true });
+    if (this.textures.exists('ui_banner1')) {
+      this.zoneBanner?.destroy();
+      const bn = this.add.image(this.zoneText.x, this.zoneText.y, 'ui_banner1').setAlpha(0);
+      bn.setScale(Math.max(150, this.zoneText.width + 90) / bn.width);
+      this.root.addAt(bn, this.root.getIndex(this.zoneText));
+      this.zoneBanner = bn; this.zoneText.setColor("#fff3cf");
+      this.tweens.add({ targets: bn, alpha: 1, duration: 500, hold: 1600, yoyo: true });
+    }
   }
 
   onNearNpc(id: string | null) {
