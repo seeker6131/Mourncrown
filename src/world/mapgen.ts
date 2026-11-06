@@ -24,9 +24,9 @@ export function unIso(sx: number, sy: number) {
 export enum G { Grass = 0, Path = 1, Water = 2, Sand = 3, Forest = 4, Grove = 5, Plaza = 6, Ruins = 7, Bridge = 8 }
 
 export type ObjType = 'tree' | 'pine' | 'bush' | 'rock' | 'bigrock' | 'flower' | 'tuft' | 'mushrooms' | 'house' | 'well' | 'fence' | 'sign' | 'campfire'
-  | 'lamp' | 'wall' | 'chest' | 'wardrobe' | 'building' | 'haystack' | 'statue' | 'arch' | 'stairs' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log' | 'portal';
+  | 'lamp' | 'wall' | 'chest' | 'wardrobe' | 'building' | 'haystack' | 'statue' | 'arch' | 'stairs' | 'pillar' | 'brokenpillar' | 'altar' | 'stall' | 'barrel' | 'crate' | 'tent' | 'crystal' | 'lily' | 'log' | 'portal' | 'prop';
 
-export interface WorldObj { type: ObjType; x: number; y: number; v: number; tx: number; ty: number; solid?: { w: number; h: number }; deco?: boolean }
+export interface WorldObj { type: ObjType; x: number; y: number; v: number; tx: number; ty: number; solid?: { w: number; h: number }; deco?: boolean; key?: string }
 
 export interface Zone { id: string; name: string; cx: number; cy: number; r: number }
 

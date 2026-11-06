@@ -34,3 +34,16 @@ for rel, name, w in [
 ]:
     single(rel, name, w)
     print(name)
+
+# region prop sheets: 8 objects each (two rows of four), world widths per object
+def sheet(rel, prefix, widths, holes=600):
+    im = remove_white_bg(Image.open(os.path.join(P, rel + '.png')), holes=holes)
+    bx = order_rows(components(im, gap=14, min_area=1500), row_tol=120)
+    for i, b in enumerate(bx[:len(widths)]):
+        to_game(im.crop(tuple(int(v) for v in b[:4])), width=widths[i] * R, crisp=False).save(os.path.join(OUT, f'{prefix}{i}.png'), optimize=True)
+    print(prefix, len(bx))
+sheet('props/haunted_autumn_sheet', 'pr_haunt', [46, 50, 46, 22, 30, 22, 22, 34])
+sheet('props/lava_sheet', 'pr_lava', [34, 28, 40, 44, 44, 34, 26, 34])
+sheet('props/snow_sheet', 'pr_snow', [30, 24, 36, 26, 18, 28, 22, 30])
+sheet('props/dungeon_sheet', 'pr_dung', [20, 30, 26, 30, 22, 22, 28, 30])
+sheet('props/village_props12', 'pr_vil', [26, 22, 20, 24, 22, 20, 22, 24, 22, 20, 22, 24])

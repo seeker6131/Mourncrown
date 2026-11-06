@@ -95,14 +95,26 @@ export class WorldScene extends Phaser.Scene {
     // ground
     const gk = 'ground_' + this.map.id;
     for (const id of Object.keys(MAP_NAMES)) if (id !== this.map.id && this.textures.exists('ground_' + id)) this.textures.remove('ground_' + id);
-    if (!this.textures.exists(gk)) this.textures.addCanvas(gk, paintGroundIso(this.map.ground, this.map.surface));
+    if (!this.textures.exists(gk)) this.textures.addCanvas(gk, paintGroundIso(this.map.ground, this.map.surface, this.map.theme));
     this.add.image(0, 0, gk).setOrigin(0).setDepth(0);
 
     // objects
     const ai = hasAi(this, 'house_0');
     const fenceSet = new Set(this.map.objects.filter(q => q.type === 'fence').map(q => q.tx + ',' + q.ty));
     for (const o of this.map.objects) {
-      if (o.type === 'portal') { this.addPortal(o.x, o.y); continue; }
+      if (o.type === 'portal') { this.addPortal(o.x, o.y, o.v); continue; }
+      if (o.type === 'prop' && o.key) {
+        const k = 'ai_' + o.key;
+        if (!this.textures.exists(k)) continue;
+        const im = this.fit(this.add.image(o.x, o.y + 5, k).setOrigin(0.5, 0.95).setDepth(o.y)).setFlipX(((o.tx * 7 + o.ty * 3) & 4) > 0);
+        this.castShadow(im, 0.85);
+        this.add.image(o.x + 2, o.y + 3, 'fx_shadow').setScale(Math.max(0.8, im.displayWidth / 24), 0.9).setAlpha(0.6).setDepth(1);
+        const glow: Record<string, number> = { pr_lava0: 0xff6a20, pr_lava1: 0xff3a3a, pr_lava2: 0xff8a20, pr_lava3: 0xff5a10, pr_lava5: 0xff7a20, pr_lava7: 0xff6a20, pr_snow1: 0x8ae0ff, pr_snow6: 0x8ae0ff, pr_haunt3: 0xffc060, pr_haunt5: 0xff9a30, pr_haunt6: 0xff9a30, pr_dung0: 0xffa040, pr_dung3: 0xffa040 };
+        if (glow[o.key] && !o.deco) this.nightLights.push(this.addGlow(o.x, o.y - im.displayHeight * 0.45, glow[o.key], o.key.startsWith('pr_lava') ? 1.2 : 0.8, true));
+        if (o.key === 'pr_lava5' && !o.deco) this.burstLoop(o.x, o.y - im.displayHeight * 0.8);
+        if (o.key === 'pr_haunt0' || o.key === 'pr_haunt1' || o.key === 'pr_haunt2' || o.key === 'pr_snow0' || o.key === 'pr_lava3') this.swayers.push({ img: im, amp: 0.012, ph: (o.x * 0.013 + o.y * 0.007) % 6.28, bend: 0, freq: 0.8 });
+        continue;
+      }
       if (o.type === 'campfire') {
         if (this.anims.exists('env_campfire')) {
           this.castShadow(this.add.sprite(o.x, o.y + 6, '__DEFAULT').setDepth(o.y).setScale(0.5).play('env_campfire'), 0.5);
@@ -589,7 +601,7 @@ export class WorldScene extends Phaser.Scene {
 
   spawnBoss() {
     const b = this.map.bossPos;
-    this.boss = new Monster(this, 'treant', b.x, b.y, 40, -1);
+    this.boss = new Monster(this, this.map.bossKind, b.x, b.y, 40, -1);
     this.monsters.push(this.boss);
   }
 
@@ -828,7 +840,8 @@ export class WorldScene extends Phaser.Scene {
     sfx.hit();
     const x0 = n.img.x;
     this.tweens.add({ targets: n.img, x: x0 + 1.5, duration: 40, yoyo: true, repeat: 2, onComplete: () => n.img.setX(x0) });
-    this.burst(n.x, n.y - (n.kind === 'wood' ? 10 : 4), n.kind === 'wood' ? 0xc89050 : 0xb0aab8, 6, 40);
+    if (!this.playFx(n.kind === 'wood' ? 'fx2_wood' : 'fx2_rock', n.x + (this.hero.x < n.x ? -6 : 6), n.y - 6, n.y + 30, { scale: 0.45, normal: true }))
+      this.burst(n.x, n.y - (n.kind === 'wood' ? 10 : 4), n.kind === 'wood' ? 0xc89050 : 0xb0aab8, 6, 40);
     if (n.kind === 'wood') for (let i = 0; i < 3; i++) {
       const lf = this.add.image(n.x + Math.random() * 30 - 15, n.y - 30 - Math.random() * 20, 'fx_leaf').setDepth(n.y + 1);
       this.tweens.add({ targets: lf, y: n.y, x: lf.x + Math.random() * 16 - 8, rotation: 4, alpha: 0, duration: 900, onComplete: () => lf.destroy() });
@@ -1182,6 +1195,7 @@ export class WorldScene extends Phaser.Scene {
         const R = sk.radius ?? 52;
         h.doCast(time, 380);
         sfx.boom();
+        this.playFx(id.startsWith('a') ? 'fx2_poison' : id.startsWith('m') ? 'fx2_ice' : 'fx2_rage', h.x, h.y - 6, h.y + 20, { scale: R / 60 });
         this.surround(h.x, h.y, col, { rings: 2, height: 22, radius: R * 0.6, motes: 16, dur: 500 });
         const ring = this.add.image(h.x, h.y, 'fx_ring').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.2, 0.1).setDepth(2);
         this.tweens.add({ targets: ring, scaleX: R / 26, scaleY: R / 52, alpha: 0, duration: 500, onComplete: () => ring.destroy() });
@@ -1193,6 +1207,7 @@ export class WorldScene extends Phaser.Scene {
       case 'buff': {
         h.doCast(time, 400);
         sfx.bossRoar();
+        { const f = this.playFx('fx2_rage', h.x, h.y - 8, h.y + 2, { scale: 0.42 }); if (sk.color) f?.setTint(sk.color); }
         (s as typeof s & { skillBuff?: unknown }).skillBuff = { ...sk.buff, until: Date.now() + (sk.buff?.dur ?? 10000) };
         this.der = derive(s);
         this.surround(h.x, h.y, col, { rings: 3, height: 30, radius: 16, motes: 14, dur: 900 });
@@ -1202,6 +1217,7 @@ export class WorldScene extends Phaser.Scene {
       }
       case 'heal': {
         h.doCast(time, 450);
+        this.playFx('fx2_holy', h.x, h.y - 14, h.y + 2, { scale: 0.45 });
         const amt = Math.round((d.maxHp * sk.power + (sk.stat === 'matk' ? d.matk * 0.8 : 0)) * skillMult(s, id));
         const real = Math.min(amt, d.maxHp - s.hp);
         s.hp += real;
@@ -1213,6 +1229,7 @@ export class WorldScene extends Phaser.Scene {
       case 'shield': {
         h.doCast(time, 400);
         sfx.upgradeOk();
+        { const f = this.playFx('fx2_shield', h.x, h.y - 12, h.y + 3, { scale: 0.48 }); if (f) this.time.delayedCall(900, () => f.active && this.tweens.add({ targets: f, alpha: 0, duration: 300 })); }
         this.shieldHp = Math.round(d.maxHp * sk.power * skillMult(s, id));
         this.shieldUntil = time + 12000;
         this.surround(h.x, h.y, col, { rings: 3, height: 34, radius: 17, motes: 16, beam: true, dur: 900 });
@@ -1251,6 +1268,11 @@ export class WorldScene extends Phaser.Scene {
   fallOn(m: Monster | null, sk: SkillDef, onHit: () => void, px?: number, py?: number) {
     const x = m ? m.x : px!, y = m ? m.y : py!;
     const col = sk.color ?? 0xffffff;
+    if (sk.fall === 'arrow' && this.anims.exists('fx2_arrowrain')) {
+      const f = this.playFx('fx2_arrowrain', x, y - 14, y + 12, { scale: 0.5 });
+      if (sk.color) f?.setTint(sk.color);
+      this.time.delayedCall(260, onHit); return;
+    }
     if (sk.fall === 'bolt') { this.boltAt(x, y); onHit(); return; }
     const tex = sk.fall === 'arrow' ? 'fx_arrow' : sk.fall === 'blade' ? 'fx_slash' : 'fx_fireball';
     const n = sk.fall === 'meteor' ? 1 : 3;
@@ -1457,6 +1479,34 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** Region bosses: telegraphed area attack with their own effect every few seconds. */
+  bossGeneric(b: Monster, time: number) {
+    if (b.nextSpecial === 0) { b.nextSpecial = time + 3500; sfx.bossRoar(); bus.emit(EV.BOSS_HP, b.hp, b.maxHp, b.def.name); return; }
+    if (time < b.nextSpecial) return;
+    b.nextSpecial = time + (b.hp < b.maxHp * 0.5 ? 4200 : 6000);
+    const h = this.hero, k = b.def.kind;
+    const fx: Record<string, [string, number]> = { stag: ['fx2_rage', 0xc07aff], dragon: ['fx2_flame', 0xffffff], frostgiant: ['fx2_ice', 0xffffff], skking: ['fx2_holy', 0x8ac8ff] };
+    const [key, tint] = fx[k] ?? ['fx2_rage', 0xffffff];
+    if (b.sprite.anims.animationManager.exists(`mon_${k}_cast`)) b.sprite.play(`mon_${k}_cast`);
+    sfx.bossRoar();
+    // telegraph circle where the hero stands (or around the boss for the stag/giant stomp)
+    const self = k === 'stag' || k === 'frostgiant';
+    const tx = self ? b.x : h.x, ty = self ? b.y : h.y, R = self ? 62 : 40;
+    const warn = this.add.ellipse(tx, ty, R * 2, R, 0xff3020, 0.18).setStrokeStyle(1.5, 0xff6040, 0.9).setDepth(1.6);
+    this.tweens.add({ targets: warn, alpha: { from: 0.4, to: 1 }, duration: 260, yoyo: true, repeat: 2 });
+    this.time.delayedCall(1100, () => {
+      warn.destroy();
+      if (!b.alive) return;
+      const n = self ? 5 : 1;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2, rr = self ? R * 0.55 : 0;
+        const sp = this.playFx(key, tx + Math.cos(a) * rr, ty + Math.sin(a) * rr * 0.5, ty + 20, { scale: 0.7 });
+        sp?.setTint(tint);
+      }
+      if (Math.hypot(h.x - tx, (h.y - ty) * 2) < R) this.damageHero(b.def.atk, b, 1.8);
+    });
+  }
+
   bossSpecials(b: Monster, time: number) {
     if (b.nextSpecial === 0) { b.nextSpecial = time + 3000; sfx.bossRoar(); bus.emit(EV.BOSS_HP, b.hp, b.maxHp, b.def.name); }
     if (b.phase === 1 && b.hp < b.maxHp * 0.5) {
@@ -1555,6 +1605,7 @@ export class WorldScene extends Phaser.Scene {
     }
     const gold = Math.round(Phaser.Math.Between(m.def.gold[0], m.def.gold[1]));
     this.dropLoot(m.x, m.y, 'gold', gold);
+    this.playFx('fx2_coins', m.x, m.y - 6, m.y + 10, { scale: 0.4, normal: true });
     for (const d of m.def.drops) {
       if (isGear(itemDef(d.id))) continue; // gear comes from the rarity roll below
       if (Math.random() < d.chance) {
@@ -1577,7 +1628,7 @@ export class WorldScene extends Phaser.Scene {
       this.bossDeadAt = this.time.now;
       s.bossDefeated++;
       bus.emit(EV.BOSS_HP, null);
-      bus.emit(EV.TOAST, 'ปราบผู้พิทักษ์ธอร์นวูดสำเร็จ!', '#ffd040');
+      bus.emit(EV.TOAST, `ปราบ${m.def.name}สำเร็จ!`, '#ffd040');
       this.cameras.main.flash(400, 255, 240, 200);
       // also clean up summoned adds
       for (const o of this.monsters) if (o.spawnIndex === -2 && o.alive) o.die();
@@ -1725,26 +1776,29 @@ export class WorldScene extends Phaser.Scene {
   // ---------- Maps / portals ----------
   portals: { x: number; y: number }[] = [];
   traveling = false;
-  addPortal(x: number, y: number) {
+  addPortal(x: number, y: number, idx = 0) {
     const ring = this.add.image(x, y + 2, 'fx_glow').setTint(0x7ae0ff).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6, 0.8).setAlpha(0.7).setDepth(1.2);
     this.tweens.add({ targets: ring, alpha: 0.35, scaleX: 1.9, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     const beam = this.add.image(x, y + 2, 'fx_ray').setOrigin(0.5, 1).setTint(0x8ae8ff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.55, 0.35).setAlpha(0.55).setDepth(y + 1);
     this.tweens.add({ targets: beam, alpha: 0.25, duration: 1300, yoyo: true, repeat: -1 });
     if (this.textures.exists('obj_sign_0')) this.castShadow(this.fit(this.add.image(x + 14, y + 4, 'obj_sign_0').setOrigin(0.5, 0.95).setDepth(y)), 0.8);
     this.nightLights.push(this.addGlow(x, y - 8, 0x7ae0ff, 1.2, true));
-    const p = this.map.portals[this.portals.length];
+    const p = this.map.portals[idx];
     this.add.text(x, y + 8, p ? (p.to === 'main' ? '⇦ ' : '⇨ ') + MAP_NAMES[p.to] : '', { fontFamily: FONT, fontSize: '7px', color: '#bff2ff', stroke: '#06121a', strokeThickness: 2, resolution: 4 }).setOrigin(0.5, 0).setDepth(y + 30);
-    this.portals.push({ x, y });
+    this.portals[idx] = { x, y };
   }
 
   travel(to: MapId) {
     const s = S(), from = this.map.id;
     if (this.hero.state === 'dead') return;
+    if (import.meta.env.MODE === 'single' && to !== 'main' && to !== 'gather') { bus.emit(EV.TOAST, 'ดินแดนนี้เปิดเล่นได้บนเว็บ seeker6131.github.io/RPG-Newgame (ไฟล์ใหญ่เกินหน้า Claude)', '#ffd08a'); return; }
     sfx.click();
     s.mapPos = { ...(s.mapPos ?? {}), [from]: { x: Math.round(this.hero.x), y: Math.round(this.hero.y) } };
     if (to === 'gather') { if (from !== 'gather') s.prevOutfit = s.outfit; s.outfit = 'gather'; bus.emit(EV.TOAST, 'สวมชุดหาทรัพยากรอัตโนมัติ — ตัดไม้ ขุดหิน ล่าสัตว์ได้', '#9fffb0'); }
     else if (from === 'gather' && s.prevOutfit) { s.outfit = s.prevOutfit; s.prevOutfit = undefined; }
     s.map = to;
+    const lv = generateMap(to).level;
+    if (s.level < lv) bus.emit(EV.TOAST, `⚠ ดินแดนนี้แนะนำ Lv${lv}+ — ระวังตัว!`, '#ff9a6a');
     // arrive next to the portal that leads back
     const dest = generateMap(to).portals.find(p => p.to === from);
     this.traveling = true;

@@ -172,7 +172,7 @@ export class UIScene extends Phaser.Scene {
     const mmW = 116, mmH = mmW * WORLD_PX_H / WORLD_PX_W;
     const mx = this.VW - mmW - 8, my = 8;
     const mk = 'minimap_' + this.world.map.id;
-    if (!this.textures.exists(mk)) this.textures.addCanvas(mk, paintMinimapIso(this.world.map.ground, this.world.map.blocked));
+    if (!this.textures.exists(mk)) this.textures.addCanvas(mk, paintMinimapIso(this.world.map.ground, this.world.map.blocked, this.world.map.theme));
     const mmG = this.add.graphics();
     k.frame(mmG, mx - 4, my - 4, mmW + 8, mmH + 8, 0.9);
     this.minimap = this.add.image(mx, my, mk).setOrigin(0).setDisplaySize(mmW, mmH);

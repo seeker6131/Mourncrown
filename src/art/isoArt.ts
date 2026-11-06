@@ -12,8 +12,20 @@ export const GROUND_BASE: Record<number, Color> = {
 };
 const OUTSIDE = 0x1c2e1c;
 
+export type Theme = 'main' | 'haunt' | 'lava' | 'snow' | 'dung';
+/** Per-region palettes: same painter, different world. */
+const THEMES: Record<Exclude<Theme, 'main'>, { base: Partial<Record<number, Color>>; outside: Color }> = {
+  haunt: { base: { [G.Grass]: 0x5d5a2c, [G.Forest]: 0x3b3524, [G.Path]: 0x6a4a32, [G.Water]: 0x2c2c4a, [G.Sand]: 0x5a4a38, [G.Ruins]: 0x5e5a66, [G.Grove]: 0x4a3a40 }, outside: 0x1a1612 },
+  lava: { base: { [G.Grass]: 0x3e3634, [G.Forest]: 0x2a2224, [G.Path]: 0x4e4440, [G.Water]: 0xd8501c, [G.Sand]: 0x2a1c18, [G.Ruins]: 0x4a3c3a, [G.Grove]: 0x3a2a2a }, outside: 0x120a0a },
+  snow: { base: { [G.Grass]: 0xdfe8f0, [G.Forest]: 0xc8d4e2, [G.Path]: 0xa8b4c0, [G.Water]: 0x7ab4d8, [G.Sand]: 0xd0dce8, [G.Ruins]: 0x8a94a6, [G.Grove]: 0xb8c8dc }, outside: 0x9aa8b8 },
+  dung: { base: { [G.Grass]: 0x4a4650, [G.Forest]: 0x3a3640, [G.Path]: 0x56505a, [G.Water]: 0x1e2a3a, [G.Sand]: 0x3a3440, [G.Ruins]: 0x5a5662, [G.Plaza]: 0x5a5662 }, outside: 0x0c0a10 },
+};
+let theme: Theme = 'main';
+const baseOf = (g: number): Color => (theme !== 'main' ? THEMES[theme].base[g] : undefined) ?? GROUND_BASE[g];
+
 // ---------------- Ground ----------------
-export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: number, g: number) => number = surfaceAt): HTMLCanvasElement {
+export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: number, g: number) => number = surfaceAt, th: Theme = 'main'): HTMLCanvasElement {
+  theme = th;
   const W = WORLD_PX_W, H = WORLD_PX_H;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -57,7 +69,7 @@ export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: num
           const t = unIso(x, y - WATER_DEPTH);
           let shore = false;
           for (let k = WATER_DEPTH + 1; k <= WATER_DEPTH + 3; k++) { const gg = gScreen(x, y - k); if (gg !== G.Water && gg !== G.Bridge) shore = true; }
-          c = GROUND_BASE[G.Water];
+          c = baseOf(G.Water);
           const n = fbm(t.tx * 0.2, t.ty * 0.2, 5, 2);
           c = n > 0.55 ? lighten(c, 0.06) : darken(c, 0.12);
           const wv = valueNoise(x * 0.07, y * 0.4, 61);
@@ -66,11 +78,12 @@ export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: num
         }
       } else if (g === -1) {
         const n = fbm(x * 0.02, y * 0.04, 9, 2);
-        c = n > 0.5 ? lighten(OUTSIDE, 0.06) : OUTSIDE;
+        const OUT2 = theme === 'main' ? OUTSIDE : THEMES[theme].outside;
+        c = n > 0.5 ? lighten(OUT2, 0.06) : OUT2;
         if (hash2(x, y, 2) > 0.97) c = darken(c, 0.3);
       } else {
         const t = unIso(x, y);
-        c = GROUND_BASE[g];
+        c = baseOf(g);
         const n = fbm(x * 0.012, y * 0.024, 5, 3);
         const h = hash2(x, y, 3);
         if (g === G.Grass || g === G.Forest || g === G.Grove) {
@@ -106,7 +119,7 @@ export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: num
           }
           const edge = d2 - d1;
           const stone = hash2(id, 3, g);
-          let base = mix(GROUND_BASE[g], stone > 0.66 ? 0xa89a86 : stone > 0.33 ? 0x8e8778 : 0x9c9488, 0.55);
+          let base = mix(baseOf(g), stone > 0.66 ? 0xa89a86 : stone > 0.33 ? 0x8e8778 : 0x9c9488, 0.55);
           if (g === G.Ruins) base = mix(base, 0x7a7690, 0.5);
           c = base;
           if (edge < 0.07) c = darken(base, 0.42);                       // mortar
@@ -131,9 +144,10 @@ export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: num
           const above = gScreen(x, y - 2);
           if (above === G.Grass || above === G.Forest || above === G.Grove) c = darken(c, 0.22);
           const above1 = gScreen(x, y - 1);
-          if (above1 === G.Grass || above1 === G.Forest || above1 === G.Grove) c = mix(c, GROUND_BASE[above1], 0.7);
+          if (above1 === G.Grass || above1 === G.Forest || above1 === G.Grove) c = mix(c, baseOf(above1), 0.7);
         }
       }
+      if (theme !== 'main' && g >= 0) c = themeDetail(c, g, x, y);
       g = 0;
       d[i] = (c >> 16) & 255; d[i + 1] = (c >> 8) & 255; d[i + 2] = c & 255; d[i + 3] = 255;
     }
@@ -142,7 +156,52 @@ export function paintGroundIso(ground: Uint8Array, surface: (tx: number, ty: num
   return cv;
 }
 
-export function paintMinimapIso(ground: Uint8Array, blocked: Uint8Array): HTMLCanvasElement {
+
+/** Extra surface detail per region: leaf litter, lava glow cracks, sparkling snow, dungeon grime. */
+function themeDetail(c: Color, g: number, x: number, y: number): Color {
+  const land = g === G.Grass || g === G.Forest || g === G.Grove;
+  if (theme === 'haunt') {
+    if (land) {
+      const lf = hash2(x >> 1, y >> 1, 301);
+      if (lf > 0.93) c = [0xd8742a, 0xb84a1e, 0xe0a030, 0x8a3a1a][Math.floor(hash2(x, y, 5) * 4)];
+      else if (valueNoise(x * 0.05, y * 0.1, 303) > 0.7) c = mix(c, 0x9a5a24, 0.35);
+    }
+    if (g === G.Water) c = valueNoise(x * 0.04, y * 0.08, 7) > 0.6 ? mix(c, 0x6a4a8a, 0.3) : c;
+    return mix(c, 0x2a1a3a, 0.12);
+  }
+  if (theme === 'lava') {
+    if (g === G.Water) {
+      const n = valueNoise(x * 0.05, y * 0.1, 401);
+      return n > 0.62 ? mix(0xffd060, 0xfff0a0, (n - 0.62) * 2) : n > 0.4 ? 0xf07a20 : 0xb8300c;
+    }
+    if (land) {
+      const cr = Math.abs(valueNoise(x * 0.03, y * 0.06, 405) - 0.5);
+      if (cr < 0.012) return 0xff7a20; if (cr < 0.024) return mix(c, 0xd84a10, 0.55);
+      if (hash2(x, y, 409) > 0.996) return 0xffa040;
+    }
+    return c;
+  }
+  if (theme === 'snow') {
+    if (land && hash2(x, y, 501) > 0.993) return 0xffffff;
+    if (land && valueNoise(x * 0.04, y * 0.08, 503) < 0.3) c = mix(c, 0xa8bcd8, 0.25);
+    if (g === G.Water) { const n = valueNoise(x * 0.03, y * 0.12, 505); c = n > 0.7 ? 0xe8f6ff : n > 0.5 ? 0xb8dcf0 : c; }
+    return c;
+  }
+  if (theme === 'dung') {
+    // big square flagstones
+    const u = x / 22 + y / 11, v = y / 11 - x / 22;
+    const fu = u - Math.floor(u), fv = v - Math.floor(v);
+    const st = hash2(Math.floor(u), Math.floor(v), 601);
+    c = mix(c, st > 0.5 ? 0x605a68 : 0x4a4652, 0.4);
+    if (fu < 0.05 || fv < 0.05) c = darken(c, 0.45); else if (fu < 0.1 || fv < 0.1) c = lighten(c, 0.08);
+    if (valueNoise(x * 0.06, y * 0.12, 607) > 0.78) c = mix(c, 0x3a5a3a, 0.4);
+    return c;
+  }
+  return c;
+}
+
+export function paintMinimapIso(ground: Uint8Array, blocked: Uint8Array, th: Theme = 'main'): HTMLCanvasElement {
+  theme = th;
   const S = 8;
   const w = Math.ceil(WORLD_PX_W / S), h = Math.ceil(WORLD_PX_H / S);
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
@@ -154,7 +213,7 @@ export function paintMinimapIso(ground: Uint8Array, blocked: Uint8Array): HTMLCa
     let c: Color = 0x0e160e;
     if (tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H) {
       const g = ground[ty * MAP_W + tx];
-      c = GROUND_BASE[g];
+      c = baseOf(g);
       if (blocked[ty * MAP_W + tx] && g !== G.Water) c = darken(c, 0.45);
     }
     const i = (y * w + x) * 4;

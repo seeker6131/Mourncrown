@@ -3,7 +3,10 @@
 import Phaser from 'phaser';
 import { strokeEnabled, strokeImage } from './stroke';
 
-const files = import.meta.glob('../assets/ai/*.{png,jpg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+// artifact build (16 MB page cap): skip art that is not placed in the game yet
+const files = (import.meta.env.MODE === 'single'
+  ? import.meta.glob(['../assets/ai/*.{png,jpg,webp}', '!../assets/ai/pr_vil*', '!../assets/ai/bld_townhall*', '!../assets/ai/bld_house*'], { eager: true, query: '?url', import: 'default' })
+  : import.meta.glob('../assets/ai/*.{png,jpg,webp}', { eager: true, query: '?url', import: 'default' })) as Record<string, string>;
 
 export function preloadAi(scene: Phaser.Scene) {
   for (const [path, url] of Object.entries(files)) {

@@ -199,3 +199,6 @@
 - UI kit ใหม่ใส่แล้ว: tools/import_ui.py → src/assets/ui (panel 9-slice + ui_leather tile, ปุ่ม 6 สี 3-slice, แถบ HP/MP/EXP/บอส แบบภาพ, slot ตามความแรร์, ไอคอน hud/res/skill, ring, banner) — src/ui/skin.ts; kit.ts ใช้ skin อัตโนมัติถ้ามี texture
 - ขอบขาว: sprite_tools.clean_edges (ลอกพิกเซลสว่างที่ติดเส้นขอบดำ ไม่กินขนขาว/น้ำแข็งจริง) ใช้ในทุก importer; ตรวจด้วย tools/fringe_check.py (เหลือ 14 ไฟล์ = น้ำแข็ง/ขนขาวจริง)
 - ฐานอาคารกลืนพื้น: ดินเหยียบรอบแปลง (surfaceAt), groundSkirt() เงา+หญ้า/ดอกไม้/หินรอบฐาน (ทั้งบ้านเดิมและอาคารแปลง)
+- **ดินแดน 4 แห่งเปิดแล้ว** (maps.ts generateRegion): haunt Lv20 บอสกวาง, lava Lv50 มังกร, snow Lv60 ยักษ์น้ำแข็ง, dung Lv80 ราชาโครงกระดูก; ต่อกันด้วยประตู (หมู่บ้าน: ประตูที่ 2 ตะวันออกของวิหาร (103,47)); พื้นตามธีม (isoArt THEMES + themeDetail), props pr_* (import_pending.py ส่วน sheet()), boss ทั่วไป bossGeneric() วงเตือน+เอฟเฟกต์ fx2
+- VFX fx2 ใส่แล้ว: ห่าธนู, nova (poison/ice/rage), buff rage, heal holy, shield, ตัดไม้/ขุดหิน chips, เหรียญตอนมอนตาย
+- artifact build: ดินแดนใหม่ปิด (toast บอกให้เล่นบน GitHub Pages) เพราะเกิน 16MB

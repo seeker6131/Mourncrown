@@ -144,7 +144,7 @@ export class Monster {
     const homeD = Math.hypot(this.x - this.homeX, this.y - this.homeY);
     const leash = def.boss ? 260 : def.aggro * 2.2 + this.homeR;
 
-    if (def.kind === 'treant' && (this.state === 'chase' || this.state === 'attack')) sc.bossSpecials(this, time);
+    if (def.boss && (this.state === 'chase' || this.state === 'attack')) { if (def.kind === 'treant') sc.bossSpecials(this, time); else sc.bossGeneric(this, time); }
 
     switch (this.state) {
       case 'idle':
