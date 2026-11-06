@@ -144,6 +144,9 @@
 4. U1–U8 ชุด UI ดำทอง → แทน UI วาดด้วยโค้ด
 เมื่อได้ภาพ: ใส่ใน art-source/forms (ตัวละคร) แล้ว `python3 tools/import_forms.py`; ภาพฉาก/UI ต้องเขียน importer เพิ่มตามแบบ import_ai_assets.py
 
+## ด่าน/ดินแดน
+- เสนอแผนผูกด่านกับเลเวล/ร่างแล้ว → docs/GAME_DESIGN.md หัวข้อ 13 (รอผู้ใช้เลือกว่าจะทำดินแดนไหนก่อน; แนะนำ ป่าผีสิง Lv15–20 + ด่านทดสอบ Lv20)
+
 ## ไอเดียถัดไป (หลัง v0.3)
 - APK ด้วย Capacitor + GitHub Actions (ผู้ใช้สนใจ)
 - Character creator / map editor ในเกม, ระบบนำเข้าภาพจากผู้ใช้
