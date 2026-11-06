@@ -40,7 +40,8 @@ export const hasForms = (scene: Phaser.Scene) => scene.anims.exists('f_V0_idle')
 /** Resolve the anim key to use for a form code, with fallbacks for art not delivered yet. */
 export function formAnim(scene: Phaser.Scene, code: string, anim: string): { key: string; tint?: number; fake?: 'die' } {
   let c = code, tint: number | undefined;
-  if (!scene.anims.exists(`f_${c}_idle`) && c.startsWith('T')) { c = 'S' + c.slice(1); tint = 0x9098b0; } // tank art pending -> steel-tinted knight
+  // T2 art pending -> use the tank T3 sheet with a lighter bronze tint (shield + armour silhouette stays a tank)
+  if (!scene.anims.exists(`f_${c}_idle`) && c.startsWith('T')) { c = scene.anims.exists('f_T3_idle') ? 'T3' : 'S' + c.slice(1); tint = c === 'T3' ? 0xd8c8a8 : 0x9098b0; }
   if (!scene.anims.exists(`f_${c}_idle`)) c = 'V0';
   const order: Record<string, string[]> = { chop: ['chop', 'attack'], mine: ['mine', 'chop', 'attack'], skill: ['skill', 'attack', 'idle'], attack: ['attack', 'idle'], die: ['die'], walkup: ['walkup', 'walk'], walk: ['walk'], idle: ['idle'] };
   for (const a of order[anim] ?? [anim]) if (scene.anims.exists(`f_${c}_${a}`)) return { key: `f_${c}_${a}`, tint };
@@ -49,6 +50,6 @@ export function formAnim(scene: Phaser.Scene, code: string, anim: string): { key
 
 export function portraitKey(scene: Phaser.Scene, code: string) {
   if (scene.textures.exists('fp_' + code)) return 'fp_' + code;
-  if (code.startsWith('T') && scene.textures.exists('fp_S' + code.slice(1))) return 'fp_S' + code.slice(1);
+  if (code.startsWith('T') && scene.textures.exists('fp_T3')) return 'fp_T3';
   return scene.textures.exists('fp_V0') ? 'fp_V0' : null;
 }
