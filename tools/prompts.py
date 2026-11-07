@@ -14,6 +14,8 @@ SCALE = ("Scale (very important, keep it the same in every image): a human would
          "(about 70 px tall in a 1536x1024 image); a one-storey cottage is about 3 humans tall; a big tree about 4 humans tall; "
          "doors are human-sized.")
 EMPTY = ("Empty scene for a game level: NO people, NO animals, NO monsters, NO UI, NO text, NO logo, NO watermark. "
+         "Do NOT draw any houses, cottages, shops, market stalls or other buildings unless this prompt describes them by name; "
+         "building lots stay completely empty. "
          "Keep wide open walkable ground and clear paths so characters can move around.")
 LOT = ("An 'empty building lot' means a flat clearing of bare packed dirt about 5 humans wide, with a few stones or short "
        "stakes at its corners and nothing built on it.")
@@ -57,14 +59,15 @@ def P(code, title, prompt):
 # ---------------- 1. village map ----------------
 sec('village', '① แมพหมู่บ้าน (ทำก่อน)',
     'แมพเดียว 6 ชิ้น เรียง 3 คอลัมน์ × 2 แถว: VL1 VL2 VL3 / VL4 VL5 VL6 • แนบ "รูป concept สร้างหมู่บ้าน" ทุกครั้ง • '
-    'เริ่ม VL2 ก่อน แล้วชิ้นต่อไปแนบชิ้นข้างๆ ที่บอกไว้เป็นรูปที่ 2 • ถ้าออกมารอยต่อเพี้ยนนิดหน่อยไม่เป็นไร ผมเกลี่ยให้ • '
+    'VL1 เสร็จแล้ว (ใช้ภาพแรกที่ส่งมา) • ต่อด้วย VL2 โดยแนบ VL1 เป็นรูปที่ 2 แล้วชิ้นต่อไปแนบชิ้นข้างๆ ที่บอกไว้ • ถ้าออกมารอยต่อเพี้ยนนิดหน่อยไม่เป็นไร ผมเกลี่ยให้ • '
     'ไม่มีตึกบนแปลงว่าง เพราะตึกเปลี่ยนตามเลเวล')
-P('VL2', 'กลางบน: ลานกลางหมู่บ้าน (เริ่มชิ้นนี้)', plate(
+P('VL2', 'กลางบน: ลานกลางหมู่บ้าน (แนบ VL1)', plate(
     "the heart of an autumn medieval village. A wide dirt crossroads with cart tracks in the lower middle; a round cobblestone plaza "
     "with a stone well and a notice board; one LARGE empty building lot (about 7 humans wide) at the top centre behind the plaza for the "
-    "town hall; a dirt road leaving the village through the top edge into a dark autumn forest; wooden lantern posts, short fences, "
-    "barrels, hay bales, a few orange-leaved trees. " + LOT, first=True))
-P('VL1', 'ซ้ายบน: ลานไม้ + เหมืองหิน', plate(
+    "town hall; a dirt road leaving the village through the top edge into a dark autumn forest; the dirt roads coming from the "
+    "attached piece's right edge continue into this piece and meet at the crossroads; wooden lantern posts, short fences, "
+    "barrels, hay bales, a few orange-leaved trees. " + LOT, neighbours="to the LEFT of"))
+P('VL1', 'ซ้ายบน: ลานไม้ + เหมืองหิน (✔ ได้แล้ว)', plate(
     "the north-west corner of the same village. Dark autumn forest with bare trees fills the top-left corner; a grey rocky slope with "
     "loose boulders and stone piles along the top; TWO empty building lots (for a sawmill and a quarry) beside a dirt path that comes "
     "from the right edge; stacked log piles, tree stumps, a wood chopping block, sawdust patches. " + LOT, neighbours="to the RIGHT of"))
