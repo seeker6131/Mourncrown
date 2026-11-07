@@ -1,4 +1,4 @@
-<title>Eldergrove Prompt Book</title>
+<title>Eldergrove Prompt Book v2</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Cinzel:wght@700&family=JetBrains+Mono:wght@400&display=swap">
@@ -46,8 +46,8 @@ pre.open { max-height: none; }
 </style>
 <div class="wrap">
   <header>
-    <h1>Eldergrove Prompt Book</h1>
-    <p class="lede">Prompt ภาพทั้งหมด __COUNT__ ชิ้น • กด "คัดลอก" แล้ววางใน GPT • เจนเสร็จกด "เจนแล้ว" ไว้กันลืม • ส่งภาพกลับพร้อมบอกรหัส • ตัวละครเดิมให้แนบภาพเดิมไปด้วย</p>
+    <h1>Prompt Book v2 — แมพตาม concept</h1>
+    <p class="lede">__COUNT__ ชิ้น • __HOWTO__</p>
   </header>
   <div class="bar">
     <div class="prog"><div class="track"><div class="fill" id="fill"></div></div><span id="cnt">0/0</span></div>
@@ -58,7 +58,7 @@ pre.open { max-height: none; }
 <div class="toast" id="toast">คัดลอกแล้ว</div>
 <script>
 const DATA = __DATA__;
-const KEY = 'eg_prompt_done';
+const KEY = 'eg_prompt_done_v2';
 let done = {};
 try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
