@@ -223,3 +223,4 @@
 - **ชุดก๊อปรวดเดียว (⓪):** ชุด A (GV 6 รูป), B (OB 8), C (BD 12) — วางใน ChatGPT แชทใหม่ + แนบ concept 1 รูป แล้วพิมพ์ "ต่อ"; ชิ้นแมพอ้างภาพที่ GPT ทำไว้ก่อนในแชทเดียวกัน (ไม่ต้องแนบซ้ำ)
 - Gemini API: ผู้ใช้อยากใช้ (ฟรี) แต่แอป Claude มือถือเวอร์ชันเก่าแสดงหน้าต่าง create_environment ไม่ได้ (ต้องเปิดทาง generativelanguage.googleapis.com + request_credential header x-goog-api-key). ผู้ใช้เคยวาง key ในแชท → แนะนำให้ลบทิ้ง ห้ามใช้
 - **Gemini ทดสอบแล้ว (2026-11-07):** session ย้ายไป environment "RPG-Newgame" (เปิด generativelanguage.googleapis.com) + เก็บ key แบบ Bearer → ใช้ได้ผ่าน OpenAI-compat (`/v1beta/openai/...`; native endpoint ไม่รับ Bearer API key). แต่โมเดลภาพทุกตัว (gemini-2.5-flash-image, 3.1-flash-image(-preview), lite-image, nano-banana-2.1) ตอบ 429 free tier limit 0 → ฟรีเจนภาพไม่ได้ ต้องเปิด billing ถ้าจะใช้
+- ผู้ใช้ไม่มีงบจ่าย API ใดๆ (จ่ายแค่ Claude) → ใช้ ChatGPT/Gemini แอปฟรี; เพิ่ม 'ชุดเล็ก' 7 รูป (GV2 GV1 GV3 OB1 OB3 OB4 BD2) ใน ⓪

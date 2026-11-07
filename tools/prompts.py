@@ -319,6 +319,10 @@ S.insert(0, ('batch', '⓪ ชุดก๊อปรวดเดียว (ง่
 VCODES = ['GV2', 'GV1', 'GV3', 'GV5', 'GV4', 'GV6']
 OCODES = ['OB1', 'OB2', 'OB3', 'OB4', 'OB5', 'OB6', 'OB7', 'OB8']
 BCODES = ['BD1', 'BD2', 'BD3', 'BD4', 'BD6', 'BD7', 'BD8', 'BD9', 'BD10', 'BD11', 'BD12', 'BD13']
+MINI = ['GV2', 'GV1', 'GV3', 'OB1', 'OB3', 'OB4', 'BD2']
+S[0][3].append(('ชุดเล็ก', 'เริ่มตรงนี้: 7 รูปพอเล่นได้ (แมพแถวบน + ต้นไม้ + รั้ว + โคม + บ้าน)',
+    fill_nb(batch(MINI, 'Images #1-#3 are pieces of ONE big village map; #4-#7 are separate objects and a building on white backgrounds '
+                  '("the attached map image" / "attached reference" means image #1 you made).'), MINI)))
 S[0][3].append(('ชุด A', 'แมพหมู่บ้าน 6 รูป (แนบ concept "สร้างหมู่บ้านของคุณ")',
     fill_nb(batch(VCODES, 'The images are pieces of ONE big village map that will be joined together.'), VCODES)))
 S[0][3].append(('ชุด B', 'ของแยกชิ้น 8 รูป (แนบ concept หมู่บ้าน)',
