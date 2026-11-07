@@ -26,8 +26,10 @@ def plate(desc, first=False, neighbours=''):
             "the edges of the image are part of the same map and continue beyond the frame. ")
     join = '' if first else (
         f"The second attached image is the map piece directly {neighbours} this one. Draw the NEXT piece of the SAME map so "
-        "the two join seamlessly along that shared edge: paths, roads, river, fences, cliffs and forest that cross the border "
-        "continue at exactly the same positions, same scale, same lighting, same palette. ")
+        "the two join seamlessly. OVERLAP RULE (most important): the new image must OVERLAP the attached piece by about one quarter "
+        "of its size - the quarter of the new image on the side that touches the attached piece is an exact copy of the attached "
+        "piece's touching quarter (same buildings, trees, roads, fences and rocks at the same positions and the same size, even if "
+        "they are cut by the edge), and the rest of the new image continues the map from there. Same scale, same lighting, same palette. ")
     return f"{head}{join}This piece shows: {desc} {STYLE} {CAM} {SCALE} {EMPTY}"
 
 def room(desc):
@@ -59,7 +61,7 @@ def P(code, title, prompt):
 # ---------------- 1. village map ----------------
 sec('village', '① แมพหมู่บ้าน (ทำก่อน)',
     'แมพเดียว 6 ชิ้น เรียง 3 คอลัมน์ × 2 แถว: VL1 VL2 VL3 / VL4 VL5 VL6 • แนบ "รูป concept สร้างหมู่บ้าน" ทุกครั้ง • '
-    'VL2 กับ VL1 ได้แล้ว ✔ • ชิ้นต่อไปแนบชิ้นข้างๆ ที่บอกไว้เป็นรูปที่ 2 • GPT วาดของที่ขอบซ้ำกับชิ้นข้างๆ ได้ ไม่ต้องห้าม ผมใช้ส่วนที่ซ้อนกันนั้นต่อภาพให้เนียน • ถ้าออกมารอยต่อเพี้ยนนิดหน่อยไม่เป็นไร ผมเกลี่ยให้ • '
+    'VL2 กับ VL1 ได้แล้ว ✔ • ชิ้นต่อไปแนบชิ้นข้างๆ ที่บอกไว้เป็นรูปที่ 2 • สำคัญ: ภาพใหม่ต้องมีส่วนซ้ำกับชิ้นข้างๆ ประมาณ 1/4 (prompt สั่งไว้แล้ว) ผมใช้ส่วนที่ซ้ำนั้นต่อภาพ ถ้าไม่มีส่วนซ้ำจะต่อไม่ได้ • ถ้าออกมารอยต่อเพี้ยนนิดหน่อยไม่เป็นไร ผมเกลี่ยให้ • '
     'ไม่มีตึกบนแปลงว่าง เพราะตึกเปลี่ยนตามเลเวล')
 P('VL2', 'กลางบน: ลานกลางหมู่บ้าน (✔ ได้แล้ว)', plate(
     "the heart of an autumn medieval village. A wide dirt crossroads with cart tracks in the lower middle; a round cobblestone plaza "
@@ -70,7 +72,7 @@ P('VL1', 'ซ้ายบน: ลานไม้ + เหมืองหิน (
     "the north-west corner of the same village. Dark autumn forest with bare trees fills the top-left corner; a grey rocky slope with "
     "loose boulders and stone piles along the top; TWO empty building lots (for a sawmill and a quarry) beside a dirt path that comes "
     "from the right edge; stacked log piles, tree stumps, a wood chopping block, sawdust patches. " + LOT, neighbours="to the RIGHT of"))
-P('VL3', 'ขวาบน: ย่านช่าง + ขอบป่าผีสิง', plate(
+P('VL3', 'ขวาบน: ย่านช่าง + ขอบป่าผีสิง (เจนใหม่ แนบ VL2)', plate(
     "the north-east corner of the same village. TWO empty building lots (for a forge and a house) along a dirt road; the road leaves "
     "through the right edge toward a creepy dark forest of dead black trees that fills the top-right corner, faint glowing red eyes "
     "between the trees; a wooden sign post, firewood stacks, a broken cart. " + LOT, neighbours="to the LEFT of"))
