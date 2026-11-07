@@ -6,6 +6,7 @@ import { BUILDINGS, RES_NAMES, unlockedPlots, type BuildingId, type ResKey } fro
 import { skillMult, currentSkills, activeTier } from '../systems/stats';
 import { CLASSES } from '../data/classes';
 import { paintGroundIso, WATER_DEPTH } from '../art/isoArt';
+import { PLATE_FILES, PLATE_LOTS, PLATE_ORIGIN, PLATE_SCALE, PM, plateAvailable, plateGrid, toGame } from '../world/plateTown';
 import { HOUSE_ANCHOR } from '../art/textures';
 import { hasAi, resOf } from '../art/aiAssets';
 import { Hero } from '../entities/Hero';
@@ -89,15 +90,32 @@ export class WorldScene extends Phaser.Scene {
     this.monsters = []; this.projectiles = []; this.loot = []; this.npcs = []; this.cooldowns = {}; this.fireflies = []; this.clouds = [];
     this.dead = false; this.boss = null; this.target = null; this.chests = []; this.nightLights = []; this.rays = []; this.nodes = []; this.plotViews = []; this.shadows = []; this.heroShadow = null; this.swayers = []; this.butterflies = [];
     const s = S();
+    const qp = new URLSearchParams(location.search);
+    if (qp.get('map') === 'town' && !this.registry.get('urlMapDone')) { this.registry.set('urlMapDone', true); s.map = 'town'; s.pos = { x: -1, y: -1 }; }
     this.map = generateMap((s.map ?? 'main') as MapId);
+    if (this.map.plate && !plateAvailable()) { s.map = 'main'; this.map = generateMap('main'); }
+    if (this.map.plate && !this.textures.exists('plate_town')) {
+      // big painted plates load on demand, then the scene restarts with them ready
+      const t = this.add.text(this.scale.width / 2, this.scale.height / 2, 'กำลังโหลดหมู่บ้าน...', { fontFamily: FONT, fontSize: '20px', color: '#ffe0a0' }).setOrigin(0.5).setScrollFactor(0);
+      for (const [k, u] of Object.entries(PLATE_FILES)) this.load.image(k, u);
+      this.load.on('progress', (v: number) => t.setText(`กำลังโหลดหมู่บ้าน... ${Math.round(v * 100)}%`));
+      this.plateLoading = true;
+      this.load.once('complete', () => { this.plateLoading = false; this.scene.restart(); });
+      this.load.start();
+      return;
+    }
+    this.plateWalk = null;
     this.portals = []; this.traveling = false;
     this.der = derive(s);
 
     // ground
     const gk = 'ground_' + this.map.id;
     for (const id of Object.keys(MAP_NAMES)) if (id !== this.map.id && this.textures.exists('ground_' + id)) this.textures.remove('ground_' + id);
-    if (!this.textures.exists(gk)) this.textures.addCanvas(gk, paintGroundIso(this.map.ground, this.map.surface, this.map.theme));
-    this.add.image(0, 0, gk).setOrigin(0).setDepth(0);
+    if (this.map.plate) this.buildPlate();
+    else {
+      if (!this.textures.exists(gk)) this.textures.addCanvas(gk, paintGroundIso(this.map.ground, this.map.surface, this.map.theme));
+      this.add.image(0, 0, gk).setOrigin(0).setDepth(0);
+    }
 
     // objects
     const ai = hasAi(this, 'house_0');
@@ -234,7 +252,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // waving banners
-    if (this.anims.exists('env_flag')) for (const [fx, fy] of [[26, 36], [26, 42], [9, 34], [88, 34], [88, 46]] as const) {
+    if (this.anims.exists('env_flag') && !this.map.plate) for (const [fx, fy] of [[26, 36], [26, 42], [9, 34], [88, 34], [88, 46]] as const) {
       const p = iso(fx + 0.5, fy + 0.5);
       if (!this.canMove(p.x, p.y, 2)) continue;
       const f = this.add.sprite(p.x, p.y + 4, '__DEFAULT').setDepth(p.y).setScale(0.5).play('env_flag');
@@ -256,10 +274,10 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.buildPlots();
-    this.spawnLife();
+    if (!this.map.plate) this.spawnLife(); else this.critters = [];
     this.elderTower = this.elderTower ?? null;
     this.decor = new TerrainDecor(this);
-    this.decor.build();
+    if (!this.map.plate) this.decor.build();
 
     // hero
     let start = s.pos.x > 0 ? s.pos : this.map.heroStart;
@@ -275,8 +293,8 @@ export class WorldScene extends Phaser.Scene {
 
     // camera
     const cam = this.cameras.main;
-    cam.setBounds(0, 0, WORLD_PX_W, WORLD_PX_H);
-    cam.setBackgroundColor('#1c2e1c');
+    if (this.map.plate) { cam.setBounds(PLATE_ORIGIN.x, PLATE_ORIGIN.y, PM.pw * PLATE_SCALE, PM.ph * PLATE_SCALE); cam.setBackgroundColor('#140c08'); }
+    else { cam.setBounds(0, 0, WORLD_PX_W, WORLD_PX_H); cam.setBackgroundColor('#1c2e1c'); }
     cam.startFollow(this.hero.sprite, true, 0.15, 0.15);
     cam.setRoundPixels(true);
     this.applyZoom();
@@ -565,8 +583,86 @@ export class WorldScene extends Phaser.Scene {
     void time;
   }
 
+  // ---------- Painted plate map ----------
+  plateWalk: Uint8Array | null = null;
+  plateLoading = false;
+  buildPlate() {
+    const g = plateGrid(), O = PLATE_ORIGIN, K = PLATE_SCALE, C = g.cell;
+    const tex = this.textures.get('plate_town');
+    tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    this.add.image(O.x, O.y, 'plate_town').setOrigin(0).setScale(K).setDepth(0);
+    // occluder texture: the same painting, kept only where things stand (trees, houses, fences...)
+    if (!this.textures.exists('plate_town_occ')) {
+      const src = tex.getSourceImage() as HTMLImageElement;
+      const cv = document.createElement('canvas'); cv.width = src.width; cv.height = src.height;
+      const ctx = cv.getContext('2d')!;
+      const mk = document.createElement('canvas'); mk.width = g.w; mk.height = g.h;
+      const mctx = mk.getContext('2d')!, id = mctx.createImageData(g.w, g.h);
+      for (let i = 0; i < g.occ.length; i++) id.data[i * 4 + 3] = g.occ[i] ? 255 : 0;
+      mctx.putImageData(id, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(mk, 0, 0, g.w * C, g.h * C);
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.drawImage(src, 0, 0);
+      this.textures.addCanvas('plate_town_occ', cv)!.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+    // vertical runs of standing things, sliced in thin columns: each slice sorts by its own foot line
+    const SL = 2;
+    for (let x0 = 0; x0 < g.w; x0 += SL) {
+      let y = 0;
+      while (y < g.h) {
+        let on = false;
+        for (let i = x0; i < Math.min(g.w, x0 + SL); i++) if (g.occ[y * g.w + i]) on = true;
+        if (!on) { y++; continue; }
+        const ys = y;
+        for (;;) {
+          y++;
+          if (y >= g.h) break;
+          let any = false;
+          for (let i = x0; i < Math.min(g.w, x0 + SL); i++) if (g.occ[y * g.w + i]) any = true;
+          if (!any) break;
+        }
+        const im = this.add.image(O.x, O.y, 'plate_town_occ').setOrigin(0).setScale(K);
+        im.setCrop(x0 * C, ys * C, SL * C, (y - ys) * C);
+        im.setDepth(O.y + y * C * K - 1);
+      }
+    }
+    this.plateWalk = g.walk.slice();
+    // buildings on their painted lots
+    const s = S();
+    const lvOf = (id: string) => Math.max(0, ...s.buildings.filter(b => b.type === id).map(b => b.level));
+    const bosses = s.bossDefeated ?? 0;
+    for (const lot of PLATE_LOTS) {
+      if (!lot.kind) continue;
+      const tier = lot.kind === 'townhall' ? (bosses >= 3 ? 2 : bosses >= 1 ? 1 : 0)
+        : (() => { const l = lvOf(lot.kind!); return l >= 4 ? 2 : l >= 2 ? 1 : 0; })();
+      const key = `${lot.kind}_${tier}`, md = PM.blds[key];
+      if (!md || !this.textures.exists('plate_pb_' + key)) continue;
+      const k = Phaser.Math.Clamp(lot.w * 0.95 / (md.rx * 2), 0.8, 1.35);
+      const cx = lot.x - md.cx * k, cy = lot.y - md.cy * k;           // sprite top-left (composite px)
+      const p = toGame(cx, cy);
+      const im = this.add.image(p.x, p.y, 'plate_pb_' + key).setOrigin(0).setScale(K * k).setDepth(O.y + (cy + md.base * k) * K);
+      im.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      // block the building and the back half of its yard
+      const ex = lot.x, ey = lot.y, rx = md.rx * k * 0.92, ry = md.ry * k * 0.92, baseY = cy + md.base * k + 4;
+      for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+        const X = (i + 0.5) * C, Y = (j + 0.5) * C;
+        if (Y > baseY) continue;
+        const inEll = ((X - ex) / rx) ** 2 + ((Y - ey) / ry) ** 2 <= 1;
+        const above = Y < ey && Math.abs(X - ex) < rx * 0.75 && Y > cy + md.base * k * 0.35;
+        if (inEll || above) this.plateWalk[j * g.w + i] = 0;
+      }
+    }
+  }
+
   // ---------- Collision ----------
   blockedAt(px: number, py: number): boolean {
+    if (this.plateWalk) {
+      const g = plateGrid(), c = g.cell * PLATE_SCALE;
+      const cx = Math.floor((px - PLATE_ORIGIN.x) / c), cy = Math.floor((py - PLATE_ORIGIN.y) / c);
+      if (cx < 0 || cy < 0 || cx >= g.w || cy >= g.h) return true;
+      return this.plateWalk[cy * g.w + cx] === 0;
+    }
     const t = unIso(px, py);
     const tx = Math.floor(t.tx), ty = Math.floor(t.ty);
     if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H) return true;
@@ -629,6 +725,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ---------- Main loop ----------
   update(time: number, dt: number) {
+    if (this.plateLoading) return;
     dt = Math.min(dt, 50);
     const s = S();
     s.playTime += dt / 1000;

@@ -8,6 +8,7 @@ import { currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formName } from '../data/classes';
 import { paintMinimapIso } from '../art/isoArt';
 import { WORLD_PX_W, WORLD_PX_H } from '../world/mapgen';
+import { PLATE_ORIGIN, PLATE_SCALE, PM } from '../world/plateTown';
 import { QUEST_BY_ID } from '../data/quests';
 import { Panels } from '../ui/panels';
 import { sfx } from '../audio/sfx';
@@ -170,16 +171,18 @@ export class UIScene extends Phaser.Scene {
     this.root.add(qz);
 
     // minimap
-    const mmW = 116, mmH = mmW * WORLD_PX_H / WORLD_PX_W;
+    const plate = !!this.world.map.plate;
+    const wr = plate ? { x: PLATE_ORIGIN.x, y: PLATE_ORIGIN.y, w: PM.pw * PLATE_SCALE, h: PM.ph * PLATE_SCALE } : { x: 0, y: 0, w: WORLD_PX_W, h: WORLD_PX_H };
+    const mmW = 116, mmH = mmW * wr.h / wr.w;
     const mx = this.VW - mmW - 8, my = 8;
-    const mk = 'minimap_' + this.world.map.id;
+    const mk = plate ? 'plate_town' : 'minimap_' + this.world.map.id;
     if (!this.textures.exists(mk)) this.textures.addCanvas(mk, paintMinimapIso(this.world.map.ground, this.world.map.blocked, this.world.map.theme));
     const mmG = this.add.graphics();
     k.frame(mmG, mx - 4, my - 4, mmW + 8, mmH + 8, 0.9);
     this.minimap = this.add.image(mx, my, mk).setOrigin(0).setDisplaySize(mmW, mmH);
     this.miniDots = this.add.graphics();
     this.root.add([mmG, this.minimap, this.miniDots]);
-    this.minimap.setData('rect', { mx, my, mmW, mmH });
+    this.minimap.setData('rect', { mx, my, mmW, mmH }); this.minimap.setData('world', wr);
 
     // menu buttons under minimap
     const by = my + mmH + 18;
@@ -348,9 +351,11 @@ export class UIScene extends Phaser.Scene {
     }
 
     // minimap dots
-    const r = this.minimap.getData('rect') as { mx: number; my: number; mmW: number; mmH: number };
+    const r = { ...(this.minimap.getData('rect') as { mx: number; my: number; mmW: number; mmH: number }) };
     const md = this.miniDots; md.clear();
-    const sx = r.mmW / WORLD_PX_W, sy = r.mmH / WORLD_PX_H;
+    const wr = this.minimap.getData('world') as { x: number; y: number; w: number; h: number };
+    const sx = r.mmW / wr.w, sy = r.mmH / wr.h;
+    r.mx -= wr.x * sx; r.my -= wr.y * sy;
     const w = this.world;
     for (const m of w.monsters) {
       if (!m.alive) continue;

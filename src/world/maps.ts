@@ -4,8 +4,9 @@ import { mulberry32, fbm } from '../core/rng';
 import { G, MAP_W, MAP_H, iso, generateWorld, surfaceAt, type WorldMap, type WorldObj, type ObjType, type SpawnArea, type Zone } from './mapgen';
 import type { MonsterKind } from '../data/monsters';
 import type { Theme } from '../art/isoArt';
+import { generateTown } from './plateTown';
 
-export type MapId = 'main' | 'gather' | 'haunt' | 'lava' | 'snow' | 'dung';
+export type MapId = 'main' | 'gather' | 'haunt' | 'lava' | 'snow' | 'dung' | 'town';
 
 export interface Portal { tx: number; ty: number; x: number; y: number; to: MapId; label: string }
 
@@ -19,9 +20,11 @@ export interface GameMap extends WorldMap {
   /** recommended level */
   level: number;
   surface: (tx: number, ty: number, g: number) => number;
+  /** ground is a painted plate (plateTown.ts) */
+  plate?: boolean;
 }
 
-export const MAP_NAMES: Record<MapId, string> = { main: 'เอลเดอร์โกรฟ', gather: 'ป่าพรานไพร', haunt: 'ป่าใบไม้ร่วงผีสิง', lava: 'ดินแดนลาวา', snow: 'ภูเขาหิมะนิรันดร์', dung: 'คุกใต้ดินเหวลึก' };
+export const MAP_NAMES: Record<MapId, string> = { main: 'เอลเดอร์โกรฟ', gather: 'ป่าพรานไพร', haunt: 'ป่าใบไม้ร่วงผีสิง', lava: 'ดินแดนลาวา', snow: 'ภูเขาหิมะนิรันดร์', dung: 'คุกใต้ดินเหวลึก', town: 'หมู่บ้านใบไม้แดง (ทดลอง)' };
 
 const cache: Partial<Record<MapId, GameMap>> = {};
 
@@ -29,6 +32,7 @@ const cache: Partial<Record<MapId, GameMap>> = {};
 export function generateMap(id: MapId): GameMap {
   void cache;
   if (id === 'gather') return generateGather();
+  if (id === 'town') return generateTown();
   if (id !== 'main') return generateRegion(id);
   const w = generateWorld();
   // portal on open ground south-east of the village, past the fence (clear decorations there)
@@ -49,9 +53,19 @@ export function generateMap(id: MapId): GameMap {
   });
   for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (w.ground[(QY + j) * MAP_W + QX + i] !== G.Water) w.blocked[(QY + j) * MAP_W + QX + i] = 0;
   w.objects.push({ type: 'portal', x: q.x, y: q.y, v: 1, tx: QX, ty: QY });
+  // prototype: painted-plate village
+  const TX = 26, TY = 46, t = iso(TX + 0.5, TY + 0.5);
+  w.objects = w.objects.filter(o => {
+    const near = Math.abs(o.tx - TX) <= 2 && Math.abs(o.ty - TY) <= 2;
+    if (near && veg.has(o.type)) { if (o.solid) w.blocked[o.ty * MAP_W + o.tx] = 0; if (o.type === 'bigrock') w.blocked[o.ty * MAP_W + o.tx + 1] = 0; return false; }
+    return true;
+  });
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (w.ground[(TY + j) * MAP_W + TX + i] !== G.Water) w.blocked[(TY + j) * MAP_W + TX + i] = 0;
+  w.objects.push({ type: 'portal', x: t.x, y: t.y, v: 2, tx: TX, ty: TY });
   return { ...w, id: 'main', name: MAP_NAMES.main, hasBoss: true, bossKind: 'treant', theme: 'main', level: 1, surface: surfaceAt, portals: [
     { tx: PX, ty: PY, x: p.x, y: p.y, to: 'gather', label: 'ไปป่าพรานไพร (หาทรัพยากร)' },
-    { tx: QX, ty: QY, x: q.x, y: q.y, to: 'haunt', label: 'ไปป่าใบไม้ร่วงผีสิง (Lv20+)' }] };
+    { tx: QX, ty: QY, x: q.x, y: q.y, to: 'haunt', label: 'ไปป่าใบไม้ร่วงผีสิง (Lv20+)' },
+    { tx: TX, ty: TY, x: t.x, y: t.y, to: 'town', label: 'ไปหมู่บ้านใบไม้แดง (แมพใหม่ ทดลอง)' }] };
 }
 
 function distSeg(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
