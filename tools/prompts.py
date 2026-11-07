@@ -289,6 +289,43 @@ for i, (t, who, how) in enumerate(MD):
     P(f'MD{i+1}', t, anim(f'the attached {who} monster (same design, colours and size)', 'Death', 5,
                           f'Hit flinch, then it {how}.'))
 
+# ---------------- batches: one copy, then type "ต่อ" ----------------
+def batch(codes, ref_note):
+    items = {c: (t, pr) for _, _, _, its in S for c, t, pr in its}
+    head = ("I am making a mobile game. The image I attached is the STYLE REFERENCE for every image in this chat. "
+            f"{ref_note} Below is a list of images. Make them ONE AT A TIME, in order: make image #1 now, then stop and wait. "
+            "Every time I type ต่อ make the next image on the list. Never skip one, never merge two into one picture. "
+            "When an image says it continues an earlier image, look at that earlier image you made in this chat and follow it exactly. "
+            "Keep the same scale, camera and style for all of them.\n\n")
+    body = []
+    for i, c in enumerate(codes):
+        t, pr = items[c]
+        pr = pr.replace("The second attached image is the map piece directly", f"The image {{nb}} you made earlier in this chat is the map piece directly")
+        body.append(f"#{i + 1} ({c}): {pr}")
+    return head + "\n\n".join(body)
+
+NB = {'GV1': 'GV2', 'GV3': 'GV2', 'GV5': 'GV2', 'GV4': 'GV5', 'GV6': 'GV5'}
+def fill_nb(text, codes):
+    out = []
+    for part in text.split('\n\n'):
+        for c, n in NB.items():
+            if part.startswith(f'#') and f'({c}):' in part.split(':')[0] + ':': part = part.replace('{nb}', n)
+        out.append(part)
+    return '\n\n'.join(out)
+
+S.insert(0, ('batch', '⓪ ชุดก๊อปรวดเดียว (ง่ายสุด)',
+    'ก๊อป 1 ครั้ง วางใน ChatGPT แชทใหม่ พร้อมแนบรูป concept 1 รูป → ได้รูปแรก → พิมพ์ "ต่อ" ไปเรื่อยๆ จนครบ • '
+    'ไม่ต้องแนบรูปอื่น ไม่ต้องบอกรหัส • ครบชุดแล้วส่งรูปทั้งหมดให้ผมทีเดียว • 1 ชุด = 1 แชทใหม่ของ ChatGPT', []))
+VCODES = ['GV2', 'GV1', 'GV3', 'GV5', 'GV4', 'GV6']
+OCODES = ['OB1', 'OB2', 'OB3', 'OB4', 'OB5', 'OB6', 'OB7', 'OB8']
+BCODES = ['BD1', 'BD2', 'BD3', 'BD4', 'BD6', 'BD7', 'BD8', 'BD9', 'BD10', 'BD11', 'BD12', 'BD13']
+S[0][3].append(('ชุด A', 'แมพหมู่บ้าน 6 รูป (แนบ concept "สร้างหมู่บ้านของคุณ")',
+    fill_nb(batch(VCODES, 'The images are pieces of ONE big village map that will be joined together.'), VCODES)))
+S[0][3].append(('ชุด B', 'ของแยกชิ้น 8 รูป (แนบ concept หมู่บ้าน)',
+    batch(OCODES, 'These are separate game objects on white backgrounds. "The attached map image" means the style reference.').replace('the SAME scale as the attached reference', 'the SAME scale as the style reference')))
+S[0][3].append(('ชุด C', 'อาคาร 12 รูป (แนบ concept หมู่บ้าน)',
+    batch(BCODES, 'These are game buildings on white backgrounds. "The attached map image" means the style reference.')))
+
 # ---------------- output ----------------
 HOWTO = ('วิธีใช้: กดคัดลอก → วางใน GPT พร้อมแนบรูปที่บอกไว้ในหมวด • ทุกแมพออกแบบใหม่ ไม่ใช้ภาพเก่า • แมพ = พื้นอย่างเดียว ของสูงกว่าเข่าเป็นชิ้นแยก • '
          'ส่งภาพกลับพร้อมบอกรหัส (เช่น "GV2", "OB1") • ลำดับ: ① → ② ก่อน')
