@@ -13,10 +13,12 @@ CAM = ("Camera: same as the reference - 2:1 isometric, orthographic, looking dow
 SCALE = ("Scale (very important, keep it the same in every image): a human would be about 1/14 of the image height "
          "(about 70 px tall in a 1536x1024 image); a one-storey cottage is about 3 humans tall; a big tree about 4 humans tall; "
          "doors are human-sized.")
-EMPTY = ("Empty scene for a game level: NO people, NO animals, NO monsters, NO UI, NO text, NO logo, NO watermark. "
-         "Do NOT draw any houses, cottages, shops, market stalls or other buildings unless this prompt describes them by name; "
-         "building lots stay completely empty. "
-         "Keep wide open walkable ground and clear paths so characters can move around.")
+EMPTY = ("GROUND ONLY (most important): draw only the flat ground and things lower than a person's knee - dirt roads with cart "
+         "tracks, grass, fallen leaves, small flowers, pebbles, low bushes, cobblestones, tilled soil, water, river banks, cracks, snow, "
+         "lava. Do NOT draw anything taller than a knee: no trees, no tree trunks, no houses or buildings, no walls, no fences, no lamp "
+         "posts, no signs, no carts, no barrels, no crates, no big rocks, no pillars, no towers - those are separate game sprites placed "
+         "later. If the description mentions such tall things, draw only the flat ground where they will stand. "
+         "NO people, NO animals, NO monsters, NO UI, NO text, NO logo, NO watermark.")
 LOT = ("An 'empty building lot' means a flat clearing of bare packed dirt about 5 humans wide, with a few stones or short "
        "stakes at its corners and nothing built on it.")
 WHITE = "Plain pure white background, no cast shadow on the white, no text, no watermark."
@@ -59,38 +61,51 @@ def P(code, title, prompt):
     S[-1][3].append((code, title, prompt))
 
 # ---------------- 1. village map ----------------
-sec('village', '① แมพหมู่บ้าน (ทำก่อน)',
-    'แมพเดียว 6 ชิ้น เรียง 3 คอลัมน์ × 2 แถว: VL1 VL2 VL3 / VL4 VL5 VL6 • แนบ "รูป concept สร้างหมู่บ้าน" ทุกครั้ง • '
-    'VL2 กับ VL1 ได้แล้ว ✔ • ชิ้นต่อไปแนบชิ้นข้างๆ ที่บอกไว้เป็นรูปที่ 2 • สำคัญ: ภาพใหม่ต้องมีส่วนซ้ำกับชิ้นข้างๆ ประมาณ 1/4 (prompt สั่งไว้แล้ว) ผมใช้ส่วนที่ซ้ำนั้นต่อภาพ ถ้าไม่มีส่วนซ้ำจะต่อไม่ได้ • ถ้าออกมารอยต่อเพี้ยนนิดหน่อยไม่เป็นไร ผมเกลี่ยให้ • '
-    'ไม่มีตึกบนแปลงว่าง เพราะตึกเปลี่ยนตามเลเวล')
-P('VL2', 'กลางบน: ลานกลางหมู่บ้าน (✔ ได้แล้ว)', plate(
-    "the heart of an autumn medieval village. A wide dirt crossroads with cart tracks in the lower middle; a round cobblestone plaza "
-    "with a stone well and a notice board; one LARGE empty building lot (about 7 humans wide) at the top centre behind the plaza for the "
-    "town hall; a dirt road leaving the village through the top edge into a dark autumn forest;  wooden lantern posts, short fences, "
-    "barrels, hay bales, a few orange-leaved trees. " + LOT, first=True))
-P('VL1', 'ซ้ายบน: ลานไม้ + เหมืองหิน (✔ ได้แล้ว)', plate(
-    "the north-west corner of the same village. Dark autumn forest with bare trees fills the top-left corner; a grey rocky slope with "
-    "loose boulders and stone piles along the top; TWO empty building lots (for a sawmill and a quarry) beside a dirt path that comes "
-    "from the right edge; stacked log piles, tree stumps, a wood chopping block, sawdust patches. " + LOT, neighbours="to the RIGHT of"))
-P('VL3', 'ขวาบน: ย่านช่าง + ขอบป่าผีสิง (เจนใหม่ แนบ VL2)', plate(
-    "the north-east corner of the same village. TWO empty building lots (for a forge and a house) along a dirt road; the road leaves "
-    "through the right edge toward a creepy dark forest of dead black trees that fills the top-right corner, faint glowing red eyes "
-    "between the trees; a wooden sign post, firewood stacks, a broken cart. " + LOT, neighbours="to the LEFT of"))
-P('VL5', 'กลางล่าง: ลานตลาด', plate(
-    "the south-centre of the same village. The crossroads road continues down and leaves through the bottom edge; a small market "
-    "square of packed dirt; TWO empty building lots (for a market and a tavern); crates, sacks, barrels, a hand cart, lantern posts, "
-    "flower boxes. " + LOT, neighbours="BELOW (south of)"))
-P('VL4', 'ซ้ายล่าง: ทุ่งนา', plate(
-    "the south-west corner of the same village. Fenced farmland with neat tilled soil rows, golden wheat, cabbages and pumpkins; TWO "
-    "empty building lots (for a farm and a kitchen); a dirt road leaving through the left edge; scarecrow, hay stacks, autumn trees in "
-    "the bottom-left corner. " + LOT, neighbours="BELOW the first attached piece and to the LEFT of the other"))
-P('VL6', 'ขวาล่าง: ริมน้ำ + คอกสัตว์', plate(
-    "the south-east corner of the same village. A blue river comes in from the right edge and curves down out of the bottom edge, "
-    "crossed by an arched stone bridge; a wooden water wheel on the bank; ONE large empty fenced pasture lot (for a barn and animal pen); "
-    "reeds, rocks, a small wooden dock, autumn trees. " + LOT, neighbours="BELOW the first attached piece and to the RIGHT of the other"))
+REMOVE = ("Edit the attached image. Keep EXACTLY the same image size, framing, camera, layout, roads, colours and lighting, "
+          "pixel for pixel wherever possible. REMOVE everything taller than a person's knee and repaint the ground that would be under it "
+          "(matching dirt, grass, leaves or cobblestones, continuing the cart tracks and textures naturally): remove all houses and "
+          "buildings, market stalls, trees and tree trunks, fences and fence posts, lamp posts, sign posts, notice boards, the well, "
+          "carts, barrels, crates, sacks, hay bales, log piles, stumps, big rocks and rocky cliffs, scarecrow, tall wheat, the water wheel, "
+          "bridge lanterns and railings. KEEP: dirt roads, cart tracks, grass, fallen leaves, small flowers, pebbles, low bushes, the "
+          "cobblestone plaza, tilled soil rows with low cabbages and pumpkins, the river water and banks, the bridge's walking deck. "
+          "Do not add anything new. No text, no watermark.")
+sec('village', '① พื้นหมู่บ้าน: ลบของสูงออกจากภาพเดิม (ทำก่อน)',
+    'ใช้ภาพ VL ที่เจนไปแล้ว: แนบภาพนั้น 1 รูป แล้ววาง prompt นี้ • GPT จะลบบ้าน ต้นไม้ รั้ว โคม ออก เหลือแต่พื้น • '
+    'ตำแหน่งพื้นจะตรงกับแมพที่ต่อไว้แล้ว ส่วนของที่ลบ ผมวางกลับเป็นชิ้นแยก (หมวด ②) จึงบังตัวละครตามรูปร่างจริงและเดินลอดได้ • '
+    'ถ้า GPT ลบไม่หมด ลองสั่งซ้ำ "remove the remaining fences and lamp posts"')
+for code, src, t in [('GV1', 'VL1', 'ลานไม้ + เหมืองหิน'), ('GV2', 'VL2', 'ลานบ่อน้ำ'), ('GV4', 'VL4', 'ทุ่งนา'),
+                     ('GV5', 'VL5', 'ลานตลาด'), ('GV6', 'VL6', 'สะพาน + กังหันน้ำ')]:
+    P(code, f'แนบ {src} — {t}', REMOVE)
+
+def osheet(n, grid, desc):
+    return (f"Landscape 3:2 image (1536x1024). Pixel art game asset sheet: {n} separate objects in a {grid} grid with large empty "
+            f"white gaps between them, none touching, each standing upright with its base visible: {desc} "
+            "Every object at the SAME scale as the attached reference (a human is about 70 px tall), seen from the same isometric camera. "
+            f"Objects only: no ground patch under them, no grass base, no cast shadow. {STYLE} {CAM} {WHITE}")
+
+sec('objects', '② ของในฉากแยกชิ้น (ใช้กับทุกแมพ)',
+    'แนบรูป concept หมู่บ้าน + ภาพ VL2 (ให้ขนาดตรงกัน) • 1 รูป = หลายชิ้นบนพื้นขาว • ชิ้นพวกนี้ผมวางเองตามตำแหน่งในภาพเดิม '
+    'แต่ละชิ้นรู้จุดยืนของตัวเอง เลยบังตัวละครตามรูปร่างจริง ไม่เป็นสี่เหลี่ยม')
+P('OB1', 'ต้นไม้ใบไม้ร่วง 6 แบบ', osheet(6, '3x2', "a big orange autumn oak, a red maple, a golden-yellow tree, a bare dead tree with twisted branches, "
+  "a dark green pine, a small young orange tree. Each tree about 4 humans tall (the small one 2), trunk base clearly visible."))
+P('OB2', 'กลุ่มป่าทึบขอบแมพ 4 แบบ', osheet(4, '2x2', "dense clumps of 3-5 overlapping autumn trees (orange, red, yellow mixed) for framing the edge of the "
+  "map, each clump about 3 trees wide, dark shaded undergrowth at the base."))
+P('OB3', 'รั้วไม้ (ต่อกันได้)', osheet(8, '4x2', "wooden rail fence pieces: a straight segment running diagonally down-right (exactly 2 posts), "
+  "a straight segment running diagonally down-left (exactly 2 posts), a corner post, an end post, a fence gate closed, a fence gate open, "
+  "a broken segment down-right, a broken segment down-left. Fence height about half a human, all posts identical."))
+P('OB4', 'โคมไฟ ป้าย บ่อน้ำ', osheet(6, '3x2', "a wooden lamp post with a hanging glowing lantern, a wooden direction sign post, a notice board "
+  "with papers, a stone well with a small red tile roof and bucket, a red banner on a pole, a wooden bench."))
+P('OB5', 'ของในหมู่บ้าน', osheet(9, '3x3', "a wooden hand cart, a stack of 3 barrels, a single barrel, a stack of crates, two grain sacks, "
+  "two hay bales, a big log pile, a tree stump with an axe in it, a water trough."))
+P('OB6', 'หินและหน้าผา', osheet(6, '3x2', "a big mossy grey boulder, a cluster of three rocks, a small rock, a rocky cliff chunk about 2 humans "
+  "tall, a stack of cut stone blocks, a low stone wall segment."))
+P('OB7', 'ไร่และแผงตลาด', osheet(6, '3x2', "a patch of tall golden wheat, a scarecrow with straw hat, a haystack, a market stall with a red-white "
+  "striped awning and fruit crates, a market stall with a green awning and cloth, a small flower cart."))
+P('OB8', 'ริมน้ำ', osheet(5, '3x2', "a wooden water wheel with its frame, a small wooden fishing dock, a clump of tall reeds, the two stone side "
+  "railings of an arched bridge with lanterns (left railing and right railing as separate pieces), a rowing boat."))
 
 # ---------------- 2. buildings ----------------
-sec('build', '② อาคาร 3 ระดับ พร้อมลานรอบตัว',
+sec('build', '③ อาคาร 3 ระดับ พร้อมลานรอบตัว',
     'แนบรูป concept หมู่บ้านทุกครั้ง • 1 prompt = 1 อาคาร 3 ระดับ (Lv1 / Lv3 / Lv5) ในรูปเดียว • พื้นหลังขาวเหมือนเดิม • '
     'มีลานดินและของรอบตัวติดมาด้วย ผมจะวางลงแปลงว่างให้กลืนกับพื้น')
 BLD = [
@@ -114,8 +129,8 @@ P('BD13', 'ไซต์ก่อสร้าง 3 ขั้น', bsheet(
     "half-built timber frame with scaffolding and ladders, right an almost finished house with scaffolding and a crane."))
 
 # ---------------- 3. hunting map ----------------
-sec('hunt', '③ แมพป่าพรานไพร (ล่าสัตว์ ตัดไม้ ขุดหิน)',
-    '4 ชิ้น 2×2: HT1 HT2 / HT3 HT4 • แนบ "รูป concept ค้นหาและตามล่า" • ต้นไม้และหินที่ตัดหรือขุดได้ เกมวางเอง เลยต้องเว้นที่โล่งไว้')
+sec('hunt', '④ แมพป่าพรานไพร (ล่าสัตว์ ตัดไม้ ขุดหิน)',
+    '4 ชิ้น 2×2: HT1 HT2 / HT3 HT4 • แนบ "รูป concept ค้นหาและตามล่า" • พื้นอย่างเดียว ต้นไม้ หิน หอไม้ กระท่อม เป็นชิ้นแยก')
 P('HT1', 'ซ้ายบน: แคมป์นายพราน (เริ่มชิ้นนี้)', plate(
     "a hunters' camp in a forest clearing. Large open grass area in the middle; a big stone campfire ring with a cooking pot on a "
     "tripod; two tall log watchtowers; a log palisade wall along the top; meat drying racks; small vegetable plots; thatched round huts "
@@ -132,7 +147,7 @@ P('HT4', 'ขวาล่าง: ทุ่งหญ้า + บ่อน้ำ',
 
 # ---------------- 4-6. regions ----------------
 REG = [
-    ('haunt', '④ แมพป่าผีสิง (Lv20)', 'HF', 'แนบภาพ concept ป่าผีสิงที่เคยส่งมา', [
+    ('haunt', '⑤ แมพป่าผีสิง (Lv20)', 'HF', 'แนบภาพ concept ป่าผีสิงที่เคยส่งมา', [
         ('ซ้ายบน: ทางเข้า + สุสาน (เริ่มชิ้นนี้)', "the entrance of a haunted autumn forest at dusk: a broken iron gate on a dirt path coming in from the left edge, a small "
          "graveyard with crooked tombstones, dead black trees, low purple fog, glowing mushrooms, scattered bones."),
         ('ขวาบน: บึงหมอก', "a misty swamp of the haunted forest: dark murky pools, twisted dead trees, rotten wooden walkways, "
@@ -142,7 +157,7 @@ REG = [
         ('ขวาล่าง: ลานบอส', "the boss arena of the haunted forest: a large round clearing ringed by tall mossy standing stones with "
          "faint glowing runes, a huge dead tree at the back, eerie green light, wide open flat ground in the middle."),
     ]),
-    ('lava', '⑤ แมพดินแดนลาวา (Lv50)', 'LV', 'แนบ "รูป concept หลอมอาวุธมหากาพย์"', [
+    ('lava', '⑥ แมพดินแดนลาวา (Lv50)', 'LV', 'แนบ "รูป concept หลอมอาวุธมหากาพย์"', [
         ('ซ้ายบน: ด่านโรงตีเหล็กคนแคระ (เริ่มชิ้นนี้)', "a dwarf blacksmith outpost on a volcanic plateau: a raised wooden plank deck with log railings, a big "
          "stone anvil, a stone furnace with a smoking chimney, fur pelts, barrels, a stone well with a slate roof, all on dark cracked rock "
          "with glowing lava cracks and rivers around the plateau."),
@@ -153,7 +168,7 @@ REG = [
         ('ขวาล่าง: ลานบอสปากปล่องภูเขาไฟ', "the boss arena on the rim of a volcano crater: a wide flat round rock plateau, lava "
          "pouring down around it, smoke and embers, glowing cracks, dramatic red light."),
     ]),
-    ('snow', '⑥ แมพภูเขาหิมะ (Lv60)', 'SN', 'แนบภาพ concept ภูเขาหิมะที่เคยส่งมา', [
+    ('snow', '⑦ แมพภูเขาหิมะ (Lv60)', 'SN', 'แนบภาพ concept ภูเขาหิมะที่เคยส่งมา', [
         ('ซ้ายบน: ด่านหมู่บ้านน้ำแข็ง (เริ่มชิ้นนี้)', "a small frozen mountain outpost: snow-covered log huts with smoking chimneys, a "
          "trampled snowy path coming in from the left edge, fences with icicles, firewood under snow, lanterns, snowy pine trees."),
         ('ขวาบน: ทะเลสาบน้ำแข็ง', "a frozen lake with cracked blue ice, snowy banks, frosted rocks, snowy pine forest, open snowy ground."),
@@ -170,7 +185,7 @@ for sid, title, pre, note, items in REG:
         P(f'{pre}{i+1}', t, plate(d, first=(i == 0), neighbours=sides[i] or ''))
 
 # ---------------- 7. dungeon ----------------
-sec('dung', '⑦ คุกใต้ดิน (Lv80) — ห้องแยกกัน',
+sec('dung', '⑧ คุกใต้ดิน (Lv80) — ห้องแยกกัน',
     'แนบ "รูป concept พิชิตคุกใต้ดิน" • ห้องละรูป ไม่ต้องต่อกัน เพราะเดินผ่านประตูไปห้องถัดไป')
 P('DG1', 'ห้องทางเข้า', room("the entrance hall: wide stone stairs coming down from the top-left, cracked blue-grey flagstones with moss, "
   "stone brick walls with carved panels and wall torches, a round fire brazier on a stone base, an open archway door in the right wall."))
@@ -182,7 +197,7 @@ P('DG4', 'ห้องบัลลังก์บอส', room("the skeleton kin
   "the back, giant horned skull carvings, purple ghost-fire braziers, a treasure chest, an archway door in the left wall."))
 
 # ---------------- 8. interiors ----------------
-sec('inside', '⑧ ภายในอาคาร (ทำทีหลังได้)', 'แนบ "รูป concept รับสมัครฮีโร่" • ใช้ตอนเดินเข้าอาคาร')
+sec('inside', '⑨ ภายในอาคาร (ทำทีหลังได้)', 'แนบ "รูป concept รับสมัครฮีโร่" • ใช้ตอนเดินเข้าอาคาร')
 P('IN1', 'ภายในโรงเตี๊ยม', room("a cosy tavern hall instead of a dungeon (cut-away view, two walls shown): a long bar counter with bottle "
   "shelves, a long feast table on a red rug, small round tables with stools, a stone fireplace, tall arched windows showing snow outside, "
   "barrels, candles, a door at the bottom-left.").replace("ONE complete dungeon room", "ONE complete room"))
@@ -190,7 +205,7 @@ P('IN2', 'ภายในโรงตีเหล็ก', room("a blacksmith wor
   "roaring furnace, weapon and armour racks, a grinding wheel, coal sacks, tool wall, a door at the bottom-left.").replace("ONE complete dungeon room", "ONE complete room"))
 
 # ---------------- 9. atmosphere ----------------
-sec('fx', '⑨ ของขยับได้ + บรรยากาศ', 'แนบรูป concept หมู่บ้าน • ของพวกนี้ทำให้แมพมีชีวิต')
+sec('fx', '⑩ ของขยับได้ + บรรยากาศ', 'แนบรูป concept หมู่บ้าน • ของพวกนี้ทำให้แมพมีชีวิต')
 P('FX1', 'กองไฟ + หม้อต้ม (6 เฟรม)', anim("a stone campfire ring with a cooking pot hanging on a wooden tripod", "Burning fire loop", 6,
   "Flames flicker, steam rises from the pot, sparks drift up. Same pot and stones in every frame."))
 P('FX2', 'ควันปล่องไฟ (6 เฟรม)', anim("a soft grey chimney smoke puff column", "Rising smoke loop", 6,
@@ -214,7 +229,7 @@ M4 = HERO + ('a legendary dark archmage: menacing jet-black layered robes with t
              'hood casting deep shadow, a sinister black iron skull-like mask covering the whole face with glowing blood-red eyes, black smoke '
              'and shadow wisps swirling around him, a twisted black bone staff topped with a glowing crimson void crystal')
 CH = ' Chibi proportions: big head, small body.'
-sec('chars', '⑩ ตัวละครที่ยังขาด', 'แนบรูปร่างเดิมของตัวนั้นไปด้วย • CH1 แทงค์ร่าง 2: ทำรูปหลักก่อน แล้วแนบรูปหลักไปกับท่าที่เหลือ')
+sec('chars', '⑪ ตัวละครที่ยังขาด', 'แนบรูปร่างเดิมของตัวนั้นไปด้วย • CH1 แทงค์ร่าง 2: ทำรูปหลักก่อน แล้วแนบรูปหลักไปกับท่าที่เหลือ')
 P('CH1', 'แทงค์ร่าง 2 — รูปหลัก (ยืน)', anim(T2, 'Idle breathing', 4, 'Subtle chest rise.' + CH))
 P('CH2', 'แทงค์ร่าง 2 — เดินหันหน้า', anim(T2, 'Walking', 6, 'Full walk cycle, heavy steps.' + CH))
 P('CH3', 'แทงค์ร่าง 2 — เดินหันหลัง', anim(T2, 'Walking (back view)', 6, 'Full walk cycle.' + CH, 'up-right'))
@@ -228,7 +243,7 @@ P('CH9', 'จอมเวทร่าง 4 — ใช้สกิล', anim(M4, 
 P('CH10', 'จอมเวทร่าง 4 — โดนตี+ล้ม', anim(M4, 'Hurt and defeat', 5, 'Flinch, stagger, fall to knees, falling, lying on the ground.' + CH))
 
 # ---------------- 11. monster deaths ----------------
-sec('mdie', '⑪ ท่าตายมอนสเตอร์', 'แนบรูปมอนตัวนั้น (ท่าเดิน) ไปด้วย • ตอนนี้ในเกมใช้จางหายแทนอยู่')
+sec('mdie', '⑫ ท่าตายมอนสเตอร์', 'แนบรูปมอนตัวนั้น (ท่าเดิน) ไปด้วย • ตอนนี้ในเกมใช้จางหายแทนอยู่')
 MD = [('สไลม์', 'slime', 'squashes flat and splats into a puddle that fades'),
       ('เห็ดพิษ', 'mushroom monster', 'wobbles, cap cracks, collapses into spores'),
       ('หมาป่า', 'wolf', 'yelps, staggers, falls on its side'),
@@ -251,8 +266,8 @@ for i, (t, who, how) in enumerate(MD):
                           f'Hit flinch, then it {how}.'))
 
 # ---------------- output ----------------
-HOWTO = ('วิธีใช้: กดคัดลอก → วางใน GPT พร้อมแนบรูป concept ที่บอกไว้ในหมวด • ชิ้นแมพที่ต่อกัน แนบชิ้นข้างๆ เป็นรูปที่ 2 • '
-         'ส่งภาพกลับพร้อมบอกรหัส (เช่น "VL2") • ลำดับ: ① → ② ก่อน เพราะเป็นหน้าแรกที่เห็น')
+HOWTO = ('วิธีใช้: กดคัดลอก → วางใน GPT พร้อมแนบรูปที่บอกไว้ในหมวด • แมพ = พื้นอย่างเดียว ของสูงกว่าเข่าเป็นชิ้นแยก • '
+         'ส่งภาพกลับพร้อมบอกรหัส (เช่น "GV2", "OB1") • ลำดับ: ① → ② ก่อน')
 
 def write_md(path):
     out = ['# Prompt Book v2 — แมพตาม concept (Eldergrove Saga)', '', HOWTO, '']
