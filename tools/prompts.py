@@ -68,24 +68,40 @@ def sec(sid, title, note=''):
 def P(code, title, prompt):
     S[-1][3].append((code, title, prompt))
 
-# ---------------- 1. village map ----------------
-REMOVE = ("Edit the attached image. Keep EXACTLY the same image size, framing, camera, layout, roads, colours and lighting, "
-          "pixel for pixel wherever possible. REMOVE everything taller than a person's knee and repaint the ground that would be under it "
-          "(matching dirt, grass, leaves or cobblestones, continuing the cart tracks and textures naturally): remove all houses and "
-          "buildings, market stalls, trees and tree trunks, fences and fence posts, lamp posts, sign posts, notice boards, the well, "
-          "carts, barrels, crates, sacks, hay bales, log piles, stumps, loose boulders, the water wheel, the scarecrow, and ALL farm "
-          "fields, crops and tilled soil (replace them with grass meadow). KEEP: dirt roads, cart tracks, grass, fallen leaves, small "
-          "flowers, pebbles, low bushes, the cobblestone plaza, the empty dirt building lots, rocky cliffs and ledges, the river water "
-          "and banks, and the whole stone bridge. "
-          "Do not add anything new. No text, no watermark.")
-sec('village', '① พื้นหมู่บ้าน: ลบของสูงออกจากภาพเดิม (ทำก่อน)',
-    'ใช้ภาพ VL ที่เจนไปแล้ว: แนบภาพนั้น 1 รูป แล้ววาง prompt นี้ • GPT จะลบบ้าน ต้นไม้ รั้ว โคม ไร่ผัก ออก เหลือแต่พื้น • '
-    'หน้าผา เนิน สะพาน แม่น้ำ อยู่ในภาพพื้นต่อ ผมกำหนดให้ชนหน้าผาจริง และเดินขึ้นลงสะพานโค้งจริง • '
-    'ตำแหน่งพื้นจะตรงกับแมพที่ต่อไว้แล้ว ส่วนของที่ลบ ผมวางกลับเป็นชิ้นแยก (หมวด ②) จึงบังตัวละครตามรูปร่างจริงและเดินลอดได้ • '
-    'ถ้า GPT ลบไม่หมด ลองสั่งซ้ำ "remove the remaining fences and lamp posts"')
-for code, src, t in [('GV1', 'VL1', 'ลานไม้ + เหมืองหิน'), ('GV2', 'VL2', 'ลานบ่อน้ำ'), ('GV4', 'VL4', 'ทุ่งหญ้า (ไร่ผักถูกลบ)'),
-                     ('GV5', 'VL5', 'ลานตลาด'), ('GV6', 'VL6', 'สะพาน + กังหันน้ำ')]:
-    P(code, f'แนบ {src} — {t}', REMOVE)
+# ---------------- 1. village map (fresh design, ground only) ----------------
+sec('village', '① แมพหมู่บ้านใหม่ (พื้นอย่างเดียว) — ทำก่อน',
+    'ออกแบบใหม่ทั้งหมด ไม่ใช้ภาพเก่า • 6 ชิ้น เรียง 3×2: GV1 GV2 GV3 / GV4 GV5 GV6 • แนบรูป concept "สร้างหมู่บ้านของคุณ" เป็นรูปที่ 1 ทุกครั้ง (ใช้แค่สไตล์) • '
+    'เริ่ม GV2 • ชิ้นอื่นแนบชิ้นที่บอกไว้เป็นรูปที่ 2 • ต้องมีส่วนซ้ำกับชิ้นที่แนบประมาณ 1/4 ผมใช้ส่วนนั้นต่อภาพ • '
+    'พื้นอย่างเดียว: บ้าน ต้นไม้ รั้ว โคม เป็นชิ้นแยก (หมวด ② ③) • หน้าผา เนิน แม่น้ำ สะพาน อยู่ในภาพพื้น ผมทำให้ชนหน้าผาจริงและเดินขึ้นลงสะพานโค้งจริง')
+P('GV2', 'กลางบน: ลานกลางหมู่บ้าน (เริ่มชิ้นนี้)', plate(
+    "the heart of a beautiful autumn fantasy village. A large round cobblestone plaza in the middle with a mosaic sun pattern; one LARGE "
+    "empty building lot for the town hall at the top centre behind the plaza; wide dirt roads with cart tracks leaving the plaza to the "
+    "left edge, the right edge and the bottom edge; soft grass verges full of fallen orange and red leaves, small wildflowers and "
+    "pebbles; a low two-step stone terrace (knee high) around the back of the plaza with three wide steps in the middle. " + LOT, first=True))
+P('GV1', 'ซ้ายบน: ที่ราบสูงหน้าผา + น้ำตก (แนบ GV2)', plate(
+    "the north-west of the same village: a raised rocky plateau whose south edge is a clear vertical grey-brown cliff about 1.5 humans "
+    "tall, with wide carved stone stairs going up the cliff from the road; on top of the plateau TWO empty building lots (for a "
+    "sawmill and a quarry) and patches of mossy rock ground; a thin waterfall falls from the cliff into a small round pond at its foot; "
+    "the dirt road from the right edge runs along the foot of the cliff; leaf-covered forest floor along the left edge. " + LOT,
+    neighbours="to the RIGHT of"))
+P('GV3', 'ขวาบน: แม่น้ำ + สะพานโค้งหิน (แนบ GV2)', plate(
+    "the north-east of the same village: a clear blue river enters from the top-right corner and flows down out of the bottom edge; "
+    "the dirt road from the left edge crosses the river on a beautiful high-arched stone bridge with low side curbs and continues out "
+    "of the right edge toward a darker forest floor of dead leaves; TWO empty building lots on the village side of the river; "
+    "sandy river banks with reeds and stepping stones. " + LOT, neighbours="to the LEFT of"))
+P('GV5', 'กลางล่าง: ลานตลาด (แนบ GV2)', plate(
+    "the south-centre of the same village: the road from the plaza continues down and leaves through the bottom edge; a small square "
+    "market area paved with worn cobblestones; TWO empty building lots (for a market and a tavern); grass verges with leaves, "
+    "flowers and pebbles; a gentle grassy mound on one side. " + LOT, neighbours="ABOVE (north of)"))
+P('GV4', 'ซ้ายล่าง: ทุ่งหญ้าเนินเตี้ย (แนบ GV5)', plate(
+    "the south-west of the same village: rolling grass meadow with gentle low hills and a few flat rocky outcrops, wildflowers and "
+    "fallen leaves; TWO empty building lots beside the road; a dirt road leaving through the left edge toward the hunting forest; a "
+    "small lily pond. " + LOT, neighbours="to the RIGHT of"))
+P('GV6', 'ขวาล่าง: ริมแม่น้ำ (แนบ GV5)', plate(
+    "the south-east of the same village: the river from the north continues and widens, curving out through the bottom-right corner, "
+    "with sandy banks, reeds, flat stones and a low wooden boardwalk along the bank; ONE large empty building lot (for an animal barn) "
+    "on the grass; a small waterfall step in the river where the land drops one level, with a short low cliff beside it. " + LOT,
+    neighbours="to the LEFT of"))
 
 def osheet(n, grid, desc):
     return (f"Landscape 3:2 image (1536x1024). Pixel art game asset sheet: {n} separate objects in a {grid} grid with large empty "
@@ -94,7 +110,7 @@ def osheet(n, grid, desc):
             f"Objects only: no ground patch under them, no grass base, no cast shadow. {STYLE} {CAM} {WHITE}")
 
 sec('objects', '② ของในฉากแยกชิ้น (ใช้กับทุกแมพ)',
-    'แนบรูป concept หมู่บ้าน + ภาพ VL2 (ให้ขนาดตรงกัน) • 1 รูป = หลายชิ้นบนพื้นขาว • ชิ้นพวกนี้ผมวางเองตามตำแหน่งในภาพเดิม '
+    'แนบรูป concept หมู่บ้าน + ภาพพื้น GV2 (ให้ขนาดตรงกัน) • 1 รูป = หลายชิ้นบนพื้นขาว • ชิ้นพวกนี้ผมวางเองตามตำแหน่งในภาพเดิม '
     'แต่ละชิ้นรู้จุดยืนของตัวเอง เลยบังตัวละครตามรูปร่างจริง ไม่เป็นสี่เหลี่ยม')
 P('OB1', 'ต้นไม้ใบไม้ร่วง 6 แบบ', osheet(6, '3x2', "a big orange autumn oak, a red maple, a golden-yellow tree, a bare dead tree with twisted branches, "
   "a dark green pine, a small young orange tree. Each tree about 4 humans tall (the small one 2), trunk base clearly visible."))
@@ -138,7 +154,7 @@ P('BD13', 'ไซต์ก่อสร้าง 3 ขั้น', bsheet(
 
 # ---------------- 3. hunting map ----------------
 sec('hunt', '④ แมพป่าพรานไพร (ล่าสัตว์ ตัดไม้ ขุดหิน)',
-    '4 ชิ้น 2×2: HT1 HT2 / HT3 HT4 • แนบ "รูป concept ค้นหาและตามล่า" • พื้นอย่างเดียว ต้นไม้ หิน หอไม้ กระท่อม เป็นชิ้นแยก')
+    '4 ชิ้น 2×2: HT1 HT2 / HT3 HT4 • HT2 แนบ HT1, HT3 แนบ HT1, HT4 แนบ HT3 • แนบ "รูป concept ค้นหาและตามล่า" • พื้นอย่างเดียว ต้นไม้ หิน หอไม้ กระท่อม เป็นชิ้นแยก')
 P('HT1', 'ซ้ายบน: แคมป์นายพราน (เริ่มชิ้นนี้)', plate(
     "a hunters' camp in a forest clearing. Large open grass area in the middle; a big stone campfire ring with a cooking pot on a "
     "tripod; two tall log watchtowers; a log palisade wall along the top; meat drying racks; thatched round huts "
@@ -148,10 +164,10 @@ P('HT2', 'ขวาบน: ป่าลึก', plate(
     "stepping stones, ferns and mushrooms.", neighbours="to the LEFT of"))
 P('HT3', 'ซ้ายล่าง: เนินหินและปากถ้ำ', plate(
     "rocky hills: a grey cliff face with a dark cave entrance and a rope ladder, a wide open area of rocky gravel ground (left empty for "
-    "boulders the game will place), a few pine trees, a dirt path.", neighbours="BELOW (south of)"))
+    "boulders the game will place), a few pine trees, a dirt path.", neighbours="ABOVE (north of)"))
 P('HT4', 'ขวาล่าง: ทุ่งหญ้า + บ่อน้ำ', plate(
     "an open meadow with tall grass patches, berry bushes, a deer trail, a small pond with reeds, wildflowers, scattered trees at "
-    "the edges.", neighbours="BELOW the first attached piece and to the RIGHT of the other"))
+    "the edges.", neighbours="to the LEFT of"))
 
 # ---------------- 4-6. regions ----------------
 REG = [
@@ -187,8 +203,8 @@ REG = [
     ]),
 ]
 for sid, title, pre, note, items in REG:
-    sec(sid, title, f'4 ชิ้น 2×2: {pre}1 {pre}2 / {pre}3 {pre}4 • {note} • ชิ้นถัดไปแนบชิ้นข้างๆ เป็นรูปที่ 2')
-    sides = [None, "to the LEFT of", "BELOW (south of)", "BELOW the first attached piece and to the RIGHT of the other"]
+    sec(sid, title, f'4 ชิ้น 2×2: {pre}1 {pre}2 / {pre}3 {pre}4 • {note} • {pre}2 แนบ {pre}1, {pre}3 แนบ {pre}1, {pre}4 แนบ {pre}3 (เป็นรูปที่ 2)')
+    sides = [None, "to the LEFT of", "ABOVE (north of)", "to the LEFT of"]
     for i, (t, d) in enumerate(items):
         P(f'{pre}{i+1}', t, plate(d, first=(i == 0), neighbours=sides[i] or ''))
 
@@ -274,7 +290,7 @@ for i, (t, who, how) in enumerate(MD):
                           f'Hit flinch, then it {how}.'))
 
 # ---------------- output ----------------
-HOWTO = ('วิธีใช้: กดคัดลอก → วางใน GPT พร้อมแนบรูปที่บอกไว้ในหมวด • แมพ = พื้นอย่างเดียว ของสูงกว่าเข่าเป็นชิ้นแยก • '
+HOWTO = ('วิธีใช้: กดคัดลอก → วางใน GPT พร้อมแนบรูปที่บอกไว้ในหมวด • ทุกแมพออกแบบใหม่ ไม่ใช้ภาพเก่า • แมพ = พื้นอย่างเดียว ของสูงกว่าเข่าเป็นชิ้นแยก • '
          'ส่งภาพกลับพร้อมบอกรหัส (เช่น "GV2", "OB1") • ลำดับ: ① → ② ก่อน')
 
 def write_md(path):
