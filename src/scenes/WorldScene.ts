@@ -1050,7 +1050,7 @@ export class WorldScene extends Phaser.Scene {
       if (level >= 4 && this.anims.exists('env_lamp')) { const l = this.add.sprite(x - im.displayWidth * 0.4, y + 20, '__DEFAULT').setScale(0.45).setDepth(y + 12).play('env_lamp'); o.push(l); this.nightLights.push(this.addGlow(l.x + 4, l.y - 18, 0xffd060, 0.8, true)); }
       if (level >= 5) { const gl = this.add.image(x, top + im.displayHeight * 0.45, 'fx_glow').setTint(0xffd860).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.25).setScale(3.2, 2.2).setDepth(y + 11); this.tweens.add({ targets: gl, alpha: 0.12, duration: 1400, yoyo: true, repeat: -1 }); o.push(gl); }
       // working villager for production buildings
-      const worker: Record<string, [string, number, number]> = { lumber: ['vil_lumberjack_work', -30, 18], quarry: ['vil_miner_work', 28, 16], forge: ['vil_blacksmith_work', 30, 18], kitchen: ['vil_cook_work', -30, 18], tavern: ['vil_barmaid_idle', 30, 18], farm: ['vil_farmgirl_walk', 24, 20], tower: ['vil_guard_idle', 22, 22] };
+      const worker: Record<string, [string, number, number]> = { lumber: ['vil_lumberjack_work', -30, 18], quarry: ['vil_miner_work', 28, 16], forge: ['vil_blacksmith_work', 30, 18], kitchen: ['vil_cook_work', -30, 18], tavern: ['vil_barmaid_idle', 30, 18], tower: ['vil_guard_idle', 22, 22] };
       const wk = worker[type];
       if (wk && this.anims.exists(wk[0])) { const sp = this.add.sprite(x + wk[1], y + wk[2], '__DEFAULT').setScale(0.5).setDepth(y + wk[2] + 1).play(wk[0]).setFlipX(wk[1] > 0); sp.anims.setProgress(Math.random()); o.push(sp); }
       if (type === 'kitchen' || type === 'forge') this.nightLights.push(this.addGlow(x, y - 8, 0xff9a3a, 1.1, true));

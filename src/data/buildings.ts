@@ -1,7 +1,7 @@
 // Village buildings — built and upgraded with materials earned by hunting. Each one makes the hero stronger.
 export type ResKey = 'wood' | 'stone' | 'food';
 export interface Cost { gold?: number; wood?: number; stone?: number; food?: number; items?: Record<string, number> }
-export type BuildingId = 'forge' | 'kitchen' | 'warehouse' | 'lumber' | 'quarry' | 'farm' | 'barn' | 'tavern' | 'market' | 'tower';
+export type BuildingId = 'forge' | 'kitchen' | 'warehouse' | 'lumber' | 'quarry' | 'barn' | 'tavern' | 'market' | 'tower';
 
 export interface BuildingDef {
   id: BuildingId;
@@ -74,19 +74,8 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     ],
     effect: lv => `ผลิตหิน ${(0.8 * (1 + (lv - 1) * 0.6)).toFixed(1)}/นาที`,
   },
-  farm: {
-    id: 'farm', icon: '🌾', name: 'ไร่ผัก', desc: 'ปลูกผักเป็นอาหาร ใช้ทำอาหารบัฟ/สร้างอาคาร', produces: 'food', rate: 1, maxLevel: 5,
-    costs: [
-      { gold: 40, wood: 25, stone: 5 },
-      { gold: 120, wood: 50, stone: 10 },
-      { gold: 280, wood: 100, stone: 20, items: { wolf_pelt: 4 } },
-      { gold: 600, wood: 175, stone: 35, items: { goblin_fang: 5 } },
-      { gold: 1200, wood: 275, stone: 55, items: { ancient_core: 1 } },
-    ],
-    effect: lv => `ผลิตอาหาร ${(1 * (1 + (lv - 1) * 0.6)).toFixed(1)}/นาที`,
-  },
   barn: {
-    id: 'barn', icon: '🐄', name: 'คอกสัตว์', desc: 'เลี้ยงวัว แกะ ไก่ หมู — ได้อาหารมากกว่าไร่ แต่สร้างแพง', produces: 'food', rate: 1.8, maxLevel: 5,
+    id: 'barn', icon: '🐄', name: 'คอกสัตว์', desc: 'เลี้ยงวัว แกะ ไก่ หมู — แหล่งอาหารของหมู่บ้าน (หรือล่าสัตว์ที่ป่าพรานไพร)', produces: 'food', rate: 1.8, maxLevel: 5,
     costs: [
       { gold: 120, wood: 50, stone: 20, food: 30 },
       { gold: 360, wood: 100, stone: 40, food: 60 },

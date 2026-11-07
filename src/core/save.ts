@@ -23,6 +23,8 @@ export function loadGame(): GameState | null {
     if (!data || typeof data !== 'object' || data.version !== SAVE_VERSION) return null;
     // merge onto defaults so new fields survive old saves
     const st: GameState = { ...newGameState(), ...data, base: { ...newGameState().base, ...data.base } };
+    // farming was removed from the game: old vegetable farms become animal barns (same food output role)
+    st.buildings = (st.buildings ?? []).map(b => b.type === 'farm' ? { ...b, type: 'barn' } : b);
     if (data.mapVer !== 2) { st.pos = { x: -1, y: -1 }; st.mapVer = 2; } // map projection changed in v0.2
     return st;
   } catch { return null; }

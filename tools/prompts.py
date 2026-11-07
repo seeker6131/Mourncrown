@@ -14,13 +14,17 @@ SCALE = ("Scale (very important, keep it the same in every image): a human would
          "(about 70 px tall in a 1536x1024 image); a one-storey cottage is about 3 humans tall; a big tree about 4 humans tall; "
          "doors are human-sized.")
 EMPTY = ("GROUND ONLY (most important): draw only the flat ground and things lower than a person's knee - dirt roads with cart "
-         "tracks, grass, fallen leaves, small flowers, pebbles, low bushes, cobblestones, tilled soil, water, river banks, cracks, snow, "
+         "tracks, grass, fallen leaves, small flowers, pebbles, low bushes, cobblestones, water, river banks, cracks, snow, "
          "lava. Do NOT draw anything taller than a knee: no trees, no tree trunks, no houses or buildings, no walls, no fences, no lamp "
          "posts, no signs, no carts, no barrels, no crates, no big rocks, no pillars, no towers - those are separate game sprites placed "
          "later. If the description mentions such tall things, draw only the flat ground where they will stand. "
+         "TERRAIN IS PART OF THE GROUND: cliffs, raised rocky ledges, hills, slopes, stone stairs and ramps cut into slopes, rivers and "
+         "bridges ARE drawn in this image - make cliff faces clearly vertical and readable, show where people can climb (stairs or a "
+         "ramp), and draw bridges as a clear walking deck with low side curbs. "
          "NO people, NO animals, NO monsters, NO UI, NO text, NO logo, NO watermark.")
-LOT = ("An 'empty building lot' means a flat clearing of bare packed dirt about 5 humans wide, with a few stones or short "
-       "stakes at its corners and nothing built on it.")
+LOT = ("An 'empty building lot' means a flat isometric diamond of bare packed dirt, about 420 px from its left corner to its "
+       "right corner and 210 px from back to front (the big town-hall lot 480 x 240 px), with a few flat stones at its corners and "
+       "nothing standing on it.")
 WHITE = "Plain pure white background, no cast shadow on the white, no text, no watermark."
 
 def plate(desc, first=False, neighbours=''):
@@ -30,21 +34,25 @@ def plate(desc, first=False, neighbours=''):
         f"The second attached image is the map piece directly {neighbours} this one. Draw the NEXT piece of the SAME map so "
         "the two join seamlessly. OVERLAP RULE (most important): the new image must OVERLAP the attached piece by about one quarter "
         "of its size - the quarter of the new image on the side that touches the attached piece is an exact copy of the attached "
-        "piece's touching quarter (same buildings, trees, roads, fences and rocks at the same positions and the same size, even if "
-        "they are cut by the edge), and the rest of the new image continues the map from there. Same scale, same lighting, same palette. ")
+        "piece's touching quarter (same roads, grass patches, cliffs, rivers, lots and stones at the same positions and the same "
+        "size, even if they are cut by the edge), and the rest of the new image continues the map from there. Same scale, same lighting, same palette. ")
     return f"{head}{join}This piece shows: {desc} {STYLE} {CAM} {SCALE} {EMPTY}"
 
 def room(desc):
     return (f"Landscape 3:2 image (1536x1024). Isometric game level: ONE complete dungeon room seen from above, {desc} "
             "Everything outside the room's walls is pure black void. " f"{STYLE} {CAM} {SCALE} {EMPTY}")
 
-def bsheet(desc):
-    return ("Landscape 3:2 image (1536x1024). Pixel art game asset sheet: THREE versions of the same building side by side, "
-            "left to right: level 1 small and humble, level 3 bigger and sturdier, level 5 grand and decorated. "
-            f"The building: {desc} Each version stands on its own small irregular patch of packed dirt together with its yard props; "
-            "the patch edge breaks up softly into grass tufts, pebbles and leaves (no square base, no hard edge). "
-            "All three at the same scale, the level 1 footprint about 5 humans wide, large empty white gaps between them. "
-            f"No people, no animals. {STYLE} {CAM} {SCALE} {WHITE}")
+def bsheet(desc, foot=420):
+    return ("Landscape 3:2 image (1536x1024). Pixel art building asset sheet: THREE versions of the same building side by side, "
+            "left to right: level 1 small and humble, level 3 sturdier, level 5 grand and richly decorated. "
+            f"The building: {desc} FOOTPRINT RULE (most important): every version stands on exactly the same isometric diamond "
+            f"footprint, {foot} px from its left corner to its right corner and {foot // 2} px from its back corner to its front corner, "
+            "on a low stone or timber foundation whose bottom edges follow that diamond exactly, the front corner pointing straight "
+            "down at the viewer. Higher levels grow taller and richer, NOT wider. Nothing outside the footprint: no ground patch, no "
+            "grass, no dirt, no yard, no loose props (small things fixed to the walls such as lanterns, signs, flower boxes, banners are "
+            "fine). The lowest point of each building is the front corner of its foundation. Large empty white gaps between the three. "
+            f"Same scale and palette as the attached map image (a human is about 70 px tall, doors human-sized). No people, no animals. "
+            f"{STYLE} {CAM} {WHITE}")
 
 def anim(who, action, n, extra='', facing='down-right'):
     return (f"Pixel art animation sprite sheet of {who}. {action} animation facing {facing}. "
@@ -65,15 +73,17 @@ REMOVE = ("Edit the attached image. Keep EXACTLY the same image size, framing, c
           "pixel for pixel wherever possible. REMOVE everything taller than a person's knee and repaint the ground that would be under it "
           "(matching dirt, grass, leaves or cobblestones, continuing the cart tracks and textures naturally): remove all houses and "
           "buildings, market stalls, trees and tree trunks, fences and fence posts, lamp posts, sign posts, notice boards, the well, "
-          "carts, barrels, crates, sacks, hay bales, log piles, stumps, big rocks and rocky cliffs, scarecrow, tall wheat, the water wheel, "
-          "bridge lanterns and railings. KEEP: dirt roads, cart tracks, grass, fallen leaves, small flowers, pebbles, low bushes, the "
-          "cobblestone plaza, tilled soil rows with low cabbages and pumpkins, the river water and banks, the bridge's walking deck. "
+          "carts, barrels, crates, sacks, hay bales, log piles, stumps, loose boulders, the water wheel, the scarecrow, and ALL farm "
+          "fields, crops and tilled soil (replace them with grass meadow). KEEP: dirt roads, cart tracks, grass, fallen leaves, small "
+          "flowers, pebbles, low bushes, the cobblestone plaza, the empty dirt building lots, rocky cliffs and ledges, the river water "
+          "and banks, and the whole stone bridge. "
           "Do not add anything new. No text, no watermark.")
 sec('village', '① พื้นหมู่บ้าน: ลบของสูงออกจากภาพเดิม (ทำก่อน)',
-    'ใช้ภาพ VL ที่เจนไปแล้ว: แนบภาพนั้น 1 รูป แล้ววาง prompt นี้ • GPT จะลบบ้าน ต้นไม้ รั้ว โคม ออก เหลือแต่พื้น • '
+    'ใช้ภาพ VL ที่เจนไปแล้ว: แนบภาพนั้น 1 รูป แล้ววาง prompt นี้ • GPT จะลบบ้าน ต้นไม้ รั้ว โคม ไร่ผัก ออก เหลือแต่พื้น • '
+    'หน้าผา เนิน สะพาน แม่น้ำ อยู่ในภาพพื้นต่อ ผมกำหนดให้ชนหน้าผาจริง และเดินขึ้นลงสะพานโค้งจริง • '
     'ตำแหน่งพื้นจะตรงกับแมพที่ต่อไว้แล้ว ส่วนของที่ลบ ผมวางกลับเป็นชิ้นแยก (หมวด ②) จึงบังตัวละครตามรูปร่างจริงและเดินลอดได้ • '
     'ถ้า GPT ลบไม่หมด ลองสั่งซ้ำ "remove the remaining fences and lamp posts"')
-for code, src, t in [('GV1', 'VL1', 'ลานไม้ + เหมืองหิน'), ('GV2', 'VL2', 'ลานบ่อน้ำ'), ('GV4', 'VL4', 'ทุ่งนา'),
+for code, src, t in [('GV1', 'VL1', 'ลานไม้ + เหมืองหิน'), ('GV2', 'VL2', 'ลานบ่อน้ำ'), ('GV4', 'VL4', 'ทุ่งหญ้า (ไร่ผักถูกลบ)'),
                      ('GV5', 'VL5', 'ลานตลาด'), ('GV6', 'VL6', 'สะพาน + กังหันน้ำ')]:
     P(code, f'แนบ {src} — {t}', REMOVE)
 
@@ -99,22 +109,20 @@ P('OB5', 'ของในหมู่บ้าน', osheet(9, '3x3', "a wooden h
   "two hay bales, a big log pile, a tree stump with an axe in it, a water trough."))
 P('OB6', 'หินและหน้าผา', osheet(6, '3x2', "a big mossy grey boulder, a cluster of three rocks, a small rock, a rocky cliff chunk about 2 humans "
   "tall, a stack of cut stone blocks, a low stone wall segment."))
-P('OB7', 'ไร่และแผงตลาด', osheet(6, '3x2', "a patch of tall golden wheat, a scarecrow with straw hat, a haystack, a market stall with a red-white "
-  "striped awning and fruit crates, a market stall with a green awning and cloth, a small flower cart."))
-P('OB8', 'ริมน้ำ', osheet(5, '3x2', "a wooden water wheel with its frame, a small wooden fishing dock, a clump of tall reeds, the two stone side "
-  "railings of an arched bridge with lanterns (left railing and right railing as separate pieces), a rowing boat."))
+P('OB7', 'แผงตลาดและของลาน', osheet(6, '3x2', "a market stall with a red-white striped awning and fruit crates, a market stall with a "
+  "green awning and cloth, a small flower cart, a haystack, a firewood rack, a wooden weapon rack."))
+P('OB8', 'ริมน้ำ', osheet(4, '2x2', "a wooden water wheel with its frame, a small wooden fishing dock, a clump of tall reeds, a rowing boat."))
 
 # ---------------- 2. buildings ----------------
-sec('build', '③ อาคาร 3 ระดับ พร้อมลานรอบตัว',
-    'แนบรูป concept หมู่บ้านทุกครั้ง • 1 prompt = 1 อาคาร 3 ระดับ (Lv1 / Lv3 / Lv5) ในรูปเดียว • พื้นหลังขาวเหมือนเดิม • '
-    'มีลานดินและของรอบตัวติดมาด้วย ผมจะวางลงแปลงว่างให้กลืนกับพื้น')
+sec('build', '③ อาคาร 3 ระดับ (ฐานพอดีแปลง ไม่มีพื้นติด)',
+    'แนบ 2 รูป: รูป concept หมู่บ้าน + ภาพพื้น GV2 (ให้สีและขนาดเข้ากับแมพ) • 1 prompt = 1 อาคาร 3 ระดับในรูปเดียว • '
+    'ทุกระดับฐานกว้างเท่ากันพอดีแปลงดินในแมพ อัปเกรดแล้ววางที่เดิมได้ • ไม่มีพื้นหญ้าติดมา ผมใส่เงาฐานและขอบดินให้กลืนกับแปลงเอง')
 BLD = [
-    ('BD1', 'ศาลากลาง', 'a village town hall with a bell tower, banners, wide front steps and a notice board.'),
-    ('BD2', 'บ้านพัก', 'a villager cottage with a firewood pile, a clothesline and a small vegetable box.'),
-    ('BD3', 'โรงเลื่อย', 'a sawmill: a timber shed with a huge circular saw bench, big log piles, cut planks, a log cart.'),
-    ('BD4', 'เหมืองหิน', 'a stone quarry: a small rock face with a wooden crane hoist, cut stone blocks, a mine cart on short rails.'),
-    ('BD5', 'ฟาร์ม', 'a farm: a small barn shed beside fenced crop fields of wheat, cabbages and pumpkins, a scarecrow, hay bales.'),
-    ('BD6', 'คอกสัตว์', 'an animal barn with a wooden fenced pen, hay piles, water troughs and a chicken coop (no animals inside).'),
+    ('BD1', 'ศาลากลาง', 'a village town hall with a bell tower, banners and wide front steps (built into the footprint).'),
+    ('BD2', 'บ้านพัก', 'a villager cottage with a chimney, a firewood lean-to against one wall and flower boxes.'),
+    ('BD3', 'โรงเลื่อย', 'a sawmill: an open-fronted timber shed with a huge circular saw bench and stacked logs inside the shed.'),
+    ('BD4', 'เหมืองหิน', 'a quarry works: a stone-cutting shed with a wooden crane hoist and cut stone blocks stacked inside the footprint.'),
+    ('BD6', 'คอกสัตว์', 'an animal barn with a small fenced pen attached inside the footprint, hay in the loft (no animals).'),
     ('BD7', 'โรงตีเหล็ก', 'an open-sided blacksmith workshop: anvil, glowing furnace with a smoking stone chimney, weapon rack, quench barrel.'),
     ('BD8', 'ครัว', 'a cookhouse: a timber kitchen with a big outdoor cauldron over a fire, a meat smoking rack, firewood, sacks of grain.'),
     ('BD9', 'โกดัง', 'a warehouse: a wide storehouse with stacked crates, barrels, sacks and a loading cart.'),
@@ -123,7 +131,7 @@ BLD = [
     ('BD12', 'หอป้องกัน', 'a defence watchtower with a short palisade: level 1 wooden lookout, level 3 stone tower with a ballista, level 5 tall stone tower with a glowing blue crystal on top.'),
 ]
 for c, t, d in BLD:
-    P(c, t, bsheet(d))
+    P(c, t, bsheet(d, 480 if c == 'BD1' else 420))
 P('BD13', 'ไซต์ก่อสร้าง 3 ขั้น', bsheet(
     "a construction site shown as three stages instead of levels: left a staked-out foundation with lumber stacks and tools, middle a "
     "half-built timber frame with scaffolding and ladders, right an almost finished house with scaffolding and a crane."))
@@ -133,7 +141,7 @@ sec('hunt', '④ แมพป่าพรานไพร (ล่าสัตว�
     '4 ชิ้น 2×2: HT1 HT2 / HT3 HT4 • แนบ "รูป concept ค้นหาและตามล่า" • พื้นอย่างเดียว ต้นไม้ หิน หอไม้ กระท่อม เป็นชิ้นแยก')
 P('HT1', 'ซ้ายบน: แคมป์นายพราน (เริ่มชิ้นนี้)', plate(
     "a hunters' camp in a forest clearing. Large open grass area in the middle; a big stone campfire ring with a cooking pot on a "
-    "tripod; two tall log watchtowers; a log palisade wall along the top; meat drying racks; small vegetable plots; thatched round huts "
+    "tripod; two tall log watchtowers; a log palisade wall along the top; meat drying racks; thatched round huts "
     "at the left edge; a dirt path leaving through the left edge; pine and oak forest around the borders.", first=True))
 P('HT2', 'ขวาบน: ป่าลึก', plate(
     "deep green forest with several open grassy glades between groups of big pine and oak trees, tree stumps, a small stream with "
@@ -215,7 +223,7 @@ P('FX3', 'คบไฟผนัง + กระถางไฟ (4 เฟรม)',
 P('FX4', 'กังหันน้ำ (4 เฟรม)', anim("a wooden water wheel with a small wooden frame", "Turning loop", 4,
   "The wheel turns a quarter step each frame, water splashes off the paddles."))
 P('FX5', 'ไอคอนลอยเหนืออาคาร', "Pixel art UI icon sheet, 6 separate icons in a 3x2 grid with large white gaps: round map-pin speech bubbles "
-  "with a green ring, each holding one item: a wooden log, a raw steak, a wheat bundle, a grey stone, a gold coin, a hammer. "
+  "with a green ring, each holding one item: a wooden log, a raw steak, a roast chicken leg, a grey stone, a gold coin, a hammer. "
   "Crisp high-detail 16-bit pixel art, dark outline, same style as the attached reference. " + WHITE)
 
 # ---------------- 10. characters still missing ----------------
