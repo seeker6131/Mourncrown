@@ -1,689 +1,3238 @@
-# Prompt Book v3 — มุมมองจากบน โทนป่าหม่น (Eldergrove Saga)
+# Prompt Book v4 — PixelLab ทีละขั้น (Eldergrove Saga)
 
-วิธีใช้: PixelLab = ตัวละคร มอน แผ่นพื้น ของชิ้นเล็ก (ตั้งค่าตามที่เขียนในหัวหมวด) • ChatGPT/Gemini = อาคาร และของหลายชิ้นในรูปเดียว • ไม่ต้องแนบรูปเกมอื่น • ส่งรูปให้ผมทีเดียว ไม่ต้องบอกรหัส ผมแปลงเป็นพิกเซลแท้ชุดสีเดียวกันเอง
+ทุกข้อ: ทำตามขั้นตอน 1-2-3 (บอกเมนู ปุ่ม และค่าที่ต้องตั้ง) แล้วกด "คัดลอก" ข้อความในกล่องไปวางตรงที่บอก • ทำตัวไหนครบ ส่ง ZIP/รูปมาในแชทเลย ไม่ต้องบอกรหัส • ปุ่มหรือเมนูไม่ตรงกับที่เขียน แคปหน้าจอมาให้ผม
 
-## ⓪ เริ่มตรงนี้: 13 ภาพแรก พอได้หมู่บ้านที่เล่นได้
+## ⓪ แผนทำงาน 1 เดือน (อ่านก่อน)
 
-_PixelLab ฟรีได้ 40 ครั้งแรก แล้ววันละ 5 • ทำตามลำดับนี้: TL1 TL2 TL3 TL4 → HR0 + เดิน/โจมตี/ตาย → MO1 MO3 → OB1 OB2 OB6 OB7 (หรือ GO1 GO2 GO3 ใน ChatGPT) → BD1 BD2 (ChatGPT) • ส่งรูปให้ผมทีเดียวตอนครบ_
+_สัปดาห์ 1: ① แผ่นพื้น TL1-TL4 + ② ฮีโร่ HR0 (ท่าตาย) และ HR1 • สัปดาห์ 2: ③ มอน MO1-MO8 + ฮีโร่ร่างอื่น • สัปดาห์ 3: มอนที่เหลือ + ④ บอส + ⑤ ชาวบ้าน/สัตว์ • สัปดาห์ 4: ⑥ อาคาร + ⑦ ของในฉาก + เก็บตก • ทุกข้อมีขั้นตอน 1-2-3 บอกเมนูและปุ่มที่ต้องกด แล้วกดคัดลอกข้อความในกล่องไปวาง • ทำตัวไหนครบ ส่ง ZIP มาเลย ไม่ต้องรอทั้งชุด • ดูตัวนับโควต้าในหน้า Account บ้าง ถ้าลดเร็วผิดปกติ บอกผม_
 
-**TL1a — หญ้า ↔ ทางดิน — ช่อง Lower (ล่าง)**
+## ① แผ่นพื้น (เมนู Maps)
+
+_1 ชุด = ข้อ a (ช่อง Lower) + ข้อ b (ช่อง Upper) แล้วกด Generate ครั้งเดียว_
+
+**TL1a — หญ้า ↔ ทางดิน — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (dense dark moss-green grass with tiny weeds)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 dense dark moss-green grass with tiny weeds, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL1b — หญ้า ↔ ทางดิน — ช่อง Upper (บน)**
+**TL1b — หญ้า ↔ ทางดิน — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (packed brown dirt path with small pebbles)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 packed brown dirt path with small pebbles, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL2a — หญ้า ↔ ทางหินปู — ช่อง Lower (ล่าง)**
+**TL2a — หญ้า ↔ ทางหินปู — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (dense dark moss-green grass with tiny weeds)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 dense dark moss-green grass with tiny weeds, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL2b — หญ้า ↔ ทางหินปู — ช่อง Upper (บน)**
+**TL2b — หญ้า ↔ ทางหินปู — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (worn slate-grey cobblestone road)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 worn slate-grey cobblestone road, irregular stones, moss in the gaps, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL3a — น้ำ ↔ หญ้า (ริมน้ำ) — ช่อง Lower (ล่าง)**
+**TL3a — น้ำ ↔ หญ้า (ริมน้ำ) — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (calm deep teal river water with soft ripples)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 calm deep teal river water with soft ripples, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL3b — น้ำ ↔ หญ้า (ริมน้ำ) — ช่อง Upper (บน)**
+**TL3b — น้ำ ↔ หญ้า (ริมน้ำ) — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (dense dark moss-green grass with a muddy bank edge)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 dense dark moss-green grass with a muddy bank edge, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL4a — หญ้า ↔ หน้าผาหิน — ช่อง Lower (ล่าง)**
+**TL4a — หญ้า ↔ หน้าผาหิน — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (dense dark moss-green grass)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 dense dark moss-green grass, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL4b — หญ้า ↔ หน้าผาหิน — ช่อง Upper (บน)**
+**TL4b — หญ้า ↔ หน้าผาหิน — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (raised rocky plateau with a vertical grey stone cliff face on its south side)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 raised rocky plateau with a vertical grey stone cliff face on its south side, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR0 — ชาวบ้าน (ร่างแรก)**
-```
-young man with short messy brown hair, plain beige linen shirt, brown trousers, rope belt, worn boots, a wooden sword sheathed at his hip, hands empty, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
+**TL5a — พื้นป่ามืด ↔ ใบไม้ร่วง — ช่อง Lower**
 
-**MO1 — สไลม์ • 32**
-```
-small round moss-green slime with a glossy top and two dot eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (dark forest floor of moss and roots)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
 
-**MO3 — หมาป่า • 48**
-```
-lean grey forest wolf with a dark back stripe, snarling, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**OB1 — ต้นสนเขียวหม่น • 64**
-```
-tall dark teal-green pine tree with a visible trunk, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**OB2 — ต้นโอ๊กใหญ่ • 96**
-```
-big round oak tree with a dense moss-green canopy and thick trunk, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**OB6 — รั้วไม้ • 32**
-```
-short horizontal wooden rail fence segment, two posts, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**OB7 — โคมไฟ • 48**
-```
-wooden lamp post with a hanging glowing lantern, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**BD1 — ศาลากลาง**
-```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a village town hall with a bell tower and banners. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
-```
-
-**BD2 — บ้านพัก**
-```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a villager cottage with a chimney and flower boxes. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
-```
-
-## ① แผ่นพื้น (PixelLab → Create tileset • Top-down • 32×32)
-
-_ใน PixelLab เลือก Create tileset (top-down) • ข้อ a วางในช่อง Lower ข้อ b วางในช่อง Upper (1 ชุด = 1 ครั้ง) • ขนาด 32 • ได้ชุดแผ่นพื้นที่ต่อขอบกันเอง ผมเอาไปวาดแมพได้ทุกรูปแบบ (ทางเดิน ลาน ริมน้ำ หน้าผา) • ทำ TL1-TL4 ก่อน พอสร้างหมู่บ้านได้_
-
-**TL1a — หญ้า ↔ ทางดิน — ช่อง Lower (ล่าง)**
-```
-dense dark moss-green grass with tiny weeds, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL1b — หญ้า ↔ ทางดิน — ช่อง Upper (บน)**
-```
-packed brown dirt path with small pebbles, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL2a — หญ้า ↔ ทางหินปู — ช่อง Lower (ล่าง)**
-```
-dense dark moss-green grass with tiny weeds, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL2b — หญ้า ↔ ทางหินปู — ช่อง Upper (บน)**
-```
-worn slate-grey cobblestone road, irregular stones, moss in the gaps, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL3a — น้ำ ↔ หญ้า (ริมน้ำ) — ช่อง Lower (ล่าง)**
-```
-calm deep teal river water with soft ripples, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL3b — น้ำ ↔ หญ้า (ริมน้ำ) — ช่อง Upper (บน)**
-```
-dense dark moss-green grass with a muddy bank edge, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL4a — หญ้า ↔ หน้าผาหิน — ช่อง Lower (ล่าง)**
-```
-dense dark moss-green grass, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL4b — หญ้า ↔ หน้าผาหิน — ช่อง Upper (บน)**
-```
-raised rocky plateau with a vertical grey stone cliff face on its south side, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**TL5a — พื้นป่ามืด ↔ ใบไม้ร่วง — ช่อง Lower (ล่าง)**
 ```
 dark forest floor of moss and roots, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL5b — พื้นป่ามืด ↔ ใบไม้ร่วง — ช่อง Upper (บน)**
+**TL5b — พื้นป่ามืด ↔ ใบไม้ร่วง — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (fallen rust-brown leaves and twigs)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 fallen rust-brown leaves and twigs, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL6a — หิมะ ↔ ทางน้ำแข็ง — ช่อง Lower (ล่าง)**
+**TL6a — หิมะ ↔ ทางน้ำแข็ง — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (soft blue-white snow)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 soft blue-white snow, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL6b — หิมะ ↔ ทางน้ำแข็ง — ช่อง Upper (บน)**
+**TL6b — หิมะ ↔ ทางน้ำแข็ง — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (packed icy path with blue cracks)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 packed icy path with blue cracks, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL7a — หินภูเขาไฟ ↔ ลาวา — ช่อง Lower (ล่าง)**
+**TL7a — หินภูเขาไฟ ↔ ลาวา — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (dark cracked basalt rock)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 dark cracked basalt rock, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL7b — หินภูเขาไฟ ↔ ลาวา — ช่อง Upper (บน)**
+**TL7b — หินภูเขาไฟ ↔ ลาวา — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (glowing orange lava with a dark crust)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 glowing orange lava with a dark crust, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL8a — พื้นคุกใต้ดิน ↔ ทางน้ำ — ช่อง Lower (ล่าง)**
+**TL8a — พื้นคุก ↔ ทางน้ำใต้ดิน — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** (ปลดล็อกแล้วหลังจ่าย) → หา **Create tileset** แบบ **Top-down**
+2. **Tile size** → **32**
+3. ช่อง **Lower** (พื้นล่าง) → **วางข้อความด้านล่าง** (old blue-grey dungeon flagstones with moss)
+4. ยังไม่กด Generate — ไปก๊อปข้อ b มาวางในช่อง Upper ก่อน
+5. (ถ้าในเมนู Maps ไม่มีคำว่า tileset / Lower / Upper แคปหน้าจอมาให้ผม)
+
 ```
 old blue-grey dungeon flagstones with moss, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**TL8b — พื้นคุกใต้ดิน ↔ ทางน้ำ — ช่อง Upper (บน)**
+**TL8b — พื้นคุก ↔ ทางน้ำใต้ดิน — ช่อง Upper**
+
+1. หน้าเดิมจากข้อ a: ช่อง **Upper** (พื้นบน) → **วางข้อความด้านล่าง** (dark sewer water channel)
+2. กด **Generate** แล้วรอ
+3. เสร็จแล้วกด **Download** / **Export** (PNG) → ส่งรูปมาในแชทนี้
+
 ```
 dark sewer water channel, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-## ② ฮีโร่ (PixelLab → Create character • 48px • 4 ทิศ • low top-down)
+## ② ฮีโร่ 13 ร่าง (เมนู Characters • 48px)
 
-_ตั้งค่า: ขนาด 48 • 4 directions • view: low top-down • outline: single color black • shading: medium • detail: medium • ได้ตัวละคร 4 ทิศแล้ว กด Animate → เลือกท่า walk / attack / cast / hurt / death ตามรายการ ⑦ • ทำ HR0 (ชาวบ้าน) ก่อน เพราะเป็นร่างแรกของเกม • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม ใส่ชุดต่างกัน • ท่าเดินใช้ Template motion → Skeleton v3 (ของที่ถือเพี้ยนน้อย) • ถ้าอาวุธในมือส่ายตอนเดิน ให้เพิ่มคำว่า weapon sheathed / on the back, hands empty_
+_ทุกร่างทำ 5 ข้อ: สร้างตัว → เดิน → โจมตี → ใช้สกิล → ล้ม • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว_
 
-**HR0 — ชาวบ้าน (ร่างแรก)**
+**HR0-K — ชาวบ้าน (ร่างแรก) — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **ชาวบ้าน (ร่างแรก)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-young man with short messy brown hair, plain beige linen shirt, brown trousers, rope belt, worn boots, a wooden sword sheathed at his hip, hands empty, top-down pixel art, muted desaturated dark-forest colours, soft shading
+spinning around in a powerful sword slash with a glowing trail
 ```
 
-**HR1 — นักดาบ**
+**HR0-D — ชาวบ้าน (ร่างแรก) — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **ชาวบ้าน (ร่างแรก)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR1 — นักดาบ — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ นักดาบ แล้ว ทำท่าขยับต่อตามข้อ HR1-W, HR1-A, HR1-K, HR1-D
+
 ```
 same young man, blue tunic with leather shoulder guard, red headband, green scarf, steel short sword and small round shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR2 — อัศวิน**
+**HR1-W — นักดาบ — เดิน**
+
+1. เมนู **Characters** → กดรูป **นักดาบ** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR1-A — นักดาบ — โจมตี**
+
+1. เมนู **Characters** → กดรูป **นักดาบ** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging the sword in a strong slash attack
+```
+
+**HR1-K — นักดาบ — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **นักดาบ** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+spinning around in a powerful sword slash with a glowing trail
+```
+
+**HR1-D — นักดาบ — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **นักดาบ** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR2 — อัศวิน — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ อัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR2-W, HR2-A, HR2-K, HR2-D
+
 ```
 same young man in polished steel plate armour, blue tabard, red cape, closed knight helmet with red plume, longsword and kite shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR3 — ลอร์ดอัศวิน**
+**HR2-W — อัศวิน — เดิน**
+
+1. เมนู **Characters** → กดรูป **อัศวิน** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR2-A — อัศวิน — โจมตี**
+
+1. เมนู **Characters** → กดรูป **อัศวิน** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging the sword in a strong slash attack
+```
+
+**HR2-K — อัศวิน — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **อัศวิน** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+spinning around in a powerful sword slash with a glowing trail
+```
+
+**HR2-D — อัศวิน — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **อัศวิน** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR3 — ลอร์ดอัศวิน — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ลอร์ดอัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR3-W, HR3-A, HR3-K, HR3-D
+
 ```
 same young man in ornate white-and-gold plate armour with glowing blue runes, royal blue cape, winged full helmet, radiant greatsword, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR4 — นักธนู**
+**HR3-W — ลอร์ดอัศวิน — เดิน**
+
+1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR3-A — ลอร์ดอัศวิน — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging the sword in a strong slash attack
+```
+
+**HR3-K — ลอร์ดอัศวิน — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+spinning around in a powerful sword slash with a glowing trail
+```
+
+**HR3-D — ลอร์ดอัศวิน — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR4 — นักธนู — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ นักธนู แล้ว ทำท่าขยับต่อตามข้อ HR4-W, HR4-A, HR4-K, HR4-D
+
 ```
 same young man in green hooded tunic, leather bracers, quiver on the back, simple wooden bow, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR5 — พรานป่า**
+**HR4-W — นักธนู — เดิน**
+
+1. เมนู **Characters** → กดรูป **นักธนู** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR4-A — นักธนู — โจมตี**
+
+1. เมนู **Characters** → กดรูป **นักธนู** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+drawing the bow and shooting an arrow forward
+```
+
+**HR4-K — นักธนู — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **นักธนู** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+aiming the bow up high and shooting a glowing arrow into the sky
+```
+
+**HR4-D — นักธนู — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **นักธนู** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR5 — พรานป่า — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ พรานป่า แล้ว ทำท่าขยับต่อตามข้อ HR5-W, HR5-A, HR5-K, HR5-D
+
 ```
 same young man in layered green-brown leather armour, fur-lined hood, cloth mask over nose and mouth, carved longbow, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR6 — เรนเจอร์ราชันย์**
+**HR5-W — พรานป่า — เดิน**
+
+1. เมนู **Characters** → กดรูป **พรานป่า** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR5-A — พรานป่า — โจมตี**
+
+1. เมนู **Characters** → กดรูป **พรานป่า** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+drawing the bow and shooting an arrow forward
+```
+
+**HR5-K — พรานป่า — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **พรานป่า** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+aiming the bow up high and shooting a glowing arrow into the sky
+```
+
+**HR5-D — พรานป่า — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **พรานป่า** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR6 — เรนเจอร์ราชันย์ — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ เรนเจอร์ราชันย์ แล้ว ทำท่าขยับต่อตามข้อ HR6-W, HR6-A, HR6-K, HR6-D
+
 ```
 same young man in emerald-and-gold elven armour, leaf-pattern cape, golden half mask, glowing bow of light, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR7 — จอมเวท**
+**HR6-W — เรนเจอร์ราชันย์ — เดิน**
+
+1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR6-A — เรนเจอร์ราชันย์ — โจมตี**
+
+1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+drawing the bow and shooting an arrow forward
+```
+
+**HR6-K — เรนเจอร์ราชันย์ — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+aiming the bow up high and shooting a glowing arrow into the sky
+```
+
+**HR6-D — เรนเจอร์ราชันย์ — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR7 — จอมเวท — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ จอมเวท แล้ว ทำท่าขยับต่อตามข้อ HR7-W, HR7-A, HR7-K, HR7-D
+
 ```
 same young man in purple hooded robe with gold trim, potion pouches, wooden staff with a blue crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR8 — ปราชญ์เวท**
+**HR7-W — จอมเวท — เดิน**
+
+1. เมนู **Characters** → กดรูป **จอมเวท** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR7-A — จอมเวท — โจมตี**
+
+1. เมนู **Characters** → กดรูป **จอมเวท** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+thrusting the staff forward and casting a glowing magic bolt
+```
+
+**HR7-K — จอมเวท — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **จอมเวท** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+raising both hands high and casting a big glowing spell circle
+```
+
+**HR7-D — จอมเวท — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **จอมเวท** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR8 — ปราชญ์เวท — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ปราชญ์เวท แล้ว ทำท่าขยับต่อตามข้อ HR8-W, HR8-A, HR8-K, HR8-D
+
 ```
 same young man in long violet star-embroidered robe, tall pointed wizard hat, face veil, silver staff with orbiting crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR9 — อาร์คเมจทมิฬ**
+**HR8-W — ปราชญ์เวท — เดิน**
+
+1. เมนู **Characters** → กดรูป **ปราชญ์เวท** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR8-A — ปราชญ์เวท — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ปราชญ์เวท** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+thrusting the staff forward and casting a glowing magic bolt
+```
+
+**HR8-K — ปราชญ์เวท — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **ปราชญ์เวท** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+raising both hands high and casting a big glowing spell circle
+```
+
+**HR8-D — ปราชญ์เวท — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **ปราชญ์เวท** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR9 — อาร์คเมจทมิฬ — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ อาร์คเมจทมิฬ แล้ว ทำท่าขยับต่อตามข้อ HR9-W, HR9-A, HR9-K, HR9-D
+
 ```
 same young man in tattered jet-black robes with crimson runes, horned black hood, iron skull mask with red eyes, bone staff with crimson crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR10 — ผู้พิทักษ์ (แทงค์)**
+**HR9-W — อาร์คเมจทมิฬ — เดิน**
+
+1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR9-A — อาร์คเมจทมิฬ — โจมตี**
+
+1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+thrusting the staff forward and casting a glowing magic bolt
+```
+
+**HR9-K — อาร์คเมจทมิฬ — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+raising both hands high and casting a big glowing spell circle
+```
+
+**HR9-D — อาร์คเมจทมิฬ — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR10 — ผู้พิทักษ์ (แทงค์) — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ผู้พิทักษ์ (แทงค์) แล้ว ทำท่าขยับต่อตามข้อ HR10-W, HR10-A, HR10-K, HR10-D
+
 ```
 same young man in thick iron armour over chainmail, open-face iron helmet, huge rectangular tower shield, short heavy mace, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR11 — อัศวินเหล็กกล้า**
+**HR10-W — ผู้พิทักษ์ (แทงค์) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR10-A — ผู้พิทักษ์ (แทงค์) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+smashing forward with the weapon while holding the shield
+```
+
+**HR10-K — ผู้พิทักษ์ (แทงค์) — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+raising the shield high and slamming it into the ground with a shockwave
+```
+
+**HR10-D — ผู้พิทักษ์ (แทงค์) — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR11 — อัศวินเหล็กกล้า — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ อัศวินเหล็กกล้า แล้ว ทำท่าขยับต่อตามข้อ HR11-W, HR11-A, HR11-K, HR11-D
+
 ```
 same young man in massive dark steel plate armour with spiked pauldrons, closed great-helm with glowing visor slit, spiked tower shield, war hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**HR12 — ป้อมปราการมนุษย์**
+**HR11-W — อัศวินเหล็กกล้า — เดิน**
+
+1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**HR11-A — อัศวินเหล็กกล้า — โจมตี**
+
+1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+smashing forward with the weapon while holding the shield
+```
+
+**HR11-K — อัศวินเหล็กกล้า — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+raising the shield high and slamming it into the ground with a shockwave
+```
+
+**HR11-D — อัศวินเหล็กกล้า — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling down defeated and lying on the ground
+```
+
+**HR12 — ป้อมปราการมนุษย์ — สร้างตัว**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ป้อมปราการมนุษย์ แล้ว ทำท่าขยับต่อตามข้อ HR12-W, HR12-A, HR12-K, HR12-D
+
 ```
 same young man in colossal black-and-gold plate armour with glowing orange runes, horned helmet with iron face mask, castle-gate tower shield, glowing war hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-## ③ มอนสเตอร์ (PixelLab → Create character • 4 ทิศ • low top-down)
+**HR12-W — ป้อมปราการมนุษย์ — เดิน**
 
-_ขนาดตามที่เขียนในหัวข้อ (ตัวเล็ก 32 • ตัวกลาง 48 • ตัวใหญ่ 64) • ท่าที่ต้องมี: walk + attack + death (ดู ⑦) • ตัวที่ใช้ในหมู่บ้านแรกก่อน: MO1 สไลม์ MO2 เห็ด MO3 หมาป่า MO4 ก็อบลิน_
+1. เมนู **Characters** → กดรูป **ป้อมปราการมนุษย์** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
 
-**MO1 — สไลม์ • 32**
 ```
-small round moss-green slime with a glossy top and two dot eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**MO2 — เห็ดพิษ • 32**
-```
-walking toadstool mushroom monster with a red-brown spotted cap and stubby legs, top-down pixel art, muted desaturated dark-forest colours, soft shading
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**MO3 — หมาป่า • 48**
+**HR12-A — ป้อมปราการมนุษย์ — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ป้อมปราการมนุษย์** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-lean grey forest wolf with a dark back stripe, snarling, top-down pixel art, muted desaturated dark-forest colours, soft shading
+smashing forward with the weapon while holding the shield
 ```
 
-**MO4 — ก็อบลิน • 48**
+**HR12-K — ป้อมปราการมนุษย์ — ใช้สกิล**
+
+1. เมนู **Characters** → กดรูป **ป้อมปราการมนุษย์** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-short green goblin in ragged leather with a crude dagger, top-down pixel art, muted desaturated dark-forest colours, soft shading
+raising the shield high and slamming it into the ground with a shockwave
 ```
 
-**MO5 — วิญญาณไฟ • 32**
+**HR12-D — ป้อมปราการมนุษย์ — ล้ม/ตาย**
+
+1. เมนู **Characters** → กดรูป **ป้อมปราการมนุษย์** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
 ```
-floating pale blue-green will-o-wisp flame spirit with a faint face, top-down pixel art, muted desaturated dark-forest colours, soft shading
+falling down defeated and lying on the ground
 ```
 
-**MO6 — หนูยักษ์ • 32**
+## ③ มอนสเตอร์ 17 ตัว — ออกแบบใหม่ ดุ น่ากลัว ไม่ซ้ำเกมอื่น (เมนู Characters)
+
+_ทุกตัวทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ตาย • ขนาดเขียนไว้ในหัวข้อ • เยติที่ทำไปแล้วใช้ได้ หรือทำ MO15 ใหม่ให้ดุกว่าก็ได้_
+
+**MO1 — ก้อนโคลนกลืนกิน (แทนสไลม์) — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ก้อนโคลนกลืนกิน (แทนสไลม์) แล้ว ทำท่าขยับต่อตามข้อ MO1-W, MO1-A, MO1-D
+
 ```
-giant brown sewer rat with a long pink tail, top-down pixel art, muted desaturated dark-forest colours, soft shading
+pulsing blob of black bog tar with a ring of tiny needle teeth on top and three pale staring eyes, dripping, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**MO7 — โครงกระดูก • 48**
+**MO1-W — ก้อนโคลนกลืนกิน (แทนสไลม์) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ก้อนโคลนกลืนกิน (แทนสไลม์)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-skeleton warrior with a rusty sword and a cracked wooden shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**MO8 — โครงกระดูกธนู • 48**
+**MO1-A — ก้อนโคลนกลืนกิน (แทนสไลม์) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ก้อนโคลนกลืนกิน (แทนสไลม์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-skeleton archer with a bone bow and a tattered hood, top-down pixel art, muted desaturated dark-forest colours, soft shading
+stretching up and lunging forward to bite with its ring of teeth
 ```
 
-**MO9 — ผี • 48**
+**MO1-D — ก้อนโคลนกลืนกิน (แทนสไลม์) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ก้อนโคลนกลืนกิน (แทนสไลม์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
 ```
-translucent grey-blue hooded ghost with long sleeves and glowing eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
+bursting and melting into a black puddle
 ```
 
-**MO10 — แมงมุมยักษ์ • 48**
+**MO2 — ซากเห็ดเน่า (แทนเห็ด) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ซากเห็ดเน่า (แทนเห็ด) แล้ว ทำท่าขยับต่อตามข้อ MO2-W, MO2-A, MO2-D
+
 ```
-giant dark purple forest spider with hairy legs and red eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
+hunched rotting corpse-like fungus creature, sickly mushroom caps sprouting from its bony back, glowing spore-filled eye sockets, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**MO11 — อิมป์ไฟ • 32**
+**MO2-W — ซากเห็ดเน่า (แทนเห็ด) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ซากเห็ดเน่า (แทนเห็ด)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-small red fire imp with bat wings and a flaming tail, top-down pixel art, muted desaturated dark-forest colours, soft shading
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**MO12 — โกเลมหิน • 64**
+**MO2-A — ซากเห็ดเน่า (แทนเห็ด) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ซากเห็ดเน่า (แทนเห็ด)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-hulking moss-covered stone golem with glowing teal cracks, top-down pixel art, muted desaturated dark-forest colours, soft shading
+swinging its long arms and coughing a cloud of glowing spores
 ```
 
-**MO13 — ซาลาแมนเดอร์ • 48**
+**MO2-D — ซากเห็ดเน่า (แทนเห็ด) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ซากเห็ดเน่า (แทนเห็ด)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
 ```
-black-and-orange fire salamander lizard with ember spots, top-down pixel art, muted desaturated dark-forest colours, soft shading
+collapsing into a heap of rotten mushrooms
 ```
 
-**MO14 — หมาป่าน้ำแข็ง • 48**
+**MO3 — หมาป่ากลวงโหว่ (แทนหมาป่า) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ หมาป่ากลวงโหว่ (แทนหมาป่า) แล้ว ทำท่าขยับต่อตามข้อ MO3-W, MO3-A, MO3-D
+
 ```
-white-blue ice wolf with frosty crystal fur on its back, top-down pixel art, muted desaturated dark-forest colours, soft shading
+gaunt skinless wolf with exposed ribs, cracked bark-like hide, ember red eyes and a jaw too long for its skull, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**MO15 — เยติ • 64**
+**MO3-W — หมาป่ากลวงโหว่ (แทนหมาป่า) — เดิน**
+
+1. เมนู **Characters** → กดรูป **หมาป่ากลวงโหว่ (แทนหมาป่า)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-big white furry yeti with blue-grey face and huge hands, top-down pixel art, muted desaturated dark-forest colours, soft shading
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**MO16 — กวาง (สัตว์ล่า) • 48**
+**MO3-A — หมาป่ากลวงโหว่ (แทนหมาป่า) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **หมาป่ากลวงโหว่ (แทนหมาป่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-brown forest deer stag with branching antlers, top-down pixel art, muted desaturated dark-forest colours, soft shading
+lunging forward with a vicious biting attack
 ```
 
-**MO17 — หมูป่า (สัตว์ล่า) • 48**
+**MO3-D — หมาป่ากลวงโหว่ (แทนหมาป่า) — ตาย**
+
+1. เมนู **Characters** → กดรูป **หมาป่ากลวงโหว่ (แทนหมาป่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
 ```
-dark bristly wild boar with curved tusks, top-down pixel art, muted desaturated dark-forest colours, soft shading
+yelping and collapsing into a pile of bones and bark
 ```
 
-## ④ บอส (PixelLab → Create character • 96–128 ถ้าบัญชีทำได้ ไม่งั้นใช้ GPT ข้อ GB)
+**MO4 — ภูตหนามสวมหน้ากาก (แทนก็อบลิน) — สร้างตัว (48px)**
 
-_รุ่นฟรีของ PixelLab อาจทำขนาดใหญ่ไม่ได้ ถ้าไม่ได้ให้ใช้ prompt GB (ChatGPT) แทน ผมแปลงเป็นพิกเซลแท้ให้_
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ภูตหนามสวมหน้ากาก (แทนก็อบลิน) แล้ว ทำท่าขยับต่อตามข้อ MO4-W, MO4-A, MO4-D
 
-**BS1 — ทรีนท์ผู้พิโรธ**
 ```
-ancient angry treant tree monster with a gnarled bark face, mossy branches and glowing green eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**BS2 — กวางคำสาป**
-```
-giant cursed stag with ghostly antlers wrapped in purple mist and glowing eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
-```
-
-**BS3 — มังกรลาวา**
-```
-large black lava dragon with glowing orange cracks, horned head and folded wings, top-down pixel art, muted desaturated dark-forest colours, soft shading
+small wiry creature made of black thorny briars wearing a cracked carved wooden mask, holding a sharpened bone knife, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BS4 — ยักษ์น้ำแข็ง**
+**MO4-W — ภูตหนามสวมหน้ากาก (แทนก็อบลิน) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ภูตหนามสวมหน้ากาก (แทนก็อบลิน)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-towering frost giant with ice armour, frozen beard and a huge ice club, top-down pixel art, muted desaturated dark-forest colours, soft shading
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**BS5 — ราชาโครงกระดูก**
+**MO4-A — ภูตหนามสวมหน้ากาก (แทนก็อบลิน) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ภูตหนามสวมหน้ากาก (แทนก็อบลิน)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-horned skeleton king in rusted black armour with a glowing purple sword and tattered crown, top-down pixel art, muted desaturated dark-forest colours, soft shading
+stabbing forward fast with the bone knife
 ```
 
-**GBS1 — ทรีนท์ผู้พิโรธ (ChatGPT)**
+**MO4-D — ภูตหนามสวมหน้ากาก (แทนก็อบลิน) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ภูตหนามสวมหน้ากาก (แทนก็อบลิน)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: a boss monster for the game, about 4 times the height of a person: ancient angry treant tree monster with a gnarled bark face, mossy branches and glowing green eyes. Show it facing down-right in an idle pose, full body, centred.
+falling apart into dry thorny twigs, the mask dropping
 ```
 
-**GBS2 — กวางคำสาป (ChatGPT)**
+**MO5 — ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) แล้ว ทำท่าขยับต่อตามข้อ MO5-W, MO5-A, MO5-D
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: a boss monster for the game, about 4 times the height of a person: giant cursed stag with ghostly antlers wrapped in purple mist and glowing eyes. Show it facing down-right in an idle pose, full body, centred.
+giant moth with a pale skull-like face, tattered dusty wings glowing faintly like a lantern, long thin legs, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**GBS3 — มังกรลาวา (ChatGPT)**
+**MO5-W — ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: a boss monster for the game, about 4 times the height of a person: large black lava dragon with glowing orange cracks, horned head and folded wings. Show it facing down-right in an idle pose, full body, centred.
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**GBS4 — ยักษ์น้ำแข็ง (ChatGPT)**
+**MO5-A — ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: a boss monster for the game, about 4 times the height of a person: towering frost giant with ice armour, frozen beard and a huge ice club. Show it facing down-right in an idle pose, full body, centred.
+diving forward with a flash of glowing wing dust
 ```
 
-**GBS5 — ราชาโครงกระดูก (ChatGPT)**
+**MO5-D — ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: a boss monster for the game, about 4 times the height of a person: horned skeleton king in rusted black armour with a glowing purple sword and tattered crown. Show it facing down-right in an idle pose, full body, centred.
+wings crumbling to dust as it falls
 ```
 
-## ⑤ ชาวบ้านและสัตว์ (PixelLab → Create character • 48 / สัตว์ 32 • 4 ทิศ)
+**MO6 — หนูแทะซาก (แทนหนูยักษ์) — สร้างตัว (32px)**
 
-_ท่าที่ต้องมี: idle + walk (คนงานเพิ่ม work)_
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ หนูแทะซาก (แทนหนูยักษ์) แล้ว ทำท่าขยับต่อตามข้อ MO6-W, MO6-A, MO6-D
 
-**NP1 — ผู้เฒ่าหมู่บ้าน**
+```
+hairless giant plague rat with a split lower jaw, pale sores and milky blind eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO6-W — หนูแทะซาก (แทนหนูยักษ์) — เดิน**
+
+1. เมนู **Characters** → กดรูป **หนูแทะซาก (แทนหนูยักษ์)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO6-A — หนูแทะซาก (แทนหนูยักษ์) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **หนูแทะซาก (แทนหนูยักษ์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+lunging forward with its split jaw
+```
+
+**MO6-D — หนูแทะซาก (แทนหนูยักษ์) — ตาย**
+
+1. เมนู **Characters** → กดรูป **หนูแทะซาก (แทนหนูยักษ์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+twitching and flipping onto its back
+```
+
+**MO7 — อัศวินเปลือกกลวง (แทนโครงกระดูก) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ อัศวินเปลือกกลวง (แทนโครงกระดูก) แล้ว ทำท่าขยับต่อตามข้อ MO7-W, MO7-A, MO7-D
+
+```
+headless rusted suit of armour filled with twisting roots, green glow from the empty neck, cracked rusty greatsword, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO7-W — อัศวินเปลือกกลวง (แทนโครงกระดูก) — เดิน**
+
+1. เมนู **Characters** → กดรูป **อัศวินเปลือกกลวง (แทนโครงกระดูก)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO7-A — อัศวินเปลือกกลวง (แทนโครงกระดูก) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **อัศวินเปลือกกลวง (แทนโครงกระดูก)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging the rusty greatsword in a heavy slash
+```
+
+**MO7-D — อัศวินเปลือกกลวง (แทนโครงกระดูก) — ตาย**
+
+1. เมนู **Characters** → กดรูป **อัศวินเปลือกกลวง (แทนโครงกระดูก)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+collapsing into empty armour pieces as the glow dies
+```
+
+**MO8 — นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) แล้ว ทำท่าขยับต่อตามข้อ MO8-W, MO8-A, MO8-D
+
+```
+skeletal archer with deer antlers growing from its skull, ragged hood, bow strung with sinew, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO8-W — นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) — เดิน**
+
+1. เมนู **Characters** → กดรูป **นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO8-A — นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+drawing the sinew bow and shooting a bone arrow
+```
+
+**MO8-D — นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) — ตาย**
+
+1. เมนู **Characters** → กดรูป **นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+crumbling into bones and antlers
+```
+
+**MO9 — วิญญาณผ้าคลุมหน้า (แทนผี) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ วิญญาณผ้าคลุมหน้า (แทนผี) แล้ว ทำท่าขยับต่อตามข้อ MO9-W, MO9-A, MO9-D
+
+```
+tall faceless ghost woman in a long tattered grey veil, very long thin fingers, floating above the ground, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO9-W — วิญญาณผ้าคลุมหน้า (แทนผี) — เดิน**
+
+1. เมนู **Characters** → กดรูป **วิญญาณผ้าคลุมหน้า (แทนผี)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO9-A — วิญญาณผ้าคลุมหน้า (แทนผี) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **วิญญาณผ้าคลุมหน้า (แทนผี)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+reaching forward fast with long clawed fingers
+```
+
+**MO9-D — วิญญาณผ้าคลุมหน้า (แทนผี) — ตาย**
+
+1. เมนู **Characters** → กดรูป **วิญญาณผ้าคลุมหน้า (แทนผี)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+screaming silently and tearing apart into mist
+```
+
+**MO10 — แมงมุมปากคน (แทนแมงมุม) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ แมงมุมปากคน (แทนแมงมุม) แล้ว ทำท่าขยับต่อตามข้อ MO10-W, MO10-A, MO10-D
+
+```
+giant black spider whose whole body is a gaping mouth full of human-like teeth, eight bristly legs, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO10-W — แมงมุมปากคน (แทนแมงมุม) — เดิน**
+
+1. เมนู **Characters** → กดรูป **แมงมุมปากคน (แทนแมงมุม)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO10-A — แมงมุมปากคน (แทนแมงมุม) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **แมงมุมปากคน (แทนแมงมุม)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+rearing up and snapping its giant mouth forward
+```
+
+**MO10-D — แมงมุมปากคน (แทนแมงมุม) — ตาย**
+
+1. เมนู **Characters** → กดรูป **แมงมุมปากคน (แทนแมงมุม)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+curling its legs and going still
+```
+
+**MO11 — ปีศาจเถ้าถ่าน (แทนอิมป์) — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ปีศาจเถ้าถ่าน (แทนอิมป์) แล้ว ทำท่าขยับต่อตามข้อ MO11-W, MO11-A, MO11-D
+
+```
+small horned fiend with cracked obsidian skin, a mouth glowing with fire and smoking claws, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO11-W — ปีศาจเถ้าถ่าน (แทนอิมป์) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ปีศาจเถ้าถ่าน (แทนอิมป์)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO11-A — ปีศาจเถ้าถ่าน (แทนอิมป์) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ปีศาจเถ้าถ่าน (แทนอิมป์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+spitting a burst of fire forward
+```
+
+**MO11-D — ปีศาจเถ้าถ่าน (แทนอิมป์) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ปีศาจเถ้าถ่าน (แทนอิมป์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+cracking apart into glowing embers
+```
+
+**MO12 — ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) — สร้างตัว (64px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **64px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) แล้ว ทำท่าขยับต่อตามข้อ MO12-W, MO12-A, MO12-D
+
+```
+hulking colossus of cooled black slag bound in rusted chains, a glowing furnace heart in its open chest, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO12-W — ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO12-A — ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+raising chained fists and smashing the ground
+```
+
+**MO12-D — ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+its furnace heart dying as it crumbles into slag
+```
+
+**MO13 — กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) แล้ว ทำท่าขยับต่อตามข้อ MO13-W, MO13-A, MO13-D
+
+```
+six-legged lizard with cooling lava plates on its back, glowing cracks and a long whip tail, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO13-W — กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) — เดิน**
+
+1. เมนู **Characters** → กดรูป **กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO13-A — กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+whipping its tail and spitting molten rock
+```
+
+**MO13-D — กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) — ตาย**
+
+1. เมนู **Characters** → กดรูป **กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+curling up as its glow fades to black stone
+```
+
+**MO14 — นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) แล้ว ทำท่าขยับต่อตามข้อ MO14-W, MO14-A, MO14-D
+
+```
+lean wolf-like beast with icicle spines along its back, a frozen exposed jaw and cold blue eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO14-W — นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) — เดิน**
+
+1. เมนู **Characters** → กดรูป **นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO14-A — นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+lunging forward with a freezing bite
+```
+
+**MO14-D — นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) — ตาย**
+
+1. เมนู **Characters** → กดรูป **นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+shattering into ice shards
+```
+
+**MO15 — ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) — สร้างตัว (64px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **64px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) แล้ว ทำท่าขยับต่อตามข้อ MO15-W, MO15-A, MO15-D
+
+```
+hunched furred giant wearing a frozen skull mask, arms encased in jagged ice, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO15-W — ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ยักษ์หน้ากากน้ำแข็ง (แทนเยติ)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO15-A — ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ยักษ์หน้ากากน้ำแข็ง (แทนเยติ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging an ice-covered arm down
+```
+
+**MO15-D — ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ยักษ์หน้ากากน้ำแข็ง (แทนเยติ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling face down and freezing solid
+```
+
+**MO16 — กวางเขาดำ (สัตว์ล่า) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ กวางเขาดำ (สัตว์ล่า) แล้ว ทำท่าขยับต่อตามข้อ MO16-W, MO16-A, MO16-D
+
+```
+large dark forest stag with black branching antlers and scars, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO16-W — กวางเขาดำ (สัตว์ล่า) — เดิน**
+
+1. เมนู **Characters** → กดรูป **กวางเขาดำ (สัตว์ล่า)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO16-A — กวางเขาดำ (สัตว์ล่า) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **กวางเขาดำ (สัตว์ล่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+kicking backwards with the hind legs
+```
+
+**MO16-D — กวางเขาดำ (สัตว์ล่า) — ตาย**
+
+1. เมนู **Characters** → กดรูป **กวางเขาดำ (สัตว์ล่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+stumbling and lying down on its side
+```
+
+**MO17 — หมูป่าแผลเป็น (สัตว์ล่า) — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ หมูป่าแผลเป็น (สัตว์ล่า) แล้ว ทำท่าขยับต่อตามข้อ MO17-W, MO17-A, MO17-D
+
+```
+huge scarred wild boar with broken tusks and bristly black mane, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**MO17-W — หมูป่าแผลเป็น (สัตว์ล่า) — เดิน**
+
+1. เมนู **Characters** → กดรูป **หมูป่าแผลเป็น (สัตว์ล่า)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**MO17-A — หมูป่าแผลเป็น (สัตว์ล่า) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **หมูป่าแผลเป็น (สัตว์ล่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+charging forward with its tusks
+```
+
+**MO17-D — หมูป่าแผลเป็น (สัตว์ล่า) — ตาย**
+
+1. เมนู **Characters** → กดรูป **หมูป่าแผลเป็น (สัตว์ล่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+squealing and toppling onto its side
+```
+
+## ④ บอส 5 ตัว (เมนู Characters • 128–168px)
+
+_Tier 1 ทำตัวใหญ่ได้แล้ว • ทุกตัวทำ 5 ข้อ: สร้างตัว → เดิน → โจมตี → ท่าพิเศษ → ตาย_
+
+**BS1 — มารดารากเน่า (บอสป่า) — สร้างตัว (128px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **128px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ มารดารากเน่า (บอสป่า) แล้ว ทำท่าขยับต่อตามข้อ BS1-W, BS1-A, BS1-K, BS1-D
+
+```
+colossal rotten tree woman with a hollow screaming face in the bark, root fingers dragging on the ground, cages of trapped glowing souls hanging from her branches, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BS1-W — มารดารากเน่า (บอสป่า) — เดิน**
+
+1. เมนู **Characters** → กดรูป **มารดารากเน่า (บอสป่า)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**BS1-A — มารดารากเน่า (บอสป่า) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **มารดารากเน่า (บอสป่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+sweeping a huge root arm forward
+```
+
+**BS1-K — มารดารากเน่า (บอสป่า) — ท่าพิเศษ**
+
+1. เมนู **Characters** → กดรูป **มารดารากเน่า (บอสป่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าพิเศษ)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+slamming her roots down so thorny roots burst from the ground
+```
+
+**BS1-D — มารดารากเน่า (บอสป่า) — ตาย**
+
+1. เมนู **Characters** → กดรูป **มารดารากเน่า (บอสป่า)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+splitting apart and falling like a dead tree as the souls escape
+```
+
+**BS2 — ราชากวางโครงกระดูก (บอสป่าผีสิง) — สร้างตัว (128px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **128px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ราชากวางโครงกระดูก (บอสป่าผีสิง) แล้ว ทำท่าขยับต่อตามข้อ BS2-W, BS2-A, BS2-K, BS2-D
+
+```
+giant skeletal stag with candle-lit antlers dripping wax and a ribcage holding a cold blue flame, tattered moss hanging from its bones, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BS2-W — ราชากวางโครงกระดูก (บอสป่าผีสิง) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ราชากวางโครงกระดูก (บอสป่าผีสิง)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**BS2-A — ราชากวางโครงกระดูก (บอสป่าผีสิง) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ราชากวางโครงกระดูก (บอสป่าผีสิง)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+charging forward with its burning antlers
+```
+
+**BS2-K — ราชากวางโครงกระดูก (บอสป่าผีสิง) — ท่าพิเศษ**
+
+1. เมนู **Characters** → กดรูป **ราชากวางโครงกระดูก (บอสป่าผีสิง)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าพิเศษ)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+rearing up and releasing a wave of blue ghost fire
+```
+
+**BS2-D — ราชากวางโครงกระดูก (บอสป่าผีสิง) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ราชากวางโครงกระดูก (บอสป่าผีสิง)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+collapsing into bones as the blue flame goes out
+```
+
+**BS3 — อสรพิษแก้วดำ (บอสลาวา) — สร้างตัว (168px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **168px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ อสรพิษแก้วดำ (บอสลาวา) แล้ว ทำท่าขยับต่อตามข้อ BS3-W, BS3-A, BS3-K, BS3-D
+
+```
+huge wingless serpent dragon made of black volcanic glass with lava flowing through its cracks and a crown of jagged obsidian horns, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BS3-W — อสรพิษแก้วดำ (บอสลาวา) — เดิน**
+
+1. เมนู **Characters** → กดรูป **อสรพิษแก้วดำ (บอสลาวา)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**BS3-A — อสรพิษแก้วดำ (บอสลาวา) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **อสรพิษแก้วดำ (บอสลาวา)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+striking forward with its jaws
+```
+
+**BS3-K — อสรพิษแก้วดำ (บอสลาวา) — ท่าพิเศษ**
+
+1. เมนู **Characters** → กดรูป **อสรพิษแก้วดำ (บอสลาวา)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าพิเศษ)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+breathing a stream of molten lava forward
+```
+
+**BS3-D — อสรพิษแก้วดำ (บอสลาวา) — ตาย**
+
+1. เมนู **Characters** → กดรูป **อสรพิษแก้วดำ (บอสลาวา)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+cracking and shattering as the lava cools
+```
+
+**BS4 — ผู้คุมเหมันต์ (บอสหิมะ) — สร้างตัว (128px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **128px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ผู้คุมเหมันต์ (บอสหิมะ) แล้ว ทำท่าขยับต่อตามข้อ BS4-W, BS4-A, BS4-K, BS4-D
+
+```
+towering giant in frozen armour, face hidden under a crown of ice, carrying a huge frozen bell as a mace, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BS4-W — ผู้คุมเหมันต์ (บอสหิมะ) — เดิน**
+
+1. เมนู **Characters** → กดรูป **ผู้คุมเหมันต์ (บอสหิมะ)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**BS4-A — ผู้คุมเหมันต์ (บอสหิมะ) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **ผู้คุมเหมันต์ (บอสหิมะ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging the frozen bell mace down
+```
+
+**BS4-K — ผู้คุมเหมันต์ (บอสหิมะ) — ท่าพิเศษ**
+
+1. เมนู **Characters** → กดรูป **ผู้คุมเหมันต์ (บอสหิมะ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าพิเศษ)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+ringing the bell so ice spikes burst from the ground
+```
+
+**BS4-D — ผู้คุมเหมันต์ (บอสหิมะ) — ตาย**
+
+1. เมนู **Characters** → กดรูป **ผู้คุมเหมันต์ (บอสหิมะ)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+falling to its knees and shattering into ice
+```
+
+**BS5 — มงกุฎกลวง (บอสคุกใต้ดิน) — สร้างตัว (128px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **128px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ มงกุฎกลวง (บอสคุกใต้ดิน) แล้ว ทำท่าขยับต่อตามข้อ BS5-W, BS5-A, BS5-K, BS5-D
+
+```
+towering rotting king with four arms fused to his throne by iron chains, a crown of rusted nails and a glowing purple hole where his face should be, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BS5-W — มงกุฎกลวง (บอสคุกใต้ดิน) — เดิน**
+
+1. เมนู **Characters** → กดรูป **มงกุฎกลวง (บอสคุกใต้ดิน)** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**BS5-A — มงกุฎกลวง (บอสคุกใต้ดิน) — โจมตี**
+
+1. เมนู **Characters** → กดรูป **มงกุฎกลวง (บอสคุกใต้ดิน)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+swinging two great swords in a wide slash
+```
+
+**BS5-K — มงกุฎกลวง (บอสคุกใต้ดิน) — ท่าพิเศษ**
+
+1. เมนู **Characters** → กดรูป **มงกุฎกลวง (บอสคุกใต้ดิน)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าพิเศษ)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+pulling the chains so purple ghost fire erupts around him
+```
+
+**BS5-D — มงกุฎกลวง (บอสคุกใต้ดิน) — ตาย**
+
+1. เมนู **Characters** → กดรูป **มงกุฎกลวง (บอสคุกใต้ดิน)** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+crumbling into bones and chains with the crown rolling away
+```
+
+## ⑤ ชาวบ้านและสัตว์ (เมนู Characters)
+
+_ทำ 2 ข้อ: สร้างตัว → เดิน • คนงานมีท่าทำงานเพิ่มอีก 1 ข้อ_
+
+**NP1 — ผู้เฒ่าหมู่บ้าน — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ผู้เฒ่าหมู่บ้าน แล้ว ทำท่าขยับต่อตามข้อ NP1-W
+
 ```
 old village elder with a long white beard, hooded grey-green robe and a gnarled staff, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP2 — พ่อค้า**
+**NP1-W — ผู้เฒ่าหมู่บ้าน — เดิน**
+
+1. เมนู **Characters** → กดรูป **ผู้เฒ่าหมู่บ้าน** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP2 — พ่อค้า — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ พ่อค้า แล้ว ทำท่าขยับต่อตามข้อ NP2-W
+
 ```
 plump travelling merchant with a big backpack, felt hat and coin pouch, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP3 — ช่างตีเหล็ก**
+**NP2-W — พ่อค้า — เดิน**
+
+1. เมนู **Characters** → กดรูป **พ่อค้า** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP3 — ช่างตีเหล็ก — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ช่างตีเหล็ก แล้ว ทำท่าขยับต่อตามข้อ NP3-W, NP3-J
+
 ```
 burly blacksmith with a leather apron, rolled sleeves and a hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP4 — คนตัดไม้**
+**NP3-W — ช่างตีเหล็ก — เดิน**
+
+1. เมนู **Characters** → กดรูป **ช่างตีเหล็ก** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP3-J — ช่างตีเหล็ก — ท่าทำงาน**
+
+1. เมนู **Characters** → กดรูป **ช่างตีเหล็ก** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าทำงาน)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+hammering on an anvil
+```
+
+**NP4 — คนตัดไม้ — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ คนตัดไม้ แล้ว ทำท่าขยับต่อตามข้อ NP4-W, NP4-J
+
 ```
 lumberjack in a plaid shirt with an axe over his shoulder, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP5 — คนงานเหมือง**
+**NP4-W — คนตัดไม้ — เดิน**
+
+1. เมนู **Characters** → กดรูป **คนตัดไม้** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP4-J — คนตัดไม้ — ท่าทำงาน**
+
+1. เมนู **Characters** → กดรูป **คนตัดไม้** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าทำงาน)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+chopping wood with the axe
+```
+
+**NP5 — คนงานเหมือง — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ คนงานเหมือง แล้ว ทำท่าขยับต่อตามข้อ NP5-W, NP5-J
+
 ```
 miner with a helmet lamp and a pickaxe, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP6 — แม่ครัว**
+**NP5-W — คนงานเหมือง — เดิน**
+
+1. เมนู **Characters** → กดรูป **คนงานเหมือง** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP5-J — คนงานเหมือง — ท่าทำงาน**
+
+1. เมนู **Characters** → กดรูป **คนงานเหมือง** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าทำงาน)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+swinging the pickaxe at a rock
+```
+
+**NP6 — แม่ครัว — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ แม่ครัว แล้ว ทำท่าขยับต่อตามข้อ NP6-W, NP6-J
+
 ```
 cook woman with a white apron and a wooden ladle, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP7 — สาวโรงเตี๊ยม**
+**NP6-W — แม่ครัว — เดิน**
+
+1. เมนู **Characters** → กดรูป **แม่ครัว** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP6-J — แม่ครัว — ท่าทำงาน**
+
+1. เมนู **Characters** → กดรูป **แม่ครัว** → กด **Add Animation**
+2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
+3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าทำงาน)
+4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
+
+```
+stirring a big pot with the ladle
+```
+
+**NP7 — สาวโรงเตี๊ยม — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ สาวโรงเตี๊ยม แล้ว ทำท่าขยับต่อตามข้อ NP7-W
+
 ```
 tavern barmaid with braided hair carrying a mug, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP8 — ยามหมู่บ้าน**
+**NP7-W — สาวโรงเตี๊ยม — เดิน**
+
+1. เมนู **Characters** → กดรูป **สาวโรงเตี๊ยม** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP8 — ยามหมู่บ้าน — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ยามหมู่บ้าน แล้ว ทำท่าขยับต่อตามข้อ NP8-W
+
 ```
 village guard in a padded gambeson with a spear, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP9 — เด็กในหมู่บ้าน**
+**NP8-W — ยามหมู่บ้าน — เดิน**
+
+1. เมนู **Characters** → กดรูป **ยามหมู่บ้าน** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP9 — เด็กในหมู่บ้าน — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ เด็กในหมู่บ้าน แล้ว ทำท่าขยับต่อตามข้อ NP9-W
+
 ```
 small village kid with messy hair and patched clothes, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**NP10 — เอลฟ์นักธนู**
+**NP9-W — เด็กในหมู่บ้าน — เดิน**
+
+1. เมนู **Characters** → กดรูป **เด็กในหมู่บ้าน** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**NP10 — เอลฟ์นักธนู — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ เอลฟ์นักธนู แล้ว ทำท่าขยับต่อตามข้อ NP10-W
+
 ```
 blonde elf archer girl with a green hood and a longbow, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**AN1 — แมว • 32**
+**NP10-W — เอลฟ์นักธนู — เดิน**
+
+1. เมนู **Characters** → กดรูป **เอลฟ์นักธนู** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**AN1 — แมว — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ แมว แล้ว ทำท่าขยับต่อตามข้อ AN1-W
+
 ```
 small tabby cat, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**AN2 — แกะ • 32**
+**AN1-W — แมว — เดิน**
+
+1. เมนู **Characters** → กดรูป **แมว** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**AN2 — แกะ — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ แกะ แล้ว ทำท่าขยับต่อตามข้อ AN2-W
+
 ```
 fluffy cream sheep, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**AN3 — วัว • 48**
+**AN2-W — แกะ — เดิน**
+
+1. เมนู **Characters** → กดรูป **แกะ** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**AN3 — วัว — สร้างตัว (48px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **48px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ วัว แล้ว ทำท่าขยับต่อตามข้อ AN3-W
+
 ```
 brown and white cow, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**AN4 — หมู • 32**
+**AN3-W — วัว — เดิน**
+
+1. เมนู **Characters** → กดรูป **วัว** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**AN4 — หมู — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ หมู แล้ว ทำท่าขยับต่อตามข้อ AN4-W
+
 ```
 pink farm pig, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**AN5 — ไก่ • 32**
+**AN4-W — หมู — เดิน**
+
+1. เมนู **Characters** → กดรูป **หมู** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
+
+```
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
+```
+
+**AN5 — ไก่ — สร้างตัว (32px)**
+
+1. เมนูแถบบน กด **Characters** → กดปุ่ม **Create character** (หรือ **+ New**)
+2. กล่องข้อความใหญ่บนสุด (เขียนว่า 0/2000) → **วางข้อความด้านล่าง**
+3. **Camera View** → กด **Low Top-Down**
+4. **Sprite Size** → กด **32px**
+5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
+6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
+7. ได้ ไก่ แล้ว ทำท่าขยับต่อตามข้อ AN5-W
+
 ```
 white hen, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-## ⑥ อาคาร 3 ระดับ (ChatGPT / Gemini • ผมแปลงเป็นพิกเซลแท้)
+**AN5-W — ไก่ — เดิน**
 
-_วางใน ChatGPT หรือแอป Gemini (ไม่ต้องแนบรูป) • 1 รูป = อาคาร 3 ระดับ เรียงซ้าย→ขวา • พื้นหลังขาว • ผมจะลดขนาดให้ลงตาราง 32 px และบังคับชุดสีเดียวกันทั้งเกม ถ้า PixelLab บัญชีพี่ทำ map object ขนาดใหญ่ได้ จะใช้ PixelLab แทนก็ได้_
+1. เมนู **Characters** → กดรูป **ไก่** ที่สร้างไว้
+2. กดปุ่ม **Add Animation**
+3. ส่วนบนสุดที่เขียนว่า **MODEL** → กด **PixMiniMax** (กรอบสีส้ม)
+4. กดปุ่ม **Walking** (ได้ท่าเดิน + ยืน ในครั้งเดียว)
+5. เลื่อนลงล่างสุด กด **Generate in Background**
+6. เสร็จแล้ว: หน้าตัวละคร กด **Download** (ZIP) → ส่งมาในแชทนี้
 
-**BD1 — ศาลากลาง**
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a village town hall with a bell tower and banners. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
-```
-
-**BD2 — บ้านพัก**
-```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a villager cottage with a chimney and flower boxes. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
-```
-
-**BD3 — โรงเลื่อย**
-```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a timber sawmill shed with a big circular saw and stacked logs under its roof. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+(ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-**BD4 — เหมืองหิน**
+## ⑥ อาคาร 3 ระดับ (เมนู Objects)
+
+_อาคารละ 3 รูป: Lv1 เล็ก / Lv3 กลาง / Lv5 ใหญ่หรู • ทำทีละรูป • ขนาดเขียนไว้ในขั้นที่ 4_
+
+**BD1-1 — ศาลากลาง Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv1)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a stone-cutting shed with a wooden crane and cut stone blocks. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+village town hall with a bell tower and banners, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD5 — คอกสัตว์**
+**BD1-3 — ศาลากลาง Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv3)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a red wooden barn with a hay loft door. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+village town hall with a bell tower and banners, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD6 — โรงตีเหล็ก**
+**BD1-5 — ศาลากลาง Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **192px** (ถ้ามีช่อง width/height ใส่ 192 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv5)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: an open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+village town hall with a bell tower and banners, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD7 — ครัว**
+**BD2-1 — บ้านพัก Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv1)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a cookhouse with a smoking chimney and a big cauldron by the door. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+villager cottage with a chimney and flower boxes, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD8 — โกดัง**
+**BD2-3 — บ้านพัก Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv3)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a wide storehouse with big double doors and crates. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+villager cottage with a chimney and flower boxes, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD9 — โรงเตี๊ยม**
+**BD2-5 — บ้านพัก Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv5)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a two-storey tavern inn with a hanging sign and warm lit windows. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+villager cottage with a chimney and flower boxes, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD10 — ตลาด**
+**BD3-1 — โรงเลื่อย Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv1)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a covered market hall with striped awnings and goods on tables. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+timber sawmill shed with a big circular saw and stacked logs under its roof, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD11 — หอป้องกัน**
+**BD3-3 — โรงเลื่อย Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv3)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a defence tower: level 1 wooden watchtower, level 3 stone tower with a ballista, level 5 tall stone tower with a glowing crystal. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+timber sawmill shed with a big circular saw and stacked logs under its roof, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**BD12 — ไซต์ก่อสร้าง**
+**BD3-5 — โรงเลื่อย Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv5)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: THREE versions of the same building side by side with wide white gaps, left to right: level 1 small and humble, level 3 sturdier, level 5 grand and decorated: a construction site in three stages: staked foundation with lumber, half-built timber frame with scaffolding, almost finished house with scaffolding. Every version has the same footprint (about 4 x 3 ground tiles, 128 x 96 pixels at the base); higher levels grow taller and richer, not wider. The building only: no ground patch, no grass around it. Front wall and door facing the viewer.
+timber sawmill shed with a big circular saw and stacked logs under its roof, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-## ⑦ ของในฉาก (PixelLab → Create map object • หรือ ChatGPT ข้อ GO)
+**BD4-1 — เหมืองหิน Lv1**
 
-_PixelLab: Create map object • view: low top-down • ขนาดตามหัวข้อ • ถ้าใช้ ChatGPT ใช้ข้อ GO1-GO4 ได้หลายชิ้นในรูปเดียว_
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv1)
 
-**OB1 — ต้นสนเขียวหม่น • 64**
+```
+stone-cutting shed with a wooden crane and cut stone blocks, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD4-3 — เหมืองหิน Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv3)
+
+```
+stone-cutting shed with a wooden crane and cut stone blocks, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD4-5 — เหมืองหิน Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv5)
+
+```
+stone-cutting shed with a wooden crane and cut stone blocks, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD5-1 — คอกสัตว์ Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv1)
+
+```
+red wooden animal barn with a hay loft door and a small fenced pen, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD5-3 — คอกสัตว์ Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv3)
+
+```
+red wooden animal barn with a hay loft door and a small fenced pen, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD5-5 — คอกสัตว์ Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv5)
+
+```
+red wooden animal barn with a hay loft door and a small fenced pen, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD6-1 — โรงตีเหล็ก Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv1)
+
+```
+open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD6-3 — โรงตีเหล็ก Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv3)
+
+```
+open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD6-5 — โรงตีเหล็ก Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv5)
+
+```
+open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD7-1 — ครัว Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv1)
+
+```
+cookhouse with a smoking chimney and a big cauldron by the door, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD7-3 — ครัว Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv3)
+
+```
+cookhouse with a smoking chimney and a big cauldron by the door, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD7-5 — ครัว Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv5)
+
+```
+cookhouse with a smoking chimney and a big cauldron by the door, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD8-1 — โกดัง Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv1)
+
+```
+wide storehouse with big double doors and crates, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD8-3 — โกดัง Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv3)
+
+```
+wide storehouse with big double doors and crates, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD8-5 — โกดัง Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv5)
+
+```
+wide storehouse with big double doors and crates, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD9-1 — โรงเตี๊ยม Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv1)
+
+```
+two-storey tavern inn with a hanging sign and warm lit windows, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD9-3 — โรงเตี๊ยม Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv3)
+
+```
+two-storey tavern inn with a hanging sign and warm lit windows, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD9-5 — โรงเตี๊ยม Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **192px** (ถ้ามีช่อง width/height ใส่ 192 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv5)
+
+```
+two-storey tavern inn with a hanging sign and warm lit windows, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD10-1 — ตลาด Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv1)
+
+```
+covered market hall with faded striped awnings and goods on tables, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD10-3 — ตลาด Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv3)
+
+```
+covered market hall with faded striped awnings and goods on tables, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD10-5 — ตลาด Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv5)
+
+```
+covered market hall with faded striped awnings and goods on tables, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD11-1 — หอป้องกัน Lv1**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv1)
+
+```
+small wooden watchtower, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD11-3 — หอป้องกัน Lv3**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv3)
+
+```
+stone tower with a ballista on top, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD11-5 — หอป้องกัน Lv5**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv5)
+
+```
+tall stone tower with a glowing blue crystal on top, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**BD12-1 — ไซต์ก่อสร้าง**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ไซต์ก่อสร้าง)
+
+```
+building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+## ⑦ ของในฉาก (เมนู Objects)
+
+_ทำทีละชิ้น • ขนาดเขียนไว้ในหัวข้อ_
+
+**OB1 — ต้นสน (64px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นสน)
+
 ```
 tall dark teal-green pine tree with a visible trunk, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB2 — ต้นโอ๊กใหญ่ • 96**
+**OB2 — ต้นโอ๊กใหญ่ (96px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นโอ๊กใหญ่)
+
 ```
 big round oak tree with a dense moss-green canopy and thick trunk, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB3 — ต้นไม้แห้ง • 64**
+**OB3 — ต้นไม้แห้ง (64px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นไม้แห้ง)
+
 ```
 bare dead tree with twisted grey branches, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB4 — พุ่มไม้ • 32**
+**OB4 — พุ่มไม้ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ พุ่มไม้)
+
 ```
 round dark green bush, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB5 — ก้อนหิน • 32**
+**OB5 — ก้อนหิน (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ก้อนหิน)
+
 ```
 mossy grey boulder, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB6 — รั้วไม้ • 32**
+**OB6 — รั้วไม้แนวนอน (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ รั้วไม้แนวนอน)
+
 ```
-short horizontal wooden rail fence segment, two posts, top-down pixel art, muted desaturated dark-forest colours, soft shading
+short horizontal wooden rail fence segment with two posts, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB7 — โคมไฟ • 48**
+**OB7 — รั้วไม้แนวตั้ง (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ รั้วไม้แนวตั้ง)
+
+```
+short vertical wooden rail fence segment seen from above, running up and down, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**OB8 — โคมไฟ (48px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โคมไฟ)
+
 ```
 wooden lamp post with a hanging glowing lantern, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB8 — บ่อน้ำ • 48**
+**OB9 — บ่อน้ำ (48px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ่อน้ำ)
+
 ```
 round stone well with a small wooden roof and bucket, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB9 — กองไฟ • 32**
+**OB10 — กองไฟ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ กองไฟ)
+
 ```
-campfire ring of stones with logs, top-down pixel art, muted desaturated dark-forest colours, soft shading
+campfire ring of stones with burning logs, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB10 — เกวียน • 48**
+**OB11 — เกวียน (48px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เกวียน)
+
 ```
 wooden hand cart with two wheels, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB11 — ถังไม้ • 32**
+**OB12 — ถังไม้ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ถังไม้)
+
 ```
 wooden barrel with iron bands, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB12 — ลังไม้ • 32**
+**OB13 — ลังไม้ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ลังไม้)
+
 ```
 stack of two wooden crates, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB13 — ป้ายบอกทาง • 32**
+**OB14 — ป้ายบอกทาง (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ป้ายบอกทาง)
+
 ```
 wooden direction sign post, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB14 — แผงตลาด • 64**
+**OB15 — แผงตลาด (64px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ แผงตลาด)
+
 ```
 market stall with a faded striped awning and baskets of goods, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB15 — กองซุง • 48**
+**OB16 — กองซุง (48px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ กองซุง)
+
 ```
 pile of cut logs, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB16 — สะพานไม้ • 96**
+**OB17 — สะพานไม้ (96px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ สะพานไม้)
+
 ```
-short wooden plank bridge seen from above, for crossing a river, top-down pixel art, muted desaturated dark-forest colours, soft shading
+short wooden plank bridge seen from above, crossing from left to right, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**GO1 — ต้นไม้ 6 แบบ (ChatGPT)**
+**OB18 — กองฟาง (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ กองฟาง)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: separate objects in a grid with wide white gaps, none touching, all at the same scale: a tall dark teal pine, a big round moss-green oak, a bare dead tree, a young sapling, a round dark bush, a tall reed clump.
+hay bale, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**GO2 — ของหมู่บ้าน 8 ชิ้น (ChatGPT)**
+**OB19 — ต้นไม้ (ตัดได้) ตอ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นไม้ (ตัดได้) ตอ)
+
 ```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: separate objects in a grid with wide white gaps, none touching, all at the same scale: a lamp post with lantern, a stone well with roof, a hand cart, a barrel, two stacked crates, a sign post, a log pile, a campfire.
+tree stump with an axe mark, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**GO3 — รั้วและหิน 8 ชิ้น (ChatGPT)**
-```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: separate objects in a grid with wide white gaps, none touching, all at the same scale: horizontal fence segment, vertical fence segment, fence corner post, fence gate, a big mossy boulder, a small rock, a rock cluster, a stone stairway piece.
-```
+**OB20 — หินแร่ (ขุดได้) (48px)**
 
-**GO4 — ริมน้ำและตลาด 6 ชิ้น (ChatGPT)**
-```
-True pixel art game asset, top-down 3/4 view (camera looking down at about 60 degrees, front faces visible, roofs seen from above), like a cozy indie pixel RPG. Muted dark-forest fantasy palette: desaturated teal and moss greens, slate-grey cobblestone, warm weathered brown wood, dusty straw yellow, cool dusk lighting, low contrast, soft shading, 1-pixel dark outline. Crisp square pixels on a clear grid, no anti-aliasing, no blur, no gradients, limited palette of about 32 colours. Scale: a person is 32 pixels tall, a door is 32 pixels tall, a ground tile is 32x32 pixels. Plain pure white background, no shadow on the white, no text, no watermark. Subject: separate objects in a grid with wide white gaps, none touching, all at the same scale: a short wooden plank bridge, a small fishing dock, a rowing boat, a market stall with striped awning, a hay bale, a flower box.
-```
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หินแร่ (ขุดได้))
 
-## ⑧ ท่าขยับ (PixelLab → Animate)
-
-_เปิดตัวละครที่สร้างแล้ว → Animate → พิมพ์ชื่อท่าตามนี้ • ทำทุกทิศที่ PixelLab ให้ • ถ้าเฟรมเพี้ยน ส่งมาได้ ผมซ่อมให้ • ทางเลือก (เหมือนเกมต้นแบบ): เอารูปตัวละครไปใส่ AI วิดีโอ เช่น Minimax/Hailuo หรือ Veo สั่งท่า แล้วส่งวิดีโอมา ผมเลือกเฟรมและแปลงเป็นพิกเซลให้_
-
-**AM1 — เดิน (ทุกตัว)**
 ```
-walking
-```
-
-**AM2 — ยืนหายใจ (ทุกตัว)**
-```
-idle breathing
-```
-
-**AM3 — โจมตีดาบ (ฮีโร่สายดาบ/แทงค์)**
-```
-sword slash attack
-```
-
-**AM4 — ยิงธนู (สายธนู)**
-```
-shooting a bow
-```
-
-**AM5 — ร่ายเวท (สายเวท + ทุกร่างตอนใช้สกิล)**
-```
-casting a spell with raised hand
-```
-
-**AM6 — โดนตี**
-```
-taking a hit, flinching
-```
-
-**AM7 — ล้ม/ตาย (ทุกตัว)**
-```
-falling down defeated
-```
-
-**AM8 — ตัดไม้ (HR0)**
-```
-chopping with an axe
-```
-
-**AM9 — ขุดหิน (HR0)**
-```
-mining with a pickaxe
-```
-
-**AM10 — กัด/ตะปบ (มอนสัตว์)**
-```
-biting attack lunge
+large grey rock with glinting ore veins, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```

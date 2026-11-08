@@ -1,4 +1,4 @@
-<title>Eldergrove Prompt Book v3</title>
+<title>Eldergrove Prompt Book v4</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Cinzel:wght@700&family=JetBrains+Mono:wght@400&display=swap">
@@ -34,6 +34,10 @@ h2 { font: 700 18px/1.3 var(--body); color: var(--gold); margin: 0 0 4px; text-w
 .code { font: 700 13px var(--mono); color: #1b1208; background: var(--gold); border-radius: 4px; padding: 1px 7px; flex: none; }
 .card.done .code { background: var(--done); }
 .t { font-weight: 600; min-width: 0; }
+.how { margin: 8px 0 0; padding-left: 20px; font-size: 13.5px; color: #e9dcbc; }
+.how li { margin: 3px 0; }
+.how b { color: var(--gold); }
+.lbl { font-size: 12px; color: var(--muted); margin-top: 8px; }
 pre { margin: 10px 0; padding: 10px; background: #0f0b08; border: 1px solid #2f2418; border-radius: 4px; white-space: pre-wrap; word-break: break-word; font: 12px/1.5 var(--mono); color: #d8ccb0; max-height: 9.5em; overflow: hidden; position: relative; }
 pre.open { max-height: none; }
 .acts { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -46,7 +50,7 @@ pre.open { max-height: none; }
 </style>
 <div class="wrap">
   <header>
-    <h1>Prompt Book v3 — มองจากบน โทนป่าหม่น</h1>
+    <h1>Prompt Book v4 — PixelLab ทีละขั้น</h1>
     <p class="lede">__COUNT__ ชิ้น • __HOWTO__</p>
   </header>
   <div class="bar">
@@ -58,7 +62,7 @@ pre.open { max-height: none; }
 <div class="toast" id="toast">คัดลอกแล้ว</div>
 <script>
 const DATA = __DATA__;
-const KEY = 'eg_prompt_done_v3';
+const KEY = 'eg_prompt_done_v4';
 let done = {};
 try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
@@ -90,9 +94,13 @@ function render() {
     s.items.forEach(it => {
       const c = document.createElement('div');
       c.className = 'card' + (done[it.code] ? ' done' : '');
-      c.innerHTML = '<div class="top"><span class="code"></span><span class="t"></span></div><pre></pre><div class="acts"><button class="cp">คัดลอก</button><button class="mk"></button></div>';
+      c.innerHTML = '<div class="top"><span class="code"></span><span class="t"></span></div><ol class="how"></ol><div class="lbl"></div><pre></pre><div class="acts"><button class="cp">คัดลอก</button><button class="mk"></button></div>';
       c.querySelector('.code').textContent = it.code;
       c.querySelector('.t').textContent = it.title;
+      const ol = c.querySelector('.how');
+      (it.how || []).forEach(st => { const li = document.createElement('li'); const parts = st.split('**'); parts.forEach((t, i) => { if (i % 2) { const b = document.createElement('b'); b.textContent = t; li.appendChild(b); } else li.appendChild(document.createTextNode(t)); }); ol.appendChild(li); });
+      if (!(it.how || []).length) ol.remove();
+      c.querySelector('.lbl').textContent = it.how && it.how.length ? 'ข้อความที่ต้องวาง (กดคัดลอก):' : '';
       const pre = c.querySelector('pre'); pre.textContent = it.prompt;
       pre.onclick = () => pre.classList.toggle('open');
       const mk = c.querySelector('.mk');
