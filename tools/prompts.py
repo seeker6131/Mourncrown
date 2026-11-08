@@ -95,7 +95,7 @@ for c, t, lo, up in TILES:
 
 # ---------------- 2. hero ----------------
 sec('hero', '② ฮีโร่ 13 ร่าง (เมนู Characters • 48px)',
-    'ทุกร่างทำ 5 ข้อ: สร้างตัว → เดิน → โจมตี → ใช้สกิล → ล้ม • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • '
+    'ทุกร่างทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ล้ม (ไม่ต้องทำท่าสกิล — ตอนใช้สกิลเกมเล่นท่าโจมตี + เอฟเฟกต์อลังการจากโค้ด) • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • '
     'ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว')
 ATK = {
     'sword': ("swinging the sword in a strong slash attack", "spinning around in a powerful sword slash with a glowing trail"),
@@ -122,10 +122,9 @@ FORMS = [
 for c, t, cls, d in FORMS:
     name = t.split(' —')[0]
     if c != 'HR0':
-        P(c, f'{name} — สร้างตัว', create_char(48, name, f'{c}-W, {c}-A, {c}-K, {c}-D'), f"{d}, {PL}")
+        P(c, f'{name} — สร้างตัว', create_char(48, name, f'{c}-W, {c}-A, {c}-D'), f"{d}, {PL}")
         P(c + '-W', f'{name} — เดิน', walk(name), NOTEXT)
         P(c + '-A', f'{name} — โจมตี', custom(name, 'ท่าโจมตี'), ATK[cls][0])
-    P(c + '-K', f'{name} — ใช้สกิล', custom(name, 'ท่าใช้สกิล'), ATK[cls][1])
     P(c + '-D', f'{name} — ล้ม/ตาย', custom(name, 'ท่าล้ม', last=True), DIE)
 
 # ---------------- 3. monsters ----------------

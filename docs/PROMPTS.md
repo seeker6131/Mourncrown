@@ -188,18 +188,7 @@ dark sewer water channel, top-down pixel art, muted desaturated dark-forest colo
 
 ## ② ฮีโร่ 13 ร่าง (เมนู Characters • 48px)
 
-_ทุกร่างทำ 5 ข้อ: สร้างตัว → เดิน → โจมตี → ใช้สกิล → ล้ม • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว_
-
-**HR0-K — ชาวบ้าน (ร่างแรก) — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **ชาวบ้าน (ร่างแรก)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-spinning around in a powerful sword slash with a glowing trail
-```
+_ทุกร่างทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ล้ม (ไม่ต้องทำท่าสกิล — ตอนใช้สกิลเกมเล่นท่าโจมตี + เอฟเฟกต์อลังการจากโค้ด) • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว_
 
 **HR0-D — ชาวบ้าน (ร่างแรก) — ล้ม/ตาย**
 
@@ -221,7 +210,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ นักดาบ แล้ว ทำท่าขยับต่อตามข้อ HR1-W, HR1-A, HR1-K, HR1-D
+7. ได้ นักดาบ แล้ว ทำท่าขยับต่อตามข้อ HR1-W, HR1-A, HR1-D
 
 ```
 same young man, blue tunic with leather shoulder guard, red headband, green scarf, steel short sword and small round shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -250,17 +239,6 @@ same young man, blue tunic with leather shoulder guard, red headband, green scar
 swinging the sword in a strong slash attack
 ```
 
-**HR1-K — นักดาบ — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **นักดาบ** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-spinning around in a powerful sword slash with a glowing trail
-```
-
 **HR1-D — นักดาบ — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **นักดาบ** → กด **Add Animation**
@@ -281,7 +259,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR2-W, HR2-A, HR2-K, HR2-D
+7. ได้ อัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR2-W, HR2-A, HR2-D
 
 ```
 same young man in polished steel plate armour, blue tabard, red cape, closed knight helmet with red plume, longsword and kite shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -310,17 +288,6 @@ same young man in polished steel plate armour, blue tabard, red cape, closed kni
 swinging the sword in a strong slash attack
 ```
 
-**HR2-K — อัศวิน — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **อัศวิน** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-spinning around in a powerful sword slash with a glowing trail
-```
-
 **HR2-D — อัศวิน — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **อัศวิน** → กด **Add Animation**
@@ -341,7 +308,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ลอร์ดอัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR3-W, HR3-A, HR3-K, HR3-D
+7. ได้ ลอร์ดอัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR3-W, HR3-A, HR3-D
 
 ```
 same young man in ornate white-and-gold plate armour with glowing blue runes, royal blue cape, winged full helmet, radiant greatsword, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -370,17 +337,6 @@ same young man in ornate white-and-gold plate armour with glowing blue runes, ro
 swinging the sword in a strong slash attack
 ```
 
-**HR3-K — ลอร์ดอัศวิน — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-spinning around in a powerful sword slash with a glowing trail
-```
-
 **HR3-D — ลอร์ดอัศวิน — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** → กด **Add Animation**
@@ -401,7 +357,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ นักธนู แล้ว ทำท่าขยับต่อตามข้อ HR4-W, HR4-A, HR4-K, HR4-D
+7. ได้ นักธนู แล้ว ทำท่าขยับต่อตามข้อ HR4-W, HR4-A, HR4-D
 
 ```
 same young man in green hooded tunic, leather bracers, quiver on the back, simple wooden bow, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -430,17 +386,6 @@ same young man in green hooded tunic, leather bracers, quiver on the back, simpl
 drawing the bow and shooting an arrow forward
 ```
 
-**HR4-K — นักธนู — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **นักธนู** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-aiming the bow up high and shooting a glowing arrow into the sky
-```
-
 **HR4-D — นักธนู — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **นักธนู** → กด **Add Animation**
@@ -461,7 +406,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ พรานป่า แล้ว ทำท่าขยับต่อตามข้อ HR5-W, HR5-A, HR5-K, HR5-D
+7. ได้ พรานป่า แล้ว ทำท่าขยับต่อตามข้อ HR5-W, HR5-A, HR5-D
 
 ```
 same young man in layered green-brown leather armour, fur-lined hood, cloth mask over nose and mouth, carved longbow, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -490,17 +435,6 @@ same young man in layered green-brown leather armour, fur-lined hood, cloth mask
 drawing the bow and shooting an arrow forward
 ```
 
-**HR5-K — พรานป่า — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **พรานป่า** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-aiming the bow up high and shooting a glowing arrow into the sky
-```
-
 **HR5-D — พรานป่า — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **พรานป่า** → กด **Add Animation**
@@ -521,7 +455,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ เรนเจอร์ราชันย์ แล้ว ทำท่าขยับต่อตามข้อ HR6-W, HR6-A, HR6-K, HR6-D
+7. ได้ เรนเจอร์ราชันย์ แล้ว ทำท่าขยับต่อตามข้อ HR6-W, HR6-A, HR6-D
 
 ```
 same young man in emerald-and-gold elven armour, leaf-pattern cape, golden half mask, glowing bow of light, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -550,17 +484,6 @@ same young man in emerald-and-gold elven armour, leaf-pattern cape, golden half 
 drawing the bow and shooting an arrow forward
 ```
 
-**HR6-K — เรนเจอร์ราชันย์ — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-aiming the bow up high and shooting a glowing arrow into the sky
-```
-
 **HR6-D — เรนเจอร์ราชันย์ — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** → กด **Add Animation**
@@ -581,7 +504,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ จอมเวท แล้ว ทำท่าขยับต่อตามข้อ HR7-W, HR7-A, HR7-K, HR7-D
+7. ได้ จอมเวท แล้ว ทำท่าขยับต่อตามข้อ HR7-W, HR7-A, HR7-D
 
 ```
 same young man in purple hooded robe with gold trim, potion pouches, wooden staff with a blue crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -610,17 +533,6 @@ same young man in purple hooded robe with gold trim, potion pouches, wooden staf
 thrusting the staff forward and casting a glowing magic bolt
 ```
 
-**HR7-K — จอมเวท — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **จอมเวท** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising both hands high and casting a big glowing spell circle
-```
-
 **HR7-D — จอมเวท — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **จอมเวท** → กด **Add Animation**
@@ -641,7 +553,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ปราชญ์เวท แล้ว ทำท่าขยับต่อตามข้อ HR8-W, HR8-A, HR8-K, HR8-D
+7. ได้ ปราชญ์เวท แล้ว ทำท่าขยับต่อตามข้อ HR8-W, HR8-A, HR8-D
 
 ```
 same young man in long violet star-embroidered robe, tall pointed wizard hat, face veil, silver staff with orbiting crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -670,17 +582,6 @@ same young man in long violet star-embroidered robe, tall pointed wizard hat, fa
 thrusting the staff forward and casting a glowing magic bolt
 ```
 
-**HR8-K — ปราชญ์เวท — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **ปราชญ์เวท** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising both hands high and casting a big glowing spell circle
-```
-
 **HR8-D — ปราชญ์เวท — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **ปราชญ์เวท** → กด **Add Animation**
@@ -701,7 +602,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อาร์คเมจทมิฬ แล้ว ทำท่าขยับต่อตามข้อ HR9-W, HR9-A, HR9-K, HR9-D
+7. ได้ อาร์คเมจทมิฬ แล้ว ทำท่าขยับต่อตามข้อ HR9-W, HR9-A, HR9-D
 
 ```
 same young man in tattered jet-black robes with crimson runes, horned black hood, iron skull mask with red eyes, bone staff with crimson crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -730,17 +631,6 @@ same young man in tattered jet-black robes with crimson runes, horned black hood
 thrusting the staff forward and casting a glowing magic bolt
 ```
 
-**HR9-K — อาร์คเมจทมิฬ — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising both hands high and casting a big glowing spell circle
-```
-
 **HR9-D — อาร์คเมจทมิฬ — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** → กด **Add Animation**
@@ -761,7 +651,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ผู้พิทักษ์ (แทงค์) แล้ว ทำท่าขยับต่อตามข้อ HR10-W, HR10-A, HR10-K, HR10-D
+7. ได้ ผู้พิทักษ์ (แทงค์) แล้ว ทำท่าขยับต่อตามข้อ HR10-W, HR10-A, HR10-D
 
 ```
 same young man in thick iron armour over chainmail, open-face iron helmet, huge rectangular tower shield, short heavy mace, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -790,17 +680,6 @@ same young man in thick iron armour over chainmail, open-face iron helmet, huge 
 smashing forward with the weapon while holding the shield
 ```
 
-**HR10-K — ผู้พิทักษ์ (แทงค์) — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising the shield high and slamming it into the ground with a shockwave
-```
-
 **HR10-D — ผู้พิทักษ์ (แทงค์) — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** → กด **Add Animation**
@@ -821,7 +700,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อัศวินเหล็กกล้า แล้ว ทำท่าขยับต่อตามข้อ HR11-W, HR11-A, HR11-K, HR11-D
+7. ได้ อัศวินเหล็กกล้า แล้ว ทำท่าขยับต่อตามข้อ HR11-W, HR11-A, HR11-D
 
 ```
 same young man in massive dark steel plate armour with spiked pauldrons, closed great-helm with glowing visor slit, spiked tower shield, war hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -850,17 +729,6 @@ same young man in massive dark steel plate armour with spiked pauldrons, closed 
 smashing forward with the weapon while holding the shield
 ```
 
-**HR11-K — อัศวินเหล็กกล้า — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising the shield high and slamming it into the ground with a shockwave
-```
-
 **HR11-D — อัศวินเหล็กกล้า — ล้ม/ตาย**
 
 1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** → กด **Add Animation**
@@ -881,7 +749,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ป้อมปราการมนุษย์ แล้ว ทำท่าขยับต่อตามข้อ HR12-W, HR12-A, HR12-K, HR12-D
+7. ได้ ป้อมปราการมนุษย์ แล้ว ทำท่าขยับต่อตามข้อ HR12-W, HR12-A, HR12-D
 
 ```
 same young man in colossal black-and-gold plate armour with glowing orange runes, horned helmet with iron face mask, castle-gate tower shield, glowing war hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -908,17 +776,6 @@ same young man in colossal black-and-gold plate armour with glowing orange runes
 
 ```
 smashing forward with the weapon while holding the shield
-```
-
-**HR12-K — ป้อมปราการมนุษย์ — ใช้สกิล**
-
-1. เมนู **Characters** → กดรูป **ป้อมปราการมนุษย์** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าใช้สกิล)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising the shield high and slamming it into the ground with a shockwave
 ```
 
 **HR12-D — ป้อมปราการมนุษย์ — ล้ม/ตาย**
