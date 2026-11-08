@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import heroIdle from '../assets/td/hero_idle.webp';
 import heroWalk from '../assets/td/hero_walking.webp';
 import heroAttack from '../assets/td/hero_attack.webp';
+import tl1Wang from '../assets/td/tl1_wang.png';
 import hr3Idle from '../assets/td/hr3_idle.webp';
 import hr3Walk from '../assets/td/hr3_walking.webp';
 import hr3Attack from '../assets/td/hr3_attack.webp';
@@ -22,9 +23,9 @@ const DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west'
 
 type RGB = [number, number, number];
 const PAL = {
-  grass: [[52, 74, 58], [58, 82, 62], [66, 92, 68], [74, 101, 72]] as RGB[],
+  grass: [[31, 53, 23], [34, 57, 25], [37, 58, 26], [41, 62, 28]] as RGB[],   // matched to the PixelLab TL1 tileset
   weed: [[92, 116, 80], [104, 126, 84]] as RGB[],
-  dirt: [[110, 86, 62], [122, 96, 70], [134, 108, 80]] as RGB[],
+  dirt: [[67, 50, 35], [69, 54, 35], [69, 55, 36]] as RGB[],
   pebble: [[150, 132, 108], [86, 70, 54]] as RGB[],
   stone: [[96, 102, 106], [106, 112, 116], [116, 121, 124]] as RGB[],
   gap: [[56, 62, 64], [62, 74, 62]] as RGB[],
@@ -81,6 +82,7 @@ export class TopDownScene extends Phaser.Scene {
   constructor() { super('TopDown'); }
 
   preload() {
+    this.load.image('td_tl1', tl1Wang);
     for (const f of FORMS) {
       this.load.spritesheet(`td_${f.key}_idle`, f.idle, { frameWidth: 48, frameHeight: 48 });
       this.load.spritesheet(`td_${f.key}_walk`, f.walk, { frameWidth: 68, frameHeight: 68 });
@@ -161,12 +163,39 @@ export class TopDownScene extends Phaser.Scene {
       if (s === 'water' || s === 'mud' && Math.abs(x - riverX(y)) < 28) this.block(x, y);
     }
     ctx.putImageData(img, 0, 0);
+    this.wangOverlay(ctx, S);
     if (this.textures.exists('td_ground')) this.textures.remove('td_ground');
     this.textures.addCanvas('td_ground', cv);
     this.add.image(0, 0, 'td_ground').setOrigin(0).setDepth(0);
     // map border
     for (let x = 0; x < MW; x += CELL) { this.block(x, 0); this.block(x, MH - 1); }
     for (let y = 0; y < MH; y += CELL) { this.block(0, y); this.block(MW - 1, y); }
+  }
+
+  /** PixelLab Wang tileset (grass ↔ dirt, 32px, 5x4 sheet) drawn over every cell made only of grass/dirt.
+   *  Corner key = TL,TR,BL,BR with G/D; vertices are dirt when the road is near so thin roads stay continuous. */
+  wangOverlay(ctx: CanvasRenderingContext2D, S: string[]) {
+    if (!this.textures.exists('td_tl1')) return;
+    const src = this.textures.get('td_tl1').getSourceImage() as HTMLImageElement;
+    const LAYOUT = [['GGGD', 'GGDD', 'GGDG', 'DDDG', 'DDGD'], ['GDGD', 'DDDD', 'DGDG', 'DGDD', 'GDDD'], ['GDGG', 'DDGG', 'DGGG', 'DGGD', 'GDDG'], ['DDDD', 'GGGG']];
+    const at: Record<string, [number, number]> = {};
+    LAYOUT.forEach((row, ty) => row.forEach((k, tx) => { if (!at[k]) at[k] = [tx, ty]; }));
+    const T = 32, VW = MW / T + 1, VH = MH / T + 1;
+    const sAt = (x: number, y: number) => S[Math.min(MH - 1, Math.max(0, y)) * MW + Math.min(MW - 1, Math.max(0, x))];
+    const V: string[] = [];
+    for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) {
+      const x = i * T, y = j * T;
+      const dirt = [[0, 0], [10, 0], [-10, 0], [0, 10], [0, -10]].some(([a, b]) => sAt(x + a, y + b) === 'dirt');
+      V.push(dirt ? 'D' : 'G');
+    }
+    for (let cy = 0; cy < MH / T; cy++) for (let cx = 0; cx < MW / T; cx++) {
+      let ok = true;
+      for (let y = cy * T; y < cy * T + T && ok; y += 2) for (let x = cx * T; x < cx * T + T; x += 2) { const v = S[y * MW + x]; if (v !== 'grass' && v !== 'dirt') { ok = false; break; } }
+      if (!ok) continue;
+      const k = V[cy * VW + cx] + V[cy * VW + cx + 1] + V[(cy + 1) * VW + cx] + V[(cy + 1) * VW + cx + 1];
+      const t = at[k]; if (!t) continue;
+      ctx.drawImage(src, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
+    }
   }
 
   block(x: number, y: number) { const i = Math.floor(y / CELL) * (MW / CELL) + Math.floor(x / CELL); if (i >= 0 && i < this.blocked.length) this.blocked[i] = 1; }
