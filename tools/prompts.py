@@ -43,9 +43,9 @@ for c, t, lo, up in TILES:
 sec('hero', '② ฮีโร่ (PixelLab → Create character • 48px • 4 ทิศ • low top-down)',
     'ตั้งค่า: ขนาด 48 • 4 directions • view: low top-down • outline: single color black • shading: medium • detail: medium • '
     'ได้ตัวละคร 4 ทิศแล้ว กด Animate → เลือกท่า walk / attack / cast / hurt / death ตามรายการ ⑦ • '
-    'ทำ HR0 (ชาวบ้าน) ก่อน เพราะเป็นร่างแรกของเกม • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม ใส่ชุดต่างกัน')
+    'ทำ HR0 (ชาวบ้าน) ก่อน เพราะเป็นร่างแรกของเกม • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม ใส่ชุดต่างกัน • ท่าเดินใช้ Template motion → Skeleton v3 (ของที่ถือเพี้ยนน้อย) • ถ้าอาวุธในมือส่ายตอนเดิน ให้เพิ่มคำว่า weapon sheathed / on the back, hands empty')
 FORMS = [
-    ('HR0', 'ชาวบ้าน (ร่างแรก)', 'young man with short messy brown hair, plain beige linen shirt, brown trousers, rope belt, worn boots, wooden practice sword'),
+    ('HR0', 'ชาวบ้าน (ร่างแรก)', 'young man with short messy brown hair, plain beige linen shirt, brown trousers, rope belt, worn boots, a wooden sword sheathed at his hip, hands empty'),
     ('HR1', 'นักดาบ', 'same young man, blue tunic with leather shoulder guard, red headband, green scarf, steel short sword and small round shield'),
     ('HR2', 'อัศวิน', 'same young man in polished steel plate armour, blue tabard, red cape, closed knight helmet with red plume, longsword and kite shield'),
     ('HR3', 'ลอร์ดอัศวิน', 'same young man in ornate white-and-gold plate armour with glowing blue runes, royal blue cape, winged full helmet, radiant greatsword'),
