@@ -6,17 +6,28 @@ import Phaser from 'phaser';
 import heroIdle from '../assets/td/hero_idle.webp';
 import heroWalk from '../assets/td/hero_walking.webp';
 import heroAttack from '../assets/td/hero_attack.webp';
+import objMeta from '../assets/td/obj/objs.json';
+const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const OM = objMeta as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number }>;
 import tl1Wang from '../assets/td/tl1_wang.png';
 import tl2Wang from '../assets/td/tl2_wang.png';
 import tl3Wang from '../assets/td/tl3_wang.png';
 import hr3Idle from '../assets/td/hr3_idle.webp';
 import hr3Walk from '../assets/td/hr3_walking.webp';
 import hr3Attack from '../assets/td/hr3_attack.webp';
+import hr4Idle from '../assets/td/hr4_idle.webp';
+import hr4Walk from '../assets/td/hr4_walking.webp';
+import hr4Attack from '../assets/td/hr4_attack.webp';
+import hr9Idle from '../assets/td/hr9_idle.webp';
+import hr9Walk from '../assets/td/hr9_walking.webp';
+import hr9Attack from '../assets/td/hr9_attack.webp';
 
 // hero forms from PixelLab: idle sheet (8 dirs, 48px), walk sheet (8 rows x 8 frames, 68px), optional attack (8 rows x 9)
-const FORMS: { key: string; name: string; idle: string; walk: string; attack?: string; idleFoot: number; walkFoot: number }[] = [
+const FORMS: { key: string; name: string; idle: string; walk: string; attack?: string; idleFoot: number; walkFoot: number; fs?: number }[] = [
   { key: 'hero', name: 'ชาวบ้าน', idle: heroIdle, walk: heroWalk, attack: heroAttack, idleFoot: 46, walkFoot: 56 },
   { key: 'hr3', name: 'ลอร์ดอัศวิน', idle: hr3Idle, walk: hr3Walk, attack: hr3Attack, idleFoot: 44, walkFoot: 54 },
+  { key: 'hr4', name: 'นักธนู', idle: hr4Idle, walk: hr4Walk, attack: hr4Attack, idleFoot: 46, walkFoot: 54, fs: 64 },
+  { key: 'hr9', name: 'อาร์คเมจทมิฬ', idle: hr9Idle, walk: hr9Walk, attack: hr9Attack, idleFoot: 44, walkFoot: 51, fs: 56 },
 ];
 
 const MW = 1280, MH = 800;           // map size in game px (1 texel = 1 px)
@@ -78,17 +89,20 @@ export class TopDownScene extends Phaser.Scene {
   joy = { id: -1, x: 0, y: 0, dx: 0, dy: 0 };
   joyG!: Phaser.GameObjects.Graphics;
   lamps: Phaser.GameObjects.Image[] = [];
+  reserved = new Set<string>();
   vignette!: Phaser.GameObjects.Image;
   label!: Phaser.GameObjects.Text;
 
   constructor() { super('TopDown'); }
 
   preload() {
+    for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang);
     for (const f of FORMS) {
       this.load.spritesheet(`td_${f.key}_idle`, f.idle, { frameWidth: 48, frameHeight: 48 });
-      this.load.spritesheet(`td_${f.key}_walk`, f.walk, { frameWidth: 68, frameHeight: 68 });
-      if (f.attack) this.load.spritesheet(`td_${f.key}_attack`, f.attack, { frameWidth: 68, frameHeight: 68 });
+      const fs = f.fs ?? 68;
+      this.load.spritesheet(`td_${f.key}_walk`, f.walk, { frameWidth: fs, frameHeight: fs });
+      if (f.attack) this.load.spritesheet(`td_${f.key}_attack`, f.attack, { frameWidth: fs, frameHeight: fs });
     }
   }
 
@@ -281,40 +295,68 @@ export class TopDownScene extends Phaser.Scene {
     return im;
   }
 
+  /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
+  obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true) {
+    const m = OM[name]; if (!m) return null;
+    const im = this.add.image(Math.round(x), Math.round(y), 'o_' + name).setOrigin(0.5, m.foot / m.h).setDepth(y);
+    const w = (m.x1 - m.x0) * fw;
+    if (shadow) this.add.ellipse(x, y - 1, Math.max(8, (m.x1 - m.x0) * 0.7), Math.max(4, fd * 0.9), 0x0a1008, 0.4).setDepth(1);
+    for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
+    return im;
+  }
+
   placeProps() {
+    const occ = (x: number, y: number) => this.isBlocked(x, y);
     const free = (x: number, y: number, r: number) => {
-      for (let j = -r; j <= r; j += 4) for (let i = -r; i <= r; i += 4) if (surface(x + i, y + j) !== 'grass') return false;
+      for (let j = -r; j <= r; j += 4) for (let i = -r; i <= r; i += 4) if (surface(x + i, y + j) !== 'grass' || occ(x + i, y + j)) return false;
       return true;
     };
-    // forest edge and clusters
     let seed = 1;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const pick = (k: string, n: number) => `${k}_${Math.floor(rnd() * n)}`;
+    // village buildings (level art from PixelLab Objects)
+    const B: [string, number, number][] = [
+      ['townhall_1', 400, 318], ['house_1', 668, 318], ['house_0', 760, 300], ['forge_1', 712, 600], ['lumber_0', 190, 330],
+      ['quarry_0', 130, 590], ['barn_1', 390, 610], ['house_2', 640, 690],
+    ];
+    for (const [n, x, y] of B) {
+      const m = OM[n]; this.obj(n, x, y, 0.82, Math.round((m.foot - m.top) * 0.42));
+      // keep the trees away from the building
+      for (let j = -(m.foot - m.top); j <= 14; j += 4) for (let i = -(m.x1 - m.x0) * 0.55; i <= (m.x1 - m.x0) * 0.55; i += 4) if (!this.isBlocked(x + i, y + j)) this.reserved.add(Math.round((x + i) / 4) + ',' + Math.round((y + j) / 4));
+    }
+    const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
+    // market stalls and village clutter around the plaza
+    for (const [x, y] of [[600, 520], [652, 500], [436, 522]]) this.obj(pick('stall', 5), x, y, 0.8, 10);
+    for (const [k, x, y] of [['well_0', 580, 330], ['cart_0', 286, 470], ['barrel_0', 742, 612], ['barrel_1', 752, 618], ['crate_0', 680, 612], ['logs_0', 236, 344], ['logs_3', 150, 350],
+      ['hay_0', 430, 628], ['hay_1', 440, 636], ['ore_2', 92, 600], ['ore_4', 164, 604], ['sign_0', 860, 452], ['fire_0', 300, 560], ['stump_0', 222, 362]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
+    // forest edge and clusters
     for (let k = 0; k < 900; k++) {
       const x = 16 + rnd() * (MW - 32), y = 50 + rnd() * (MH - 60);
       const edge = Math.min(x, MW - x, y, MH - y);
       const dense = edge < 80 || fbm(x / 140, y / 140) > 0.62;
-      if (!dense || !free(x, y, 18)) continue;
-      const pine = rnd() < 0.45;
-      this.prop(pine ? 'td_pine' : 'td_tree', Math.round(x), Math.round(y), 3);
-    }
-    for (let k = 0; k < 160; k++) {
-      const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
-      if (!free(x, y, 10)) continue;
+      if (!dense || !free(x, y, 18) || near(x, y)) continue;
       const r = rnd();
-      if (r < 0.55) this.add.image(Math.round(x), Math.round(y), 'td_bush').setOrigin(0.5, 1).setDepth(y);
-      else this.prop('td_rock', Math.round(x), Math.round(y), 5);
+      this.obj(r < 0.45 ? pick('pine', 4) : r < 0.9 ? pick('oak', 3) : pick('dead', 6), x, y, 0.18, 3);
+    }
+    for (let k = 0; k < 170; k++) {
+      const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
+      if (!free(x, y, 10) || near(x, y)) continue;
+      const r = rnd();
+      if (r < 0.5) this.add.image(Math.round(x), Math.round(y), 'o_' + pick('bush', 5)).setOrigin(0.5, 0.85).setDepth(y);
+      else if (r < 0.85) this.obj(pick('rock', 8), x, y, 0.6, 4);
+      else this.obj(pick('stump', 5), x, y, 0.5, 3);
     }
     // fences along the road, lamps around the plaza
-    for (let x = 40; x < 860; x += 32) {
-      const y = Math.round(roadY(x) + 30);
-      if (Math.abs(x - PLAZA.x) < PLAZA.r + 20 || Math.abs(x - (PLAZA.x - 40)) < 30) continue;
-      if (surface(x + 16, y) === 'grass') this.prop('td_fence', x, y, 14, 0);
+    for (let x = 40; x < 860; x += 30) {
+      const y = Math.round(roadY(x) + 40);
+      if (Math.abs(x - PLAZA.x) < PLAZA.r + 40 || near(x, y) || this.isBlocked(x, y)) continue;
+      if (surface(x, y) === 'grass') this.obj('fenceh_0', x, y, 1, 3, false);
     }
     for (let a = 0; a < 6; a++) {
-      const x = Math.round(PLAZA.x + Math.cos(a * Math.PI / 3 + 0.5) * (PLAZA.r + 8)), y = Math.round(PLAZA.y + Math.sin(a * Math.PI / 3 + 0.5) * (PLAZA.r + 8));
+      const x = Math.round(PLAZA.x + Math.cos(a * Math.PI / 3 + 0.5) * (PLAZA.r + 14)), y = Math.round(PLAZA.y + Math.sin(a * Math.PI / 3 + 0.5) * (PLAZA.r + 14));
       if (surface(x, y) === 'dirt') continue;
-      this.prop('td_lamp', x, y, 2);
-      this.lamps.push(this.add.image(x + 3, y - 27, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990));
+      this.obj('lamp_0', x, y, 0.2, 2);
+      this.lamps.push(this.add.image(x + 6, y - 26, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990));
     }
   }
 
@@ -406,7 +448,7 @@ export class TopDownScene extends Phaser.Scene {
     this.attacking = true;
     const h = this.hero;
     const F = this.F;
-    h.setTexture(`td_${F.key}_attack`).setOrigin(0.5, F.walkFoot / 68).play(`${F.key}_a_${DIRS[this.dir]}`);
+    h.setTexture(`td_${F.key}_attack`).setOrigin(0.5, F.walkFoot / (F.fs ?? 68)).play(`${F.key}_a_${DIRS[this.dir]}`);
     h.once('animationcomplete', () => { this.attacking = false; h.setTexture(`td_${F.key}_idle`, this.dir).setOrigin(0.5, F.idleFoot / 48); });
   }
 
@@ -431,7 +473,7 @@ export class TopDownScene extends Phaser.Scene {
       const ang = Math.atan2(my, mx);                       // 0 = east
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
       const key = `${this.F.key}_w_${DIRS[this.dir]}`;
-      if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture(`td_${this.F.key}_walk`).setOrigin(0.5, this.F.walkFoot / 68); h.play(key, true); }
+      if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture(`td_${this.F.key}_walk`).setOrigin(0.5, this.F.walkFoot / (this.F.fs ?? 68)); h.play(key, true); }
     } else if (h.anims.isPlaying && !this.attacking && !this.dead) {
       h.stop(); h.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
     }
