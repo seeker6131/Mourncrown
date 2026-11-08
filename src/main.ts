@@ -4,6 +4,7 @@ import { TitleScene } from './scenes/TitleScene';
 import { WorldScene } from './scenes/WorldScene';
 import { UIScene } from './scenes/UIScene';
 import { PreviewScene } from './scenes/PreviewScene';
+import { TopDownScene } from './scenes/TopDownScene';
 import { installDebug } from './core/debug';
 
 // Render at device resolution (capped) for crisp text; CSS scales the canvas down.
@@ -25,7 +26,7 @@ const game = new Phaser.Game({
     zoom: 1 / DPR,
   },
   input: { activePointers: 4 },
-  scene: [BootScene, TitleScene, WorldScene, UIScene, PreviewScene],
+  scene: [BootScene, TitleScene, WorldScene, UIScene, PreviewScene, TopDownScene],
   fps: { target: 60 },
 });
 
