@@ -173,7 +173,7 @@ export class TopDownScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
-    const zoom = () => cam.setZoom(Math.max(2, Math.floor(this.scale.height / 340)));
+    const zoom = () => cam.setZoom(Math.max(1.5, Math.round(this.scale.height / 480 * 2) / 2));
     zoom(); this.scale.on('resize', zoom);
 
     this.addOverlay();
