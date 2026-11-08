@@ -177,12 +177,12 @@ small patch of moss and grass tufts growing between stones, top-down pixel art, 
 clump of tall reeds and cattails at a river edge, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**FB1 — สะพานไม้ มองจากบน (96px)**
+**FB1 — สะพานไม้ มองจากบน (128px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ สะพาน)
 
@@ -2786,12 +2786,12 @@ round dark green bush, top-down pixel art, muted desaturated dark-forest colours
 mossy grey boulder, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB6 — รั้วไม้แนวนอน (32px)**
+**OB6 — รั้วไม้แนวนอน (48px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ รั้วไม้แนวนอน)
 
@@ -2799,12 +2799,12 @@ mossy grey boulder, top-down pixel art, muted desaturated dark-forest colours, s
 short horizontal wooden rail fence segment with two posts, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB7 — รั้วไม้แนวตั้ง (32px)**
+**OB7 — รั้วไม้แนวตั้ง (48px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ รั้วไม้แนวตั้ง)
 
@@ -2812,12 +2812,12 @@ short horizontal wooden rail fence segment with two posts, top-down pixel art, m
 short vertical wooden rail fence segment seen from above, running up and down, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB8 — โคมไฟ (48px)**
+**OB8 — โคมไฟ (64px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โคมไฟ)
 
@@ -2825,12 +2825,12 @@ short vertical wooden rail fence segment seen from above, running up and down, t
 wooden lamp post with a hanging glowing lantern, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB9 — บ่อน้ำ (48px)**
+**OB9 — บ่อน้ำ (64px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ่อน้ำ)
 
@@ -2851,12 +2851,12 @@ round stone well with a small wooden roof and bucket, top-down pixel art, muted 
 campfire ring of stones with burning logs, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB11 — เกวียน (48px)**
+**OB11 — เกวียน (64px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เกวียน)
 
@@ -2890,12 +2890,12 @@ wooden barrel with iron bands, top-down pixel art, muted desaturated dark-forest
 stack of two wooden crates, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB14 — ป้ายบอกทาง (32px)**
+**OB14 — ป้ายบอกทาง (48px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ป้ายบอกทาง)
 
@@ -2903,12 +2903,12 @@ stack of two wooden crates, top-down pixel art, muted desaturated dark-forest co
 wooden direction sign post, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB15 — แผงตลาด (64px)**
+**OB15 — แผงตลาด (96px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
+4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ แผงตลาด)
 
@@ -2916,12 +2916,12 @@ wooden direction sign post, top-down pixel art, muted desaturated dark-forest co
 market stall with a faded striped awning and baskets of goods, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB16 — กองซุง (48px)**
+**OB16 — กองซุง (64px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ กองซุง)
 
@@ -2929,12 +2929,12 @@ market stall with a faded striped awning and baskets of goods, top-down pixel ar
 pile of cut logs, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB17 — สะพานไม้ (96px)**
+**OB17 — สะพานไม้ (128px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ สะพานไม้)
 
@@ -2968,12 +2968,12 @@ hay bale, top-down pixel art, muted desaturated dark-forest colours, soft shadin
 tree stump with an axe mark, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB20 — หินแร่ (ขุดได้) (48px)**
+**OB20 — หินแร่ (ขุดได้) (64px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **48px** (ถ้ามีช่อง width/height ใส่ 48 ทั้งคู่)
+4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หินแร่ (ขุดได้))
 

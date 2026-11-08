@@ -121,7 +121,7 @@ DEC = [
 ]
 for c, t, size, d in DEC:
     P(c, f'ของประดับพื้น: {t} ({size}px)', obj(size, t), f"{d}, top-down pixel art, muted desaturated dark-forest colours, soft shading")
-P('FB1', 'สะพานไม้ มองจากบน (96px)', obj(96, 'สะพาน'), "wooden plank bridge seen directly from above, planks running across, rope railings on both sides, top-down pixel art, muted desaturated dark-forest colours, soft shading")
+P('FB1', 'สะพานไม้ มองจากบน (128px)', obj(128, 'สะพาน'), "wooden plank bridge seen directly from above, planks running across, rope railings on both sides, top-down pixel art, muted desaturated dark-forest colours, soft shading")
 
 # ---------------- 1. tilesets ----------------
 sec('tiles', '① แผ่นพื้น (เมนู Maps)', '1 ชุด = ข้อ a (ช่อง Lower) + ข้อ b (ช่อง Upper) แล้วกด Generate ครั้งเดียว')
@@ -276,21 +276,21 @@ OBJ = [
     ('OB3', 'ต้นไม้แห้ง', 160, 'bare dead tree with twisted grey branches'),
     ('OB4', 'พุ่มไม้', 32, 'round dark green bush'),
     ('OB5', 'ก้อนหิน', 32, 'mossy grey boulder'),
-    ('OB6', 'รั้วไม้แนวนอน', 32, 'short horizontal wooden rail fence segment with two posts'),
-    ('OB7', 'รั้วไม้แนวตั้ง', 32, 'short vertical wooden rail fence segment seen from above, running up and down'),
-    ('OB8', 'โคมไฟ', 48, 'wooden lamp post with a hanging glowing lantern'),
-    ('OB9', 'บ่อน้ำ', 48, 'round stone well with a small wooden roof and bucket'),
+    ('OB6', 'รั้วไม้แนวนอน', 48, 'short horizontal wooden rail fence segment with two posts'),
+    ('OB7', 'รั้วไม้แนวตั้ง', 48, 'short vertical wooden rail fence segment seen from above, running up and down'),
+    ('OB8', 'โคมไฟ', 64, 'wooden lamp post with a hanging glowing lantern'),
+    ('OB9', 'บ่อน้ำ', 64, 'round stone well with a small wooden roof and bucket'),
     ('OB10', 'กองไฟ', 32, 'campfire ring of stones with burning logs'),
-    ('OB11', 'เกวียน', 48, 'wooden hand cart with two wheels'),
+    ('OB11', 'เกวียน', 64, 'wooden hand cart with two wheels'),
     ('OB12', 'ถังไม้', 32, 'wooden barrel with iron bands'),
     ('OB13', 'ลังไม้', 32, 'stack of two wooden crates'),
-    ('OB14', 'ป้ายบอกทาง', 32, 'wooden direction sign post'),
-    ('OB15', 'แผงตลาด', 64, 'market stall with a faded striped awning and baskets of goods'),
-    ('OB16', 'กองซุง', 48, 'pile of cut logs'),
-    ('OB17', 'สะพานไม้', 96, 'short wooden plank bridge seen from above, crossing from left to right'),
+    ('OB14', 'ป้ายบอกทาง', 48, 'wooden direction sign post'),
+    ('OB15', 'แผงตลาด', 96, 'market stall with a faded striped awning and baskets of goods'),
+    ('OB16', 'กองซุง', 64, 'pile of cut logs'),
+    ('OB17', 'สะพานไม้', 128, 'short wooden plank bridge seen from above, crossing from left to right'),
     ('OB18', 'กองฟาง', 32, 'hay bale'),
     ('OB19', 'ต้นไม้ (ตัดได้) ตอ', 32, 'tree stump with an axe mark'),
-    ('OB20', 'หินแร่ (ขุดได้)', 48, 'large grey rock with glinting ore veins'),
+    ('OB20', 'หินแร่ (ขุดได้)', 64, 'large grey rock with glinting ore veins'),
 ]
 for c, t, size, d in OBJ:
     P(c, f'{t} ({size}px)', obj(size, t), f"{d}, {PL}")
