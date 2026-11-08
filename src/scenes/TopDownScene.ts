@@ -7,6 +7,8 @@ import heroIdle from '../assets/td/hero_idle.webp';
 import heroWalk from '../assets/td/hero_walking.webp';
 import heroAttack from '../assets/td/hero_attack.webp';
 import tl1Wang from '../assets/td/tl1_wang.png';
+import tl2Wang from '../assets/td/tl2_wang.png';
+import tl3Wang from '../assets/td/tl3_wang.png';
 import hr3Idle from '../assets/td/hr3_idle.webp';
 import hr3Walk from '../assets/td/hr3_walking.webp';
 import hr3Attack from '../assets/td/hr3_attack.webp';
@@ -82,7 +84,7 @@ export class TopDownScene extends Phaser.Scene {
   constructor() { super('TopDown'); }
 
   preload() {
-    this.load.image('td_tl1', tl1Wang);
+    this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang);
     for (const f of FORMS) {
       this.load.spritesheet(`td_${f.key}_idle`, f.idle, { frameWidth: 48, frameHeight: 48 });
       this.load.spritesheet(`td_${f.key}_walk`, f.walk, { frameWidth: 68, frameHeight: 68 });
@@ -172,29 +174,43 @@ export class TopDownScene extends Phaser.Scene {
     for (let y = 0; y < MH; y += CELL) { this.block(0, y); this.block(MW - 1, y); }
   }
 
-  /** PixelLab Wang tileset (grass ↔ dirt, 32px, 5x4 sheet) drawn over every cell made only of grass/dirt.
-   *  Corner key = TL,TR,BL,BR with G/D; vertices are dirt when the road is near so thin roads stay continuous. */
+  /** PixelLab Wang tilesets (32px, 5x4 sheet, same corner layout for every set; U = the patch terrain, L = the surround).
+   *  Each cell made only of one set's two terrains gets that set's tile; other cells keep the painted pixels. */
   wangOverlay(ctx: CanvasRenderingContext2D, S: string[]) {
-    if (!this.textures.exists('td_tl1')) return;
-    const src = this.textures.get('td_tl1').getSourceImage() as HTMLImageElement;
-    const LAYOUT = [['GGGD', 'GGDD', 'GGDG', 'DDDG', 'DDGD'], ['GDGD', 'DDDD', 'DGDG', 'DGDD', 'GDDD'], ['GDGG', 'DDGG', 'DGGG', 'DGGD', 'GDDG'], ['DDDD', 'GGGG']];
+    const LAYOUT = [['LLLU', 'LLUU', 'LLUL', 'UUUL', 'UULU'], ['LULU', 'UUUU', 'ULUL', 'ULUU', 'LUUU'], ['LULL', 'UULL', 'ULLL', 'ULLU', 'LUUL'], ['UUUU', 'LLLL']];
     const at: Record<string, [number, number]> = {};
     LAYOUT.forEach((row, ty) => row.forEach((k, tx) => { if (!at[k]) at[k] = [tx, ty]; }));
     const T = 32, VW = MW / T + 1, VH = MH / T + 1;
     const sAt = (x: number, y: number) => S[Math.min(MH - 1, Math.max(0, y)) * MW + Math.min(MW - 1, Math.max(0, x))];
-    const V: string[] = [];
-    for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) {
-      const x = i * T, y = j * T;
-      const dirt = [[0, 0], [10, 0], [-10, 0], [0, 10], [0, -10]].some(([a, b]) => sAt(x + a, y + b) === 'dirt');
-      V.push(dirt ? 'D' : 'G');
-    }
-    for (let cy = 0; cy < MH / T; cy++) for (let cx = 0; cx < MW / T; cx++) {
-      let ok = true;
-      for (let y = cy * T; y < cy * T + T && ok; y += 2) for (let x = cx * T; x < cx * T + T; x += 2) { const v = S[y * MW + x]; if (v !== 'grass' && v !== 'dirt') { ok = false; break; } }
-      if (!ok) continue;
-      const k = V[cy * VW + cx] + V[cy * VW + cx + 1] + V[(cy + 1) * VW + cx] + V[(cy + 1) * VW + cx + 1];
-      const t = at[k]; if (!t) continue;
-      ctx.drawImage(src, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
+    const SETS: { key: string; allow: string[]; need?: string[]; upper: (x: number, y: number) => boolean }[] = [
+      { key: 'td_tl3', allow: ['grass', 'water', 'mud'], need: ['water', 'mud'], upper: (x, y) => { const v = sAt(x, y); return v === 'water' || v === 'mud'; } },
+      { key: 'td_tl2', allow: ['grass', 'cobble', 'dirt'], need: ['cobble'], upper: (x, y) => [[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([a, b]) => { const v = sAt(x + a, y + b); return v === 'cobble' || v === 'dirt'; }) },
+      { key: 'td_tl1', allow: ['grass', 'dirt'], upper: (x, y) => [[0, 0], [10, 0], [-10, 0], [0, 10], [0, -10]].some(([a, b]) => sAt(x + a, y + b) === 'dirt') },
+    ];
+    const done = new Uint8Array((MW / T) * (MH / T));
+    for (const set of SETS) {
+      if (!this.textures.exists(set.key)) continue;
+      const src = this.textures.get(set.key).getSourceImage() as HTMLImageElement;
+      const V: string[] = [];
+      for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) V.push(set.upper(i * T, j * T) ? 'U' : 'L');
+      for (let cy = 0; cy < MH / T; cy++) for (let cx = 0; cx < MW / T; cx++) {
+        if (done[cy * (MW / T) + cx]) continue;
+        let ok = true, has = !set.need;
+        for (let y = cy * T; y < cy * T + T && ok; y += 2) for (let x = cx * T; x < cx * T + T; x += 2) {
+          const v = S[y * MW + x]; if (!set.allow.includes(v)) { ok = false; break; } if (set.need?.includes(v)) has = true;
+        }
+        if (!ok || !has) continue;
+        const k = V[cy * VW + cx] + V[cy * VW + cx + 1] + V[(cy + 1) * VW + cx] + V[(cy + 1) * VW + cx + 1];
+        if (k === 'LLLL' && set.key !== 'td_tl1') continue;
+        const t = at[k]; if (!t) continue;
+        if (k === 'UUUU' || k === 'LLLL') {
+          // full tiles: random rotation / mirror so the repeat is not visible
+          const r = Math.floor(hash(cx * 7 + 3, cy * 13 + 1) * 8);
+          ctx.save(); ctx.translate(cx * T + T / 2, cy * T + T / 2); ctx.rotate((r & 3) * Math.PI / 2); if (r & 4) ctx.scale(-1, 1);
+          ctx.drawImage(src, t[0] * T, t[1] * T, T, T, -T / 2, -T / 2, T, T); ctx.restore();
+        } else ctx.drawImage(src, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
+        done[cy * (MW / T) + cx] = 1;
+      }
     }
   }
 
