@@ -8,11 +8,12 @@ import heroWalk from '../assets/td/hero_walking.webp';
 import heroAttack from '../assets/td/hero_attack.webp';
 import hr3Idle from '../assets/td/hr3_idle.webp';
 import hr3Walk from '../assets/td/hr3_walking.webp';
+import hr3Attack from '../assets/td/hr3_attack.webp';
 
 // hero forms from PixelLab: idle sheet (8 dirs, 48px), walk sheet (8 rows x 8 frames, 68px), optional attack (8 rows x 9)
 const FORMS: { key: string; name: string; idle: string; walk: string; attack?: string; idleFoot: number; walkFoot: number }[] = [
   { key: 'hero', name: 'ชาวบ้าน', idle: heroIdle, walk: heroWalk, attack: heroAttack, idleFoot: 46, walkFoot: 56 },
-  { key: 'hr3', name: 'ลอร์ดอัศวิน', idle: hr3Idle, walk: hr3Walk, idleFoot: 44, walkFoot: 54 },
+  { key: 'hr3', name: 'ลอร์ดอัศวิน', idle: hr3Idle, walk: hr3Walk, attack: hr3Attack, idleFoot: 44, walkFoot: 54 },
 ];
 
 const MW = 1280, MH = 800;           // map size in game px (1 texel = 1 px)
