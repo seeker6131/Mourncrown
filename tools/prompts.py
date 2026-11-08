@@ -244,7 +244,7 @@ for c, t, size, d, work in NPCS:
         P(c + '-J', f'{t} — ท่าทำงาน', custom(t, 'ท่าทำงาน', last=True), work)
 
 # ---------------- 6. buildings (Objects) ----------------
-sec('bld', '⑥ อาคาร 3 ระดับ (เมนู Objects) — ทำใหม่ทุกหลังด้วยคำสั่งหันตรง', 'คำสั่งชุดนี้บังคับให้ทุกหลังหันหน้าตรงลง หลังคาขวางซ้าย-ขวา ไม่เฉียง • อาคารละ 3 รูป: Lv1 / Lv3 / Lv5 • ถ้ายังได้หลังเฉียงมา ให้ Generate ใหม่ (อย่าเก็บ) • หลังที่ตรงอยู่แล้ว (บ้าน Lv3, โรงตีเหล็ก Lv1, คอกสัตว์) เก็บไว้ได้ ไม่ต้องทำซ้ำ')
+sec('bld', '⑥ อาคาร 3 ระดับ (เมนู Objects) — ทำใหม่ทุกหลังด้วยคำสั่งหันตรง', 'ขนาดใหม่ Lv1 192 / Lv3 224 / Lv5 256 px ให้บ้านใหญ่สมจริงเทียบกับคน (คนสูง ~44px) • คำสั่งชุดนี้บังคับให้ทุกหลังหันหน้าตรงลง หลังคาขวางซ้าย-ขวา ไม่เฉียง • อาคารละ 3 รูป: Lv1 / Lv3 / Lv5 • ถ้ายังได้หลังเฉียงมา ให้ Generate ใหม่ (อย่าเก็บ) • หลังที่ตรงอยู่แล้ว (บ้าน Lv3, โรงตีเหล็ก Lv1, คอกสัตว์) เก็บไว้ได้ ไม่ต้องทำซ้ำ')
 BLD = [
     ('BD1', 'ศาลากลาง', 'village town hall with a bell tower and banners', 160),
     ('BD2', 'บ้านพัก', 'villager cottage with a chimney and flower boxes', 128),
@@ -265,15 +265,15 @@ for c, t, d, size in BLD:
     for k, lv, extra in LV:
         dd = d
         if c == 'BD11': dd = {'1': 'small wooden watchtower', '3': 'stone tower with a ballista on top', '5': 'tall stone tower with a glowing blue crystal on top'}[k]
-        P(f'{c}-{k}', f'{t} {lv}', bobj(size + (32 if k == '5' else 0), f'{t} {lv}'), f"{dd}, {extra}, building only, no ground around it, front door in the middle of the front wall, {FRONT}, {PL}")
-P('BD12-1', 'ไซต์ก่อสร้าง', bobj(128, 'ไซต์ก่อสร้าง'), f"building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, {FRONT}, {PL}")
+        P(f'{c}-{k}', f'{t} {lv}', bobj({'1': 192, '3': 224, '5': 256}[k], f'{t} {lv}'), f"{dd}, {extra}, building only, no ground around it, front door in the middle of the front wall, {FRONT}, {PL}")
+P('BD12-1', 'ไซต์ก่อสร้าง', bobj(192, 'ไซต์ก่อสร้าง'), f"building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, {FRONT}, {PL}")
 
 # ---------------- 7. props (Objects) ----------------
 sec('obj', '⑦ ของในฉาก (เมนู Objects)', 'ทำทีละชิ้น • ขนาดเขียนไว้ในหัวข้อ')
 OBJ = [
-    ('OB1', 'ต้นสน', 128, 'tall dark teal-green pine tree with a visible trunk'),
-    ('OB2', 'ต้นโอ๊กใหญ่', 128, 'big round oak tree with a dense moss-green canopy and thick trunk'),
-    ('OB3', 'ต้นไม้แห้ง', 128, 'bare dead tree with twisted grey branches'),
+    ('OB1', 'ต้นสน', 160, 'tall dark teal-green pine tree with a visible trunk'),
+    ('OB2', 'ต้นโอ๊กใหญ่', 192, 'big round oak tree with a dense moss-green canopy and thick trunk'),
+    ('OB3', 'ต้นไม้แห้ง', 160, 'bare dead tree with twisted grey branches'),
     ('OB4', 'พุ่มไม้', 32, 'round dark green bush'),
     ('OB5', 'ก้อนหิน', 32, 'mossy grey boulder'),
     ('OB6', 'รั้วไม้แนวนอน', 32, 'short horizontal wooden rail fence segment with two posts'),
