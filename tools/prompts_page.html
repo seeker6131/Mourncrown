@@ -1,4 +1,4 @@
-<title>Eldergrove Prompt Book v2</title>
+<title>Eldergrove Prompt Book v3</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Cinzel:wght@700&family=JetBrains+Mono:wght@400&display=swap">
@@ -46,7 +46,7 @@ pre.open { max-height: none; }
 </style>
 <div class="wrap">
   <header>
-    <h1>Prompt Book v2 — แมพตาม concept</h1>
+    <h1>Prompt Book v3 — มองจากบน โทนป่าหม่น</h1>
     <p class="lede">__COUNT__ ชิ้น • __HOWTO__</p>
   </header>
   <div class="bar">
@@ -58,7 +58,7 @@ pre.open { max-height: none; }
 <div class="toast" id="toast">คัดลอกแล้ว</div>
 <script>
 const DATA = __DATA__;
-const KEY = 'eg_prompt_done_v2';
+const KEY = 'eg_prompt_done_v3';
 let done = {};
 try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };

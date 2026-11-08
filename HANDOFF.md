@@ -224,3 +224,9 @@
 - Gemini API: ผู้ใช้อยากใช้ (ฟรี) แต่แอป Claude มือถือเวอร์ชันเก่าแสดงหน้าต่าง create_environment ไม่ได้ (ต้องเปิดทาง generativelanguage.googleapis.com + request_credential header x-goog-api-key). ผู้ใช้เคยวาง key ในแชท → แนะนำให้ลบทิ้ง ห้ามใช้
 - **Gemini ทดสอบแล้ว (2026-11-07):** session ย้ายไป environment "RPG-Newgame" (เปิด generativelanguage.googleapis.com) + เก็บ key แบบ Bearer → ใช้ได้ผ่าน OpenAI-compat (`/v1beta/openai/...`; native endpoint ไม่รับ Bearer API key). แต่โมเดลภาพทุกตัว (gemini-2.5-flash-image, 3.1-flash-image(-preview), lite-image, nano-banana-2.1) ตอบ 429 free tier limit 0 → ฟรีเจนภาพไม่ได้ ต้องเปิด billing ถ้าจะใช้
 - ผู้ใช้ไม่มีงบจ่าย API ใดๆ (จ่ายแค่ Claude) → ใช้ ChatGPT/Gemini แอปฟรี; เพิ่ม 'ชุดเล็ก' 7 รูป (GV2 GV1 GV3 OB1 OB3 OB4 BD2) ใน ⓪
+
+## ทิศทางศิลป์ใหม่ (2026-11-08) — มองจากบน (top-down 3/4) โทนป่าหม่น
+- ผู้กำกับเจอเกมที่ชอบโทน (indie top-down pixel MMO บนเว็บ ใช้ PixelLab + Aseprite + video AI ทำแอนิเมชัน) → ขอแรงบันดาลใจ/โทน/เครื่องมือแบบนั้น (ห้ามลอกภาพ/ดีไซน์ ไม่แนบภาพเกมเขาให้ AI)
+- ลองแล้วไม่เอา: อาคาร CC0 HoangLong256/pixel-buildings (ผู้กำกับว่า "ขี้เหร่"); Gemini API ฟรีไม่มีโควต้าภาพ; ผู้ใช้ไม่มีงบจ่ายอะไรนอกจาก Claude
+- Prompt Book v3 (โล๊ะของเก่าทั้งหมด): `tools/prompts.py` → TL1-8 (PixelLab tileset a=Lower b=Upper), HR0-12 ร่างฮีโร่, MO1-17, BS1-5 (+GBS ChatGPT), NP/AN, BD1-12 (ChatGPT 3 ระดับ ฐาน 128x96), OB1-16 + GO1-4, AM1-10 ท่า Animate; ⓪ = 13 ภาพแรก
+- TODO เมื่อได้ภาพ: (1) `tools/pixelize.py` แปลงภาพ GPT → พิกเซลแท้ (downscale ลงกริด + quantize ชุดสีกลาง) (2) เปลี่ยนโปรเจกชันเกมจาก iso → orthographic top-down (iso()/unIso() เป็น grid ตรง), แมพเป็น tilemap autotile จาก tileset PixelLab (Wang) + วัตถุ y-sort + collision footprint (3) หมู่บ้าน town (plate) และ VL/BD เก่าเลิกใช้เมื่อพร้อม
