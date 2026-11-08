@@ -96,7 +96,7 @@ sec('fix', '⓪ ชุดแก้พื้นให้สมจริง (ท�
     'และใช้แผ่นเล็ก 16px → ทางโค้งได้ลื่น • ของประดับพื้น (FX-D) ใช้โรยกลบรอยซ้ำให้ดูธรรมชาติ แบบที่เกมจริงทำ')
 FIX_GRASS = "short dense dark moss-green grass, flat, even ground, no rim, no border, top-down pixel art, muted desaturated dark-forest colours, soft shading"
 for c, t, up in [
-    ('FT1', 'หญ้า ↔ ทางดินเรียบ', "flat worn dirt footpath at the same height as the grass, soft ragged grassy edge, a few pebbles and faint wheel ruts, no raised rim, no trench, no dark outline"),
+    ('FT1', 'หญ้า ↔ ทางดินเรียบ (ทำใหม่ — รอบแรกออกมาเป็นหญ้า)', "bare packed brown dirt ground, plain earth with small pebbles and faint wheel ruts, clearly brown, no grass on it"),
     ('FT2', 'หญ้า ↔ ลานหินปู', "flat old flagstone pavement at the same height as the grass, irregular worn grey stones with grass and moss growing in the gaps, edge stones half buried in grass, no raised rim"),
     ('FT3', 'หญ้า ↔ น้ำ', "calm deep teal river water with gentle ripples, gentle muddy bank sloping into the water, a few reeds and wet stones at the edge"),
 ]:
@@ -264,9 +264,9 @@ P('BD12-1', 'ไซต์ก่อสร้าง', obj(128, 'ไซต์ก่
 # ---------------- 7. props (Objects) ----------------
 sec('obj', '⑦ ของในฉาก (เมนู Objects)', 'ทำทีละชิ้น • ขนาดเขียนไว้ในหัวข้อ')
 OBJ = [
-    ('OB1', 'ต้นสน', 64, 'tall dark teal-green pine tree with a visible trunk'),
-    ('OB2', 'ต้นโอ๊กใหญ่', 96, 'big round oak tree with a dense moss-green canopy and thick trunk'),
-    ('OB3', 'ต้นไม้แห้ง', 64, 'bare dead tree with twisted grey branches'),
+    ('OB1', 'ต้นสน', 128, 'tall dark teal-green pine tree with a visible trunk'),
+    ('OB2', 'ต้นโอ๊กใหญ่', 128, 'big round oak tree with a dense moss-green canopy and thick trunk'),
+    ('OB3', 'ต้นไม้แห้ง', 128, 'bare dead tree with twisted grey branches'),
     ('OB4', 'พุ่มไม้', 32, 'round dark green bush'),
     ('OB5', 'ก้อนหิน', 32, 'mossy grey boulder'),
     ('OB6', 'รั้วไม้แนวนอน', 32, 'short horizontal wooden rail fence segment with two posts'),

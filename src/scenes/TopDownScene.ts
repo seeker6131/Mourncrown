@@ -12,6 +12,8 @@ const OM = objMeta as Record<string, { w: number; h: number; foot: number; x0: n
 import tl1Wang from '../assets/td/tl1_wang.png';
 import tl2Wang from '../assets/td/tl2_wang.png';
 import tl3Wang from '../assets/td/tl3_wang.png';
+import ft2Wang from '../assets/td/ft2_wang.png';
+import ft3Wang from '../assets/td/ft3_wang.png';
 import hr3Idle from '../assets/td/hr3_idle.webp';
 import hr3Walk from '../assets/td/hr3_walking.webp';
 import hr3Attack from '../assets/td/hr3_attack.webp';
@@ -145,7 +147,7 @@ export class TopDownScene extends Phaser.Scene {
 
   preload() {
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
-    this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang);
+    this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang);
     for (const f of FORMS) {
       this.load.spritesheet(`td_${f.key}_idle`, f.idle, { frameWidth: 48, frameHeight: 48 });
       const fs = f.fs ?? 68;
@@ -192,7 +194,8 @@ export class TopDownScene extends Phaser.Scene {
   /** Ground = PixelLab Wang tiles only. Terrain is decided per 32px vertex, so every tile edge matches its neighbour;
    *  the per-pixel surface map (collision, prop placement, water fx) is derived from the same vertices. */
   paintGround() {
-    const T = 32, VW = MW / T + 1, VH = MH / T + 1, NX = MW / T, NY = MH / T;
+    // 16px PixelLab tilesets (FT2 plaza stone, FT3 river bank); roads are paved until a good flat dirt set (FT1) arrives
+    const T = 16, VW = MW / T + 1, VH = MH / T + 1, NX = MW / T, NY = MH / T;
     type Ter = 'g' | 'd' | 'c' | 'w';
     const V: Ter[] = new Array(VW * VH);
     const vAt = (i: number, j: number): Ter => V[Math.max(0, Math.min(VH - 1, j)) * VW + Math.max(0, Math.min(VW - 1, i))];
@@ -228,14 +231,14 @@ export class TopDownScene extends Phaser.Scene {
         ctx.drawImage(img, t[0] * T, t[1] * T, T, T, -T / 2, -T / 2, T, T); ctx.restore();
       } else ctx.drawImage(img, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
     };
-    const tl1 = src('td_tl1'), tl2 = src('td_tl2'), tl3 = src('td_tl3');
+    const tl1 = src('td_ft3'), tl2 = src('td_ft2'), tl3 = src('td_ft3');
     for (let cy = 0; cy < NY; cy++) for (let cx = 0; cx < NX; cx++) {
       const c = [vAt(cx, cy), vAt(cx + 1, cy), vAt(cx, cy + 1), vAt(cx + 1, cy + 1)];
       const key = (f: (t: Ter) => boolean) => c.map(t => f(t) ? 'U' : 'L').join('');
-      draw(tl1, 'LLLL', cx, cy);                                            // grass everywhere first
+      draw(tl2, 'LLLL', cx, cy);                                            // grass everywhere first
       if (c.includes('w')) draw(tl3, key(t => t === 'w'), cx, cy);
-      else if (c.includes('c')) draw(tl2, key(t => t === 'c' || t === 'd'), cx, cy);
-      else if (c.includes('d')) draw(tl1, key(t => t === 'd'), cx, cy);
+      else if (c.includes('c') || c.includes('d')) draw(tl2, key(t => t === 'c' || t === 'd'), cx, cy);
+      else if (c.includes('d')) draw(tl2, key(t => t === 'd'), cx, cy);
     }
     // per-pixel surface from the same vertices (bilinear, threshold 0.5)
     const S: string[] = new Array(MW * MH);
@@ -250,8 +253,7 @@ export class TopDownScene extends Phaser.Scene {
       let v = 'grass';
       if (x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1) v = 'bridge';
       else if (sum(t => t === 'w') > 0.5) v = 'water';
-      else if (c.includes('c') && sum(t => t === 'c' || t === 'd') > 0.5) v = 'cobble';
-      else if (sum(t => t === 'd') > 0.5) v = 'dirt';
+      else if (sum(t => t === 'c' || t === 'd') > 0.5) v = 'cobble';
       S[y * MW + x] = v;
       if (v === 'water') this.block(x, y);
     }
@@ -268,6 +270,16 @@ export class TopDownScene extends Phaser.Scene {
     for (let x = 0; x < MW; x += CELL) { this.block(x, 0); this.block(x, MH - 1); }
     for (let y = 0; y < MH; y += CELL) { this.block(0, y); this.block(MW - 1, y); }
   }
+  campfire(x: number, y: number) {
+    this.obj('fire_0', x, y, 0.6, 4, false);
+    const g = this.add.image(x, y - 6, 'td_glow').setTint(0xff9a3c).setBlendMode(Phaser.BlendModes.ADD).setDepth(99990).setScale(1.6);
+    const core = this.add.image(x, y - 5, 'td_glow').setTint(0xffd27a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99991).setScale(0.55);
+    this.fires.push({ g, core, x, y });
+    if (!this.textures.exists('td_ember')) { const c = document.createElement('canvas'); c.width = 2; c.height = 2; const k = c.getContext('2d')!; k.fillStyle = '#ffcf6a'; k.fillRect(0, 0, 2, 2); this.textures.addCanvas('td_ember', c); }
+    this.add.particles(x, y - 8, 'td_ember', { lifespan: { min: 700, max: 1300 }, speedY: { min: -26, max: -12 }, speedX: { min: -6, max: 6 }, scale: { start: 1, end: 0 },
+      alpha: { start: 1, end: 0 }, tint: [0xffe08a, 0xff9a3c, 0xff6a2a], frequency: 140, blendMode: 'ADD' }).setDepth(99992);
+  }
+  fires: { g: Phaser.GameObjects.Image; core: Phaser.GameObjects.Image; x: number; y: number }[] = [];
   surfAt(x: number, y: number) { x = Math.round(x); y = Math.round(y); return x < 0 || y < 0 || x >= MW || y >= MH ? 'edge' : this.surf[y * MW + x]; }
 
   block(x: number, y: number) { const i = Math.floor(y / CELL) * (MW / CELL) + Math.floor(x / CELL); if (i >= 0 && i < this.blocked.length) this.blocked[i] = 1; }
@@ -338,11 +350,11 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
-  obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true) {
+  obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
     const m = OM[name]; if (!m) return null;
-    const im = this.add.image(Math.round(x), Math.round(y), 'o_' + name).setOrigin(0.5, m.foot / m.h).setDepth(y);
-    const w = (m.x1 - m.x0) * fw;
-    if (shadow) this.add.ellipse(x, y - 1, Math.max(8, (m.x1 - m.x0) * 0.7), Math.max(4, fd * 0.9), 0x0a1008, 0.4).setDepth(1);
+    const im = this.add.image(Math.round(x), Math.round(y), 'o_' + name).setOrigin(0.5, m.foot / m.h).setDepth(y).setScale(sc);
+    const w = (m.x1 - m.x0) * fw * sc;
+    if (shadow) this.add.ellipse(x, y - 1, Math.max(8, (m.x1 - m.x0) * 0.7 * sc), Math.max(4, fd * 0.9), 0x0a1008, 0.4).setDepth(1);
     for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
     return im;
   }
@@ -370,15 +382,15 @@ export class TopDownScene extends Phaser.Scene {
     // market stalls and village clutter around the plaza
     for (const [x, y] of [[600, 520], [652, 500], [436, 522]]) this.obj(pick('stall', 5), x, y, 0.8, 10);
     for (const [k, x, y] of [['well_0', 580, 330], ['cart_0', 286, 470], ['barrel_0', 742, 612], ['barrel_1', 752, 618], ['crate_0', 680, 612], ['logs_0', 236, 344], ['logs_3', 150, 350],
-      ['hay_0', 430, 628], ['hay_1', 440, 636], ['ore_2', 92, 600], ['ore_4', 164, 604], ['sign_0', 860, 452], ['fire_0', 300, 560], ['stump_0', 222, 362]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
+      ['hay_0', 430, 628], ['hay_1', 440, 636], ['ore_2', 92, 600], ['ore_4', 164, 604], ['sign_0', 860, 452], ['stump_0', 222, 362]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
     // forest edge and clusters
     for (let k = 0; k < 900; k++) {
       const x = 16 + rnd() * (MW - 32), y = 50 + rnd() * (MH - 60);
       const edge = Math.min(x, MW - x, y, MH - y);
       const dense = edge < 80 || fbm(x / 140, y / 140) > 0.62;
-      if (!dense || !free(x, y, 18) || near(x, y)) continue;
+      if (!dense || !free(x, y, 30) || near(x, y)) continue;
       const r = rnd();
-      this.obj(r < 0.45 ? pick('pine', 4) : r < 0.9 ? pick('oak', 3) : pick('dead', 6), x, y, 0.18, 3);
+      this.obj(r < 0.45 ? pick('pine', 4) : r < 0.9 ? pick('oak', 3) : pick('dead', 6), x, y, 0.16, 4, true, 2);   // trees ~2x a cottage's height
     }
     for (let k = 0; k < 170; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
@@ -387,6 +399,19 @@ export class TopDownScene extends Phaser.Scene {
       if (r < 0.5) this.add.image(Math.round(x), Math.round(y), 'o_' + pick('bush', 5)).setOrigin(0.5, 0.85).setDepth(y);
       else if (r < 0.85) this.obj(pick('rock', 8), x, y, 0.6, 4);
       else this.obj(pick('stump', 5), x, y, 0.5, 3);
+    }
+    // campfires: flickering warm light + rising embers
+    for (const [x, y] of [[300, 560]]) this.campfire(x, y);
+    // ground decals: pebbles/leaves along the road edges, flowers and tufts in the grass, reeds on the banks
+    const nearSurf = (x: number, y: number, t: string, r: number) => [[r, 0], [-r, 0], [0, r], [0, -r]].some(([a, b]) => this.surfAt(x + a, y + b) === t);
+    for (let k = 0; k < 2600; k++) {
+      const x = 8 + rnd() * (MW - 16), y = 8 + rnd() * (MH - 16);
+      const sf = this.surfAt(x, y);
+      if (sf === 'grass' && !this.isBlocked(x, y) && nearSurf(x, y, 'water', 6)) { if (rnd() < 0.5) this.add.image(Math.round(x), Math.round(y), 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y); continue; }
+      if (sf === 'dirt' || sf === 'cobble') { if (nearSurf(x, y, 'grass', 6) && rnd() < 0.35) this.add.image(Math.round(x), Math.round(y), 'o_' + (rnd() < 0.6 ? pick('pebble', 6) : pick('leaf', 3))).setDepth(1.2); continue; }
+      if (sf !== 'grass' || this.isBlocked(x, y) || rnd() > 0.28) continue;
+      const r = rnd();
+      this.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.4 ? pick('flower', 5) : r < 0.75 ? pick('tuft', 2) : r < 0.9 ? pick('leaf', 3) : pick('pebble', 6))).setOrigin(0.5, 0.8).setDepth(r < 0.75 ? y : 1.2);
     }
     // fences along the road, lamps around the plaza
     for (let x = 40; x < 860; x += 30) {
@@ -522,6 +547,10 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);
     for (const [i, l] of this.lamps.entries()) l.setAlpha(0.75 + Math.sin(time / 180 + i * 1.7) * 0.12);
+    for (const [i, f] of this.fires.entries()) {
+      const fl = 0.7 + Math.sin(time / 70 + i) * 0.12 + Math.sin(time / 33 + i * 3) * 0.08 + (Math.random() - 0.5) * 0.12;
+      f.g.setAlpha(fl).setScale(1.5 + fl * 0.25); f.core.setAlpha(0.6 + fl * 0.4).setScale(0.5 + fl * 0.1);
+    }
     // joystick (screen space)
     const g = this.joyG; g.clear();
     const bx2 = this.scale.width - R * 1.3, by2 = this.scale.height - R * 1.3;

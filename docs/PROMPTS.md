@@ -10,7 +10,7 @@ _สัปดาห์ 1: ① แผ่นพื้น TL1-TL4 + ② ฮีโ�
 
 _ปัญหาเดิม: ทางดินเป็นร่องลึกมีขอบนูน และแผ่นใหญ่ 32px ทำให้ทางเป็นเหลี่ยมขั้นบันได • ชุดนี้สั่งให้ทางเรียบเสมอหญ้า ขอบนุ่ม และใช้แผ่นเล็ก 16px → ทางโค้งได้ลื่น • ของประดับพื้น (FX-D) ใช้โรยกลบรอยซ้ำให้ดูธรรมชาติ แบบที่เกมจริงทำ_
 
-**FT1a — หญ้า ↔ ทางดินเรียบ — ช่อง Lower**
+**FT1a — หญ้า ↔ ทางดินเรียบ (ทำใหม่ — รอบแรกออกมาเป็นหญ้า) — ช่อง Lower**
 
 1. เมนูแถบบน กด **Maps** → **Create tileset** แบบ **Top-down**
 2. **Tile size** → **16** (ถ้าไม่มี 16 ให้ใช้ 32 แล้วบอกผม)
@@ -22,13 +22,13 @@ _ปัญหาเดิม: ทางดินเป็นร่องลึ�
 short dense dark moss-green grass, flat, even ground, no rim, no border, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**FT1b — หญ้า ↔ ทางดินเรียบ — ช่อง Upper**
+**FT1b — หญ้า ↔ ทางดินเรียบ (ทำใหม่ — รอบแรกออกมาเป็นหญ้า) — ช่อง Upper**
 
-1. หน้าเดิม: ช่อง **Upper** → **วางข้อความด้านล่าง** (ทางดินเรียบ)
+1. หน้าเดิม: ช่อง **Upper** → **วางข้อความด้านล่าง** (ทางดินเรียบ (ทำใหม่ — รอบแรกออกมาเป็นหญ้า))
 2. กด **Generate** → เสร็จแล้วกด **Download** → เลือก **Wang** → ส่งรูปมาในแชทนี้
 
 ```
-flat worn dirt footpath at the same height as the grass, soft ragged grassy edge, a few pebbles and faint wheel ruts, no raised rim, no trench, no dark outline, top-down pixel art, muted desaturated dark-forest colours, soft shading
+bare packed brown dirt ground, plain earth with small pebbles and faint wheel ruts, clearly brown, no grass on it, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **FT2a — หญ้า ↔ ลานหินปู — ช่อง Lower**
@@ -2687,12 +2687,12 @@ building construction site with a timber frame, scaffolding, ladders and lumber 
 
 _ทำทีละชิ้น • ขนาดเขียนไว้ในหัวข้อ_
 
-**OB1 — ต้นสน (64px)**
+**OB1 — ต้นสน (128px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นสน)
 
@@ -2700,12 +2700,12 @@ _ทำทีละชิ้น • ขนาดเขียนไว้ใน�
 tall dark teal-green pine tree with a visible trunk, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB2 — ต้นโอ๊กใหญ่ (96px)**
+**OB2 — ต้นโอ๊กใหญ่ (128px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นโอ๊กใหญ่)
 
@@ -2713,12 +2713,12 @@ tall dark teal-green pine tree with a visible trunk, top-down pixel art, muted d
 big round oak tree with a dense moss-green canopy and thick trunk, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
-**OB3 — ต้นไม้แห้ง (64px)**
+**OB3 — ต้นไม้แห้ง (128px)**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **64px** (ถ้ามีช่อง width/height ใส่ 64 ทั้งคู่)
+4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
 5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
 6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ต้นไม้แห้ง)
 
