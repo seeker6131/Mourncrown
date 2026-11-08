@@ -45,6 +45,13 @@ def custom(name, what, last=False):
         st.append("ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย")
     return st
 
+FRONT = ("strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer "
+         "and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, "
+         "walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric")
+def bobj(size, name):
+    st = obj(size, name)
+    st.insert(3, "ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน")
+    return st
 def obj(size, name):
     return [
         "เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)",
@@ -237,7 +244,7 @@ for c, t, size, d, work in NPCS:
         P(c + '-J', f'{t} — ท่าทำงาน', custom(t, 'ท่าทำงาน', last=True), work)
 
 # ---------------- 6. buildings (Objects) ----------------
-sec('bld', '⑥ อาคาร 3 ระดับ (เมนู Objects)', 'อาคารละ 3 รูป: Lv1 เล็ก / Lv3 กลาง / Lv5 ใหญ่หรู • ทำทีละรูป • ขนาดเขียนไว้ในขั้นที่ 4')
+sec('bld', '⑥ อาคาร 3 ระดับ (เมนู Objects) — ทำใหม่ทุกหลังด้วยคำสั่งหันตรง', 'คำสั่งชุดนี้บังคับให้ทุกหลังหันหน้าตรงลง หลังคาขวางซ้าย-ขวา ไม่เฉียง • อาคารละ 3 รูป: Lv1 / Lv3 / Lv5 • ถ้ายังได้หลังเฉียงมา ให้ Generate ใหม่ (อย่าเก็บ) • หลังที่ตรงอยู่แล้ว (บ้าน Lv3, โรงตีเหล็ก Lv1, คอกสัตว์) เก็บไว้ได้ ไม่ต้องทำซ้ำ')
 BLD = [
     ('BD1', 'ศาลากลาง', 'village town hall with a bell tower and banners', 160),
     ('BD2', 'บ้านพัก', 'villager cottage with a chimney and flower boxes', 128),
@@ -258,8 +265,8 @@ for c, t, d, size in BLD:
     for k, lv, extra in LV:
         dd = d
         if c == 'BD11': dd = {'1': 'small wooden watchtower', '3': 'stone tower with a ballista on top', '5': 'tall stone tower with a glowing blue crystal on top'}[k]
-        P(f'{c}-{k}', f'{t} {lv}', obj(size + (32 if k == '5' else 0), f'{t} {lv}'), f"{dd}, {extra}, building only, no ground around it, front door facing the viewer, {PL}")
-P('BD12-1', 'ไซต์ก่อสร้าง', obj(128, 'ไซต์ก่อสร้าง'), f"building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, {PL}")
+        P(f'{c}-{k}', f'{t} {lv}', bobj(size + (32 if k == '5' else 0), f'{t} {lv}'), f"{dd}, {extra}, building only, no ground around it, front door in the middle of the front wall, {FRONT}, {PL}")
+P('BD12-1', 'ไซต์ก่อสร้าง', bobj(128, 'ไซต์ก่อสร้าง'), f"building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, {FRONT}, {PL}")
 
 # ---------------- 7. props (Objects) ----------------
 sec('obj', '⑦ ของในฉาก (เมนู Objects)', 'ทำทีละชิ้น • ขนาดเขียนไว้ในหัวข้อ')

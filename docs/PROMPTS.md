@@ -2237,21 +2237,22 @@ white hen, top-down pixel art, muted desaturated dark-forest colours, soft shadi
 (ข้อนี้ไม่ต้องวางข้อความ — กดปุ่มตามขั้นตอนด้านบน)
 ```
 
-## ⑥ อาคาร 3 ระดับ (เมนู Objects)
+## ⑥ อาคาร 3 ระดับ (เมนู Objects) — ทำใหม่ทุกหลังด้วยคำสั่งหันตรง
 
-_อาคารละ 3 รูป: Lv1 เล็ก / Lv3 กลาง / Lv5 ใหญ่หรู • ทำทีละรูป • ขนาดเขียนไว้ในขั้นที่ 4_
+_คำสั่งชุดนี้บังคับให้ทุกหลังหันหน้าตรงลง หลังคาขวางซ้าย-ขวา ไม่เฉียง • อาคารละ 3 รูป: Lv1 / Lv3 / Lv5 • ถ้ายังได้หลังเฉียงมา ให้ Generate ใหม่ (อย่าเก็บ) • หลังที่ตรงอยู่แล้ว (บ้าน Lv3, โรงตีเหล็ก Lv1, คอกสัตว์) เก็บไว้ได้ ไม่ต้องทำซ้ำ_
 
 **BD1-1 — ศาลากลาง Lv1**
 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv1)
 
 ```
-village town hall with a bell tower and banners, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+village town hall with a bell tower and banners, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD1-3 — ศาลากลาง Lv3**
@@ -2259,12 +2260,13 @@ village town hall with a bell tower and banners, small humble rustic version, si
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv3)
 
 ```
-village town hall with a bell tower and banners, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+village town hall with a bell tower and banners, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD1-5 — ศาลากลาง Lv5**
@@ -2272,12 +2274,13 @@ village town hall with a bell tower and banners, medium sturdier version with st
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **192px** (ถ้ามีช่อง width/height ใส่ 192 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **192px** (ถ้ามีช่อง width/height ใส่ 192 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ศาลากลาง Lv5)
 
 ```
-village town hall with a bell tower and banners, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+village town hall with a bell tower and banners, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD2-1 — บ้านพัก Lv1**
@@ -2285,12 +2288,13 @@ village town hall with a bell tower and banners, grand version, larger, stone an
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv1)
 
 ```
-villager cottage with a chimney and flower boxes, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+villager cottage with a chimney and flower boxes, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD2-3 — บ้านพัก Lv3**
@@ -2298,12 +2302,13 @@ villager cottage with a chimney and flower boxes, small humble rustic version, s
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv3)
 
 ```
-villager cottage with a chimney and flower boxes, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+villager cottage with a chimney and flower boxes, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD2-5 — บ้านพัก Lv5**
@@ -2311,12 +2316,13 @@ villager cottage with a chimney and flower boxes, medium sturdier version with s
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ บ้านพัก Lv5)
 
 ```
-villager cottage with a chimney and flower boxes, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+villager cottage with a chimney and flower boxes, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD3-1 — โรงเลื่อย Lv1**
@@ -2324,12 +2330,13 @@ villager cottage with a chimney and flower boxes, grand version, larger, stone a
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv1)
 
 ```
-timber sawmill shed with a big circular saw and stacked logs under its roof, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+timber sawmill shed with a big circular saw and stacked logs under its roof, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD3-3 — โรงเลื่อย Lv3**
@@ -2337,12 +2344,13 @@ timber sawmill shed with a big circular saw and stacked logs under its roof, sma
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv3)
 
 ```
-timber sawmill shed with a big circular saw and stacked logs under its roof, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+timber sawmill shed with a big circular saw and stacked logs under its roof, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD3-5 — โรงเลื่อย Lv5**
@@ -2350,12 +2358,13 @@ timber sawmill shed with a big circular saw and stacked logs under its roof, med
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเลื่อย Lv5)
 
 ```
-timber sawmill shed with a big circular saw and stacked logs under its roof, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+timber sawmill shed with a big circular saw and stacked logs under its roof, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD4-1 — เหมืองหิน Lv1**
@@ -2363,12 +2372,13 @@ timber sawmill shed with a big circular saw and stacked logs under its roof, gra
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv1)
 
 ```
-stone-cutting shed with a wooden crane and cut stone blocks, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+stone-cutting shed with a wooden crane and cut stone blocks, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD4-3 — เหมืองหิน Lv3**
@@ -2376,12 +2386,13 @@ stone-cutting shed with a wooden crane and cut stone blocks, small humble rustic
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv3)
 
 ```
-stone-cutting shed with a wooden crane and cut stone blocks, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+stone-cutting shed with a wooden crane and cut stone blocks, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD4-5 — เหมืองหิน Lv5**
@@ -2389,12 +2400,13 @@ stone-cutting shed with a wooden crane and cut stone blocks, medium sturdier ver
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ เหมืองหิน Lv5)
 
 ```
-stone-cutting shed with a wooden crane and cut stone blocks, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+stone-cutting shed with a wooden crane and cut stone blocks, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD5-1 — คอกสัตว์ Lv1**
@@ -2402,12 +2414,13 @@ stone-cutting shed with a wooden crane and cut stone blocks, grand version, larg
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv1)
 
 ```
-red wooden animal barn with a hay loft door and a small fenced pen, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+red wooden animal barn with a hay loft door and a small fenced pen, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD5-3 — คอกสัตว์ Lv3**
@@ -2415,12 +2428,13 @@ red wooden animal barn with a hay loft door and a small fenced pen, small humble
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv3)
 
 ```
-red wooden animal barn with a hay loft door and a small fenced pen, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+red wooden animal barn with a hay loft door and a small fenced pen, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD5-5 — คอกสัตว์ Lv5**
@@ -2428,12 +2442,13 @@ red wooden animal barn with a hay loft door and a small fenced pen, medium sturd
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ คอกสัตว์ Lv5)
 
 ```
-red wooden animal barn with a hay loft door and a small fenced pen, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+red wooden animal barn with a hay loft door and a small fenced pen, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD6-1 — โรงตีเหล็ก Lv1**
@@ -2441,12 +2456,13 @@ red wooden animal barn with a hay loft door and a small fenced pen, grand versio
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv1)
 
 ```
-open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD6-3 — โรงตีเหล็ก Lv3**
@@ -2454,12 +2470,13 @@ open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, s
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv3)
 
 ```
-open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD6-5 — โรงตีเหล็ก Lv5**
@@ -2467,12 +2484,13 @@ open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, m
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงตีเหล็ก Lv5)
 
 ```
-open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD7-1 — ครัว Lv1**
@@ -2480,12 +2498,13 @@ open-fronted blacksmith forge with a stone chimney, anvil and glowing furnace, g
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv1)
 
 ```
-cookhouse with a smoking chimney and a big cauldron by the door, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+cookhouse with a smoking chimney and a big cauldron by the door, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD7-3 — ครัว Lv3**
@@ -2493,12 +2512,13 @@ cookhouse with a smoking chimney and a big cauldron by the door, small humble ru
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv3)
 
 ```
-cookhouse with a smoking chimney and a big cauldron by the door, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+cookhouse with a smoking chimney and a big cauldron by the door, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD7-5 — ครัว Lv5**
@@ -2506,12 +2526,13 @@ cookhouse with a smoking chimney and a big cauldron by the door, medium sturdier
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ครัว Lv5)
 
 ```
-cookhouse with a smoking chimney and a big cauldron by the door, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+cookhouse with a smoking chimney and a big cauldron by the door, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD8-1 — โกดัง Lv1**
@@ -2519,12 +2540,13 @@ cookhouse with a smoking chimney and a big cauldron by the door, grand version, 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv1)
 
 ```
-wide storehouse with big double doors and crates, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+wide storehouse with big double doors and crates, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD8-3 — โกดัง Lv3**
@@ -2532,12 +2554,13 @@ wide storehouse with big double doors and crates, small humble rustic version, s
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv3)
 
 ```
-wide storehouse with big double doors and crates, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+wide storehouse with big double doors and crates, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD8-5 — โกดัง Lv5**
@@ -2545,12 +2568,13 @@ wide storehouse with big double doors and crates, medium sturdier version with s
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โกดัง Lv5)
 
 ```
-wide storehouse with big double doors and crates, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+wide storehouse with big double doors and crates, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD9-1 — โรงเตี๊ยม Lv1**
@@ -2558,12 +2582,13 @@ wide storehouse with big double doors and crates, grand version, larger, stone a
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv1)
 
 ```
-two-storey tavern inn with a hanging sign and warm lit windows, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+two-storey tavern inn with a hanging sign and warm lit windows, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD9-3 — โรงเตี๊ยม Lv3**
@@ -2571,12 +2596,13 @@ two-storey tavern inn with a hanging sign and warm lit windows, small humble rus
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv3)
 
 ```
-two-storey tavern inn with a hanging sign and warm lit windows, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+two-storey tavern inn with a hanging sign and warm lit windows, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD9-5 — โรงเตี๊ยม Lv5**
@@ -2584,12 +2610,13 @@ two-storey tavern inn with a hanging sign and warm lit windows, medium sturdier 
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **192px** (ถ้ามีช่อง width/height ใส่ 192 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **192px** (ถ้ามีช่อง width/height ใส่ 192 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ โรงเตี๊ยม Lv5)
 
 ```
-two-storey tavern inn with a hanging sign and warm lit windows, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+two-storey tavern inn with a hanging sign and warm lit windows, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD10-1 — ตลาด Lv1**
@@ -2597,12 +2624,13 @@ two-storey tavern inn with a hanging sign and warm lit windows, grand version, l
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv1)
 
 ```
-covered market hall with faded striped awnings and goods on tables, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+covered market hall with faded striped awnings and goods on tables, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD10-3 — ตลาด Lv3**
@@ -2610,12 +2638,13 @@ covered market hall with faded striped awnings and goods on tables, small humble
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv3)
 
 ```
-covered market hall with faded striped awnings and goods on tables, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+covered market hall with faded striped awnings and goods on tables, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD10-5 — ตลาด Lv5**
@@ -2623,12 +2652,13 @@ covered market hall with faded striped awnings and goods on tables, medium sturd
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ตลาด Lv5)
 
 ```
-covered market hall with faded striped awnings and goods on tables, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+covered market hall with faded striped awnings and goods on tables, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD11-1 — หอป้องกัน Lv1**
@@ -2636,12 +2666,13 @@ covered market hall with faded striped awnings and goods on tables, grand versio
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv1)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv1)
 
 ```
-small wooden watchtower, small humble rustic version, simple wood and straw, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+small wooden watchtower, small humble rustic version, simple wood and straw, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD11-3 — หอป้องกัน Lv3**
@@ -2649,12 +2680,13 @@ small wooden watchtower, small humble rustic version, simple wood and straw, bui
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv3)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv3)
 
 ```
-stone tower with a ballista on top, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+stone tower with a ballista on top, medium sturdier version with stone foundation and tiled roof, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD11-5 — หอป้องกัน Lv5**
@@ -2662,12 +2694,13 @@ stone tower with a ballista on top, medium sturdier version with stone foundatio
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv5)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **160px** (ถ้ามีช่อง width/height ใส่ 160 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ หอป้องกัน Lv5)
 
 ```
-tall stone tower with a glowing blue crystal on top, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door facing the viewer, top-down pixel art, muted desaturated dark-forest colours, soft shading
+tall stone tower with a glowing blue crystal on top, grand version, larger, stone and dark slate roof, gold trim, banners and lanterns, building only, no ground around it, front door in the middle of the front wall, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 **BD12-1 — ไซต์ก่อสร้าง**
@@ -2675,12 +2708,13 @@ tall stone tower with a glowing blue crystal on top, grand version, larger, ston
 1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
 2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
 3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
-4. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
-5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
-6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ไซต์ก่อสร้าง)
+4. ถ้ามีตัวเลือก **Direction / ทิศ** → เลือก **South** (หันหน้าลง) • ถ้ามีช่อง **Reference / Style image** → ใส่รูป **บ้านพัก Lv3** ที่ได้มาแล้ว (หลังที่ตรงหน้า) ให้ทุกหลังมุมเดียวกัน
+5. ขนาด → **128px** (ถ้ามีช่อง width/height ใส่ 128 ทั้งคู่)
+6. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+7. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ไซต์ก่อสร้าง)
 
 ```
-building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, top-down pixel art, muted desaturated dark-forest colours, soft shading
+building construction site with a timber frame, scaffolding, ladders and lumber stacks, no ground around it, strict front-facing 3/4 top-down view exactly like a classic top-down RPG: the front wall faces straight down toward the viewer and is parallel to the bottom edge of the image, the roof ridge runs horizontally left to right, the roof is seen from above, walls are perfectly upright, the building is symmetrical and not rotated, no diagonal walls, no corner facing the viewer, not isometric, top-down pixel art, muted desaturated dark-forest colours, soft shading
 ```
 
 ## ⑦ ของในฉาก (เมนู Objects)
