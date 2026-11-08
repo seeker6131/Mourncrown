@@ -77,6 +77,45 @@ sec('plan', '⓪ แผนทำงาน 1 เดือน (อ่านก่�
     'ทุกข้อมีขั้นตอน 1-2-3 บอกเมนูและปุ่มที่ต้องกด แล้วกดคัดลอกข้อความในกล่องไปวาง • '
     'ทำตัวไหนครบ ส่ง ZIP มาเลย ไม่ต้องรอทั้งชุด • ดูตัวนับโควต้าในหน้า Account บ้าง ถ้าลดเร็วผิดปกติ บอกผม')
 
+# ---------------- 0b. ground fix (director: roads/ground look wrong) ----------------
+def tile16(part, name):
+    if part == 'a':
+        return [
+            "เมนูแถบบน กด **Maps** → **Create tileset** แบบ **Top-down**",
+            "**Tile size** → **16** (ถ้าไม่มี 16 ให้ใช้ 32 แล้วบอกผม)",
+            "ถ้ามีช่อง **Transition** / ความกว้างขอบ → เลือกแบบ **กว้าง / soft / smooth** ที่สุด",
+            f"ช่อง **Lower** → **วางข้อความด้านล่าง** ({name})",
+            "ยังไม่กด Generate — ก๊อปข้อ b ไปวางช่อง Upper ก่อน",
+        ]
+    return [
+        f"หน้าเดิม: ช่อง **Upper** → **วางข้อความด้านล่าง** ({name})",
+        "กด **Generate** → เสร็จแล้วกด **Download** → เลือก **Wang** → ส่งรูปมาในแชทนี้",
+    ]
+sec('fix', '⓪ ชุดแก้พื้นให้สมจริง (ทำก่อนอย่างอื่น)',
+    'ปัญหาเดิม: ทางดินเป็นร่องลึกมีขอบนูน และแผ่นใหญ่ 32px ทำให้ทางเป็นเหลี่ยมขั้นบันได • ชุดนี้สั่งให้ทางเรียบเสมอหญ้า ขอบนุ่ม '
+    'และใช้แผ่นเล็ก 16px → ทางโค้งได้ลื่น • ของประดับพื้น (FX-D) ใช้โรยกลบรอยซ้ำให้ดูธรรมชาติ แบบที่เกมจริงทำ')
+FIX_GRASS = "short dense dark moss-green grass, flat, even ground, no rim, no border, top-down pixel art, muted desaturated dark-forest colours, soft shading"
+for c, t, up in [
+    ('FT1', 'หญ้า ↔ ทางดินเรียบ', "flat worn dirt footpath at the same height as the grass, soft ragged grassy edge, a few pebbles and faint wheel ruts, no raised rim, no trench, no dark outline"),
+    ('FT2', 'หญ้า ↔ ลานหินปู', "flat old flagstone pavement at the same height as the grass, irregular worn grey stones with grass and moss growing in the gaps, edge stones half buried in grass, no raised rim"),
+    ('FT3', 'หญ้า ↔ น้ำ', "calm deep teal river water with gentle ripples, gentle muddy bank sloping into the water, a few reeds and wet stones at the edge"),
+]:
+    P(c + 'a', f'{t} — ช่อง Lower', tile16('a', 'หญ้า'), FIX_GRASS)
+    P(c + 'b', f'{t} — ช่อง Upper', tile16('b', t.split('↔ ')[1]), f"{up}, top-down pixel art, muted desaturated dark-forest colours, soft shading")
+DEC = [
+    ('FD1', 'กอหญ้าสูง', 16, 'small clump of tall wild grass blades'),
+    ('FD2', 'ดอกไม้ป่า', 16, 'tiny cluster of small pale wildflowers in grass'),
+    ('FD3', 'ก้อนกรวด', 16, 'few small flat pebbles lying on the ground'),
+    ('FD4', 'ใบไม้ร่วง', 16, 'few fallen rust-brown leaves on the ground'),
+    ('FD5', 'แอ่งน้ำ', 32, 'small shallow muddy puddle reflecting the sky, flat on the ground'),
+    ('FD6', 'รอยล้อเกวียน', 32, 'short section of two faint wheel ruts in dirt, flat on the ground, transparent background'),
+    ('FD7', 'มอสกับหญ้าแทรกหิน', 16, 'small patch of moss and grass tufts growing between stones'),
+    ('FD8', 'กกริมน้ำ', 32, 'clump of tall reeds and cattails at a river edge'),
+]
+for c, t, size, d in DEC:
+    P(c, f'ของประดับพื้น: {t} ({size}px)', obj(size, t), f"{d}, top-down pixel art, muted desaturated dark-forest colours, soft shading")
+P('FB1', 'สะพานไม้ มองจากบน (96px)', obj(96, 'สะพาน'), "wooden plank bridge seen directly from above, planks running across, rope railings on both sides, top-down pixel art, muted desaturated dark-forest colours, soft shading")
+
 # ---------------- 1. tilesets ----------------
 sec('tiles', '① แผ่นพื้น (เมนู Maps)', '1 ชุด = ข้อ a (ช่อง Lower) + ข้อ b (ช่อง Upper) แล้วกด Generate ครั้งเดียว')
 TILES = [

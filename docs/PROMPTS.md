@@ -6,6 +6,190 @@
 
 _สัปดาห์ 1: ① แผ่นพื้น TL1-TL4 + ② ฮีโร่ HR1 และ HR3 (ท่าที่ขาด) • สัปดาห์ 2: ③ มอน MO1-MO8 + ฮีโร่ร่างอื่น • สัปดาห์ 3: มอนที่เหลือ + ④ บอส + ⑤ ชาวบ้าน/สัตว์ • สัปดาห์ 4: ⑥ อาคาร + ⑦ ของในฉาก + เก็บตก • ทุกข้อมีขั้นตอน 1-2-3 บอกเมนูและปุ่มที่ต้องกด แล้วกดคัดลอกข้อความในกล่องไปวาง • ทำตัวไหนครบ ส่ง ZIP มาเลย ไม่ต้องรอทั้งชุด • ดูตัวนับโควต้าในหน้า Account บ้าง ถ้าลดเร็วผิดปกติ บอกผม_
 
+## ⓪ ชุดแก้พื้นให้สมจริง (ทำก่อนอย่างอื่น)
+
+_ปัญหาเดิม: ทางดินเป็นร่องลึกมีขอบนูน และแผ่นใหญ่ 32px ทำให้ทางเป็นเหลี่ยมขั้นบันได • ชุดนี้สั่งให้ทางเรียบเสมอหญ้า ขอบนุ่ม และใช้แผ่นเล็ก 16px → ทางโค้งได้ลื่น • ของประดับพื้น (FX-D) ใช้โรยกลบรอยซ้ำให้ดูธรรมชาติ แบบที่เกมจริงทำ_
+
+**FT1a — หญ้า ↔ ทางดินเรียบ — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** → **Create tileset** แบบ **Top-down**
+2. **Tile size** → **16** (ถ้าไม่มี 16 ให้ใช้ 32 แล้วบอกผม)
+3. ถ้ามีช่อง **Transition** / ความกว้างขอบ → เลือกแบบ **กว้าง / soft / smooth** ที่สุด
+4. ช่อง **Lower** → **วางข้อความด้านล่าง** (หญ้า)
+5. ยังไม่กด Generate — ก๊อปข้อ b ไปวางช่อง Upper ก่อน
+
+```
+short dense dark moss-green grass, flat, even ground, no rim, no border, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FT1b — หญ้า ↔ ทางดินเรียบ — ช่อง Upper**
+
+1. หน้าเดิม: ช่อง **Upper** → **วางข้อความด้านล่าง** (ทางดินเรียบ)
+2. กด **Generate** → เสร็จแล้วกด **Download** → เลือก **Wang** → ส่งรูปมาในแชทนี้
+
+```
+flat worn dirt footpath at the same height as the grass, soft ragged grassy edge, a few pebbles and faint wheel ruts, no raised rim, no trench, no dark outline, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FT2a — หญ้า ↔ ลานหินปู — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** → **Create tileset** แบบ **Top-down**
+2. **Tile size** → **16** (ถ้าไม่มี 16 ให้ใช้ 32 แล้วบอกผม)
+3. ถ้ามีช่อง **Transition** / ความกว้างขอบ → เลือกแบบ **กว้าง / soft / smooth** ที่สุด
+4. ช่อง **Lower** → **วางข้อความด้านล่าง** (หญ้า)
+5. ยังไม่กด Generate — ก๊อปข้อ b ไปวางช่อง Upper ก่อน
+
+```
+short dense dark moss-green grass, flat, even ground, no rim, no border, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FT2b — หญ้า ↔ ลานหินปู — ช่อง Upper**
+
+1. หน้าเดิม: ช่อง **Upper** → **วางข้อความด้านล่าง** (ลานหินปู)
+2. กด **Generate** → เสร็จแล้วกด **Download** → เลือก **Wang** → ส่งรูปมาในแชทนี้
+
+```
+flat old flagstone pavement at the same height as the grass, irregular worn grey stones with grass and moss growing in the gaps, edge stones half buried in grass, no raised rim, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FT3a — หญ้า ↔ น้ำ — ช่อง Lower**
+
+1. เมนูแถบบน กด **Maps** → **Create tileset** แบบ **Top-down**
+2. **Tile size** → **16** (ถ้าไม่มี 16 ให้ใช้ 32 แล้วบอกผม)
+3. ถ้ามีช่อง **Transition** / ความกว้างขอบ → เลือกแบบ **กว้าง / soft / smooth** ที่สุด
+4. ช่อง **Lower** → **วางข้อความด้านล่าง** (หญ้า)
+5. ยังไม่กด Generate — ก๊อปข้อ b ไปวางช่อง Upper ก่อน
+
+```
+short dense dark moss-green grass, flat, even ground, no rim, no border, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FT3b — หญ้า ↔ น้ำ — ช่อง Upper**
+
+1. หน้าเดิม: ช่อง **Upper** → **วางข้อความด้านล่าง** (น้ำ)
+2. กด **Generate** → เสร็จแล้วกด **Download** → เลือก **Wang** → ส่งรูปมาในแชทนี้
+
+```
+calm deep teal river water with gentle ripples, gentle muddy bank sloping into the water, a few reeds and wet stones at the edge, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD1 — ของประดับพื้น: กอหญ้าสูง (16px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **16px** (ถ้ามีช่อง width/height ใส่ 16 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ กอหญ้าสูง)
+
+```
+small clump of tall wild grass blades, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD2 — ของประดับพื้น: ดอกไม้ป่า (16px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **16px** (ถ้ามีช่อง width/height ใส่ 16 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ดอกไม้ป่า)
+
+```
+tiny cluster of small pale wildflowers in grass, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD3 — ของประดับพื้น: ก้อนกรวด (16px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **16px** (ถ้ามีช่อง width/height ใส่ 16 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ก้อนกรวด)
+
+```
+few small flat pebbles lying on the ground, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD4 — ของประดับพื้น: ใบไม้ร่วง (16px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **16px** (ถ้ามีช่อง width/height ใส่ 16 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ ใบไม้ร่วง)
+
+```
+few fallen rust-brown leaves on the ground, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD5 — ของประดับพื้น: แอ่งน้ำ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ แอ่งน้ำ)
+
+```
+small shallow muddy puddle reflecting the sky, flat on the ground, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD6 — ของประดับพื้น: รอยล้อเกวียน (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ รอยล้อเกวียน)
+
+```
+short section of two faint wheel ruts in dirt, flat on the ground, transparent background, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD7 — ของประดับพื้น: มอสกับหญ้าแทรกหิน (16px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **16px** (ถ้ามีช่อง width/height ใส่ 16 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ มอสกับหญ้าแทรกหิน)
+
+```
+small patch of moss and grass tufts growing between stones, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FD8 — ของประดับพื้น: กกริมน้ำ (32px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **32px** (ถ้ามีช่อง width/height ใส่ 32 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ กกริมน้ำ)
+
+```
+clump of tall reeds and cattails at a river edge, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
+**FB1 — สะพานไม้ มองจากบน (96px)**
+
+1. เมนูแถบบน กด **Objects** → กดปุ่มสร้างใหม่ (**Create** / **+ New**)
+2. ช่องคำอธิบาย → **วางข้อความด้านล่าง**
+3. มุมกล้อง (View / Camera) → **Low Top-Down** ถ้ามีให้เลือก
+4. ขนาด → **96px** (ถ้ามีช่อง width/height ใส่ 96 ทั้งคู่)
+5. กด **Generate** → เสร็จแล้วกด **Download** → ส่งรูปมาในแชทนี้
+6. (ถ้าหน้า Objects ไม่มีช่องตามนี้ แคปหน้าจอมาให้ผมก่อน — ชิ้นนี้คือ สะพาน)
+
+```
+wooden plank bridge seen directly from above, planks running across, rope railings on both sides, top-down pixel art, muted desaturated dark-forest colours, soft shading
+```
+
 ## ① แผ่นพื้น (เมนู Maps)
 
 _1 ชุด = ข้อ a (ช่อง Lower) + ข้อ b (ช่อง Upper) แล้วกด Generate ครั้งเดียว_
