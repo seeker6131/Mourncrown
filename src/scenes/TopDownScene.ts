@@ -6,6 +6,14 @@ import Phaser from 'phaser';
 import heroIdle from '../assets/td/hero_idle.webp';
 import heroWalk from '../assets/td/hero_walking.webp';
 import heroAttack from '../assets/td/hero_attack.webp';
+import hr3Idle from '../assets/td/hr3_idle.webp';
+import hr3Walk from '../assets/td/hr3_walking.webp';
+
+// hero forms from PixelLab: idle sheet (8 dirs, 48px), walk sheet (8 rows x 8 frames, 68px), optional attack (8 rows x 9)
+const FORMS: { key: string; name: string; idle: string; walk: string; attack?: string; idleFoot: number; walkFoot: number }[] = [
+  { key: 'hero', name: 'ชาวบ้าน', idle: heroIdle, walk: heroWalk, attack: heroAttack, idleFoot: 46, walkFoot: 56 },
+  { key: 'hr3', name: 'ลอร์ดอัศวิน', idle: hr3Idle, walk: hr3Walk, idleFoot: 44, walkFoot: 54 },
+];
 
 const MW = 1280, MH = 800;           // map size in game px (1 texel = 1 px)
 const CELL = 4;                       // collision grid
@@ -72,9 +80,11 @@ export class TopDownScene extends Phaser.Scene {
   constructor() { super('TopDown'); }
 
   preload() {
-    this.load.spritesheet('td_hero_idle', heroIdle, { frameWidth: 48, frameHeight: 48 });
-    this.load.spritesheet('td_hero_walk', heroWalk, { frameWidth: 68, frameHeight: 68 });
-    this.load.spritesheet('td_hero_attack', heroAttack, { frameWidth: 68, frameHeight: 68 });
+    for (const f of FORMS) {
+      this.load.spritesheet(`td_${f.key}_idle`, f.idle, { frameWidth: 48, frameHeight: 48 });
+      this.load.spritesheet(`td_${f.key}_walk`, f.walk, { frameWidth: 68, frameHeight: 68 });
+      if (f.attack) this.load.spritesheet(`td_${f.key}_attack`, f.attack, { frameWidth: 68, frameHeight: 68 });
+    }
   }
 
   create() {
@@ -83,10 +93,13 @@ export class TopDownScene extends Phaser.Scene {
     this.makePropTextures();
     this.placeProps();
 
-    DIRS.forEach((d, i) => this.anims.create({ key: 'ha_' + d, frames: this.anims.generateFrameNumbers('td_hero_attack', { start: i * 9, end: i * 9 + 8 }), frameRate: 18, repeat: 0 }));
-    DIRS.forEach((d, i) => this.anims.create({ key: 'hw_' + d, frames: this.anims.generateFrameNumbers('td_hero_walk', { start: i * 8, end: i * 8 + 7 }), frameRate: 10, repeat: -1 }));
+    for (const f of FORMS) {
+      if (f.attack) DIRS.forEach((d, i) => this.anims.create({ key: `${f.key}_a_${d}`, frames: this.anims.generateFrameNumbers(`td_${f.key}_attack`, { start: i * 9, end: i * 9 + 8 }), frameRate: 18, repeat: 0 }));
+      DIRS.forEach((d, i) => this.anims.create({ key: `${f.key}_w_${d}`, frames: this.anims.generateFrameNumbers(`td_${f.key}_walk`, { start: i * 8, end: i * 8 + 7 }), frameRate: 10, repeat: -1 }));
+    }
     this.shadow = this.add.ellipse(PLAZA.x, PLAZA.y + 40, 18, 7, 0x10180f, 0.45).setDepth(1);
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'td_hero_idle', 0).setOrigin(0.5, 46 / 48);
+    this.form = 0;
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
@@ -101,7 +114,7 @@ export class TopDownScene extends Phaser.Scene {
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
     if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); }
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.7 && p.y < this.scale.height * 0.25) { this.nextForm(); return; } if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
@@ -273,17 +286,26 @@ export class TopDownScene extends Phaser.Scene {
     const fit = () => this.vignette.setDisplaySize(this.scale.width, this.scale.height);
     fit(); this.scale.on('resize', fit);
     const fs = Math.round(this.scale.height / 30);
-    this.label = this.add.text(fs * 0.6, fs * 0.6, 'ทดลอง: มองจากบน โทนป่าหม่น', { fontFamily: 'sans-serif', fontSize: fs + 'px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: Math.max(2, fs / 5) })
+    this.label = this.add.text(fs * 0.6, fs * 0.6, 'ทดลอง: มองจากบน • ร่าง ชาวบ้าน (แตะมุมขวาบนเพื่อเปลี่ยน)', { fontFamily: 'sans-serif', fontSize: fs + 'px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: Math.max(2, fs / 5) })
       .setDepth(100002);
   }
 
+  form = 0;
+  get F() { return FORMS[this.form]; }
+  nextForm() {
+    if (this.attacking) return;
+    this.form = (this.form + 1) % FORMS.length;
+    this.hero.stop(); this.hero.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
+    this.label.setText(`ทดลอง: มองจากบน • ร่าง ${this.F.name} (แตะมุมขวาบนเพื่อเปลี่ยน)`);
+  }
   attacking = false;
   attack() {
-    if (this.attacking) return;
+    if (this.attacking || !this.F.attack) return;
     this.attacking = true;
     const h = this.hero;
-    h.setTexture('td_hero_attack').setOrigin(0.5, 56 / 68).play('ha_' + DIRS[this.dir]);
-    h.once('animationcomplete', () => { this.attacking = false; h.setTexture('td_hero_idle', this.dir).setOrigin(0.5, 46 / 48); });
+    const F = this.F;
+    h.setTexture(`td_${F.key}_attack`).setOrigin(0.5, F.walkFoot / 68).play(`${F.key}_a_${DIRS[this.dir]}`);
+    h.once('animationcomplete', () => { this.attacking = false; h.setTexture(`td_${F.key}_idle`, this.dir).setOrigin(0.5, F.idleFoot / 48); });
   }
 
   update(time: number, dt: number) {
@@ -306,10 +328,10 @@ export class TopDownScene extends Phaser.Scene {
       if (ok(h.x, ny)) h.y = ny;
       const ang = Math.atan2(my, mx);                       // 0 = east
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
-      const key = 'hw_' + DIRS[this.dir];
-      if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture('td_hero_walk').setOrigin(0.5, 56 / 68); h.play(key, true); }
+      const key = `${this.F.key}_w_${DIRS[this.dir]}`;
+      if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture(`td_${this.F.key}_walk`).setOrigin(0.5, this.F.walkFoot / 68); h.play(key, true); }
     } else if (h.anims.isPlaying && !this.attacking) {
-      h.stop(); h.setTexture('td_hero_idle', this.dir).setOrigin(0.5, 46 / 48);
+      h.stop(); h.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
     }
     h.setDepth(h.y);
     this.shadow.setPosition(h.x, h.y - 1);
