@@ -95,7 +95,7 @@ for c, t, lo, up in TILES:
 
 # ---------------- 2. hero ----------------
 sec('hero', '② ฮีโร่ 13 ร่าง (เมนู Characters • 48px)',
-    'ทุกร่างทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ล้ม (ไม่ต้องทำท่าสกิล — ตอนใช้สกิลเกมเล่นท่าโจมตี + เอฟเฟกต์อลังการจากโค้ด) • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • '
+    'ทุกร่างทำแค่ 3 ข้อ: สร้างตัว → เดิน → โจมตี • ไม่ต้องทำท่าสกิลและท่าตาย (เกมทำด้วยโค้ด: สกิล = ท่าโจมตี + เอฟเฟกต์ • ตาย = กะพริบ ล้ม แตกเป็นพิกเซล วิญญาณลอยขึ้น) • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • '
     'ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว')
 ATK = {
     'sword': ("swinging the sword in a strong slash attack", "spinning around in a powerful sword slash with a glowing trail"),
@@ -122,14 +122,12 @@ FORMS = [
 for c, t, cls, d in FORMS:
     name = t.split(' —')[0]
     if c != 'HR0':
-        P(c, f'{name} — สร้างตัว', create_char(48, name, f'{c}-W, {c}-A, {c}-D'), f"{d}, {PL}")
+        P(c, f'{name} — สร้างตัว', create_char(48, name, f'{c}-W, {c}-A'), f"{d}, {PL}")
         P(c + '-W', f'{name} — เดิน', walk(name), NOTEXT)
-        P(c + '-A', f'{name} — โจมตี', custom(name, 'ท่าโจมตี'), ATK[cls][0])
-    if c == 'HR0': continue   # villager: walk + sword slash are enough (director's call)
-    P(c + '-D', f'{name} — ล้ม/ตาย', custom(name, 'ท่าล้ม', last=True), DIE)
+        P(c + '-A', f'{name} — โจมตี', custom(name, 'ท่าโจมตี', last=True), ATK[cls][0])
 
 # ---------------- 3. monsters ----------------
-sec('mon', '③ มอนสเตอร์ 17 ตัว — ออกแบบใหม่ ดุ น่ากลัว ไม่ซ้ำเกมอื่น (เมนู Characters)', 'ทุกตัวทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ตาย • ขนาดเขียนไว้ในหัวข้อ • เยติที่ทำไปแล้วใช้ได้ หรือทำ MO15 ใหม่ให้ดุกว่าก็ได้')
+sec('mon', '③ มอนสเตอร์ 17 ตัว — ออกแบบใหม่ ดุ น่ากลัว ไม่ซ้ำเกมอื่น (เมนู Characters)', 'ทุกตัวทำแค่ 3 ข้อ: สร้างตัว → เดิน → โจมตี (ท่าตายเกมทำด้วยโค้ด) • ขนาดเขียนไว้ในหัวข้อ • เยติที่ทำไปแล้วใช้ได้ หรือทำ MO15 ใหม่ให้ดุกว่าก็ได้')
 MONS = [
     # ป่าเอลเดอร์โกรฟ (Lv1-20)
     ('MO1', 'ก้อนโคลนกลืนกิน (แทนสไลม์)', 32, 'pulsing blob of black bog tar with a ring of tiny needle teeth on top and three pale staring eyes, dripping', 'stretching up and lunging forward to bite with its ring of teeth', 'bursting and melting into a black puddle'),
@@ -155,10 +153,9 @@ MONS = [
     ('MO17', 'หมูป่าแผลเป็น (สัตว์ล่า)', 48, 'huge scarred wild boar with broken tusks and bristly black mane', 'charging forward with its tusks', 'squealing and toppling onto its side'),
 ]
 for c, t, size, d, atk, die in MONS:
-    P(c, f'{t} — สร้างตัว ({size}px)', create_char(size, t, f'{c}-W, {c}-A, {c}-D'), f"{d}, {PL}")
+    P(c, f'{t} — สร้างตัว ({size}px)', create_char(size, t, f'{c}-W, {c}-A'), f"{d}, {PL}")
     P(c + '-W', f'{t} — เดิน', walk(t), NOTEXT)
-    P(c + '-A', f'{t} — โจมตี', custom(t, 'ท่าโจมตี'), atk)
-    P(c + '-D', f'{t} — ตาย', custom(t, 'ท่าตาย', last=True), die)
+    P(c + '-A', f'{t} — โจมตี', custom(t, 'ท่าโจมตี', last=True), atk)
 
 # ---------------- 4. bosses ----------------
 sec('boss', '④ บอส 5 ตัว (เมนู Characters • 128–168px)', 'Tier 1 ทำตัวใหญ่ได้แล้ว • ทุกตัวทำ 5 ข้อ: สร้างตัว → เดิน → โจมตี → ท่าพิเศษ → ตาย')

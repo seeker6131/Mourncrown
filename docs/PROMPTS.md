@@ -188,7 +188,7 @@ dark sewer water channel, top-down pixel art, muted desaturated dark-forest colo
 
 ## ② ฮีโร่ 13 ร่าง (เมนู Characters • 48px)
 
-_ทุกร่างทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ล้ม (ไม่ต้องทำท่าสกิล — ตอนใช้สกิลเกมเล่นท่าโจมตี + เอฟเฟกต์อลังการจากโค้ด) • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว_
+_ทุกร่างทำแค่ 3 ข้อ: สร้างตัว → เดิน → โจมตี • ไม่ต้องทำท่าสกิลและท่าตาย (เกมทำด้วยโค้ด: สกิล = ท่าโจมตี + เอฟเฟกต์ • ตาย = กะพริบ ล้ม แตกเป็นพิกเซล วิญญาณลอยขึ้น) • ทุกร่างคือหนุ่มผมน้ำตาลคนเดิม • ถ้าอาวุธในมือส่ายตอนเดิน ลองใหม่โดยเติมคำว่า weapon sheathed, hands empty ท้ายข้อความสร้างตัว_
 
 **HR1 — นักดาบ — สร้างตัว**
 
@@ -198,7 +198,7 @@ _ทุกร่างทำ 4 ข้อ: สร้างตัว → เดิ
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ นักดาบ แล้ว ทำท่าขยับต่อตามข้อ HR1-W, HR1-A, HR1-D
+7. ได้ นักดาบ แล้ว ทำท่าขยับต่อตามข้อ HR1-W, HR1-A
 
 ```
 same young man, blue tunic with leather shoulder guard, red headband, green scarf, steel short sword and small round shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -222,21 +222,10 @@ same young man, blue tunic with leather shoulder guard, red headband, green scar
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-swinging the sword in a strong slash attack
-```
-
-**HR1-D — นักดาบ — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **นักดาบ** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+swinging the sword in a strong slash attack
 ```
 
 **HR2 — อัศวิน — สร้างตัว**
@@ -247,7 +236,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR2-W, HR2-A, HR2-D
+7. ได้ อัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR2-W, HR2-A
 
 ```
 same young man in polished steel plate armour, blue tabard, red cape, closed knight helmet with red plume, longsword and kite shield, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -271,21 +260,10 @@ same young man in polished steel plate armour, blue tabard, red cape, closed kni
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-swinging the sword in a strong slash attack
-```
-
-**HR2-D — อัศวิน — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **อัศวิน** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+swinging the sword in a strong slash attack
 ```
 
 **HR3 — ลอร์ดอัศวิน — สร้างตัว**
@@ -296,7 +274,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ลอร์ดอัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR3-W, HR3-A, HR3-D
+7. ได้ ลอร์ดอัศวิน แล้ว ทำท่าขยับต่อตามข้อ HR3-W, HR3-A
 
 ```
 same young man in ornate white-and-gold plate armour with glowing blue runes, royal blue cape, winged full helmet, radiant greatsword, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -320,21 +298,10 @@ same young man in ornate white-and-gold plate armour with glowing blue runes, ro
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-swinging the sword in a strong slash attack
-```
-
-**HR3-D — ลอร์ดอัศวิน — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **ลอร์ดอัศวิน** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+swinging the sword in a strong slash attack
 ```
 
 **HR4 — นักธนู — สร้างตัว**
@@ -345,7 +312,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ นักธนู แล้ว ทำท่าขยับต่อตามข้อ HR4-W, HR4-A, HR4-D
+7. ได้ นักธนู แล้ว ทำท่าขยับต่อตามข้อ HR4-W, HR4-A
 
 ```
 same young man in green hooded tunic, leather bracers, quiver on the back, simple wooden bow, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -369,21 +336,10 @@ same young man in green hooded tunic, leather bracers, quiver on the back, simpl
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-drawing the bow and shooting an arrow forward
-```
-
-**HR4-D — นักธนู — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **นักธนู** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+drawing the bow and shooting an arrow forward
 ```
 
 **HR5 — พรานป่า — สร้างตัว**
@@ -394,7 +350,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ พรานป่า แล้ว ทำท่าขยับต่อตามข้อ HR5-W, HR5-A, HR5-D
+7. ได้ พรานป่า แล้ว ทำท่าขยับต่อตามข้อ HR5-W, HR5-A
 
 ```
 same young man in layered green-brown leather armour, fur-lined hood, cloth mask over nose and mouth, carved longbow, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -418,21 +374,10 @@ same young man in layered green-brown leather armour, fur-lined hood, cloth mask
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-drawing the bow and shooting an arrow forward
-```
-
-**HR5-D — พรานป่า — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **พรานป่า** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+drawing the bow and shooting an arrow forward
 ```
 
 **HR6 — เรนเจอร์ราชันย์ — สร้างตัว**
@@ -443,7 +388,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ เรนเจอร์ราชันย์ แล้ว ทำท่าขยับต่อตามข้อ HR6-W, HR6-A, HR6-D
+7. ได้ เรนเจอร์ราชันย์ แล้ว ทำท่าขยับต่อตามข้อ HR6-W, HR6-A
 
 ```
 same young man in emerald-and-gold elven armour, leaf-pattern cape, golden half mask, glowing bow of light, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -467,21 +412,10 @@ same young man in emerald-and-gold elven armour, leaf-pattern cape, golden half 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-drawing the bow and shooting an arrow forward
-```
-
-**HR6-D — เรนเจอร์ราชันย์ — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **เรนเจอร์ราชันย์** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+drawing the bow and shooting an arrow forward
 ```
 
 **HR7 — จอมเวท — สร้างตัว**
@@ -492,7 +426,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ จอมเวท แล้ว ทำท่าขยับต่อตามข้อ HR7-W, HR7-A, HR7-D
+7. ได้ จอมเวท แล้ว ทำท่าขยับต่อตามข้อ HR7-W, HR7-A
 
 ```
 same young man in purple hooded robe with gold trim, potion pouches, wooden staff with a blue crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -516,21 +450,10 @@ same young man in purple hooded robe with gold trim, potion pouches, wooden staf
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-thrusting the staff forward and casting a glowing magic bolt
-```
-
-**HR7-D — จอมเวท — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **จอมเวท** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+thrusting the staff forward and casting a glowing magic bolt
 ```
 
 **HR8 — ปราชญ์เวท — สร้างตัว**
@@ -541,7 +464,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ปราชญ์เวท แล้ว ทำท่าขยับต่อตามข้อ HR8-W, HR8-A, HR8-D
+7. ได้ ปราชญ์เวท แล้ว ทำท่าขยับต่อตามข้อ HR8-W, HR8-A
 
 ```
 same young man in long violet star-embroidered robe, tall pointed wizard hat, face veil, silver staff with orbiting crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -565,21 +488,10 @@ same young man in long violet star-embroidered robe, tall pointed wizard hat, fa
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-thrusting the staff forward and casting a glowing magic bolt
-```
-
-**HR8-D — ปราชญ์เวท — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **ปราชญ์เวท** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+thrusting the staff forward and casting a glowing magic bolt
 ```
 
 **HR9 — อาร์คเมจทมิฬ — สร้างตัว**
@@ -590,7 +502,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อาร์คเมจทมิฬ แล้ว ทำท่าขยับต่อตามข้อ HR9-W, HR9-A, HR9-D
+7. ได้ อาร์คเมจทมิฬ แล้ว ทำท่าขยับต่อตามข้อ HR9-W, HR9-A
 
 ```
 same young man in tattered jet-black robes with crimson runes, horned black hood, iron skull mask with red eyes, bone staff with crimson crystal, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -614,21 +526,10 @@ same young man in tattered jet-black robes with crimson runes, horned black hood
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-thrusting the staff forward and casting a glowing magic bolt
-```
-
-**HR9-D — อาร์คเมจทมิฬ — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **อาร์คเมจทมิฬ** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+thrusting the staff forward and casting a glowing magic bolt
 ```
 
 **HR10 — ผู้พิทักษ์ (แทงค์) — สร้างตัว**
@@ -639,7 +540,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ผู้พิทักษ์ (แทงค์) แล้ว ทำท่าขยับต่อตามข้อ HR10-W, HR10-A, HR10-D
+7. ได้ ผู้พิทักษ์ (แทงค์) แล้ว ทำท่าขยับต่อตามข้อ HR10-W, HR10-A
 
 ```
 same young man in thick iron armour over chainmail, open-face iron helmet, huge rectangular tower shield, short heavy mace, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -663,21 +564,10 @@ same young man in thick iron armour over chainmail, open-face iron helmet, huge 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-smashing forward with the weapon while holding the shield
-```
-
-**HR10-D — ผู้พิทักษ์ (แทงค์) — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **ผู้พิทักษ์ (แทงค์)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+smashing forward with the weapon while holding the shield
 ```
 
 **HR11 — อัศวินเหล็กกล้า — สร้างตัว**
@@ -688,7 +578,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อัศวินเหล็กกล้า แล้ว ทำท่าขยับต่อตามข้อ HR11-W, HR11-A, HR11-D
+7. ได้ อัศวินเหล็กกล้า แล้ว ทำท่าขยับต่อตามข้อ HR11-W, HR11-A
 
 ```
 same young man in massive dark steel plate armour with spiked pauldrons, closed great-helm with glowing visor slit, spiked tower shield, war hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -712,21 +602,10 @@ same young man in massive dark steel plate armour with spiked pauldrons, closed 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-smashing forward with the weapon while holding the shield
-```
-
-**HR11-D — อัศวินเหล็กกล้า — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **อัศวินเหล็กกล้า** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling down defeated and lying on the ground
+smashing forward with the weapon while holding the shield
 ```
 
 **HR12 — ป้อมปราการมนุษย์ — สร้างตัว**
@@ -737,7 +616,7 @@ falling down defeated and lying on the ground
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ป้อมปราการมนุษย์ แล้ว ทำท่าขยับต่อตามข้อ HR12-W, HR12-A, HR12-D
+7. ได้ ป้อมปราการมนุษย์ แล้ว ทำท่าขยับต่อตามข้อ HR12-W, HR12-A
 
 ```
 same young man in colossal black-and-gold plate armour with glowing orange runes, horned helmet with iron face mask, castle-gate tower shield, glowing war hammer, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -761,26 +640,15 @@ same young man in colossal black-and-gold plate armour with glowing orange runes
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
+5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
 smashing forward with the weapon while holding the shield
 ```
 
-**HR12-D — ป้อมปราการมนุษย์ — ล้ม/ตาย**
-
-1. เมนู **Characters** → กดรูป **ป้อมปราการมนุษย์** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าล้ม)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
-5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
-
-```
-falling down defeated and lying on the ground
-```
-
 ## ③ มอนสเตอร์ 17 ตัว — ออกแบบใหม่ ดุ น่ากลัว ไม่ซ้ำเกมอื่น (เมนู Characters)
 
-_ทุกตัวทำ 4 ข้อ: สร้างตัว → เดิน → โจมตี → ตาย • ขนาดเขียนไว้ในหัวข้อ • เยติที่ทำไปแล้วใช้ได้ หรือทำ MO15 ใหม่ให้ดุกว่าก็ได้_
+_ทุกตัวทำแค่ 3 ข้อ: สร้างตัว → เดิน → โจมตี (ท่าตายเกมทำด้วยโค้ด) • ขนาดเขียนไว้ในหัวข้อ • เยติที่ทำไปแล้วใช้ได้ หรือทำ MO15 ใหม่ให้ดุกว่าก็ได้_
 
 **MO1 — ก้อนโคลนกลืนกิน (แทนสไลม์) — สร้างตัว (32px)**
 
@@ -790,7 +658,7 @@ _ทุกตัวทำ 4 ข้อ: สร้างตัว → เดิน
 4. **Sprite Size** → กด **32px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ก้อนโคลนกลืนกิน (แทนสไลม์) แล้ว ทำท่าขยับต่อตามข้อ MO1-W, MO1-A, MO1-D
+7. ได้ ก้อนโคลนกลืนกิน (แทนสไลม์) แล้ว ทำท่าขยับต่อตามข้อ MO1-W, MO1-A
 
 ```
 pulsing blob of black bog tar with a ring of tiny needle teeth on top and three pale staring eyes, dripping, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -814,21 +682,10 @@ pulsing blob of black bog tar with a ring of tiny needle teeth on top and three 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-stretching up and lunging forward to bite with its ring of teeth
-```
-
-**MO1-D — ก้อนโคลนกลืนกิน (แทนสไลม์) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ก้อนโคลนกลืนกิน (แทนสไลม์)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-bursting and melting into a black puddle
+stretching up and lunging forward to bite with its ring of teeth
 ```
 
 **MO2 — ซากเห็ดเน่า (แทนเห็ด) — สร้างตัว (48px)**
@@ -839,7 +696,7 @@ bursting and melting into a black puddle
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ซากเห็ดเน่า (แทนเห็ด) แล้ว ทำท่าขยับต่อตามข้อ MO2-W, MO2-A, MO2-D
+7. ได้ ซากเห็ดเน่า (แทนเห็ด) แล้ว ทำท่าขยับต่อตามข้อ MO2-W, MO2-A
 
 ```
 hunched rotting corpse-like fungus creature, sickly mushroom caps sprouting from its bony back, glowing spore-filled eye sockets, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -863,21 +720,10 @@ hunched rotting corpse-like fungus creature, sickly mushroom caps sprouting from
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-swinging its long arms and coughing a cloud of glowing spores
-```
-
-**MO2-D — ซากเห็ดเน่า (แทนเห็ด) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ซากเห็ดเน่า (แทนเห็ด)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-collapsing into a heap of rotten mushrooms
+swinging its long arms and coughing a cloud of glowing spores
 ```
 
 **MO3 — หมาป่ากลวงโหว่ (แทนหมาป่า) — สร้างตัว (48px)**
@@ -888,7 +734,7 @@ collapsing into a heap of rotten mushrooms
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ หมาป่ากลวงโหว่ (แทนหมาป่า) แล้ว ทำท่าขยับต่อตามข้อ MO3-W, MO3-A, MO3-D
+7. ได้ หมาป่ากลวงโหว่ (แทนหมาป่า) แล้ว ทำท่าขยับต่อตามข้อ MO3-W, MO3-A
 
 ```
 gaunt skinless wolf with exposed ribs, cracked bark-like hide, ember red eyes and a jaw too long for its skull, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -912,21 +758,10 @@ gaunt skinless wolf with exposed ribs, cracked bark-like hide, ember red eyes an
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-lunging forward with a vicious biting attack
-```
-
-**MO3-D — หมาป่ากลวงโหว่ (แทนหมาป่า) — ตาย**
-
-1. เมนู **Characters** → กดรูป **หมาป่ากลวงโหว่ (แทนหมาป่า)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-yelping and collapsing into a pile of bones and bark
+lunging forward with a vicious biting attack
 ```
 
 **MO4 — ภูตหนามสวมหน้ากาก (แทนก็อบลิน) — สร้างตัว (48px)**
@@ -937,7 +772,7 @@ yelping and collapsing into a pile of bones and bark
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ภูตหนามสวมหน้ากาก (แทนก็อบลิน) แล้ว ทำท่าขยับต่อตามข้อ MO4-W, MO4-A, MO4-D
+7. ได้ ภูตหนามสวมหน้ากาก (แทนก็อบลิน) แล้ว ทำท่าขยับต่อตามข้อ MO4-W, MO4-A
 
 ```
 small wiry creature made of black thorny briars wearing a cracked carved wooden mask, holding a sharpened bone knife, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -961,21 +796,10 @@ small wiry creature made of black thorny briars wearing a cracked carved wooden 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-stabbing forward fast with the bone knife
-```
-
-**MO4-D — ภูตหนามสวมหน้ากาก (แทนก็อบลิน) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ภูตหนามสวมหน้ากาก (แทนก็อบลิน)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling apart into dry thorny twigs, the mask dropping
+stabbing forward fast with the bone knife
 ```
 
 **MO5 — ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) — สร้างตัว (48px)**
@@ -986,7 +810,7 @@ falling apart into dry thorny twigs, the mask dropping
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) แล้ว ทำท่าขยับต่อตามข้อ MO5-W, MO5-A, MO5-D
+7. ได้ ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) แล้ว ทำท่าขยับต่อตามข้อ MO5-W, MO5-A
 
 ```
 giant moth with a pale skull-like face, tattered dusty wings glowing faintly like a lantern, long thin legs, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1010,21 +834,10 @@ giant moth with a pale skull-like face, tattered dusty wings glowing faintly lik
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-diving forward with a flash of glowing wing dust
-```
-
-**MO5-D — ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ผีเสื้อกลางคืนหน้ากะโหลก (แทนวิญญาณไฟ)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-wings crumbling to dust as it falls
+diving forward with a flash of glowing wing dust
 ```
 
 **MO6 — หนูแทะซาก (แทนหนูยักษ์) — สร้างตัว (32px)**
@@ -1035,7 +848,7 @@ wings crumbling to dust as it falls
 4. **Sprite Size** → กด **32px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ หนูแทะซาก (แทนหนูยักษ์) แล้ว ทำท่าขยับต่อตามข้อ MO6-W, MO6-A, MO6-D
+7. ได้ หนูแทะซาก (แทนหนูยักษ์) แล้ว ทำท่าขยับต่อตามข้อ MO6-W, MO6-A
 
 ```
 hairless giant plague rat with a split lower jaw, pale sores and milky blind eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1059,21 +872,10 @@ hairless giant plague rat with a split lower jaw, pale sores and milky blind eye
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-lunging forward with its split jaw
-```
-
-**MO6-D — หนูแทะซาก (แทนหนูยักษ์) — ตาย**
-
-1. เมนู **Characters** → กดรูป **หนูแทะซาก (แทนหนูยักษ์)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-twitching and flipping onto its back
+lunging forward with its split jaw
 ```
 
 **MO7 — อัศวินเปลือกกลวง (แทนโครงกระดูก) — สร้างตัว (48px)**
@@ -1084,7 +886,7 @@ twitching and flipping onto its back
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ อัศวินเปลือกกลวง (แทนโครงกระดูก) แล้ว ทำท่าขยับต่อตามข้อ MO7-W, MO7-A, MO7-D
+7. ได้ อัศวินเปลือกกลวง (แทนโครงกระดูก) แล้ว ทำท่าขยับต่อตามข้อ MO7-W, MO7-A
 
 ```
 headless rusted suit of armour filled with twisting roots, green glow from the empty neck, cracked rusty greatsword, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1108,21 +910,10 @@ headless rusted suit of armour filled with twisting roots, green glow from the e
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-swinging the rusty greatsword in a heavy slash
-```
-
-**MO7-D — อัศวินเปลือกกลวง (แทนโครงกระดูก) — ตาย**
-
-1. เมนู **Characters** → กดรูป **อัศวินเปลือกกลวง (แทนโครงกระดูก)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-collapsing into empty armour pieces as the glow dies
+swinging the rusty greatsword in a heavy slash
 ```
 
 **MO8 — นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) — สร้างตัว (48px)**
@@ -1133,7 +924,7 @@ collapsing into empty armour pieces as the glow dies
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) แล้ว ทำท่าขยับต่อตามข้อ MO8-W, MO8-A, MO8-D
+7. ได้ นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) แล้ว ทำท่าขยับต่อตามข้อ MO8-W, MO8-A
 
 ```
 skeletal archer with deer antlers growing from its skull, ragged hood, bow strung with sinew, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1157,21 +948,10 @@ skeletal archer with deer antlers growing from its skull, ragged hood, bow strun
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-drawing the sinew bow and shooting a bone arrow
-```
-
-**MO8-D — นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู) — ตาย**
-
-1. เมนู **Characters** → กดรูป **นักธนูกระดูกเขากวาง (แทนโครงกระดูกธนู)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-crumbling into bones and antlers
+drawing the sinew bow and shooting a bone arrow
 ```
 
 **MO9 — วิญญาณผ้าคลุมหน้า (แทนผี) — สร้างตัว (48px)**
@@ -1182,7 +962,7 @@ crumbling into bones and antlers
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ วิญญาณผ้าคลุมหน้า (แทนผี) แล้ว ทำท่าขยับต่อตามข้อ MO9-W, MO9-A, MO9-D
+7. ได้ วิญญาณผ้าคลุมหน้า (แทนผี) แล้ว ทำท่าขยับต่อตามข้อ MO9-W, MO9-A
 
 ```
 tall faceless ghost woman in a long tattered grey veil, very long thin fingers, floating above the ground, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1206,21 +986,10 @@ tall faceless ghost woman in a long tattered grey veil, very long thin fingers, 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-reaching forward fast with long clawed fingers
-```
-
-**MO9-D — วิญญาณผ้าคลุมหน้า (แทนผี) — ตาย**
-
-1. เมนู **Characters** → กดรูป **วิญญาณผ้าคลุมหน้า (แทนผี)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-screaming silently and tearing apart into mist
+reaching forward fast with long clawed fingers
 ```
 
 **MO10 — แมงมุมปากคน (แทนแมงมุม) — สร้างตัว (48px)**
@@ -1231,7 +1000,7 @@ screaming silently and tearing apart into mist
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ แมงมุมปากคน (แทนแมงมุม) แล้ว ทำท่าขยับต่อตามข้อ MO10-W, MO10-A, MO10-D
+7. ได้ แมงมุมปากคน (แทนแมงมุม) แล้ว ทำท่าขยับต่อตามข้อ MO10-W, MO10-A
 
 ```
 giant black spider whose whole body is a gaping mouth full of human-like teeth, eight bristly legs, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1255,21 +1024,10 @@ giant black spider whose whole body is a gaping mouth full of human-like teeth, 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-rearing up and snapping its giant mouth forward
-```
-
-**MO10-D — แมงมุมปากคน (แทนแมงมุม) — ตาย**
-
-1. เมนู **Characters** → กดรูป **แมงมุมปากคน (แทนแมงมุม)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-curling its legs and going still
+rearing up and snapping its giant mouth forward
 ```
 
 **MO11 — ปีศาจเถ้าถ่าน (แทนอิมป์) — สร้างตัว (32px)**
@@ -1280,7 +1038,7 @@ curling its legs and going still
 4. **Sprite Size** → กด **32px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ปีศาจเถ้าถ่าน (แทนอิมป์) แล้ว ทำท่าขยับต่อตามข้อ MO11-W, MO11-A, MO11-D
+7. ได้ ปีศาจเถ้าถ่าน (แทนอิมป์) แล้ว ทำท่าขยับต่อตามข้อ MO11-W, MO11-A
 
 ```
 small horned fiend with cracked obsidian skin, a mouth glowing with fire and smoking claws, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1304,21 +1062,10 @@ small horned fiend with cracked obsidian skin, a mouth glowing with fire and smo
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-spitting a burst of fire forward
-```
-
-**MO11-D — ปีศาจเถ้าถ่าน (แทนอิมป์) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ปีศาจเถ้าถ่าน (แทนอิมป์)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-cracking apart into glowing embers
+spitting a burst of fire forward
 ```
 
 **MO12 — ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) — สร้างตัว (64px)**
@@ -1329,7 +1076,7 @@ cracking apart into glowing embers
 4. **Sprite Size** → กด **64px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) แล้ว ทำท่าขยับต่อตามข้อ MO12-W, MO12-A, MO12-D
+7. ได้ ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) แล้ว ทำท่าขยับต่อตามข้อ MO12-W, MO12-A
 
 ```
 hulking colossus of cooled black slag bound in rusted chains, a glowing furnace heart in its open chest, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1353,21 +1100,10 @@ hulking colossus of cooled black slag bound in rusted chains, a glowing furnace 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-raising chained fists and smashing the ground
-```
-
-**MO12-D — ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ยักษ์ตะกรันโซ่ตรวน (แทนโกเลม)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-its furnace heart dying as it crumbles into slag
+raising chained fists and smashing the ground
 ```
 
 **MO13 — กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) — สร้างตัว (48px)**
@@ -1378,7 +1114,7 @@ its furnace heart dying as it crumbles into slag
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) แล้ว ทำท่าขยับต่อตามข้อ MO13-W, MO13-A, MO13-D
+7. ได้ กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) แล้ว ทำท่าขยับต่อตามข้อ MO13-W, MO13-A
 
 ```
 six-legged lizard with cooling lava plates on its back, glowing cracks and a long whip tail, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1402,21 +1138,10 @@ six-legged lizard with cooling lava plates on its back, glowing cracks and a lon
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-whipping its tail and spitting molten rock
-```
-
-**MO13-D — กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์) — ตาย**
-
-1. เมนู **Characters** → กดรูป **กิ้งก่าแมกมาหกขา (แทนซาลาแมนเดอร์)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-curling up as its glow fades to black stone
+whipping its tail and spitting molten rock
 ```
 
 **MO14 — นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) — สร้างตัว (48px)**
@@ -1427,7 +1152,7 @@ curling up as its glow fades to black stone
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) แล้ว ทำท่าขยับต่อตามข้อ MO14-W, MO14-A, MO14-D
+7. ได้ นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) แล้ว ทำท่าขยับต่อตามข้อ MO14-W, MO14-A
 
 ```
 lean wolf-like beast with icicle spines along its back, a frozen exposed jaw and cold blue eyes, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1451,21 +1176,10 @@ lean wolf-like beast with icicle spines along its back, a frozen exposed jaw and
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-lunging forward with a freezing bite
-```
-
-**MO14-D — นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง) — ตาย**
-
-1. เมนู **Characters** → กดรูป **นักล่าเหมันต์ (แทนหมาป่าน้ำแข็ง)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-shattering into ice shards
+lunging forward with a freezing bite
 ```
 
 **MO15 — ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) — สร้างตัว (64px)**
@@ -1476,7 +1190,7 @@ shattering into ice shards
 4. **Sprite Size** → กด **64px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) แล้ว ทำท่าขยับต่อตามข้อ MO15-W, MO15-A, MO15-D
+7. ได้ ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) แล้ว ทำท่าขยับต่อตามข้อ MO15-W, MO15-A
 
 ```
 hunched furred giant wearing a frozen skull mask, arms encased in jagged ice, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1500,21 +1214,10 @@ hunched furred giant wearing a frozen skull mask, arms encased in jagged ice, to
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-swinging an ice-covered arm down
-```
-
-**MO15-D — ยักษ์หน้ากากน้ำแข็ง (แทนเยติ) — ตาย**
-
-1. เมนู **Characters** → กดรูป **ยักษ์หน้ากากน้ำแข็ง (แทนเยติ)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-falling face down and freezing solid
+swinging an ice-covered arm down
 ```
 
 **MO16 — กวางเขาดำ (สัตว์ล่า) — สร้างตัว (48px)**
@@ -1525,7 +1228,7 @@ falling face down and freezing solid
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ กวางเขาดำ (สัตว์ล่า) แล้ว ทำท่าขยับต่อตามข้อ MO16-W, MO16-A, MO16-D
+7. ได้ กวางเขาดำ (สัตว์ล่า) แล้ว ทำท่าขยับต่อตามข้อ MO16-W, MO16-A
 
 ```
 large dark forest stag with black branching antlers and scars, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1549,21 +1252,10 @@ large dark forest stag with black branching antlers and scars, top-down pixel ar
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-kicking backwards with the hind legs
-```
-
-**MO16-D — กวางเขาดำ (สัตว์ล่า) — ตาย**
-
-1. เมนู **Characters** → กดรูป **กวางเขาดำ (สัตว์ล่า)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-stumbling and lying down on its side
+kicking backwards with the hind legs
 ```
 
 **MO17 — หมูป่าแผลเป็น (สัตว์ล่า) — สร้างตัว (48px)**
@@ -1574,7 +1266,7 @@ stumbling and lying down on its side
 4. **Sprite Size** → กด **48px**
 5. **Detail** → **Highly detailed** • **Outline** → **single color black outline**
 6. เลื่อนลงล่างสุด กด **Generate** แล้วรอ (เว็บสร้าง 8 ทิศให้เอง)
-7. ได้ หมูป่าแผลเป็น (สัตว์ล่า) แล้ว ทำท่าขยับต่อตามข้อ MO17-W, MO17-A, MO17-D
+7. ได้ หมูป่าแผลเป็น (สัตว์ล่า) แล้ว ทำท่าขยับต่อตามข้อ MO17-W, MO17-A
 
 ```
 huge scarred wild boar with broken tusks and bristly black mane, top-down pixel art, muted desaturated dark-forest colours, soft shading
@@ -1598,21 +1290,10 @@ huge scarred wild boar with broken tusks and bristly black mane, top-down pixel 
 2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
 3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าโจมตี)
 4. เลื่อนลงล่างสุด กด **Generate in Background**
-
-```
-charging forward with its tusks
-```
-
-**MO17-D — หมูป่าแผลเป็น (สัตว์ล่า) — ตาย**
-
-1. เมนู **Characters** → กดรูป **หมูป่าแผลเป็น (สัตว์ล่า)** → กด **Add Animation**
-2. เลื่อนลงหากล่อง **Describe your own** → กดช่อง **Custom Animation**
-3. **วางข้อความด้านล่าง** ในช่องนั้น (ท่าตาย)
-4. เลื่อนลงล่างสุด กด **Generate in Background**
 5. ทำครบทุกท่าแล้ว: ในหน้าตัวละคร กด **Download** (ได้ไฟล์ ZIP) → **ส่ง ZIP มาในแชทนี้** ได้เลย
 
 ```
-squealing and toppling onto its side
+charging forward with its tusks
 ```
 
 ## ④ บอส 5 ตัว (เมนู Characters • 128–168px)

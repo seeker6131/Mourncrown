@@ -114,7 +114,7 @@ export class TopDownScene extends Phaser.Scene {
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
     if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); }
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.7 && p.y < this.scale.height * 0.25) { this.nextForm(); return; } if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.7 && p.y < this.scale.height * 0.25) { this.nextForm(); return; } if (p.x < this.scale.width * 0.35 && p.y < this.scale.height * 0.18) { this.heroDie(); return; } if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
@@ -286,7 +286,7 @@ export class TopDownScene extends Phaser.Scene {
     const fit = () => this.vignette.setDisplaySize(this.scale.width, this.scale.height);
     fit(); this.scale.on('resize', fit);
     const fs = Math.round(this.scale.height / 30);
-    this.label = this.add.text(fs * 0.6, fs * 0.6, 'ทดลอง: มองจากบน • ร่าง ชาวบ้าน (แตะมุมขวาบนเพื่อเปลี่ยน)', { fontFamily: 'sans-serif', fontSize: fs + 'px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: Math.max(2, fs / 5) })
+    this.label = this.add.text(fs * 0.6, fs * 0.6, 'ทดลอง: มองจากบน • ร่าง ชาวบ้าน (แตะมุมขวาบน = เปลี่ยนร่าง • แตะข้อความนี้ = ทดสอบท่าตาย)', { fontFamily: 'sans-serif', fontSize: fs + 'px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: Math.max(2, fs / 5) })
       .setDepth(100002);
   }
 
@@ -296,11 +296,67 @@ export class TopDownScene extends Phaser.Scene {
     if (this.attacking) return;
     this.form = (this.form + 1) % FORMS.length;
     this.hero.stop(); this.hero.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
-    this.label.setText(`ทดลอง: มองจากบน • ร่าง ${this.F.name} (แตะมุมขวาบนเพื่อเปลี่ยน)`);
+    this.label.setText(`ทดลอง: มองจากบน • ร่าง ${this.F.name} (แตะมุมขวาบน = เปลี่ยนร่าง • แตะข้อความนี้ = ทดสอบท่าตาย)`);
   }
+  dead = false;
+  /** Demo: the hero dies with the code-made death effect, then respawns. */
+  heroDie() {
+    if (this.dead) return;
+    this.dead = true; this.attacking = false;
+    const h = this.hero;
+    this.deathFx(h, 0xbfe8ff, () => {
+      this.time.delayedCall(900, () => {
+        h.setPosition(PLAZA.x, PLAZA.y + 40).setAngle(0).setAlpha(0).setVisible(true).clearTint();
+        h.setTexture(`td_${this.F.key}_idle`, 0).setOrigin(0.5, this.F.idleFoot / 48);
+        this.tweens.add({ targets: h, alpha: 1, duration: 500, onComplete: () => { this.dead = false; } });
+        this.shadow.setAlpha(1);
+      });
+    });
+  }
+
+  /** Code-made death: white flash → knock back and topple → burst into the sprite's own pixels → a soul rises. */
+  deathFx(sp: Phaser.GameObjects.Sprite, soul: number, done?: () => void) {
+    sp.anims.stop();
+    const back = this.dir >= 1 && this.dir <= 3 ? -1 : this.dir >= 5 && this.dir <= 7 ? 1 : (Math.random() < 0.5 ? -1 : 1);
+    sp.setTintFill(0xffffff);
+    this.time.delayedCall(70, () => sp.clearTint());
+    this.cameras.main.shake(120, 0.004);
+    this.tweens.add({ targets: sp, x: sp.x + back * 7, duration: 180, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: sp, y: sp.y - 5, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: sp, angle: back * 82, duration: 260, delay: 60, ease: 'Quad.easeIn', onComplete: () => {
+      this.burst(sp, soul);
+      sp.setVisible(false);
+      this.tweens.add({ targets: this.shadow, alpha: 0, duration: 400 });
+      done?.();
+    } });
+  }
+
+  burst(sp: Phaser.GameObjects.Sprite, soul: number) {
+    const fr = sp.frame, src = fr.source.image as HTMLImageElement | HTMLCanvasElement;
+    const cv = document.createElement('canvas'); cv.width = fr.cutWidth; cv.height = fr.cutHeight;
+    const ctx = cv.getContext('2d')!; ctx.drawImage(src, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, fr.cutWidth, fr.cutHeight);
+    const d = ctx.getImageData(0, 0, cv.width, cv.height).data;
+    const ox = sp.originX * cv.width, oy = sp.originY * cv.height;
+    const a = Phaser.Math.DegToRad(sp.angle), ca = Math.cos(a), sa = Math.sin(a);
+    for (let y = 0; y < cv.height; y += 2) for (let x = 0; x < cv.width; x += 2) {
+      const o = (y * cv.width + x) * 4;
+      if (d[o + 3] < 128) continue;
+      const lx = x - ox, ly = y - oy;
+      const wx = sp.x + lx * ca - ly * sa, wy = sp.y + lx * sa + ly * ca;
+      const r = this.add.rectangle(wx, wy, 2, 2, (d[o] << 16) | (d[o + 1] << 8) | d[o + 2]).setDepth(sp.y + 1);
+      const ang = Math.atan2(wy - (sp.y - 12), wx - sp.x) + (Math.random() - 0.5) * 0.8, spd = 10 + Math.random() * 26;
+      this.tweens.add({ targets: r, x: wx + Math.cos(ang) * spd, y: wy + Math.sin(ang) * spd * 0.6 + 6 + Math.random() * 8,
+        alpha: 0, angle: (Math.random() - 0.5) * 180, duration: 500 + Math.random() * 500, ease: 'Quad.easeOut', onComplete: () => r.destroy() });
+    }
+    const g = this.add.image(sp.x, sp.y - 14, 'td_glow').setScale(0.28).setTint(soul).setBlendMode(Phaser.BlendModes.ADD).setDepth(99991);
+    const core = this.add.circle(sp.x, sp.y - 14, 2, soul).setDepth(99992);
+    this.tweens.add({ targets: [g, core], y: sp.y - 48, alpha: 0, duration: 1300, ease: 'Sine.easeOut', onComplete: () => { g.destroy(); core.destroy(); } });
+    this.tweens.add({ targets: g, scale: 0.45, duration: 1300 });
+  }
+
   attacking = false;
   attack() {
-    if (this.attacking || !this.F.attack) return;
+    if (this.dead || this.attacking || !this.F.attack) return;
     this.attacking = true;
     const h = this.hero;
     const F = this.F;
@@ -319,7 +375,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     const len = Math.hypot(mx, my);
     const h = this.hero;
-    if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
+    if (this.dead) { /* dying */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
       const sp = 72 * dt / 1000;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
@@ -330,11 +386,11 @@ export class TopDownScene extends Phaser.Scene {
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
       const key = `${this.F.key}_w_${DIRS[this.dir]}`;
       if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture(`td_${this.F.key}_walk`).setOrigin(0.5, this.F.walkFoot / 68); h.play(key, true); }
-    } else if (h.anims.isPlaying && !this.attacking) {
+    } else if (h.anims.isPlaying && !this.attacking && !this.dead) {
       h.stop(); h.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
     }
     h.setDepth(h.y);
-    this.shadow.setPosition(h.x, h.y - 1);
+    if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);
     for (const [i, l] of this.lamps.entries()) l.setAlpha(0.75 + Math.sin(time / 180 + i * 1.7) * 0.12);
     // joystick (screen space)
     const g = this.joyG; g.clear();
