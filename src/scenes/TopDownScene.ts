@@ -5,6 +5,7 @@
 import Phaser from 'phaser';
 import heroIdle from '../assets/td/hero_idle.webp';
 import heroWalk from '../assets/td/hero_walking.webp';
+import heroAttack from '../assets/td/hero_attack.webp';
 
 const MW = 1280, MH = 800;           // map size in game px (1 texel = 1 px)
 const CELL = 4;                       // collision grid
@@ -73,6 +74,7 @@ export class TopDownScene extends Phaser.Scene {
   preload() {
     this.load.spritesheet('td_hero_idle', heroIdle, { frameWidth: 48, frameHeight: 48 });
     this.load.spritesheet('td_hero_walk', heroWalk, { frameWidth: 68, frameHeight: 68 });
+    this.load.spritesheet('td_hero_attack', heroAttack, { frameWidth: 68, frameHeight: 68 });
   }
 
   create() {
@@ -81,6 +83,7 @@ export class TopDownScene extends Phaser.Scene {
     this.makePropTextures();
     this.placeProps();
 
+    DIRS.forEach((d, i) => this.anims.create({ key: 'ha_' + d, frames: this.anims.generateFrameNumbers('td_hero_attack', { start: i * 9, end: i * 9 + 8 }), frameRate: 18, repeat: 0 }));
     DIRS.forEach((d, i) => this.anims.create({ key: 'hw_' + d, frames: this.anims.generateFrameNumbers('td_hero_walk', { start: i * 8, end: i * 8 + 7 }), frameRate: 10, repeat: -1 }));
     this.shadow = this.add.ellipse(PLAZA.x, PLAZA.y + 40, 18, 7, 0x10180f, 0.45).setDepth(1);
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'td_hero_idle', 0).setOrigin(0.5, 46 / 48);
@@ -97,8 +100,8 @@ export class TopDownScene extends Phaser.Scene {
     uiCam.ignore(this.children.list.filter(o => !ui.includes(o as never)));
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
-    if (this.input.keyboard) this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>;
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
+    if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); }
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
@@ -274,6 +277,15 @@ export class TopDownScene extends Phaser.Scene {
       .setDepth(100002);
   }
 
+  attacking = false;
+  attack() {
+    if (this.attacking) return;
+    this.attacking = true;
+    const h = this.hero;
+    h.setTexture('td_hero_attack').setOrigin(0.5, 56 / 68).play('ha_' + DIRS[this.dir]);
+    h.once('animationcomplete', () => { this.attacking = false; h.setTexture('td_hero_idle', this.dir).setOrigin(0.5, 46 / 48); });
+  }
+
   update(time: number, dt: number) {
     let mx = 0, my = 0;
     const k = this.keys;
@@ -285,7 +297,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     const len = Math.hypot(mx, my);
     const h = this.hero;
-    if (len > 0) {
+    if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
       const sp = 72 * dt / 1000;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
@@ -296,7 +308,7 @@ export class TopDownScene extends Phaser.Scene {
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
       const key = 'hw_' + DIRS[this.dir];
       if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture('td_hero_walk').setOrigin(0.5, 56 / 68); h.play(key, true); }
-    } else if (h.anims.isPlaying) {
+    } else if (h.anims.isPlaying && !this.attacking) {
       h.stop(); h.setTexture('td_hero_idle', this.dir).setOrigin(0.5, 46 / 48);
     }
     h.setDepth(h.y);
@@ -304,6 +316,9 @@ export class TopDownScene extends Phaser.Scene {
     for (const [i, l] of this.lamps.entries()) l.setAlpha(0.75 + Math.sin(time / 180 + i * 1.7) * 0.12);
     // joystick (screen space)
     const g = this.joyG; g.clear();
+    const bx2 = this.scale.width - R * 1.3, by2 = this.scale.height - R * 1.3;
+    g.fillStyle(0x0b0f0c, 0.35).fillCircle(bx2, by2, R * 0.75).lineStyle(3, 0xe8e0c8, this.attacking ? 0.9 : 0.5).strokeCircle(bx2, by2, R * 0.75);
+    g.lineStyle(4, 0xe8e0c8, 0.8).lineBetween(bx2 - R * 0.3, by2 + R * 0.3, bx2 + R * 0.3, by2 - R * 0.3).lineBetween(bx2 - R * 0.36, by2 + R * 0.12, bx2 - R * 0.12, by2 + R * 0.36);
     if (this.joy.id >= 0) {
       const bx = this.joy.x, by = this.joy.y;
       const l = Math.min(R, Math.hypot(this.joy.dx, this.joy.dy)), a = Math.atan2(this.joy.dy, this.joy.dx);
