@@ -90,6 +90,54 @@ export class TopDownScene extends Phaser.Scene {
   joyG!: Phaser.GameObjects.Graphics;
   lamps: Phaser.GameObjects.Image[] = [];
   reserved = new Set<string>();
+  surf: string[] = [];
+
+  /** Living water: drifting ripple glints that follow the current, plus foam flickering along the banks. */
+  animateWater() {
+    const S = this.surf;
+    const mk = (key: string, rows: string[], cols: Record<string, string>) => {
+      if (this.textures.exists(key)) return;
+      const cv = document.createElement('canvas'); cv.width = rows[0].length; cv.height = rows.length; const ctx = cv.getContext('2d')!;
+      rows.forEach((r, y) => [...r].forEach((c, x) => { if (cols[c]) { ctx.fillStyle = cols[c]; ctx.fillRect(x, y, 1, 1); } }));
+      this.textures.addCanvas(key, cv);
+    };
+    const C = { a: '#7fc6c4', b: '#4f9a9c', w: '#d6f2ee' };
+    mk('td_rip0', ['.aaa.', 'b...b'], C);
+    mk('td_rip1', ['.aaaaa.', 'b.....b'], C);
+    mk('td_rip2', ['aa'], C);
+    mk('td_foam', ['.w.', 'www', '.w.'], C);
+    const water: number[] = [], edge: number[] = [];
+    const isW = (x: number, y: number) => x >= 0 && y >= 0 && x < MW && y < MH && S[y * MW + x] === 'water';
+    for (let y = 2; y < MH - 2; y += 3) for (let x = 2; x < MW - 2; x += 3) {
+      if (!isW(x, y)) continue;
+      const nearEdge = !isW(x - 4, y) || !isW(x + 4, y) || !isW(x, y - 4) || !isW(x, y + 4);
+      (nearEdge ? edge : water).push(x, y);
+      if (!nearEdge && !isW(x - 8, y) || !isW(x + 8, y)) { /* keep ripples off the banks */ }
+    }
+    if (!water.length) return;
+    const flow = (x: number, y: number) => {   // river runs south, pond is still
+      const inRiver = Math.abs(x - riverX(y)) < 40;
+      if (!inRiver) return { dx: 0, dy: 0 };
+      const dy = 1, dx = (riverX(y + 1) - riverX(y));
+      return { dx: dx * 14, dy: dy * 14 };
+    };
+    const spawnRipple = (img: Phaser.GameObjects.Image, delay: number) => {
+      const i = Math.floor(Math.random() * (water.length / 2)) * 2;
+      const x = water[i], y = water[i + 1], f = flow(x, y);
+      img.setPosition(x, y).setAlpha(0).setTexture('td_rip' + Math.floor(Math.random() * 3));
+      const dur = 1400 + Math.random() * 1600;
+      this.tweens.add({ targets: img, x: x + f.dx + (Math.random() - 0.5) * 3, y: y + f.dy, duration: dur, delay, ease: 'Linear' });
+      this.tweens.add({ targets: img, alpha: { from: 0, to: 0.85 }, duration: dur / 2, delay, yoyo: true, ease: 'Sine.easeInOut', onComplete: () => spawnRipple(img, Math.random() * 400) });
+    };
+    const n = Math.min(260, Math.floor(water.length / 2 / 14));
+    for (let k = 0; k < n; k++) spawnRipple(this.add.image(0, 0, 'td_rip0').setDepth(2).setOrigin(0.5), Math.random() * 3000);
+    const spawnFoam = (img: Phaser.GameObjects.Image, delay: number) => {
+      const i = Math.floor(Math.random() * (edge.length / 2)) * 2;
+      img.setPosition(edge[i], edge[i + 1]).setAlpha(0).setScale(0.6 + Math.random() * 0.6);
+      this.tweens.add({ targets: img, alpha: { from: 0, to: 0.7 }, scale: img.scale * 1.4, duration: 600 + Math.random() * 700, delay, yoyo: true, ease: 'Sine.easeInOut', onComplete: () => spawnFoam(img, Math.random() * 600) });
+    };
+    if (edge.length) for (let k = 0; k < Math.min(120, edge.length / 2 / 6); k++) spawnFoam(this.add.image(0, 0, 'td_foam').setDepth(2), Math.random() * 2500);
+  }
   vignette!: Phaser.GameObjects.Image;
   label!: Phaser.GameObjects.Text;
 
@@ -109,6 +157,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
+    this.animateWater();
     this.makePropTextures();
     this.placeProps();
 
@@ -122,7 +171,7 @@ export class TopDownScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
-    const zoom = () => cam.setZoom(Math.max(2, Math.floor(this.scale.height / 250)));
+    const zoom = () => cam.setZoom(Math.max(2, Math.floor(this.scale.height / 340)));
     zoom(); this.scale.on('resize', zoom);
 
     this.addOverlay();
@@ -140,93 +189,86 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   // ---------- ground ----------
+  /** Ground = PixelLab Wang tiles only. Terrain is decided per 32px vertex, so every tile edge matches its neighbour;
+   *  the per-pixel surface map (collision, prop placement, water fx) is derived from the same vertices. */
   paintGround() {
-    const cv = document.createElement('canvas'); cv.width = MW; cv.height = MH;
-    const ctx = cv.getContext('2d')!, img = ctx.createImageData(MW, MH), d = img.data;
-    const S: string[] = new Array(MW * MH);
-    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) S[y * MW + x] = surface(x, y);
-    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
-      const s = S[y * MW + x], r = hash(x, y), n = fbm(x / 9, y / 9);
-      let c: RGB;
-      if (s === 'grass') {
-        c = pick(PAL.grass, n * 0.85 + r * 0.25);
-        if (r > 0.985) c = pick(PAL.weed, hash(y, x));
-      } else if (s === 'dirt') {
-        c = pick(PAL.dirt, n * 0.8 + r * 0.3);
-        if (r > 0.97) c = pick(PAL.pebble, hash(y, x));
-      } else if (s === 'cobble') {
-        // irregular stones from a jittered grid
-        const gx = Math.floor(x / 7), gy = Math.floor(y / 6);
-        let best = 1e9, second = 1e9, id = 0;
-        for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
-          const cx = (gx + i) * 7 + hash(gx + i, gy + j) * 6, cy = (gy + j) * 6 + hash(gy + j, gx + i) * 5;
-          const dd = Math.hypot(x - cx, (y - cy) * 1.15);
-          if (dd < best) { second = best; best = dd; id = hash(gx + i + 99, gy + j); } else if (dd < second) second = dd;
-        }
-        c = second - best < 1.1 ? pick(PAL.gap, r) : pick(PAL.stone, id * 0.7 + (best < 1.5 ? 0.3 : 0));
-      } else if (s === 'water') {
-        const wv = Math.sin(x * 0.18 + Math.sin(y * 0.09) * 2 + y * 0.05);
-        c = wv > 0.93 ? PAL.foam[0] : pick(PAL.water, n * 0.6 + (wv + 1) * 0.2);
-      } else if (s === 'mud') c = pick(PAL.mud, r);
-      else { // bridge planks across the river
-        const py = Math.floor((y - BRIDGE.y0) / 5);
-        c = (y - BRIDGE.y0) % 5 === 0 ? [70, 52, 36] : pick(PAL.plank, hash(py, 7) * 0.6 + r * 0.4);
-        if (y < BRIDGE.y0 + 3 || y > BRIDGE.y1 - 3) c = [84, 62, 42];
-      }
-      // soft edge shading: darker pixels next to a different surface
-      if (s !== 'water' && x > 0 && y > 0 && (S[y * MW + x - 1] !== s || S[(y - 1) * MW + x] !== s) && s !== 'bridge') c = [c[0] * 0.82, c[1] * 0.82, c[2] * 0.82] as RGB;
-      const o = (y * MW + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
-      if (s === 'water' || s === 'mud' && Math.abs(x - riverX(y)) < 28) this.block(x, y);
+    const T = 32, VW = MW / T + 1, VH = MH / T + 1, NX = MW / T, NY = MH / T;
+    type Ter = 'g' | 'd' | 'c' | 'w';
+    const V: Ter[] = new Array(VW * VH);
+    const vAt = (i: number, j: number): Ter => V[Math.max(0, Math.min(VH - 1, j)) * VW + Math.max(0, Math.min(VW - 1, i))];
+    for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) {
+      const x = i * T, y = j * T;
+      let t: Ter = 'g';
+      if (Math.abs(x - riverX(y)) < 30 || Math.hypot(x - POND.x, (y - POND.y) * 1.3) < POND.r) t = 'w';
+      else if (Math.hypot(x - PLAZA.x, (y - PLAZA.y) * 1.1) < PLAZA.r) t = 'c';
+      else if (Math.abs(y - roadY(x)) < 22 || (Math.abs(x - PLAZA.x) < 22 && y < PLAZA.y) || (Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < 22 && y > PLAZA.y)) t = 'd';
+      V[j * VW + i] = t;
     }
-    ctx.putImageData(img, 0, 0);
-    this.wangOverlay(ctx, S);
-    if (this.textures.exists('td_ground')) this.textures.remove('td_ground');
-    this.textures.addCanvas('td_ground', cv);
-    this.add.image(0, 0, 'td_ground').setOrigin(0).setDepth(0);
-    // map border
-    for (let x = 0; x < MW; x += CELL) { this.block(x, 0); this.block(x, MH - 1); }
-    for (let y = 0; y < MH; y += CELL) { this.block(0, y); this.block(MW - 1, y); }
-  }
+    // roads touching the plaza become paved; roads never touch water (the bridge spans the gap)
+    const V2 = V.slice();
+    for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) {
+      if (V[j * VW + i] !== 'd') continue;
+      let c = false, w = false;
+      for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const n = vAt(i + a, j + b); if (n === 'c') c = true; if (n === 'w') w = true; }
+      if (w) V2[j * VW + i] = 'g'; else if (c) V2[j * VW + i] = 'c';
+    }
+    V.splice(0, V.length, ...V2);
 
-  /** PixelLab Wang tilesets (32px, 5x4 sheet, same corner layout for every set; U = the patch terrain, L = the surround).
-   *  Each cell made only of one set's two terrains gets that set's tile; other cells keep the painted pixels. */
-  wangOverlay(ctx: CanvasRenderingContext2D, S: string[]) {
+    const cv = document.createElement('canvas'); cv.width = MW; cv.height = MH;
+    const ctx = cv.getContext('2d')!;
     const LAYOUT = [['LLLU', 'LLUU', 'LLUL', 'UUUL', 'UULU'], ['LULU', 'UUUU', 'ULUL', 'ULUU', 'LUUU'], ['LULL', 'UULL', 'ULLL', 'ULLU', 'LUUL'], ['UUUU', 'LLLL']];
     const at: Record<string, [number, number]> = {};
     LAYOUT.forEach((row, ty) => row.forEach((k, tx) => { if (!at[k]) at[k] = [tx, ty]; }));
-    const T = 32, VW = MW / T + 1, VH = MH / T + 1;
-    const sAt = (x: number, y: number) => S[Math.min(MH - 1, Math.max(0, y)) * MW + Math.min(MW - 1, Math.max(0, x))];
-    const SETS: { key: string; allow: string[]; need?: string[]; upper: (x: number, y: number) => boolean }[] = [
-      { key: 'td_tl3', allow: ['grass', 'water', 'mud'], need: ['water', 'mud'], upper: (x, y) => { const v = sAt(x, y); return v === 'water' || v === 'mud'; } },
-      { key: 'td_tl2', allow: ['grass', 'cobble', 'dirt'], need: ['cobble'], upper: (x, y) => [[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]].some(([a, b]) => { const v = sAt(x + a, y + b); return v === 'cobble' || v === 'dirt'; }) },
-      { key: 'td_tl1', allow: ['grass', 'dirt'], upper: (x, y) => [[0, 0], [10, 0], [-10, 0], [0, 10], [0, -10]].some(([a, b]) => sAt(x + a, y + b) === 'dirt') },
-    ];
-    const done = new Uint8Array((MW / T) * (MH / T));
-    for (const set of SETS) {
-      if (!this.textures.exists(set.key)) continue;
-      const src = this.textures.get(set.key).getSourceImage() as HTMLImageElement;
-      const V: string[] = [];
-      for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) V.push(set.upper(i * T, j * T) ? 'U' : 'L');
-      for (let cy = 0; cy < MH / T; cy++) for (let cx = 0; cx < MW / T; cx++) {
-        if (done[cy * (MW / T) + cx]) continue;
-        let ok = true, has = !set.need;
-        for (let y = cy * T; y < cy * T + T && ok; y += 2) for (let x = cx * T; x < cx * T + T; x += 2) {
-          const v = S[y * MW + x]; if (!set.allow.includes(v)) { ok = false; break; } if (set.need?.includes(v)) has = true;
-        }
-        if (!ok || !has) continue;
-        const k = V[cy * VW + cx] + V[cy * VW + cx + 1] + V[(cy + 1) * VW + cx] + V[(cy + 1) * VW + cx + 1];
-        if (k === 'LLLL' && set.key !== 'td_tl1') continue;
-        const t = at[k]; if (!t) continue;
-        if (k === 'UUUU' || k === 'LLLL') {
-          // full tiles: random rotation / mirror so the repeat is not visible
-          const r = Math.floor(hash(cx * 7 + 3, cy * 13 + 1) * 8);
-          ctx.save(); ctx.translate(cx * T + T / 2, cy * T + T / 2); ctx.rotate((r & 3) * Math.PI / 2); if (r & 4) ctx.scale(-1, 1);
-          ctx.drawImage(src, t[0] * T, t[1] * T, T, T, -T / 2, -T / 2, T, T); ctx.restore();
-        } else ctx.drawImage(src, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
-        done[cy * (MW / T) + cx] = 1;
-      }
+    const src = (k: string) => this.textures.get(k).getSourceImage() as HTMLImageElement;
+    const draw = (img: HTMLImageElement, key: string, cx: number, cy: number) => {
+      const t = at[key]; if (!t) return;
+      if (key === 'UUUU' || key === 'LLLL') {
+        const r = Math.floor(hash(cx * 7 + 3, cy * 13 + 1) * 8);
+        ctx.save(); ctx.translate(cx * T + T / 2, cy * T + T / 2); ctx.rotate((r & 3) * Math.PI / 2); if (r & 4) ctx.scale(-1, 1);
+        ctx.drawImage(img, t[0] * T, t[1] * T, T, T, -T / 2, -T / 2, T, T); ctx.restore();
+      } else ctx.drawImage(img, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
+    };
+    const tl1 = src('td_tl1'), tl2 = src('td_tl2'), tl3 = src('td_tl3');
+    for (let cy = 0; cy < NY; cy++) for (let cx = 0; cx < NX; cx++) {
+      const c = [vAt(cx, cy), vAt(cx + 1, cy), vAt(cx, cy + 1), vAt(cx + 1, cy + 1)];
+      const key = (f: (t: Ter) => boolean) => c.map(t => f(t) ? 'U' : 'L').join('');
+      draw(tl1, 'LLLL', cx, cy);                                            // grass everywhere first
+      if (c.includes('w')) draw(tl3, key(t => t === 'w'), cx, cy);
+      else if (c.includes('c')) draw(tl2, key(t => t === 'c' || t === 'd'), cx, cy);
+      else if (c.includes('d')) draw(tl1, key(t => t === 'd'), cx, cy);
     }
+    // per-pixel surface from the same vertices (bilinear, threshold 0.5)
+    const S: string[] = new Array(MW * MH);
+    this.surf = S;
+    const BR = { x0: riverX(roadY(930)) - 46, x1: riverX(roadY(930)) + 46, y0: roadY(930) - 15, y1: roadY(930) + 15 };
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+      const cx = Math.min(NX - 1, Math.floor(x / T)), cy = Math.min(NY - 1, Math.floor(y / T));
+      const fx = (x - cx * T + 0.5) / T, fy = (y - cy * T + 0.5) / T;
+      const c = [vAt(cx, cy), vAt(cx + 1, cy), vAt(cx, cy + 1), vAt(cx + 1, cy + 1)];
+      const wt = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
+      const sum = (f: (t: Ter) => boolean) => c.reduce((a, t, i) => a + (f(t) ? wt[i] : 0), 0);
+      let v = 'grass';
+      if (x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1) v = 'bridge';
+      else if (sum(t => t === 'w') > 0.5) v = 'water';
+      else if (c.includes('c') && sum(t => t === 'c' || t === 'd') > 0.5) v = 'cobble';
+      else if (sum(t => t === 'd') > 0.5) v = 'dirt';
+      S[y * MW + x] = v;
+      if (v === 'water') this.block(x, y);
+    }
+    // wooden bridge over the river (drawn planks, walkable)
+    for (let y = BR.y0; y <= BR.y1; y++) for (let x = Math.round(BR.x0); x <= BR.x1; x++) {
+      const rail = y < BR.y0 + 3 || y > BR.y1 - 3, gap = (x - Math.round(BR.x0)) % 6 === 0;
+      const col = rail ? [62, 44, 30] : gap ? [44, 31, 22] : pick(PAL.plank, hash(Math.floor((x - BR.x0) / 6), 7) * 0.6 + hash(x, y) * 0.4);
+      ctx.fillStyle = `rgb(${col[0] * 0.8},${col[1] * 0.8},${col[2] * 0.8})`; ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.fillStyle = 'rgba(8,14,12,0.45)'; ctx.fillRect(Math.round(BR.x0), BR.y1 + 1, Math.round(BR.x1 - BR.x0), 3);
+    if (this.textures.exists('td_ground')) this.textures.remove('td_ground');
+    this.textures.addCanvas('td_ground', cv);
+    this.add.image(0, 0, 'td_ground').setOrigin(0).setDepth(0);
+    for (let x = 0; x < MW; x += CELL) { this.block(x, 0); this.block(x, MH - 1); }
+    for (let y = 0; y < MH; y += CELL) { this.block(0, y); this.block(MW - 1, y); }
   }
+  surfAt(x: number, y: number) { x = Math.round(x); y = Math.round(y); return x < 0 || y < 0 || x >= MW || y >= MH ? 'edge' : this.surf[y * MW + x]; }
 
   block(x: number, y: number) { const i = Math.floor(y / CELL) * (MW / CELL) + Math.floor(x / CELL); if (i >= 0 && i < this.blocked.length) this.blocked[i] = 1; }
   isBlocked(x: number, y: number) {
@@ -308,7 +350,7 @@ export class TopDownScene extends Phaser.Scene {
   placeProps() {
     const occ = (x: number, y: number) => this.isBlocked(x, y);
     const free = (x: number, y: number, r: number) => {
-      for (let j = -r; j <= r; j += 4) for (let i = -r; i <= r; i += 4) if (surface(x + i, y + j) !== 'grass' || occ(x + i, y + j)) return false;
+      for (let j = -r; j <= r; j += 4) for (let i = -r; i <= r; i += 4) if (this.surfAt(x + i, y + j) !== 'grass' || occ(x + i, y + j)) return false;
       return true;
     };
     let seed = 1;
@@ -350,11 +392,11 @@ export class TopDownScene extends Phaser.Scene {
     for (let x = 40; x < 860; x += 30) {
       const y = Math.round(roadY(x) + 40);
       if (Math.abs(x - PLAZA.x) < PLAZA.r + 40 || near(x, y) || this.isBlocked(x, y)) continue;
-      if (surface(x, y) === 'grass') this.obj('fenceh_0', x, y, 1, 3, false);
+      if (this.surfAt(x, y) === 'grass') this.obj('fenceh_0', x, y, 1, 3, false);
     }
     for (let a = 0; a < 6; a++) {
       const x = Math.round(PLAZA.x + Math.cos(a * Math.PI / 3 + 0.5) * (PLAZA.r + 14)), y = Math.round(PLAZA.y + Math.sin(a * Math.PI / 3 + 0.5) * (PLAZA.r + 14));
-      if (surface(x, y) === 'dirt') continue;
+      if (this.surfAt(x, y) !== 'grass') continue;
       this.obj('lamp_0', x, y, 0.2, 2);
       this.lamps.push(this.add.image(x + 6, y - 26, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990));
     }
