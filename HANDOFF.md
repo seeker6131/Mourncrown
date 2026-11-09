@@ -328,3 +328,4 @@
 - ห้องป่าดงดิบ: handler `wildRooms`, หน้าต่าง `buildRooms` (เปิดจากแท็บ 🌿 / ประตูซ้ายหมู่บ้าน), TopDownScene.room
 - มินิแมพ: `src/ui/minimap.ts` (อยู่ใน TdUI) + `TopDownScene.mapInfo()`
 - เทส: `tests/server.test.ts`
+- ชาวบ้านมือเปล่า 'hg' (ป่าดงดิบ + ชุดหาทรัพยากร): เดินมือเปล่า, ตัดไม้/ตีสัตว์ = ขวาน (chop), ขุด = พิก (mine) • tools/gen_gatherer.py • import เฉพาะตัวแล้ว merge chars.json (ห้ามรัน import_chars.py ทั้งชุดทับ ถ้าไม่จำเป็น)

@@ -839,6 +839,10 @@
   "walk8": "done"
  },
  "hg": {
-  "cid": "76b614c6-c059-4620-9e13-dc0041fbe5fe"
+  "cid": "76b614c6-c059-4620-9e13-dc0041fbe5fe",
+  "walk8": "done",
+  "chop": "done",
+  "mine": "done",
+  "zip": 1
  }
 }
