@@ -413,11 +413,15 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 154
+"foot": 158
 },
 "die": {
 "fs": 168,

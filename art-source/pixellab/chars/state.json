@@ -224,7 +224,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo6": {
   "cid": "6de2d572-9a1d-4ac4-9bb8-71cf8f19b6c3",
