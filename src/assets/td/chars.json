@@ -568,6 +568,44 @@
 }
 }
 },
+"mo15": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 64,
+"idleFoot": 62,
+"anims": {
+"attack": {
+"fs": 84,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 72
+},
+"walk": {
+"fs": 84,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 72
+}
+}
+},
 "mo16": {
 "dirs": [
 "south",
