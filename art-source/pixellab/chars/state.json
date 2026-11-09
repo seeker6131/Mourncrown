@@ -93,19 +93,55 @@
   "cid": "4a4f8d42-86c7-492e-b3f7-106626dcb0c4",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "e1bfe51d-41fc-425d-8487-b15bac2798af",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo3": {
   "cid": "1c2eece4-2ca0-4b3a-b6b8-e2b7c1eba8d2",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "94478c18-9c39-4808-ae74-fac0564446bf",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo4": {
   "cid": "093f640e-0a2c-4f6c-971c-6f4d1978fb4a",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "c1a1ecb4-00b7-4ccf-8fdb-e53187cbddc0",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo5": {
   "cid": "bd83ed7b-629f-4cf9-affe-75dec40a0803",
@@ -136,7 +172,18 @@
   "walk": "done",
   "attack": "done",
   "zip": 1,
-  "walk8group": "970d91b1-b37c-4286-a9cb-4ee02833c3fb"
+  "walk8group": "970d91b1-b37c-4286-a9cb-4ee02833c3fb",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "bs1": {
   "cid": "8a209fd4-3eea-41bb-bcdd-56d83be85f18",
@@ -150,19 +197,33 @@
   "cid": "6de2d572-9a1d-4ac4-9bb8-71cf8f19b6c3",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "f809956e-35b9-4f53-bd50-0c02def1f10b",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo7": {
   "cid": "39765345-135c-4141-9e74-31aaa844eb02",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "5eb8f23b-c1ad-4fff-9f0e-5fbfb32562d2"
  },
  "mo8": {
   "cid": "a344310e-af25-48f4-9525-4f91e5f2a050",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "138137c9-dbce-4a90-9084-a6e02e275c6d"
  },
  "mo9": {
   "cid": "2682448a-1d9a-48a5-bc48-c442fffb2249",
