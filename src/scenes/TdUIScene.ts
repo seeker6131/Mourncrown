@@ -2,6 +2,8 @@
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import Phaser from 'phaser';
 import { activeElixir } from '../systems/alchemy';
+import { toggleFullscreen } from '../core/fullscreen';
+import { lang } from '../core/i18n';
 import { act } from '../net/client';
 import { resCap } from '../systems/economy';
 import { tutActive, loginInfo } from '../systems/progress';
@@ -117,8 +119,8 @@ export class TdUIScene extends Phaser.Scene {
   reloadWorld() { this.scene.get('TopDown').scene.restart({ stage: 0 }); }
   toggleFullscreen() {
     sfx.click();
-    if (this.scale.isFullscreen) { this.scale.stopFullscreen(); return; }
-    try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => undefined); } catch { /* not supported */ }
+    const r = toggleFullscreen();
+    if (r === 'ios') this.toast(lang() === 'en' ? 'iPhone: tap Share ⬆ → "Add to Home Screen", then open Mourncrown from the home screen for full screen' : 'iPhone: แตะปุ่มแชร์ ⬆ → "เพิ่มไปยังหน้าจอโฮม" แล้วเปิด Mourncrown จากหน้าโฮม จะเล่นเต็มจอ', '#ffd84a');
   }
 
   create() {

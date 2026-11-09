@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { lang, setLang } from '../core/i18n';
 import { showWait } from '../core/wait';
+import { toggleFullscreen, isFullscreen } from '../core/fullscreen';
 import { UIKit } from '../ui/kit';
 import { hasSave, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
@@ -42,6 +43,7 @@ export class TitleScene extends Phaser.Scene {
 
     const start = (fresh: boolean) => {
       unlockAudio();
+      if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen();   // full screen on start (Android / iPad / desktop)
       const st = fresh ? startNewGame() : (loadGame() ?? startNewGame());
       runtime.state = st;
       audioState.sfx = st.sfx; setMusic(st.music);

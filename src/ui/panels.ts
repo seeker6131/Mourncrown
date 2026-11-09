@@ -145,7 +145,7 @@ export class Panels {
   /** Standard window, returns content origin. */
   window(c: Phaser.GameObjects.Container, w: number, h: number, title: string) {
     const ui = this.ui;
-    const x = Math.round(ui.VW / 2 - w / 2), y = Math.round(180 - h / 2);
+    const x = Math.round(ui.VW / 2 - w / 2), y = Math.max(10, Math.round(180 - h / 2));   // never above the screen top
     const g = ui.add.graphics();
     const blocker = ui.add.zone(x, y, w, h).setOrigin(0).setInteractive();
     if (hasSkin(ui)) {
@@ -598,10 +598,11 @@ export class Panels {
   // ---------------- MENU ----------------
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = 280, H = 384;
+    // two columns so the window fits short phone screens (the close button must stay visible)
+    const W = Math.min(520, ui.VW - 16), H = 250, colW = (W - 46) / 2;
     const { x, y } = this.window(c, W, H, 'เมนู');
-    let yy = y + 34;
-    const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 19, label, cb, { size: 8.5, color })); yy += 22; };
+    let n = 0;
+    const b = (label: string, cb: () => void, color?: number) => { const col = n % 2, row = Math.floor(n / 2); c.add(k.button(x + 16 + col * (colW + 14), y + 34 + row * 26, colW, 22, label, cb, { size: 8.5, color })); n++; };
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
