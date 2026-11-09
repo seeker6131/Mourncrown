@@ -1761,15 +1761,19 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 68,
-"n": 9,
+"fs": 48,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 57
+"foot": 48
 }
 }
 },
@@ -1788,15 +1792,19 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 64,
-"n": 9,
+"fs": 48,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 54
+"foot": 47
 }
 }
 },
@@ -1815,15 +1823,19 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 68,
-"n": 9,
+"fs": 48,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 57
+"foot": 46
 }
 }
 },
@@ -1842,15 +1854,19 @@
 "idleFoot": 46,
 "anims": {
 "walk": {
-"fs": 64,
-"n": 9,
+"fs": 48,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 55
+"foot": 46
 }
 }
 },
@@ -1869,15 +1885,19 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 68,
-"n": 9,
+"fs": 48,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 58
+"foot": 47
 }
 }
 },
@@ -1896,15 +1916,19 @@
 "idleFoot": 48,
 "anims": {
 "walk": {
-"fs": 68,
-"n": 9,
+"fs": 48,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 58
+"foot": 48
 }
 }
 },
@@ -1923,15 +1947,19 @@
 "idleFoot": 31,
 "anims": {
 "walk": {
-"fs": 48,
-"n": 9,
+"fs": 32,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 39
+"foot": 30
 }
 }
 }
