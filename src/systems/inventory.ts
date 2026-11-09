@@ -132,3 +132,23 @@ export function dismantle(s: GameState, uid: number): { shards: number; cores: n
   if (cores) addItem(s, 'ancient_core', cores);
   return { shards, cores };
 }
+
+/** Sell `qty` of a stack to an NPC. Equipped items cannot be sold. Returns the gold received (0 = nothing sold). */
+export function sellUid(s: GameState, uid: number, qty = 1): number {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it || isEquipped(s, uid)) return 0;
+  const n = Math.max(1, Math.min(qty, it.qty));
+  const gold = sellPrice(it) * n;
+  removeUid(s, uid, n); s.gold += gold;
+  return gold;
+}
+/** Sell every unequipped gear piece at or below `maxRar`. Returns { count, gold }. */
+export function sellJunk(s: GameState, maxRar: number) {
+  let count = 0, gold = 0;
+  for (const it of [...s.inventory]) {
+    const d = itemDef(it.id);
+    if ((d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') || isEquipped(s, it.uid) || (it.rar ?? 0) > maxRar) continue;
+    gold += sellUid(s, it.uid, it.qty); count++;
+  }
+  return { count, gold };
+}

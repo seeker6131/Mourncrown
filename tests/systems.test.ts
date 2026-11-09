@@ -172,3 +172,21 @@ describe('food: supplies and village upkeep', () => {
     expect(r.food).toBeGreaterThan(2); expect(s.gold).toBe(g); expect(r.wood).toBe(0);
   });
 });
+
+import { sellUid, sellJunk } from '../src/systems/inventory';
+describe('selling to the NPC', () => {
+  it('removes the item and pays gold; stacks sell by quantity; equipped items are refused', () => {
+    const s = startNewGame();
+    addItem(s, 'hp_potion', 9); const pot = s.inventory.find(i => i.id === 'hp_potion')!;
+    const before = pot.qty, g0 = s.gold;
+    const got = sellUid(s, pot.uid, 3);
+    expect(got).toBeGreaterThan(0); expect(s.gold).toBe(g0 + got);
+    expect(s.inventory.find(i => i.uid === pot.uid)!.qty).toBe(before - 3);
+    const eq = s.inventory.find(i => s.equip.weapon === i.uid)!;
+    expect(sellUid(s, eq.uid, 1)).toBe(0); expect(s.inventory.includes(eq)).toBe(true);
+    let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 4; i++) addItem(s, 'iron_sword', 1, 0, makeGear(rnd, 'iron_sword', 0));
+    const r = sellJunk(s, 0);
+    expect(r.count).toBe(4); expect(s.inventory.filter(i => i.id === 'iron_sword').length).toBe(0);
+  });
+});

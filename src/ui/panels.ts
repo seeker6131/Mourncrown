@@ -19,7 +19,7 @@ import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
-import { clampVitals, reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
+import { sellUid, sellJunk, clampVitals, reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
@@ -47,6 +47,7 @@ export class Panels {
   plot = 0;
   shopTab: 'buy' | 'sell' = 'buy';
   shopPage = 0;
+  junkRar = 0; junkConfirm = false;
   dialogNpc = '';
   dialogText = '';
   confirmNew = false;
@@ -236,9 +237,20 @@ export class Panels {
         }
       }
     } else if (mode === 'sell') {
-      const price = sellPrice(it);
-      btn(`ขาย (+${price} G)`, () => { s.gold += price; removeUid(s, it.uid, 1); sfx.coin(); if (!s.inventory.find(i => i.uid === it.uid)) this.selUid = null; refreshCollect(s); bus.emit(EV.STATE_CHANGED); }, 0x5a3a10, isEquipped(s, it.uid));
-      if (isEquipped(s, it.uid)) c.add(k.text(x + 6, by + 4, 'ถอดก่อนจึงจะขายได้', 7.5, '#ff9a8a'));
+      const price = sellPrice(it), eq = isEquipped(s, it.uid);
+      const sell = (n: number) => {
+        const name = def.name, got = sellUid(s, it.uid, n);
+        if (!got) { sfx.error(); return; }
+        sfx.coin(); bus.emit(EV.TOAST, `ขาย ${name} x${n} ได้ ${got.toLocaleString()} G`, '#ffd84a');
+        if (!s.inventory.find(i => i.uid === it.uid)) this.selUid = null;
+        refreshCollect(s); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+      };
+      if (it.qty > 1) {
+        btn(`ขายทั้งหมด x${it.qty}  (+${(price * it.qty).toLocaleString()} G)`, () => sell(it.qty), 0x6a4a10, eq);
+        if (it.qty > 10) btn(`ขาย 10 ชิ้น  (+${(price * 10).toLocaleString()} G)`, () => sell(10), 0x5a3a10, eq);
+        btn(`ขาย 1 ชิ้น  (+${price.toLocaleString()} G)`, () => sell(1), 0x5a3a10, eq);
+      } else btn(`ขาย  (+${price.toLocaleString()} G)`, () => sell(1), 0x6a4a10, eq);
+      c.add(k.text(x + 6, by + 4, eq ? '⚠ ใส่อยู่ — ถอดก่อนจึงจะขายได้' : `ราคาขายชิ้นละ ${price.toLocaleString()} G • มี ${it.qty} ชิ้น`, 7.5, eq ? '#ff9a8a' : '#ffe7a0'));
     } else if (mode === 'smith') {
       if (def.type === 'weapon' || def.type === 'armor' || def.type === 'accessory') {
         if (it.upg >= MAX_UPGRADE) btn('ระดับสูงสุดแล้ว', () => undefined, undefined, true);
@@ -754,6 +766,16 @@ export class Panels {
       });
       const dx = x + 14 + cols * (cs + 3) + 6;
       this.itemDetail(c, g, dx, top, x + W - 14 - dx, H - 66, 'sell');
+      // quick bulk sale of unequipped gear up to a rarity (tap twice to confirm)
+      const junk = s.inventory.filter(it => { const d = itemDef(it.id); return (d.type === 'weapon' || d.type === 'armor' || d.type === 'accessory') && !isEquipped(s, it.uid) && (it.rar ?? 0) <= this.junkRar; });
+      const jg = junk.reduce((a, it) => a + sellPrice(it) * it.qty, 0);
+      c.add(k.button(x + 14, y + H - 34, 96, 22, `ระดับ: ${['Common', '≤ Uncommon', '≤ Rare'][this.junkRar]}`, () => { this.junkRar = (this.junkRar + 1) % 3; this.junkConfirm = false; this.rebuild(); }, { size: 8 }));
+      c.add(k.button(x + 114, y + H - 34, cols * (cs + 3) - 100, 22, this.junkConfirm ? `ยืนยัน! ขาย ${junk.length} ชิ้น (+${jg.toLocaleString()} G)` : `ขายอุปกรณ์ที่ไม่ได้ใส่ ${junk.length} ชิ้น`, () => {
+        if (!this.junkConfirm) { this.junkConfirm = true; this.rebuild(); return; }
+        const r = sellJunk(s, this.junkRar); this.junkConfirm = false; this.selUid = null;
+        if (r.count) { sfx.coin(); bus.emit(EV.TOAST, `ขาย ${r.count} ชิ้น ได้ ${r.gold.toLocaleString()} G`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); }
+        this.rebuild();
+      }, { size: 8.5, color: this.junkConfirm ? 0x8a2a1a : 0x5a3a10, disabled: !junk.length }));
     }
   }
 

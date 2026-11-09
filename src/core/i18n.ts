@@ -126,6 +126,8 @@ const EN: Record<string, string> = {
   'ต้องเลเวล': 'Need level', 'ถึงจะเข้าแผนที่': 'to enter map', 'ได้': '', 'ปรากฏตัวอีกครั้ง!': 'has returned!', 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที': 'Boss defeated! It returns in 5 minutes',
   'ปราบบอสแผนที่ 10 — มารดารากเน่า': 'Defeat the map 10 boss — Rotroot Mother', 'ปราบบอสแผนที่ 20 — ราชากวางโครงกระดูก': 'Defeat the map 20 boss — Bone Stag King', 'ปราบบอสแผนที่ 30 — อสรพิษแก้วดำ': 'Defeat the map 30 boss — Obsidian Serpent',
   'ปราบบอสแผนที่ 40 — ผู้คุมเหมันต์': 'Defeat the map 40 boss — Frost Warden', 'ปราบบอสแผนที่ 50 — มงกุฎกลวง ชำระคำสาป!': 'Defeat the map 50 boss — The Hollow Crown, lift the curse!',
+  'ขายทั้งหมด': 'Sell all', 'ขาย 10 ชิ้น': 'Sell 10', 'ขาย 1 ชิ้น': 'Sell 1', 'ราคาขายชิ้นละ': 'Price each', 'ใส่อยู่ — ถอดก่อนจึงจะขายได้': 'Equipped — unequip to sell',
+  'ขายอุปกรณ์ที่ไม่ได้ใส่': 'Sell unequipped gear:', 'ยืนยัน! ขาย': 'Confirm! Sell', 'ระดับ:': 'Rarity:',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 
