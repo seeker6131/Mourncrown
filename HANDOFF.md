@@ -7,7 +7,7 @@
 > ⚠️ **เกมนี้จะเป็นออนไลน์ในอนาคต (ผู้ใช้ย้ำ)** — เขียนตรรกะใน `src/systems/*` แบบ pure, การสุ่มรับ rnd, state เป็น JSON มี version → ดู docs/GAME_DESIGN.md หัวข้อ 9
 > ✅ ทิศทางยืนยันแล้ว: ล่าเป็นหลัก + หมู่บ้าน + คำสาป + ชาวบ้าน→4 สาย×3 ร่าง (docs/GAME_DESIGN.md 8-12)
 
-อัปเดตล่าสุด: 2026-11-09 · branch `ccr-dcfcac78-b3qj60` (push ที่นี่เท่านั้น)
+อัปเดตล่าสุด: 2026-11-09 (รอบ 2) · branch `ccr-dcfcac78-b3qj60` (push ที่นี่เท่านั้น)
 
 ## ผู้ใช้ / บทบาท
 - ผู้ใช้ = Game Director ใช้ Android อย่างเดียว ไม่เขียนโค้ด ไม่จัดการไฟล์ สื่อสารภาษาไทย
@@ -271,3 +271,20 @@
 - **ดรอปจากมอนใน ?td:** ไม้ 1-3, หิน 0-2, อาหารตามขนาด (×(1+ด่าน/12), บอส ×10-15) + ของจากตาราง drops ของมอน (วัตถุดิบอัปเกรดอาคาร) + บอสนับ bossDefeated
 - อื่นๆ ที่ยังไม่ทำ: ไอคอนไอเทมแยกสาย, ธนู/อาวุธนักบวช (ItemDef.cls), เควสต์ (ระบบเควสต์เดิมผูกกับมอนแผนที่เก่า ยังไม่มีปุ่มใน TdUI), สกิลกดใช้ใน ?td, ฟองสบู่ผลผลิตบนอาคารอาจอยู่สูงเกินจอ
 - ภาพ PixelLab: วิธีสั่งผ่าน API ใน tools/pixellab_api.py; อาคารต้อง 'high top-down' + color_image=house_1 + ตัวกรองขอบล่างเรียบ (gen_buildings.sym) กันเฉียง
+
+
+## รอบ 2026-11-09 (บ่าย) — ทำแล้ว
+- **ท่าเดิน 8 ทิศใหม่ทุกตัว:** ท่า 'walk' เดิมจาก API (pixminimax + "walking") ขาแทบไม่ขยับตอนหันหน้า/หลัง → เจนใหม่ด้วย template `walking-8-frames` (`tools/gen_walk8.py`, 1 gen/ทิศ, บอส 128px = 2 gen/ทิศ, state.json: walk8dirs/walk8group/walk8). `import_chars.py` เลือกโฟลเดอร์ 'walking' แทน walk เก่าทุกชื่อ (Walking/walk). ตรวจคุณภาพ: สคริปต์วัดความต่างเฟรม (ดูประวัติ) — <0.25 = นิ่ง. ข้อเสีย template: ของในมือบางชิ้นหายตอนเดิน
+- **ลูกศรนำทาง** (TopDownScene.updateGuide): หมู่บ้าน→ประตูด่าน, ในด่าน→ประตูถัดไป (🔒 ถ้ายังไม่เคลียร์), ขอบจอ+ระยะก้าว
+- **UI ใหม่:** `tools/gen_ui.py` (PixelLab 17 ชิ้น ไม้โอ๊ค/เหล็ก) → `tools/import_td_ui.py` เขียนทับ src/assets/ui/*.webp + meta.json (panel 9-slice, btn0-5 ย้อมสี, slot0-5 ขอบสีตามแรร์, ring, banner, hud0-4, res0-3, build, frame_bar). HUD ใน TdUI ใช้ไอคอน
+- **หมู่บ้าน (ผู้ใช้สั่ง):** เริ่มเกมมีอาคาร NPC ครบ 9 หลัง (`ensureNpcVillage` ใน settlement, PLOT_OF ใน TopDownScene) อัปเกรดได้; ผู้เล่นสร้างเองแค่ **บ้านของฉัน** (BuildingId 'home', แปลง HOME_PLOT=9 (1150,935), ภาพ house_0-2, ฟื้น HP ในหมู่บ้าน + ช่องกระเป๋า). TdUI.plotChoices จำกัดตัวเลือกแปลง
+- **สกิล:** `systems/skillCast.ts` (beginCast/selfEffect/skillHit — pure) + `Combat.castSkill` วาดเอฟเฟกต์ 11 แบบ (strike/spin/dash/leap/shot/pierce/rain/nova/buff/heal/shield; โล่ดูดดาเมจ absorb). TdUI ปุ่มสกิล 3 ปุ่มรอบปุ่มฟัน + คูลดาวน์ + MP, แถบ MP, คีย์ 1/2/3. รูปสกิลไม่ซ้ำ 37 รูป `tools/gen_skill_icons.py` → `tools/import_skills.py` → src/assets/skills (texture `sk_<id>`)
+- **เควสต์:** `systems/tdQuests.ts` 20 ข้อ (ฆ่ามอน/ผ่านด่าน/เลเวล/ร่าง/บ้าน/ใช้สกิล) นับจาก tdKills/tdCasts/tdCleared; กล่องใต้ HUD แตะรับรางวัล
+- **อาวุธแยกสาย:** ธนู 4 (short/hunter/elven/emerald), คทา +3 (apprentice_wand, moon, void), ค้อนแทงค์ 4 (iron_mace, war_hammer, bulwark, titan) + ดรอปเอียงไปทางอาวุธสายตัวเอง 70% (pickBase cls). ไอคอน `tools/gen_item_icons.py` → src/assets/icons (texture `icon_<icon>`). ร้านค้ามีอาวุธเริ่มต้นทุกสาย
+- **สมดุลใหม่:** `stages.ts scaleStats` คำนวณจากฮีโร่มาตรฐานเลเวลเดียวกัน (ATK 10+5L, HP 150+43L, DEF 1.7L): มอนตาย ~3 ครั้ง, บอส ~120 ครั้ง, บอสฆ่าฮีโร่ ~28 วิ. `tests/balance.test.ts` เฝ้าทุกด่าน (ใส่ globalThis.SIM=true เพื่อพิมพ์ตาราง)
+- ⚠️ ผู้ใช้: Claude ชนลิมิตการใช้งานได้ → งานเบื้องหลังหยุด; เช็ค `pgrep -af gen_` แล้วรันต่อ (สคริปต์ทุกตัวข้ามของที่เสร็จแล้ว)
+
+## ยังเหลือ (ณ รอบนี้)
+- บอส bs1-5 ท่าเดิน 8 ทิศ (กำลังเจน: `bash /tmp/claude-0/bossloop.sh` หรือ `python3 -I tools/gen_walk8.py bs1 bs2 bs3 bs4 bs5`) → import_chars → build
+- ร้านเติมเงิน/แผงแอดมิน + ระบบออนไลน์: ต้องมีเซิร์ฟเวอร์ (ดู docs/ONLINE_RISKS.md) — ยังไม่เริ่ม รอผู้ใช้เลือกผู้ให้บริการ/งบ
+- ไอคอนอาวุธเก่า (ดาบ/เกราะ/แหวน) ยังเป็นภาพวาดโค้ด

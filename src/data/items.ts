@@ -85,7 +85,7 @@ export function itemDef(id: string): ItemDef {
   return d;
 }
 
-export const SHOP_STOCK = ['hp_potion', 'hp_potion_l', 'mp_potion', 'mana_shard', 'iron_sword', 'oak_staff', 'knight_blade', 'leather_armor', 'chain_mail', 'copper_ring', 'ruby_amulet', 'sage_pendant'];
+export const SHOP_STOCK = ['hp_potion', 'hp_potion_l', 'mp_potion', 'mana_shard', 'iron_sword', 'short_bow', 'hunter_bow', 'apprentice_wand', 'oak_staff', 'iron_mace', 'war_hammer', 'knight_blade', 'leather_armor', 'chain_mail', 'copper_ring', 'ruby_amulet', 'sage_pendant'];
 
 export const MAX_UPGRADE = 10;
 /** Success chance for upgrading from +n to +n+1 */

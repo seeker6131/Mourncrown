@@ -42,6 +42,8 @@ export class TdUIScene extends Phaser.Scene {
   preload() {
     const files = import.meta.glob('../assets/skills/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
     for (const [p, u] of Object.entries(files)) { const k = 'sk_' + p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists(k)) this.load.image(k, u); }
+    const icons = import.meta.glob('../assets/icons/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+    for (const [p, u] of Object.entries(icons)) { const k = 'icon_' + p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists(k)) this.load.image(k, u); }
   }
 
   /** three skill buttons around the attack button (stages only) */
