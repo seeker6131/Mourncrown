@@ -9,6 +9,8 @@ import { itemDef as idef } from '../data/items';
 import { SETS } from '../data/sets';
 import { Crowd } from '../world/crowd';
 import { sfx } from '../audio/sfx';
+import { playSkill } from '../audio/skillSfx';
+import { PathGrid } from '../world/pathfind';
 import { act, refused } from '../net/client';
 import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
 import { titleOf } from '../data/achievements';
@@ -194,7 +196,7 @@ export class TopDownScene extends Phaser.Scene {
   get wild() { return this.stageN === WILD; }
   get dungeon() { return isDungeon(this.stageN); }
   /** the map's stage data (monster maps, the dungeon, the Deepwild) */
-  get st() { return stageOf(this.stageN, S().level); }
+  get st() { return stageOf(this.stageN, runtime.state?.level ?? 1); }
   room = 1; roomPick?: number;
   init(data: { stage?: number; room?: number }) {
     this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
@@ -206,7 +208,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
-    this.crowd = undefined; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
+    this.crowd = undefined; this.grid = undefined; this.path = null; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
@@ -955,7 +957,8 @@ export class TopDownScene extends Phaser.Scene {
   autoTarget: object | null = null;
   toggleAuto() {
     const s = S(); s.auto = !s.auto; this.autoBad.clear(); saveGame(s);
-    bus.emit(EV.TOAST, s.auto ? (this.gathering() ? 'ออโต้: ตัดไม้/ขุดหินเอง' : 'ออโต้: ตีมอนเอง') : 'ปิดออโต้', s.auto ? '#9fffb0' : '#e8c872');
+    // director: auto is for monsters only — gathering in the Deepwild is always by hand
+    bus.emit(EV.TOAST, s.auto ? (!this.stageN || this.wild ? 'ออโต้เปิดแล้ว — ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน (ป่าดงดิบต้องเก็บเอง)' : 'ออโต้: ตีมอนเอง') : 'ปิดออโต้', s.auto ? '#9fffb0' : '#e8c872');
     bus.emit(EV.STATE_CHANGED);
   }
   /** returns the direction to walk this frame (or 0,0) and attacks / casts / gathers when in reach */
@@ -969,16 +972,11 @@ export class TopDownScene extends Phaser.Scene {
     const bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
     const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
     let tx: number, ty: number, reach: number, target: object;
-    if (this.gathering()) {
-      if (this.wild && energyLeft(s) <= 0) { if (time > this.autoTipT) { this.autoTipT = time + 20000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว — ออโต้เก็บของหยุด', '#ffb080'); } return [0, 0]; }
-      const n = near(this.nodes.filter(q => q.until <= this.time.now && !bad(q) && (!q.vein || q.vein.req <= s.level)));
-      if (!n) return [0, 0];
-      tx = n.x; ty = n.y + 14; reach = 16; target = n;
-    } else {
-      if (!this.stageN) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ตีมอนทำงานในแผนที่มอน — ออโต้เก็บทรัพยากรทำงานในป่าดงดิบ', '#e8c872'); } return [0, 0]; }
+    {
+      if (!this.stageN || this.wild) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง', '#e8c872'); } return [0, 0]; }
       // pick up loot lying close by before the next fight
       const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));
-      if (lt) { const dx = lt.x - h.x, dy = lt.y - h.y, dl = Math.hypot(dx, dy) || 1; if (lt !== this.autoTarget) { this.autoTarget = lt; this.autoStuck = { x: h.x, y: h.y, t: time }; } if (Math.hypot(h.x - this.autoStuck.x, h.y - this.autoStuck.y) > 8) this.autoStuck = { x: h.x, y: h.y, t: time }; else if (time - this.autoStuck.t > 1500) { this.autoBad.set(lt, time + 8000); return [0, 0]; } return [dx / dl, dy / dl]; }
+      if (lt) { const st = this.steer(lt, lt.x, lt.y, time); if (st) return st; }
       const alive = this.combat.alive().filter(m => !bad(m));
       const foes = alive.filter(m => !m.animal);
       const m = near(foes.length ? foes : alive);
@@ -996,21 +994,32 @@ export class TopDownScene extends Phaser.Scene {
       const ranged = ['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9'].includes(this.F.key);
       tx = m.x; ty = m.y; reach = ranged ? 120 : 20 + m.m.size * 0.25; target = m;
     }
-    if (target !== this.autoTarget) { this.autoTarget = target; this.autoStuck = { x: h.x, y: h.y, t: time }; }
     const dx = tx - h.x, dy = ty - h.y, dist = Math.hypot(dx, dy);
     if (dist <= reach) {
       this.dir = (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
-      this.attack(); return [0, 0];
+      this.path = null; this.attack(); return [0, 0];
     }
-    // stuck behind something for 1.5 s: try another target for a while
-    if (Math.hypot(h.x - this.autoStuck.x, h.y - this.autoStuck.y) > 8) this.autoStuck = { x: h.x, y: h.y, t: time };
-    else if (time - this.autoStuck.t > 1500) { this.autoBad.set(target, time + 8000); this.autoStuck.t = time; return [0, 0]; }
-    const a0 = Math.atan2(dy, dx);
-    for (const da of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) {
-      const a = a0 + da, nx = h.x + Math.cos(a) * 10, ny = h.y + Math.sin(a) * 10;
-      if (!this.isBlocked(nx - 5, ny) && !this.isBlocked(nx + 5, ny)) return [Math.cos(a), Math.sin(a)];
+    return this.steer(target, tx, ty, time) ?? [0, 0];
+  }
+  // ---------- path following (A* around trees, rocks and water) ----------
+  grid?: PathGrid;
+  path: { x: number; y: number }[] | null = null; pathFor: object | null = null; pathT = 0; pathGoal = { x: 0, y: 0 };
+  steer(target: object, tx: number, ty: number, time: number): [number, number] | null {
+    const h = this.hero;
+    this.grid ??= new PathGrid(MW, MH, (x, y) => this.isBlocked(x, y));
+    if (target !== this.autoTarget) { this.autoTarget = target; this.autoStuck = { x: h.x, y: h.y, t: time }; this.path = null; }
+    // stuck for a moment: plan again; still stuck after a while: give up on this target
+    if (Math.hypot(h.x - this.autoStuck.x, h.y - this.autoStuck.y) > 6) this.autoStuck = { x: h.x, y: h.y, t: time };
+    else if (time - this.autoStuck.t > 3500) { this.autoBad.set(target, time + 10000); this.autoStuck.t = time; this.path = null; return null; }
+    else if (time - this.autoStuck.t > 1200 && time - this.pathT > 600) this.path = null;
+    const moved = Math.hypot(tx - this.pathGoal.x, ty - this.pathGoal.y) > 24;
+    if (!this.path || this.pathFor !== target || (moved && time - this.pathT > 300) || time - this.pathT > 3000) {
+      this.path = this.grid.find(h.x, h.y, tx, ty); this.pathFor = target; this.pathT = time; this.pathGoal = { x: tx, y: ty };
+      if (!this.path) { this.autoBad.set(target, time + 10000); return null; }   // no way there (across water, walled in)
     }
-    return [dx / dist, dy / dist];
+    while (this.path.length > 1 && Math.hypot(this.path[0].x - h.x, this.path[0].y - h.y) < 7) this.path.shift();
+    const wp = this.path[0], dx = wp.x - h.x, dy = wp.y - h.y, d = Math.hypot(dx, dy) || 1;
+    return [dx / d, dy / d];
   }
   skillReady: Record<string, number> = {};
   /** skill button i (0-2): pay MP / check cooldown in systems, then play it */
@@ -1023,7 +1032,7 @@ export class TopDownScene extends Phaser.Scene {
       this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
     }
-    sfx.cast();
+    sfx.cast(); playSkill(r);
     this.combat.castSkill(r);
     bus.emit(EV.STATE_CHANGED);
   }
@@ -1187,7 +1196,7 @@ export class TopDownScene extends Phaser.Scene {
   nodes: { x: number; y: number; kind: 'wood' | 'stone'; im: Phaser.GameObjects.Image; hp: number; until: number; vein?: Vein; sc: number; glow?: Phaser.GameObjects.Image; stump?: Phaser.GameObjects.Image; timer?: Phaser.GameObjects.Text }[] = [];
   gatherTipT = 0;
   addNode(im: Phaser.GameObjects.Image | null, x: number, y: number, kind: 'wood' | 'stone', vein?: Vein) { if (im) this.nodes.push({ x, y, kind, im, hp: vein?.rare ? 6 : 4, until: 0, vein, sc: im.scaleX }); }
-  nearNode(r = 34) {
+  nearNode(r = 40) {
     const h = this.hero, now = this.time.now;
     let best: (typeof this.nodes)[number] | null = null, bd = r;
     for (const n of this.nodes) { if (n.until > now) continue; const d = Math.hypot(n.x - h.x, (n.y - h.y) * 1.3); if (d < bd) { bd = d; best = n; } }

@@ -283,7 +283,7 @@ export class TdUIScene extends Phaser.Scene {
     if (this.autoBg) {
       const on = !!s.auto, w = 54, h2 = 22;
       this.autoBg.clear().fillStyle(on ? 0x1f6a2a : 0x1a140e, 0.92).fillRoundedRect(-w / 2, -h2 / 2, w, h2, 6).lineStyle(1.5, on ? 0x9fffb0 : 0x8a6a40, 1).strokeRoundedRect(-w / 2, -h2 / 2, w, h2, 6);
-      this.autoTx.setText(on ? (s.outfit === 'gather' ? '⛏ AUTO' : '⚔ AUTO') : 'AUTO').setColor(on ? '#ffffff' : '#c8b898');
+      this.autoTx.setText(on ? '⚔ AUTO' : 'AUTO').setColor(on ? '#ffffff' : '#c8b898');
     }
     const t = tdQuest(s), qg = this.questG; qg.clear();
     if (t) {

@@ -15,6 +15,8 @@ function ac(): AudioContext | null {
   return ctx;
 }
 
+/** the audio context + master bus for richer synth modules (skill sounds) */
+export function audioOut() { const c = ac(); return c && master && audioState.sfx ? { c, out: master } : null; }
 export function unlockAudio() { if (ac()) loadSamples(); }
 if (typeof document !== 'undefined') document.addEventListener('pointerdown', () => unlockAudio(), { once: true });
 
