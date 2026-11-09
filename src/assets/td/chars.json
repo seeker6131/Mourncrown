@@ -1160,9 +1160,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 52
 }
@@ -1481,9 +1485,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 61
 },
@@ -1538,11 +1546,15 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 51
+"foot": 53
 }
 }
 },
@@ -1565,9 +1577,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 57
 },
@@ -1622,9 +1638,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 58
 }
@@ -1649,9 +1669,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 39
 },
@@ -1706,10 +1730,15 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
-"north"
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 56
+"foot": 62
 }
 }
 },
@@ -1747,9 +1776,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 60
 }
@@ -1774,9 +1807,13 @@
 "n": 18,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 56
 },
