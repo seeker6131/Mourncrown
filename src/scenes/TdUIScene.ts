@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { activeElixir } from '../systems/alchemy';
 import { act } from '../net/client';
+import { tutActive, loginInfo } from '../systems/progress';
 import { Minimap, type MapInfo } from '../ui/minimap';
 import { UIKit } from '../ui/kit';
 import { panelFrame } from '../ui/skin';
@@ -139,6 +140,10 @@ export class TdUIScene extends Phaser.Scene {
     this.expText = k.text(128, 29, '', 6, '#e0d0ff').setOrigin(0.5, 0);
     this.mpText = k.text(128, 20.5, '', 6, '#d8ecff').setOrigin(0.5, 0);
     this.stageText = k.text(this.VW / 2, 8, '', 10, '#ffe7a0').setOrigin(0.5, 0);
+    // tutorial banner under the title
+    this.tutG = this.add.graphics(); this.tutTx = k.text(this.VW / 2, 30, '', 9, '#fff4c8', { wordWrap: { width: 360 }, align: 'center' }).setOrigin(0.5, 0);
+    this.tutSkip = k.button(this.VW / 2 + 190, 28, 40, 16, 'ข้าม', () => { const st = S() as ReturnType<typeof S> & { tut?: number }; st.tut = 99; if (!('refused' in act('tutorialDone', {}))) this.toast('🎓 ข้ามการสอน — ได้รับของเริ่มต้นแล้ว', '#ffd84a'); saveGame(st); this.refresh(); }, { size: 7.5, color: 0x3a2a1a });
+    this.root.add([this.tutG, this.tutTx, this.tutSkip]);
     this.root.add([this.hud, this.portrait, ring, this.lvText, this.hpText, this.expText, this.mpText, this.stageText]);
     this.resTexts = (['res0', 'res1', 'res2', 'res3'] as const).map((ic, i) => {
       const x = 56 + i * 38, im = this.add.image(x, 44, 'ui_' + ic); im.setScale(11 / im.height);
@@ -206,6 +211,8 @@ export class TdUIScene extends Phaser.Scene {
     if (this.reopen) { const r = this.reopen; this.reopen = null; this.panels.open(r as 'uiopt'); }
 
     const st = S();
+    // daily login calendar pops up in the village once a day (after the tutorial)
+    if (st.introSeen && !tutActive(st) && loginInfo(st).ready && !(this.td as unknown as { stageN: number }).stageN) this.time.delayedCall(1200, () => { if (!this.panels.isOpen) this.panels.open('login'); });
     if (!st.introSeen) {
       st.introSeen = true;
       this.time.delayedCall(800, () => this.panels.openDialog('elder', 'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูแผนที่ทางเหนือ ล่ามอนสเตอร์ เก็บเหรียญและไอเทม ส่วนไม้ หิน แร่ อาหาร ไปหาที่ป่าดงดิบทางประตูซ้าย ยิ่งเลเวลสูงยิ่งไปแผนที่ที่ไกลขึ้นได้ ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!'));
@@ -233,9 +240,12 @@ export class TdUIScene extends Phaser.Scene {
     return this.panels.isOpen || this.input.hitTestPointer(p).length > 0;
   }
 
+  tutG!: Phaser.GameObjects.Graphics; tutTx!: Phaser.GameObjects.Text; tutSkip!: Phaser.GameObjects.Container;
   refresh() {
     if (!this.hud) return;
     const s = S(), d = derive(s), k = this.kit, g = this.hud;
+    { const t = (this.td as unknown as { tutText(): string }).tutText?.() ?? ''; this.tutTx.setText(t); this.tutG.clear(); this.tutSkip.setVisible(!!t);
+      if (t) { const w = Math.min(380, this.tutTx.width + 24), h = this.tutTx.height + 8; this.tutG.fillStyle(0x1a1208, 0.85).fillRoundedRect(this.VW / 2 - w / 2, 27, w, h, 5).lineStyle(1, 0xffd84a, 0.9).strokeRoundedRect(this.VW / 2 - w / 2, 27, w, h, 5); this.tutSkip.setPosition(this.VW / 2 + w / 2 + 4, 27); } }
     g.clear();
     g.fillStyle(0x140d08, 1).fillCircle(28, 30, 17);
     const need = expToNext(s.level);

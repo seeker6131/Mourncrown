@@ -6,7 +6,9 @@ import Phaser from 'phaser';
 import { Combat } from '../world/tdCombat';
 import { STAGES, WILD, PITS } from '../world/stages';
 import { Crowd } from '../world/crowd';
+import { sfx } from '../audio/sfx';
 import { act, refused } from '../net/client';
+import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
 import { type Vein } from '../systems/alchemy';
 import { itemDef } from '../data/items';
 import { S } from '../core/events';
@@ -851,9 +853,11 @@ export class TopDownScene extends Phaser.Scene {
     const g = this.arrowG, t = this.arrowT; g.clear(); t.setVisible(false);
     if (this.dead || this.selectUi || this.ui?.panels.isOpen) return;
     let tx: number, ty: number, label: string;
-    const next = this.portals.find(p => p.to !== 0);
+    const next = this.portals.find(p => p.to === 'select');
     const boss = this.stageN ? this.combat.mons.find(m => m.boss && m.alive) : null;
-    if (next) { tx = next.x; ty = next.y; label = 'ประตูแผนที่'; }
+    const tut = this.tutTarget();
+    if (tut) { tx = tut.x; ty = tut.y; label = tut.label; }
+    else if (next) { tx = next.x; ty = next.y; label = 'ประตูแผนที่'; }
     else if (boss) { tx = boss.x; ty = boss.y; label = `👑 ${boss.m.name}`; }   // farming maps: point at the boss while it is alive
     else return;
     const cam = this.cameras.main, z = cam.zoom, W = this.scale.width, H = this.scale.height;
@@ -1154,6 +1158,7 @@ export class TopDownScene extends Phaser.Scene {
     const done = () => {
       this.attacking = false; setIdle(h, key, this.dir);
       const s = S(), r = act('gather', { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold });
+      if (!refused(r)) this.tutGathered = true;
       if (refused(r)) { if (r.refused === 'level') bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein?.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); return; }
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
       if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
@@ -1168,6 +1173,33 @@ export class TopDownScene extends Phaser.Scene {
     else this.time.delayedCall(500, done);
   }
 
+  // ---------- tutorial: first five minutes ----------
+  tutDist = 0; tutLast = { x: 0, y: 0 }; tutAttacked = false; tutGathered = false; tutT = 0;
+  updateTutorial(time: number) {
+    const s = S() as ReturnType<typeof S> & { tut?: number; tutBase?: number; tdKills?: number; tdq?: { i: number } };
+    if (!tutActive(s) || time - this.tutT < 300) return; this.tutT = time;
+    const h = this.hero; this.tutDist += Math.hypot(h.x - this.tutLast.x, h.y - this.tutLast.y); this.tutLast = { x: h.x, y: h.y };
+    const st = tutStep(s), mon = this.stageN >= 1 && this.stageN <= 50;
+    const done = [this.tutDist > 120, this.tutAttacked, mon, mon && (s.tdKills ?? 0) - (s.tutBase ?? 0) >= 3, (s.tdq?.i ?? 0) >= 1, !!s.auto, !this.stageN, this.wild, this.tutGathered][st];
+    if (!done) return;
+    s.tut = st + 1;
+    if (s.tut === 3) s.tutBase = s.tdKills ?? 0;
+    this.tutDist = 0; this.tutAttacked = false;
+    if (s.tut >= TUT_STEPS.length) { if (!refused(act('tutorialDone', {}))) bus.emit(EV.TOAST, '🎓 จบการสอนเล่น! ได้รับ 💰300 + ยา 5 + ม้วนกลับ 2', '#ffd84a'); this.levelUpFx(); }
+    else { sfx.pickup(); bus.emit(EV.TOAST, '✔ ' + TUT_STEPS[st], '#9fffb0'); }
+    saveGame(s); bus.emit(EV.STATE_CHANGED);
+  }
+  /** where the tutorial wants the hero to go (the guide arrow points there) */
+  tutTarget(): { x: number; y: number; label: string } | null {
+    const s = S(); if (!tutActive(s)) return null;
+    const st = tutStep(s), por = (to: number | 'select') => this.portals.find(p => p.to === to);
+    const p = st === 2 ? por('select') : st === 6 ? por(0) : st === 7 ? por(WILD) : null;
+    if (p) return { x: p.x, y: p.y, label: st === 2 ? 'ประตูแผนที่' : st === 6 ? 'กลับหมู่บ้าน' : 'ป่าดงดิบ' };
+    if (st === 3) { const m = this.combat.nearest(2000).find(q => !q.animal); if (m) return { x: m.x, y: m.y, label: m.m.name }; }
+    if (st === 8) { const n = this.nearNode(3000); if (n) return { x: n.x, y: n.y, label: n.kind === 'wood' ? 'ต้นไม้' : 'ก้อนหิน' }; }
+    return null;
+  }
+  tutText() { const s = S(); return tutActive(s) ? `🎓 ${tutStep(s) + 1}/${TUT_STEPS.length}  ${TUT_STEPS[tutStep(s)]}` : ''; }
   stunUntil = 0;
   /** animal kick: pushed back a little and dazed (can't move or swing) */
   stunHero(ms: number, fx: number, fy: number) {
@@ -1180,6 +1212,7 @@ export class TopDownScene extends Phaser.Scene {
   }
   attack() {
     if (this.time.now < this.stunUntil) return;
+    this.tutAttacked = true;
     if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi) return;
     const node = this.nearNode();
     if (node && this.gathering()) { this.gather(node); return; }
@@ -1200,6 +1233,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
+    this.updateTutorial(time);
     this.updatePlots(time); this.updateAction(time); this.updateGuide(time); this.updateOcclusion(time);
     if (!this.stageN) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ไปล่าสัตว์ที่ป่าดงดิบ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }

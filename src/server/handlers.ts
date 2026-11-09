@@ -22,6 +22,7 @@ import { acceptQuest, completeQuest } from '../systems/quests';
 import { payStage } from '../systems/supplies';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
 import { invSize } from '../core/state';
+import { tutPay, claimLogin } from '../systems/progress';
 import type { BuildingId, MealId } from '../data/buildings';
 import type { ClassId } from '../data/classes';
 
@@ -130,6 +131,10 @@ export const handlers = {
   claimTdQuest: (s: GameState, _a: object) => claimTdQuest(s),
   acceptQuest: (s: GameState, a: { id: string }) => acceptQuest(s, a.id),
   completeQuest: (s: GameState, a: { id: string }) => completeQuest(s, a.id),
+  /** tutorial finished (or skipped): one-time starter reward */
+  tutorialDone: (s: GameState, _a: object) => (tutPay(s) ? { ok: true } : no('paid')),
+  /** daily login calendar: one claim per day */
+  loginClaim: (s: GameState, _a: object, c: Ctx) => claimLogin(s, c.now) ?? no('claimed'),
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
   dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds'; n?: number }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');

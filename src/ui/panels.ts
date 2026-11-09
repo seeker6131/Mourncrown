@@ -30,6 +30,7 @@ import { STAGES, LANDS, WILD } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, refused } from '../net/client';
 import { canBrew, activeElixir } from '../systems/alchemy';
+import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood } from '../systems/supplies';
@@ -37,7 +38,7 @@ import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -131,6 +132,7 @@ export class Panels {
       case 'market': this.buildMarket(c); break;
       case 'alchemy': this.buildAlchemy(c); break;
       case 'rooms': this.buildRooms(c); break;
+      case 'login': this.buildLogin(c); break;
     }
   }
 
@@ -590,7 +592,8 @@ export class Panels {
     const W = 280, H = 384;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let yy = y + 34;
-    const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 21, label, cb, { size: 9, color })); yy += 25; };
+    const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 19, label, cb, { size: 8.5, color })); yy += 22; };
+    b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
       const st = loadGame();
@@ -827,6 +830,29 @@ export class Panels {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
     });
+  }
+
+  // ---------------- DAILY LOGIN (7-day calendar) ----------------
+  buildLogin(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, info = loginInfo(s);
+    const W = Math.min(560, ui.VW - 20), H = 220;
+    const { x, y, g } = this.window(c, W, H, '📅 ล็อกอินรายวัน');
+    c.add(k.text(x + 16, y + 32, `เข้าเกมทุกวัน รับของทุกวัน • ครบ 7 วันได้แร่หายาก • ล็อกอินแล้วทั้งหมด ${info.total} วัน`, 8, '#e8dcc0'));
+    const cw = (W - 32 - 6 * 6) / 7, ch = 104;
+    LOGIN_REWARDS.forEach((r, i) => {
+      const cx = x + 16 + i * (cw + 6), cy = y + 52, got = i < info.day || (i === info.day && !info.ready), today = i === info.day && info.ready, big = i === 6;
+      g.fillStyle(got ? 0x1a2a1a : today ? 0x4a3a10 : big ? 0x2a1236 : 0x22180f, 0.95).fillRoundedRect(cx, cy, cw, ch, 5).lineStyle(today ? 2 : 1, today ? 0xffd84a : big ? 0xc89cff : 0x5a4a3a, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
+      c.add(k.text(cx + cw / 2, cy + 6, `วันที่ ${i + 1}`, 9, today ? '#ffd84a' : '#e8dcc0').setOrigin(0.5, 0));
+      const icon = Object.keys(r.items ?? {})[0], d = icon ? itemDef(icon) : null;
+      if (d && ui.textures.exists(`icon_${d.icon}`)) c.add(this.ico(cx + cw / 2, cy + 44, `icon_${d.icon}`, 40).setAlpha(got ? 0.4 : 1));
+      c.add(k.text(cx + cw / 2, cy + 68, r.label, 7, got ? '#7a8a70' : '#ffe7a0', { align: 'center', wordWrap: { width: cw - 6 } }).setOrigin(0.5, 0));
+      if (got) c.add(k.text(cx + cw - 5, cy + 4, '✔', 11, '#9fffb0').setOrigin(1, 0));
+    });
+    c.add(k.button(x + W / 2 - 70, y + H - 40, 140, 26, info.ready ? '🎁 รับของวันนี้' : 'รับแล้ว พรุ่งนี้มาใหม่', () => {
+      const r = act('loginClaim', {});
+      if (refused(r)) { sfx.error(); return; }
+      sfx.levelUp(); bus.emit(EV.TOAST, `รับของล็อกอินวันที่ ${info.day + 1}: ${r.label}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+    }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));
   }
 
   // ---------------- DEEPWILD ROOMS (100 players each) ----------------
