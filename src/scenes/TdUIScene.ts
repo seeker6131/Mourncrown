@@ -4,7 +4,9 @@ import Phaser from 'phaser';
 import { UIKit } from '../ui/kit';
 import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
-import { derive, expToNext, nextForm, activeTier } from '../systems/stats';
+import { derive, expToNext, nextForm, activeTier, currentSkills } from '../systems/stats';
+import { SKILL_BY_ID } from '../data/skills';
+import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
 import { sfx } from '../audio/sfx';
@@ -13,6 +15,7 @@ import type { UIScene } from './UIScene';
 const VH = 400;
 export interface TdHost extends Phaser.Scene {
   heroKey(): string; levelUpFx(): void; resetJoy(): void; stageTitle(): string;
+  castSkill(i: number): void; skillReady: Record<string, number>; stageN: number;
 }
 
 export class TdUIScene extends Phaser.Scene {
@@ -28,6 +31,55 @@ export class TdUIScene extends Phaser.Scene {
   actBtn!: Phaser.GameObjects.Container; actLabel = ''; actCb: (() => void) | null = null;
   toasts: Phaser.GameObjects.Text[] = [];
   lastKey = ''; refreshT = 0;
+  mpText!: Phaser.GameObjects.Text;
+  skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number }[] = [];
+  skillSet = '';
+
+  preload() {
+    const files = import.meta.glob('../assets/skills/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+    for (const [p, u] of Object.entries(files)) { const k = 'sk_' + p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists(k)) this.load.image(k, u); }
+  }
+
+  /** three skill buttons around the attack button (stages only) */
+  buildSkills() {
+    this.skillBtns.forEach(b => b.c.destroy()); this.skillBtns = [];
+    const ids = currentSkills(S()); this.skillSet = ids.join(',');
+    if (!this.td.stageN) return;
+    const ax = this.VW - 400 / 9 * 1.3, ay = 400 - 400 / 9 * 1.3;
+    const pos = [[-78, 10], [-64, -50], [-12, -80]];
+    ids.slice(0, 3).forEach((id, i) => {
+      const sk = SKILL_BY_ID[id]; if (!sk) return;
+      const x = ax + pos[i][0], y = ay + pos[i][1], R = 17;
+      const c = this.add.container(x, y);
+      const bg = this.add.circle(0, 0, R + 2, 0x0b0806, 0.8).setStrokeStyle(2, 0x8a6a40, 1);
+      const key = this.textures.exists('sk_' + id) ? 'sk_' + id : skillIconKey(this, sk);
+      const icon = this.add.image(0, 0, key); icon.setScale((R * 2 - 4) / Math.max(icon.width, icon.height));
+      const mask = this.add.graphics().fillCircle(x, y, R).setVisible(false); icon.setMask(mask.createGeometryMask());
+      const cd = this.add.graphics();
+      const cdText = this.kit.text(0, 0, '', 9, '#ffffff').setOrigin(0.5);
+      const mp = this.kit.text(0, R - 2, String(sk.mp), 6.5, '#8fc8ff').setOrigin(0.5, 0);
+      const z = this.add.zone(0, 0, R * 2 + 6, R * 2 + 6).setInteractive();
+      z.on('pointerdown', () => { c.setScale(0.92); this.td.castSkill(i); });
+      z.on('pointerup', () => c.setScale(1)); z.on('pointerout', () => c.setScale(1));
+      c.add([bg, icon, cd, cdText, mp, z]);
+      this.root.add(c);
+      this.skillBtns.push({ id, icon, cd, cdText, mp, c, x, y });
+    });
+  }
+  updateSkills(now: number) {
+    const s = S();
+    if (currentSkills(s).join(',') !== this.skillSet) this.buildSkills();
+    for (const b of this.skillBtns) {
+      const sk = SKILL_BY_ID[b.id], left = (this.td.skillReady[b.id] ?? 0) - now, R = 17;
+      b.cd.clear();
+      if (left > 0) {
+        const f = left / sk.cooldown;
+        b.cd.fillStyle(0x000000, 0.6).slice(0, 0, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f, false).fillPath();
+        b.cdText.setText((left / 1000).toFixed(left < 1000 ? 1 : 0));
+      } else b.cdText.setText('');
+      b.icon.setAlpha((s.mp ?? 0) >= sk.mp ? 1 : 0.4);
+    }
+  }
 
   constructor() { super('TdUI'); }
 
@@ -52,7 +104,7 @@ export class TdUIScene extends Phaser.Scene {
     this.VW = this.scale.width / this.u;
     this.cameras.main.setOrigin(0, 0).setZoom(this.u);
     this.kit = new UIKit(this, () => Math.max(1, this.u));
-    this.toasts = []; this.lastKey = ''; this.actLabel = ''; this.actCb = null;
+    this.toasts = []; this.lastKey = ''; this.actLabel = ''; this.actCb = null; this.skillBtns = []; this.skillSet = '';
     this.root = this.add.container(0, 0);
     this.panels = new Panels(this as unknown as UIScene);
     const k = this.kit;
@@ -64,10 +116,11 @@ export class TdUIScene extends Phaser.Scene {
     this.portrait = this.add.image(28, 30, '__DEFAULT');
     const ring = this.add.image(28, 30, 'ui_ring0'); ring.setScale(44 / ring.width);
     this.lvText = k.text(28, 52, 'Lv1', 8, '#ffe7a0').setOrigin(0.5);
-    this.hpText = k.text(128, 11, '', 7.5, '#ffffff').setOrigin(0.5, 0);
-    this.expText = k.text(128, 25, '', 6.5, '#e0d0ff').setOrigin(0.5, 0);
+    this.hpText = k.text(128, 9.5, '', 7, '#ffffff').setOrigin(0.5, 0);
+    this.expText = k.text(128, 29, '', 6, '#e0d0ff').setOrigin(0.5, 0);
+    this.mpText = k.text(128, 20.5, '', 6, '#d8ecff').setOrigin(0.5, 0);
     this.stageText = k.text(this.VW / 2, 8, '', 10, '#ffe7a0').setOrigin(0.5, 0);
-    this.root.add([this.hud, this.portrait, ring, this.lvText, this.hpText, this.expText, this.stageText]);
+    this.root.add([this.hud, this.portrait, ring, this.lvText, this.hpText, this.expText, this.mpText, this.stageText]);
     this.resTexts = (['res0', 'res1', 'res2', 'res3'] as const).map((ic, i) => {
       const x = 56 + i * 38, im = this.add.image(x, 44, 'ui_' + ic); im.setScale(11 / im.height);
       const t = k.text(x + 7, 44, '0', 7.5, '#ffe7a0').setOrigin(0, 0.5);
@@ -100,6 +153,7 @@ export class TdUIScene extends Phaser.Scene {
     this.scale.on('resize', this.onResize, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
     this.refresh();
+    this.buildSkills();
 
     const st = S();
     if (!st.introSeen) {
@@ -138,10 +192,12 @@ export class TdUIScene extends Phaser.Scene {
       g.fillStyle(col, 1).fillRect(x, y, fw, h).fillStyle(hi, 1).fillRect(x, y, fw, Math.max(1, Math.floor(h / 3)));
       g.lineStyle(1, 0x5a4a3a, 1).strokeRect(x - 1.5, y - 1.5, w + 3, h + 3);
     };
-    bar(52, 11, 152, 10, s.hp / d.maxHp, 0xb8332c, 0xe0645a);
-    bar(52, 25, 152, 7, need > 0 ? s.exp / need : 1, 0x6a4ab8, 0x9a7ae0);
+    bar(52, 10, 152, 9, s.hp / d.maxHp, 0xb8332c, 0xe0645a);
+    bar(52, 21, 152, 6, (s.mp ?? 0) / d.maxMp, 0x2a6ac8, 0x6aa8f0);
+    bar(52, 30, 152, 5, need > 0 ? s.exp / need : 1, 0x6a4ab8, 0x9a7ae0);
     this.hpText.setText(`HP ${Math.round(s.hp)}/${d.maxHp}`);
     this.expText.setText(`EXP ${Math.floor(s.exp)}/${need}`);
+    this.mpText.setText(`MP ${Math.round(s.mp ?? 0)}/${d.maxMp}`);
     this.lvText.setText(`Lv${s.level}`);
     [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
     const key = this.td.heroKey();
@@ -167,6 +223,7 @@ export class TdUIScene extends Phaser.Scene {
 
   update(time: number) {
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
+    this.updateSkills(this.td.time.now);
   }
 }
 

@@ -7,6 +7,8 @@ import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
 import { applyKill } from '../systems/rewards';
+import { selfEffect, skillHit } from '../systems/skillCast';
+import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
 import { STAGES, scaleStats, type Stage, type StageMon } from './stages';
 
@@ -55,6 +57,139 @@ export class Combat {
     if (ph) sp.setData('ph', ph);
     const bar = sc.add.graphics().setDepth(99960);
     this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0 });
+  }
+
+  // ---------- skills ----------
+  shieldHp = 0; shieldUntil = 0; shieldFx: Phaser.GameObjects.Ellipse | null = null;
+  /** shield soaks damage first */
+  absorb(dmg: number) {
+    if (this.shieldHp <= 0 || this.s.time.now > this.shieldUntil) { this.shieldHp = 0; this.shieldFx?.destroy(); this.shieldFx = null; return dmg; }
+    const a = Math.min(this.shieldHp, dmg); this.shieldHp -= a;
+    if (a > 0) this.float(this.s.hero.x, this.s.hero.y - 48, `🛡${a}`, '#ffe080', 8);
+    if (this.shieldHp <= 0) { this.shieldFx?.destroy(); this.shieldFx = null; }
+    return dmg - a;
+  }
+  alive() { return this.mons.filter(m => m.alive); }
+  nearest(r: number) { const h = this.s.hero; return this.alive().filter(m => Math.hypot(m.x - h.x, m.y - h.y) < r).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y)); }
+  hitSk(m: Mon, sk: SkillDef, knock = 0) {
+    if (!m.alive) return 0;
+    const r = skillHit(S(), sk, m.def);
+    this.hurtMon(m, r.dmg, r.crit, sk.stat === 'matk');
+    if (knock && m.alive && !m.boss) { const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), nx = m.x + Math.cos(a) * knock, ny = m.y + Math.sin(a) * knock; if (!this.s.isBlocked(nx, ny)) { m.x = nx; m.y = ny; } }
+    return r.dmg;
+  }
+  ring(x: number, y: number, r: number, col: number, dur = 380) {
+    const c = this.s.add.ellipse(x, y, 8, 4).setStrokeStyle(3, col, 1).setDepth(99953).setBlendMode(Phaser.BlendModes.ADD);
+    this.s.tweens.add({ targets: c, width: r * 2, height: r * 1.2, alpha: 0, duration: dur, ease: 'Quad.easeOut', onComplete: () => c.destroy() });
+    this.glowTex(); const g = this.s.add.image(x, y - 6, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99952).setScale(r / 20);
+    this.s.tweens.add({ targets: g, alpha: 0, scale: r / 12, duration: dur, onComplete: () => g.destroy() });
+  }
+  /** Cast a skill (already paid for by systems/skillCast.beginCast). Returns the text to float over the hero. */
+  castSkill(sk: SkillDef) {
+    const h = this.s.hero, col = sk.color ?? 0xffe8a0, s = S();
+    const near = this.nearest(240)[0];
+    const aim = near ? Math.atan2(near.y - h.y, near.x - h.x) : Math.atan2(Math.cos(this.s.dir * Math.PI / 4), Math.sin(this.s.dir * Math.PI / 4));
+    const fx = Math.cos(aim), fy = Math.sin(aim);
+    if (near) this.s.dir = dirOf(fx, fy);
+    this.float(h.x, h.y - 56, sk.name, '#' + col.toString(16).padStart(6, '0'), 10);
+    const times = (n: number, gap: number, f: (i: number) => void) => { for (let i = 0; i < n; i++) this.s.time.delayedCall(i * gap, () => f(i)); };
+    switch (sk.kind) {
+      case 'strike': {
+        const n = sk.count ?? 1;
+        times(n, 170, i => {
+          const cx = h.x + fx * 20, cy = h.y - 10 + fy * 14;
+          this.slash(cx, cy, dirOf(fx, fy), i % 2 ? 'hr3' : 'hr12'); this.ring(cx, cy + 8, 26, col, 260);
+          for (const m of this.alive()) if (Math.hypot(m.x - cx, m.y - (cy + 10)) < 34 + m.m.size * 0.25) this.hitSk(m, sk, sk.id === 't2_slam' ? 22 : 6);
+        });
+        this.s.cameras.main.shake(120, 0.004); break;
+      }
+      case 'spin': {
+        const n = sk.count ?? 2, r = sk.radius ?? 48;
+        times(n, 220, () => { this.ring(h.x, h.y, r, col, 300); for (let k = 0; k < 4; k++) this.slash(h.x, h.y - 10, k * 2, 'hr3'); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
+        break;
+      }
+      case 'dash': {
+        let tx = h.x, ty = h.y;
+        for (let d = 0; d < 110; d += 4) { const nx = h.x + fx * d, ny = h.y + fy * d; if (this.s.isBlocked(nx, ny)) break; tx = nx; ty = ny; }
+        const x0 = h.x, y0 = h.y, hitSet = new Set<Mon>();
+        for (let k = 0; k < 6; k++) this.s.time.delayedCall(k * 30, () => { const gh = this.s.add.image(h.x, h.y, h.texture.key, h.frame.name).setOrigin(h.originX, h.originY).setTint(col).setAlpha(0.5).setDepth(h.depth - 1); this.s.tweens.add({ targets: gh, alpha: 0, duration: 260, onComplete: () => gh.destroy() }); });
+        this.s.tweens.add({ targets: h, x: tx, y: ty, duration: 200, ease: 'Quad.easeOut', onUpdate: () => {
+          for (const m of this.alive()) if (!hitSet.has(m) && Math.hypot(m.x - h.x, m.y - h.y) < 22 + m.m.size * 0.25) { hitSet.add(m); this.hitSk(m, sk, 18); }
+        } });
+        this.sparks(x0, y0 - 8, col, 10); break;
+      }
+      case 'leap': {
+        const r = sk.radius ?? 60, tgt = near && Math.hypot(near.x - h.x, near.y - h.y) < 170 ? { x: near.x - fx * 16, y: near.y - fy * 10 } : { x: h.x + fx * 60, y: h.y + fy * 60 };
+        if (this.s.isBlocked(tgt.x, tgt.y)) { tgt.x = h.x; tgt.y = h.y; }
+        this.s.tweens.add({ targets: h, x: tgt.x, y: tgt.y, duration: 320, ease: 'Sine.easeInOut' });
+        this.s.tweens.add({ targets: h, scale: 1.25, duration: 160, yoyo: true });
+        this.s.time.delayedCall(330, () => { this.ring(h.x, h.y, r, col, 450); this.ring(h.x, h.y, r * 0.6, 0xffffff, 300); this.sparks(h.x, h.y - 4, col, 18); this.s.cameras.main.shake(260, 0.01);
+          for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 16); });
+        break;
+      }
+      case 'shot': case 'pierce': {
+        const n = sk.count ?? 1, spr = sk.spread ?? (sk.kind === 'pierce' ? 0.12 : 0.18), pierce = sk.kind === 'pierce', len = pierce ? 230 : 190;
+        const magic = sk.stat === 'matk';
+        times(n, sk.id === 'a2_double' || sk.id === 'm3_volley' ? 110 : 0, i => {
+          const a = sk.id === 'a2_double' || sk.id === 'm3_volley' ? aim + (i - (n - 1) / 2) * 0.05 : aim + (i - (n - 1) / 2) * spr;
+          const sx = h.x, sy = h.y - 18, ex = sx + Math.cos(a) * len, ey = sy + Math.sin(a) * len;
+          // who is on the line? (sorted by distance) — first one only unless piercing
+          const on = this.alive().map(m => { const px = m.x - sx, py = m.y - m.m.size * 0.35 - sy, t = px * Math.cos(a) + py * Math.sin(a), dd = Math.abs(-px * Math.sin(a) + py * Math.cos(a)); return { m, t, dd }; })
+            .filter(o => o.t > 0 && o.t < len && o.dd < 12 + o.m.m.size * 0.2).sort((p, q) => p.t - q.t);
+          const hits = pierce ? on : on.slice(0, 1);
+          const stopT = !pierce && hits[0] ? hits[0].t : len;
+          const tx = sx + Math.cos(a) * stopT, ty = sy + Math.sin(a) * stopT;
+          this.glowTex();
+          const big = sk.proj === 'fire' || sk.id === 'm2_fire';
+          const p = magic || sk.proj === 'orb' || sk.proj === 'dark' || big ? this.s.add.image(sx, sy, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(big ? 0.8 : 0.5)
+            : this.s.add.rectangle(sx, sy, pierce ? 22 : 12, pierce ? 3 : 2, col).setRotation(a);
+          p.setDepth(99950);
+          const tr = this.s.time.addEvent({ delay: 20, repeat: 10, callback: () => { const t = this.s.add.image(p.x, p.y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99949).setScale(0.3).setAlpha(0.6); this.s.tweens.add({ targets: t, alpha: 0, scale: 0.05, duration: 240, onComplete: () => t.destroy() }); } });
+          this.s.tweens.add({ targets: p, x: tx, y: ty, duration: stopT * 1.1, onComplete: () => {
+            p.destroy(); tr.remove(); this.sparks(tx, ty, col, 6);
+            if (big) { this.ring(tx, ty, sk.radius ?? 40, col); for (const m of this.alive()) if (Math.hypot(m.x - tx, m.y - m.m.size * 0.35 - ty) < (sk.radius ?? 40)) this.hitSk(m, sk, 10); }
+            else for (const o of hits) this.hitSk(o.m, sk, pierce ? 4 : 6);
+          } });
+        });
+        break;
+      }
+      case 'rain': {
+        const tg = this.nearest(230).slice(0, sk.count ?? 5);
+        tg.forEach((m, i) => this.s.time.delayedCall(i * 90, () => {
+          if (!m.alive) return;
+          const tx = m.x, ty = m.y - m.m.size * 0.3;
+          this.glowTex();
+          const fall = sk.fall ?? 'arrow';
+          const o = fall === 'arrow' || fall === 'blade' ? this.s.add.rectangle(tx - 30, ty - 120, fall === 'blade' ? 4 : 2, fall === 'blade' ? 18 : 14, col).setRotation(-0.25)
+            : this.s.add.image(tx - 30, ty - 120, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(fall === 'meteor' ? 1 : 0.5);
+          o.setDepth(99950);
+          if (fall === 'bolt') { const g = this.s.add.graphics().setDepth(99951).setBlendMode(Phaser.BlendModes.ADD); g.lineStyle(2, col, 1).beginPath().moveTo(tx, ty - 120); for (let k = 1; k <= 6; k++) g.lineTo(tx + (Math.random() - 0.5) * 14, ty - 120 + k * 20); g.strokePath(); this.s.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() }); }
+          this.s.tweens.add({ targets: o, x: tx, y: ty, duration: fall === 'bolt' ? 60 : 220, ease: 'Quad.easeIn', onComplete: () => { o.destroy(); this.ring(tx, ty + 6, fall === 'meteor' ? 30 : 14, col, 300); if (fall === 'meteor') this.s.cameras.main.shake(100, 0.006); this.hitSk(m, sk, 4); } });
+        }));
+        if (!tg.length) this.float(h.x, h.y - 40, 'ไม่มีเป้าหมาย', '#cfcfcf', 8);
+        break;
+      }
+      case 'nova': {
+        const r = sk.radius ?? 64;
+        this.ring(h.x, h.y, r, col, 450); this.ring(h.x, h.y, r * 0.7, 0xffffff, 320); this.sparks(h.x, h.y - 10, col, 16);
+        let total = 0;
+        for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) total += this.hitSk(m, sk, 26);
+        if (sk.id === 'm4_dread' && total > 0) { const d = derive(s), heal = Math.min(Math.round(total * 0.1), d.maxHp - s.hp); s.hp += heal; if (heal > 0) this.float(h.x, h.y - 40, `+${heal}`, '#7aff8a', 10); }
+        break;
+      }
+      case 'buff': case 'heal': case 'shield': {
+        const r = selfEffect(s, sk);
+        this.ring(h.x, h.y, 30, col, 600); this.ring(h.x, h.y, 20, 0xffffff, 450);
+        for (let k = 0; k < 12; k++) { const p = this.s.add.rectangle(h.x + (Math.random() - 0.5) * 26, h.y - Math.random() * 10, 2, 2, col).setDepth(99952); this.s.tweens.add({ targets: p, y: p.y - 34 - Math.random() * 16, alpha: 0, duration: 700 + Math.random() * 400, onComplete: () => p.destroy() }); }
+        if (r.heal !== undefined) this.float(h.x, h.y - 40, `+${r.heal}`, '#7aff8a', 12);
+        if (r.shield) {
+          this.shieldHp = r.shield; this.shieldUntil = this.s.time.now + 12000;
+          this.shieldFx?.destroy(); this.shieldFx = this.s.add.ellipse(h.x, h.y - 16, 34, 42).setStrokeStyle(2, col, 0.9).setFillStyle(col, 0.12).setDepth(99948);
+          this.float(h.x, h.y - 40, `🛡 ${r.shield}`, '#ffe080', 11);
+        }
+        break;
+      }
+    }
   }
 
   /** hero swing: hit monsters in front (melee) or the nearest in sight (ranged forms) */
@@ -195,6 +330,7 @@ export class Combat {
 
   update(time: number, dt: number) {
     const h = this.s.hero, s = S(), d = derive(s);
+    if (this.shieldFx) { if (time > this.shieldUntil) { this.shieldFx.destroy(); this.shieldFx = null; this.shieldHp = 0; } else this.shieldFx.setPosition(h.x, h.y - 16); }
     for (const m of this.mons) {
       if (!m.alive) continue;
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);
@@ -222,7 +358,7 @@ export class Combat {
           this.s.tweens.add({ targets: boom, scale: 4, alpha: 0, duration: 450, onComplete: () => boom.destroy() });
           this.sparks(cx, cy - 6, 0xffa050, 14); this.s.cameras.main.shake(250, 0.01);
           if (!this.s.dead && Math.hypot((h.x - cx) / R, (h.y - cy) / (R * 0.6)) < 1) {
-            const r = calcDamage(m.atk * 2.2, d.def, 1, 0, Math.random, 0); s.hp = Math.max(0, s.hp - r.dmg);
+            const r = calcDamage(m.atk * 2.2, d.def, 1, 0, Math.random, 0); s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
             this.float(h.x, h.y - 40, `-${r.dmg}`, '#ff4a3a', 13); if (s.hp <= 0) this.s.heroDie();
           }
         });
@@ -233,7 +369,7 @@ export class Combat {
         this.s.time.delayedCall(220, () => {
           if (!m.alive || this.s.dead || Math.hypot(h.x - m.x, h.y - m.y) > reach + 8) return;
           const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
-          s.hp = Math.max(0, s.hp - r.dmg);
+          s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
           this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
           if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); this.s.cameras.main.shake(90, 0.003); }
           if (s.hp <= 0) this.s.heroDie();

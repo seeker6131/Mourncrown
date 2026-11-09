@@ -10,7 +10,8 @@ import { saveGame, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
 import { derive } from '../systems/stats';
 import { Village, populateVillage } from '../world/npcs';
-import { activeTier, nextForm } from '../systems/stats';
+import { activeTier, nextForm, currentSkills } from '../systems/stats';
+import { beginCast } from '../systems/skillCast';
 import { formName, type ClassId } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -184,7 +185,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
-    this.lamps = []; this.fires = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = [];
+    this.lamps = []; this.fires = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
@@ -219,7 +220,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.on('addedtoscene', (o: Phaser.GameObjects.GameObject) => { if (!this.makingUi) uiCam.ignore(o); });
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
-    if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); }
+    if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard!.on('keydown-' + k, () => this.castSkill(i))); }
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.ui?.blocks(p) || this.selectUi) return; if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
@@ -665,6 +666,20 @@ export class TopDownScene extends Phaser.Scene {
   }
   heroKeyNow = '';
   lastLevel = 0;
+  skillReady: Record<string, number> = {};
+  /** skill button i (0-2): pay MP / check cooldown in systems, then play it */
+  castSkill(i: number) {
+    if (this.dead || this.ui?.panels.isOpen || this.selectUi) return;
+    const s = S(), id = currentSkills(s)[i]; if (!id) return;
+    const r = beginCast(s, id, this.time.now, this.skillReady);
+    if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
+    if (hasAnim(this.F.key, 'attack')) {
+      this.attacking = true; playAnim(this.hero, this.F.key, 'attack', this.dir, false);
+      this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
+    }
+    this.combat.castSkill(r);
+    bus.emit(EV.STATE_CHANGED);
+  }
 
   // ---------- building plots ----------
   plotViews: { key: string; objs: Phaser.GameObjects.GameObject[]; bubble?: Phaser.GameObjects.Container }[] = [];
@@ -870,7 +885,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
-      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); }
+      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
       const st = this.stageN ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
