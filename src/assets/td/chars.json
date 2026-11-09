@@ -2068,6 +2068,17 @@
 "idleFs": 48,
 "idleFoot": 47,
 "anims": {
+"mine": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 61
+},
 "walk": {
 "fs": 48,
 "n": 8,
