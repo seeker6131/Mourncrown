@@ -415,7 +415,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "hr8": {
   "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5",

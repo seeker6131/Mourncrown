@@ -978,9 +978,13 @@
 "south",
 "south-east",
 "east",
-"north-east"
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 58
+"foot": 68
 }
 }
 },
@@ -1018,7 +1022,13 @@
 "n": 9,
 "dirs": [
 "south",
-"south-east"
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 57
 }
@@ -1063,7 +1073,8 @@
 "north-east",
 "north",
 "north-west",
-"west"
+"west",
+"south-west"
 ],
 "foot": 64
 }
