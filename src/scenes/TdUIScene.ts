@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import { activeElixir } from '../systems/alchemy';
 import { act } from '../net/client';
+import { resCap } from '../systems/economy';
 import { tutActive, loginInfo } from '../systems/progress';
 import { Minimap, type MapInfo } from '../ui/minimap';
 import { LootPopup, NewsTicker } from '../ui/lootPopup';
@@ -268,7 +269,8 @@ export class TdUIScene extends Phaser.Scene {
     this.mpText.setText(`MP ${Math.round(s.mp ?? 0)}/${d.maxMp}`);
     this.lvText.setText(`Lv${s.level}${vipActive(s) ? ' 👑' : ''}`).setColor(vipActive(s) ? '#ffd84a' : '#ffe7a0');
     [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
-    this.resTexts[3]?.setColor((s as unknown as { hungry?: boolean }).hungry ? '#ff6a5a' : '#ffe7a0');
+    { const cap = resCap(s); [1, 2].forEach(i => this.resTexts[i]?.setColor([0, s.res.wood, s.res.stone][i] >= cap ? '#ff6a5a' : '#ffe7a0'));   // warehouse full = red
+      this.resTexts[3]?.setColor((s as unknown as { hungry?: boolean }).hungry || s.res.food >= cap ? '#ff6a5a' : '#ffe7a0'); }
     const key = this.td.heroKey();
     if (key !== this.lastKey && this.textures.exists(`c_${key}_idle`)) {
       this.lastKey = key;

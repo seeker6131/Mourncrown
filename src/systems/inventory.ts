@@ -113,7 +113,8 @@ export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.r
 
 export function sellPrice(it: InvItem): number {
   const d = itemDef(it.id);
-  return Math.max(1, Math.floor(d.price * 0.4 * (1 + it.upg * 0.25) * (1 + (it.rar ?? 0) * (it.rar ?? 0) * 0.6)));
+  // NPCs pay little (director: no inflation) — good items are worth more on the player market
+  return Math.max(1, Math.floor(d.price * 0.06 * (1 + it.upg * 0.15) * (1 + (it.rar ?? 0) * 0.8)));
 }
 
 /** Character level needed to equip an item (by base tier). */

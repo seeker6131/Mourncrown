@@ -130,7 +130,8 @@ export function upgradeChance(n: number): number {
   return [1, 1, 1, 0.85, 0.7, 0.55, 0.45, 0.35, 0.25, 0.15][n] ?? 0;
 }
 export function upgradeCost(n: number, def: ItemDef): { gold: number; shards: number } {
-  return { gold: Math.round((def.price * 0.25 + 30) * (n + 1)), shards: 1 + Math.floor(n / 2) };
+  // grows fast: the main gold sink for high upgrades
+  return { gold: Math.round((def.price * 0.4 + 40) * Math.pow(1.65, n)), shards: 1 + Math.floor(n / 2) + Math.floor(n / 6) * 2 };
 }
 /** Upgrade multiplier applied to main stat of the item */
 export function upgradeMult(n: number): number { return 1 + n * 0.12; }

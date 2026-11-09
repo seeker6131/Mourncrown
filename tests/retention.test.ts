@@ -25,7 +25,7 @@ describe('gear sets', () => {
 });
 describe('golden monsters', () => {
   it('give 5x gold, 3x EXP and a sure gear drop', () => {
-    const mon = STAGES[0].land.mobs[0], a = startNewGame(), b = startNewGame(), r = () => 0.5;
+    const mon = STAGES[0].land.mobs[0], a = startNewGame(), b = startNewGame(), r = () => 0.1;   // 0.1: the normal kill drops gold too
     const n = applyKill(a, 1, mon, false, false, r), e = applyKill(b, 1, mon, false, false, r, true);
     expect(e.gold).toBe(n.gold * 5); expect(e.exp).toBe(n.exp * 3); expect(e.gear.length).toBe(1);
   });

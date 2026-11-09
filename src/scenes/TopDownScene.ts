@@ -12,6 +12,7 @@ import { sfx } from '../audio/sfx';
 import { act, refused } from '../net/client';
 import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
 import { titleOf } from '../data/achievements';
+import { energyLeft, resCap } from '../systems/economy';
 import { type Vein } from '../systems/alchemy';
 import { itemDef } from '../data/items';
 import { S } from '../core/events';
@@ -865,7 +866,7 @@ export class TopDownScene extends Phaser.Scene {
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100`;
+  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
@@ -968,6 +969,7 @@ export class TopDownScene extends Phaser.Scene {
     const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
     let tx: number, ty: number, reach: number, target: object;
     if (this.gathering()) {
+      if (this.wild && energyLeft(s) <= 0) { if (time > this.autoTipT) { this.autoTipT = time + 20000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว — ออโต้เก็บของหยุด', '#ffb080'); } return [0, 0]; }
       const n = near(this.nodes.filter(q => q.until <= this.time.now && !bad(q) && (!q.vein || q.vein.req <= s.level)));
       if (!n) return [0, 0];
       tx = n.x; ty = n.y + 14; reach = 16; target = n;
@@ -1199,8 +1201,10 @@ export class TopDownScene extends Phaser.Scene {
       this.attacking = false; setIdle(h, key, this.dir);
       const s = S(), r = act('gather', { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold });
       if (!refused(r)) this.tutGathered = true;
+      if (refused(r) && r.refused === 'tired') { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 6000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว เก็บของต่อไม่ไหว พรุ่งนี้มาใหม่ (ยังล่ามอน/ทำอย่างอื่นได้)', '#ffb080'); } return; }
       if (refused(r)) { if (r.refused === 'level') bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein?.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); return; }
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
+      if (s.res[n.kind] >= resCap(s) && this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 8000; bus.emit(EV.TOAST, '📦 คลังเต็ม! ของล้นทิ้ง — อัปเกรดโกดังหรือใช้ทรัพยากรก่อน', '#ff8a6a'); }
       if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
       if (r.gold) this.combat.float(n.x - 10, n.y - 52, `💰 +${r.gold}G`, '#ffd84a', 10);
       if (r.gem) { this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); bus.emit('loot:popup', { id: r.gem, rar: itemDef(r.gem).rarity }); saveGame(s); }

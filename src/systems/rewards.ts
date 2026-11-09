@@ -30,7 +30,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   const st = stageOf(stageN, s.level), base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
   const animal = !!base.animal;
   const vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now();
-  const gold = animal ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1) * (elite ? 5 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1) * (elite ? 3 : 1));
+  const gold = animal || (!boss && !elite && rnd() >= 0.4) ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1) * (elite ? 5 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1) * (elite ? 3 : 1));
   s.gold += gold;
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);
@@ -38,7 +38,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   const k = stageN === WILD ? 1 + s.level / 25 : 1 + effN / 12;
   // monsters ≠ resources: wood / stone / meat come only from the Deepwild (animals + gathering); monsters give EXP, gold and items
   const wood = 0, stone = 0;
-  const food = animal ? Math.round(between(rnd, base.meat?.[0] ?? 2, base.meat?.[1] ?? 6) * k * 1.5) : 0;
+  const food = animal ? Math.round(between(rnd, base.meat?.[0] ?? 2, base.meat?.[1] ?? 6) * k * 0.8) : 0;
   s.res.wood += wood; s.res.stone += stone; s.res.food += food;
   // crafting materials from the monster's drop table
   const mats: KillResult['mats'] = [];

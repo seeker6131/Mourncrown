@@ -25,10 +25,10 @@ describe('Deepwild gathering', () => {
     const r = gatherReward(s, 'stone', WILD, v, () => 0);
     expect(r.low).toBe(20); expect(countItem(s, 'ore_silver')).toBe(0);
   });
-  it('rare gems are rare: ~6% per hit on a glowing vein', () => {
-    let gems = 0; const N = 4000;
+  it('rare gems are rare: ~1.5% per hit on a glowing vein (behind the scenes)', () => {
+    let gems = 0; const N = 20000;
     for (let i = 0; i < N; i++) { const t = startNewGame(); const r = gatherReward(t, 'stone', WILD, { ore: 'ore_iron', gem: 'gem_emerald', req: 1, rare: true }); if (r.gem) gems++; }
-    expect(gems / N).toBeGreaterThan(0.04); expect(gems / N).toBeLessThan(0.08);
+    expect(gems / N).toBeGreaterThan(0.01); expect(gems / N).toBeLessThan(0.02);
   });
   it('animals in the Deepwild give meat scaled to the hero', () => {
     const r = applyKill(s, WILD, { key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, false, false, () => 0.5);

@@ -13,7 +13,8 @@ type MS = GameState & { myListings?: Listing[] };
 
 export const feeOf = (price: number) => Math.ceil(price * MARKET_FEE);
 /** a starting price: a few times the NPC price, more for rarer pieces */
-export function suggestPrice(it: Omit<InvItem, 'uid'>) { return Math.max(10, Math.round(sellPrice(it as InvItem) * (3 + (it.rar ?? 0) * 1.5) / 10) * 10); }
+/** a fair player-market price: from the item's value and rarity (not the low NPC buy price) */
+export function suggestPrice(it: Omit<InvItem, 'uid'>) { const d = itemDef(it.id), r = it.rar ?? d.rarity; return Math.max(10, Math.round(d.price * 0.5 * (1 + it.upg * 0.3) * (1 + Math.pow(r, 1.8)) / 10) * 10); }
 export const myListings = (s: GameState) => (s as MS).myListings ?? [];
 
 export function listItem(s: GameState, uid: number, qty: number, price: number, now = Date.now()): Listing | 'equipped' | 'missing' | 'full' | 'price' {

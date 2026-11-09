@@ -8,6 +8,8 @@ export const lang = () => cur;
 export function setLang(l: Lang) { cur = l; try { localStorage.setItem('lang', l); } catch { /* ignore */ } }
 
 const EN: Record<string, string> = {
+  // economy
+  '⚡ แรง': '⚡ Energy', '⚡ วันนี้เหนื่อยแล้ว เก็บของต่อไม่ไหว พรุ่งนี้มาใหม่ (ยังล่ามอน/ทำอย่างอื่นได้)': '⚡ Too tired to gather today — come back tomorrow (you can still hunt monsters and more)', '⚡ วันนี้เหนื่อยแล้ว — ออโต้เก็บของหยุด': '⚡ Too tired today — auto gathering stopped', '📦 คลังเต็ม! ของล้นทิ้ง — อัปเกรดโกดังหรือใช้ทรัพยากรก่อน': '📦 Storage full! Extra is lost — upgrade the warehouse or spend some first', 'ขยายกระเป๋า และคลังเก็บไม้ หิน อาหาร ได้มากขึ้น (เต็มแล้วจะล้นทิ้ง)': 'Bigger bag and more storage for wood, stone and food (extra is lost when full)',
   // loot
   'SL!! ไอเทมระดับตำนานสูงสุด': 'SL!! The highest tier of all', '📢 ประกาศทั้งเซิร์ฟ:': '📢 Server-wide:', 'เก็บไปแล้ว!': 'grabbed it!', 'กระเป๋าเต็ม! ของยังตกอยู่บนพื้น': 'Bag full! The item is still on the ground', '🍀 โชค': '🍀 Luck', 'โชค': 'Luck', '⚠ ยิ่งบวกสูงยิ่งเสี่ยง': '⚠ The higher the upgrade, the riskier', 'ผู้เล่น': 'Player',
   // daily dungeon

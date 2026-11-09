@@ -178,7 +178,7 @@ describe('food: supplies and village upkeep', () => {
   it('wild animals give meat and no gold', () => {
     const s = startNewGame(); const g = s.gold;
     const r = applyKill(s, 5, { key: 'mo16', kind: 'deer', name: 'กวาง', size: 48 }, false, false);
-    expect(r.food).toBeGreaterThan(2); expect(s.gold).toBe(g); expect(r.wood).toBe(0);
+    expect(r.food).toBeGreaterThan(0); expect(s.gold).toBe(g); expect(r.wood).toBe(0);
   });
 });
 

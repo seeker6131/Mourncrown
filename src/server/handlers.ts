@@ -11,6 +11,7 @@ import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dun
 import { pickBase, makeGear, rollRarity } from '../systems/loot';
 import { LAND_SET } from '../data/sets';
 import { dayKey } from '../systems/daily';
+import { energy, gatherMult, huntMult, clampRes } from '../systems/economy';
 import { applyKill } from '../systems/rewards';
 import { gatherReward, brew, type Vein } from '../systems/alchemy';
 import { derive } from '../systems/stats';
@@ -95,6 +96,11 @@ export const handlers = {
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
     const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
     if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
+    if (base.animal) {   // meat and hides follow the daily hunting energy
+      const hm = huntMult(s, c.now); energy(s, c.now).hunt++;
+      const cut = r.food - Math.round(r.food * hm); s.res.food -= cut; r.food -= cut;
+      if (hm < 1) for (let i = drops.length - 1; i >= 0; i--) if (c.rnd() > hm) { mem.drops.delete(drops[i].did); drops.splice(i, 1); }
+    }
     const ps = pstats(s); if (base.animal) ps.animals++; else { ps.kills++; ps.kinds[a.kind] = (ps.kinds[a.kind] ?? 0) + 1; if (sp.elite) ps.golden++; }
     const junk = vipActive(s, c.now) && s.inventory.length >= invSize(s) - 2 ? sellJunk(s, 1) : null;   // VIP auto-sell
     return { ...r, junk, drops };
@@ -121,8 +127,10 @@ export const handlers = {
     if (nd.until > c.now) return no('empty');
     const P = a.pit >= 0 ? PITS[a.pit] : null; if (a.pit >= 0 && !P) return no('pit');
     const vein: Vein | null = P ? { ore: P.ore, gem: P.gem, req: P.req, rare: !!a.rare, gold: !!a.gold } : null;
-    const r = gatherReward(s, a.kind, WILD, vein, c.rnd);
+    const m = gatherMult(s, c.now); if (m === 0) return no('tired');   // daily energy used up
+    const r = gatherReward(s, a.kind, WILD, vein, c.rnd, m);
     if (r.low) return { ...r, refused: 'level' };
+    energy(s, c.now).gather += a.rare ? 3 : 1;
     { const ps = pstats(s); ps.ore += r.oreQty; if (r.gem) ps.gems++; }
     nd.hits++; const max = a.rare ? 6 : 4;
     if (nd.hits >= max) { nd.hits = 0; nd.until = c.now + (a.rare ? 240000 : 45000) - 1500; }
@@ -214,4 +222,9 @@ export const handlers = {
     return { got: [] };
   },
 };
+// every handler ends with the warehouse cap (wood / stone / food never pile up past it)
+for (const k of Object.keys(handlers) as (keyof typeof handlers)[]) {
+  const fn = handlers[k] as unknown as (s: GameState, a: unknown, c: Ctx) => unknown;
+  (handlers as Record<string, unknown>)[k] = (s: GameState, a: unknown, c: Ctx) => { const r = fn(s, a, c); clampRes(s); return r; };
+}
 export type Handlers = typeof handlers;

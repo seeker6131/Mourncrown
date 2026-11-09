@@ -68,5 +68,6 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   const one = expToNext(L) * (0.8 + 0.4 * kf) / (1.2 * killsPerLevel);
   const exp = Math.max(1, Math.round(boss ? one * 60 : one));
   const g = (k: number) => Math.round(k * (boss ? 15 : 1));
-  return { hp, atk, def, exp, gold: [g(3 + L * 1.5), g(6 + L * 2.5)] as [number, number] };
+  // gold is scarce (director: no inflation) — and only ~40% of kills drop any (rewards.ts)
+  return { hp, atk, def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
 }
