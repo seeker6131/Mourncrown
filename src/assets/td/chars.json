@@ -512,11 +512,11 @@
 "west",
 "south-west"
 ],
-"idleFs": 180,
-"idleFoot": 153,
+"idleFs": 176,
+"idleFoot": 174,
 "anims": {
 "walk": {
-"fs": 180,
+"fs": 240,
 "n": 9,
 "dirs": [
 "south",
@@ -524,25 +524,21 @@
 "north",
 "west"
 ],
-"foot": 159
+"foot": 202
 },
 "attack": {
-"fs": 180,
+"fs": 240,
 "n": 9,
 "dirs": [
 "south",
-"south-east",
 "east",
-"north-east",
 "north",
-"north-west",
-"west",
-"south-west"
+"west"
 ],
-"foot": 159
+"foot": 202
 },
 "special": {
-"fs": 180,
+"fs": 240,
 "n": 9,
 "dirs": [
 "south",
@@ -550,18 +546,7 @@
 "north",
 "west"
 ],
-"foot": 158
-},
-"die": {
-"fs": 180,
-"n": 9,
-"dirs": [
-"south",
-"east",
-"north",
-"west"
-],
-"foot": 164
+"foot": 202
 }
 }
 },

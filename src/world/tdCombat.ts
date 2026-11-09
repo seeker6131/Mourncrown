@@ -34,6 +34,8 @@ export interface Host extends Phaser.Scene {
   others?(): { x: number; y: number; name: string; grab(x: number, y: number): void }[];
 }
 
+/** sprites drawn on a bigger canvas than the rest of their family (the remade dragon) */
+const SPRITE_SCALE: Record<string, number> = { bs3: 0.62 };
 /** boss special per land, monsters that hit heavily, projectile colours */
 const BOSS_FX: Record<string, string> = { forest: 'earth-spike', haunt: 'grasping-hands', lava: 'flame-pillar', snow: 'ice-spikes', dung: 'necro-skulls' };
 export const MONSTER_PFX = (land: string) => ['claw-swipe', 'blunt-hit', 'crit-hit', 'hit-spark', BOSS_FX[land] ?? 'earth-spike'];
@@ -178,7 +180,7 @@ export class Combat {
     if (reg.elite) st.hp *= 5;
     const sc = this.s;
     let sp: Phaser.GameObjects.Sprite;
-    if (CH[m.key]) { sp = sc.add.sprite(x, y, `c_${m.key}_idle`); setIdle(sp, m.key, 0); }
+    if (CH[m.key]) { sp = sc.add.sprite(x, y, `c_${m.key}_idle`); setIdle(sp, m.key, 0); sp.setScale(SPRITE_SCALE[m.key] ?? 1); }
     else { sp = sc.add.sprite(x, y, '__DEFAULT').setVisible(false); }
     const ph = CH[m.key] ? null : sc.add.ellipse(x, y - m.size * 0.3, m.size * 0.6, m.size * 0.5, 0x5a2a3a).setStrokeStyle(1, 0x140a10);
     if (ph) sp.setData('ph', ph);
@@ -565,6 +567,7 @@ export class Combat {
       if (angry && !this.s.dead && dist <= reach && time - m.last > base.attackCooldown) {
         m.last = time; m.atkT = time; m.dir = dirOf(dx, dy);
         if (CH[m.m.key] && hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
+        if (m.boss) { const lx = dx / dist * 14, ly = dy / dist * 9; this.s.tweens.add({ targets: m, x: m.x + lx, y: m.y + ly, duration: 140, yoyo: true, ease: 'Quad.easeOut' }); }   // a heavy lunge at the hero
         const land = () => {
           if (!m.alive || this.s.dead || Math.hypot(h.x - m.x, h.y - m.y) > reach + 30) return;
           const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
@@ -593,7 +596,7 @@ export class Combat {
       (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
       const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
       if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);
-      const w = m.boss ? 60 : 22, top = m.y - m.m.size * (m.boss ? 0.95 : 0.85);
+      const w = m.boss ? 60 : 22, top = m.y - m.m.size * (m.boss ? 0.95 : 0.85) * (SPRITE_SCALE[m.m.key] ? 1.05 : 1);
       m.bar.clear().fillStyle(0x0b0f0c, 0.8).fillRect(m.x - w / 2 - 1, top - 1, w + 2, 4).fillStyle(m.boss ? 0xff4a3a : 0xd84a3a, 1).fillRect(m.x - w / 2, top, w * Math.max(0, m.hp / m.max), 2);
     }
   }

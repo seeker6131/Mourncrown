@@ -6,7 +6,7 @@
 ---
 ## 1. ผู้ใช้ (Game Director) — กฎที่ต้องทำตามเสมอ
 - คุยภาษาไทย (สั้น ตรง) · ใช้ Android เป็นหลัก · **ไม่เขียนโค้ด** → เราทำทุกอย่าง แก้ commit push เอง แล้วสรุปผลแบบคนไม่เขียนโค้ดอ่านรู้เรื่อง
-- **รายงานโควต้า PixelLab ทุกครั้งที่ตอบ** (`python3 tools/pixellab_api.py balance`) — ณ ตอนนี้ **เหลือ 8 / 2000**
+- **รายงานโควต้า PixelLab ทุกครั้งที่ตอบ** (`python3 tools/pixellab_api.py balance`) — ณ ตอนนี้ **เหลือ 0 / 2000 (หมด)**
 - **ทุกอย่างที่เสี่ยงโกง → ฝั่งเซิร์ฟ** (ดูข้อ 4) และ **แจ้งความเสี่ยงออนไลน์ก่อน OBT เสมอ** (อัปเดต `docs/ONLINE_RISKS.md`)
 - ห้ามสั่นจอ · เพชรได้จากเติมเงินจริงเท่านั้น · ห้าม pay-to-win · VIP 3/7/15 วัน
 - **ห้ามโชว์อัตรา/เปอร์เซ็นต์โอกาสใดๆ ให้ผู้เล่น** (รู้แค่หลังบ้าน) · เรทของแรร์ต้องยาก (SL ~1/12,000 + การันตี 15,000)
@@ -62,13 +62,13 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 ## 6. งานภาพ / ไลบรารีภายนอก
 - **PixelLab** (`tools/pixellab_api.py`, token อยู่ใน env ของ proxy): ตัวละคร `tools/gen_chars.py`+`import_chars.py`, ของ `gen_jungle.py`/`gen_props.py`+`import_td_objs.py`, ไอคอน `gen_item_icons.py`, เอฟเฟกต์ `gen_vfx.py`+`import_vfx.py`
   - ⚠️ `import_chars.py` แก้ภาพที่โดนตัดขอบอัตโนมัติ และบอส (`bs*`) ใช้ท่าเดินชุดเก่า (แม่แบบ walking ทำบอสเพี้ยน) — ถ้าจะ import แค่บางตัว ให้ build ทีละ key แล้ว merge `chars.json` (ดูประวัติ) อย่ารันทั้งชุดทับถ้าไม่จำเป็น
-  - ❌ **มังกร bs3 ปีกขาดตั้งแต่ตอนเจน** (วาดบน 128px ปีกโดนตัด) แก้ด้วยโค้ดไม่ได้ ต้องเจนใหม่บนกระดาษใหญ่ (~20 โควต้า) — รอผู้ใช้ตัดสินใจ (เติมโควต้า / ใช้ 8 ที่เหลือทำบางท่า / ตัดปลายปีกให้ดูขาดรุ่ย)
+  - ✅ มังกร bs3 เจนใหม่แล้ว (`tools/gen_dragon2.py`, zip `chars/bs3b.zip`, canvas 176/240): idle 8 ทิศ + เดิน S/E/N (W = กลับด้าน E). ⚠️ ยังไม่มีท่าโจมตี/ท่าพิเศษ/ท่าตายของตัวใหม่ (ใช้ท่าเดิน + พุ่ง + เอฟเฟกต์แทน) — ถ้าเติมโควต้า: `python3 -I tools/gen_dragon2.py anim attack south|east|north` แล้ว zip + import ใหม่ · ขนาดในเกมย่อด้วย `SPRITE_SCALE` ใน tdCombat.ts
 - **pixelfx** (MIT, https://github.com/patch-gg/pixelfx): clone แล้ว `node tools/render.mjs <หมวด/ชื่อ> --sheet --no-actor --out RAW` → `python3 -I tools/import_pfx.py RAW` (ตัดความยาว/START/หา peak) → `src/assets/pfx/*.webp + pfx.json` → ผูกสกิลใน `src/world/pfx.ts SKILL_PFX` · ใบอนุญาต `src/assets/pfx/LICENSE.txt` (ห้ามลบ) · ฟอนต์ของ pixelfx ไม่ใช่ MIT ห้ามใช้
 - **Kenney RPG Audio** (CC0) ใน `src/assets/sfx/` · ปกเกมจากผู้ใช้ `art-source/title/cover_mourncrown.jpg`
 - คู่มือโปรโมทล่าสุดทำจาก HTML + Playwright (ภาพในเกมจริง, ฟอนต์ Kanit) — สคริปต์ไม่ได้อยู่ใน repo
 
 ## 7. ค้าง / ถัดไป
-1. **มังกรปีกขาด** (ข้อ 6) — รอผู้ใช้
+1. ⚠️ **โควต้า PixelLab = 0** — มังกรใหม่ยังขาดท่าโจมตีเฉพาะ (ข้อ 6)
 2. **เซิร์ฟจริง** (ข้อ 4) → แชต, ปาร์ตี้, กิลด์, บอสโลก, ตลาดจริง, PvP, จุติหลัง Lv100
 3. เพลงพื้นหลัง: ผู้ใช้สั่งเอาออก (อย่าใส่กลับเองโดยไม่ถาม)
 4. ชื่ออังกฤษบอส "Hollow Crown" ซ้ำกับชื่อเกมอื่นที่ pixelfx อ้างถึง — แจ้งผู้ใช้แล้ว ยังไม่ตัดสินใจ
