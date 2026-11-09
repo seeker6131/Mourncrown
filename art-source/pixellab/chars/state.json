@@ -118,7 +118,18 @@
   "walk": "done",
   "attack": "done",
   "zip": 1,
-  "walk8group": "feb725c8-0b8b-476e-9bd2-956fbf4a5824"
+  "walk8group": "feb725c8-0b8b-476e-9bd2-956fbf4a5824",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo17": {
   "cid": "289f8d6f-7d9b-4a01-8444-380ceff4dae1",
