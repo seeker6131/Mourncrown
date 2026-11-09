@@ -40,8 +40,11 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   const cd = (base.attackCooldown ?? 1400) / 1000;
   const want = refHp * cd / (boss ? 28 : 55) * ka;
   const atk = Math.round(want * (100 + refDef * 3) / 100);
-  // MMO pace: a level takes ~(15 + 6L) kills on a map of your level (Lv1 ≈ 20 kills, Lv50 ≈ 300, Lv100 ≈ 600) → Lv100 in ~40 h of farming
-  const exp = Math.max(1, Math.round(expToNext(L) * (boss ? 0.5 : (0.8 + 0.4 * kf) / (15 + 6 * L))));
+  // MMO pace (target: Lv100 in about one month of 24 h auto farming, ~1300 kills/h):
+  // a level takes about 12 + 1.2·L^2.2 kills on a map of your level → Lv10 ≈ 200 kills (10 min), Lv50 ≈ 6 500 (5 h), Lv90 ≈ 24 000 (18 h)
+  const killsPerLevel = 12 + 1.2 * Math.pow(L, 2.2);
+  const one = expToNext(L) * (0.8 + 0.4 * kf) / (1.2 * killsPerLevel);
+  const exp = Math.max(1, Math.round(boss ? one * 60 : one));
   const g = (k: number) => Math.round(k * (boss ? 15 : 1));
   return { hp, atk, def, exp, gold: [g(3 + L * 1.5), g(6 + L * 2.5)] as [number, number] };
 }

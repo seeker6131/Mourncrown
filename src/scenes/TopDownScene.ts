@@ -198,6 +198,9 @@ export class TopDownScene extends Phaser.Scene {
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.placeProps();
+    // return scroll: back to the village from any map
+    const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
+    bus.on('td:recall', recall); this.events.once('shutdown', () => bus.off('td:recall', recall));
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
     if (this.village) { populateVillage(this.village, roadY); this.castShadow(this.hero, true); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;

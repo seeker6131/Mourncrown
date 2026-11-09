@@ -26,7 +26,10 @@ ICONS = {
  'ring0': 'a simple copper ring with a small green stone', 'amulet0': 'a gold amulet with a big red ruby', 'amulet1': 'a silver pendant with a glowing violet crystal',
  'gem0': 'a glowing green forest heart gem', 'potion_hp': 'a small round red health potion bottle', 'potion_hp_l': 'a large red health potion flask with a gold cap',
  'potion_mp': 'a small round blue mana potion bottle', 'gel': 'a blob of green slime gel', 'spore': 'a purple spotted mushroom cap', 'pelt': 'a folded grey wolf pelt',
- 'fang': 'a single sharp goblin fang', 'essence': 'a floating pale blue spirit wisp essence', 'shard': 'a glowing purple mana crystal shard',
+ 'fang': 'a single sharp goblin fang',
+ 'scroll_return': 'a rolled parchment scroll glowing with a blue teleport rune', 'ration': 'a small burlap sack of travel rations with bread and dried meat',
+ 'tonic_atk': 'a small round flask of glowing red-orange strength tonic with a sword emblem', 'tonic_def': 'a small square flask of steel-blue defence tonic with a shield emblem',
+ 'tonic_exp': 'a small star-shaped flask of shimmering golden experience tonic', 'essence': 'a floating pale blue spirit wisp essence', 'shard': 'a glowing purple mana crystal shard',
 }
 def run(k):
     out = os.path.join(RAW, k + '.png')

@@ -128,6 +128,9 @@ const EN: Record<string, string> = {
   'ปราบบอสแผนที่ 40 — ผู้คุมเหมันต์': 'Defeat the map 40 boss — Frost Warden', 'ปราบบอสแผนที่ 50 — มงกุฎกลวง ชำระคำสาป!': 'Defeat the map 50 boss — The Hollow Crown, lift the curse!',
   'ขายทั้งหมด': 'Sell all', 'ขาย 10 ชิ้น': 'Sell 10', 'ขาย 1 ชิ้น': 'Sell 1', 'ราคาขายชิ้นละ': 'Price each', 'ใส่อยู่ — ถอดก่อนจึงจะขายได้': 'Equipped — unequip to sell',
   'ขายอุปกรณ์ที่ไม่ได้ใส่': 'Sell unequipped gear:', 'ยืนยัน! ขาย': 'Confirm! Sell', 'ระดับ:': 'Rarity:',
+  'ม้วนกลับหมู่บ้าน': 'Return Scroll', 'วาร์ปกลับหมู่บ้านทันทีจากทุกแผนที่': 'Teleports you to the village from any map', 'ถุงเสบียง': 'Travel Rations', 'เติมอาหารเข้าคลังหมู่บ้าน +20 (แพงกว่าล่าเอง)': 'Adds 20 food to the village store (dearer than hunting)',
+  'ยาเพิ่มพลัง': 'Strength Tonic', 'ยาเกราะเหล็ก': 'Ironhide Tonic', 'ยาปัญญา': 'Wisdom Tonic', 'นาน 30 นาที': 'for 30 min', 'วาร์ปกลับหมู่บ้าน...': 'Returning to the village...', 'ทำงานแล้ว': 'is active',
+  'อาหารในคลัง': 'Food in store', 'วันนี้': 'today', 'ได้รับอาวุธเริ่มต้น:': 'Starter weapon received:',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

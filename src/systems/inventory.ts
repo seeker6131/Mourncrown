@@ -71,7 +71,7 @@ export function clampVitals(s: GameState) {
   s.mp = Math.min(s.mp, d.maxMp);
 }
 
-export function useItem(s: GameState, uid: number): { heal: number; mana: number } | null {
+export function useItem(s: GameState, uid: number, now = Date.now()): { heal: number; mana: number; food?: number; buff?: string; recall?: boolean } | null {
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return null;
   const d = itemDef(it.id);
@@ -80,8 +80,10 @@ export function useItem(s: GameState, uid: number): { heal: number; mana: number
   const heal = Math.min(d.heal ?? 0, der.maxHp - s.hp);
   const mana = Math.min(d.mana ?? 0, der.maxMp - s.mp);
   s.hp += heal; s.mp += mana;
+  if (d.food) s.res.food += d.food;
+  if (d.buff) s.buff = { stat: d.buff.stat, pct: d.buff.pct, until: now + d.buff.mins * 60000 };
   removeUid(s, uid, 1);
-  return { heal, mana };
+  return { heal, mana, food: d.food, buff: d.buff ? d.name : undefined, recall: d.recall };
 }
 
 export function equippedLook(s: GameState, slot: EquipSlot): number {

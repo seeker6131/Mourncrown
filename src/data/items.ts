@@ -26,6 +26,10 @@ export interface ItemDef {
   /** visual tier for hero sprite (weapon/armor look) */
   look?: number;
   stack?: boolean;
+  /** consumables: timed buff, food added to the village store, or teleport home */
+  buff?: { stat: 'atk' | 'def' | 'exp'; pct: number; mins: number };
+  food?: number;
+  recall?: boolean;
   /** class line this gear is made for (sword / archer / mage / cleric); unset = any class */
   cls?: 'sword' | 'archer' | 'mage' | 'cleric';
 }
@@ -69,6 +73,11 @@ export const ITEMS: Record<string, ItemDef> = {
   // Consumables
   hp_potion: { id: 'hp_potion', name: 'ยาฟื้นพลัง', type: 'consumable', icon: 'potion_hp', desc: 'ฟื้นฟู HP 120', price: 25, rarity: 0, heal: 120, stack: true },
   hp_potion_l: { id: 'hp_potion_l', name: 'ยาฟื้นพลังใหญ่', type: 'consumable', icon: 'potion_hp_l', desc: 'ฟื้นฟู HP 400', price: 90, rarity: 1, heal: 400, stack: true },
+  scroll_return: { id: 'scroll_return', name: 'ม้วนกลับหมู่บ้าน', type: 'consumable', icon: 'scroll_return', desc: 'วาร์ปกลับหมู่บ้านทันทีจากทุกแผนที่', price: 60, rarity: 0, recall: true, stack: true },
+  ration: { id: 'ration', name: 'ถุงเสบียง', type: 'consumable', icon: 'ration', desc: 'เติมอาหารเข้าคลังหมู่บ้าน +20 (แพงกว่าล่าเอง)', price: 90, rarity: 0, food: 20, stack: true },
+  tonic_atk: { id: 'tonic_atk', name: 'ยาเพิ่มพลัง', type: 'consumable', icon: 'tonic_atk', desc: 'ATK +10% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'atk', pct: 10, mins: 30 }, stack: true },
+  tonic_def: { id: 'tonic_def', name: 'ยาเกราะเหล็ก', type: 'consumable', icon: 'tonic_def', desc: 'DEF +15% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'def', pct: 15, mins: 30 }, stack: true },
+  tonic_exp: { id: 'tonic_exp', name: 'ยาปัญญา', type: 'consumable', icon: 'tonic_exp', desc: 'EXP +10% นาน 30 นาที', price: 250, rarity: 1, buff: { stat: 'exp', pct: 10, mins: 30 }, stack: true },
   mp_potion: { id: 'mp_potion', name: 'ยามานา', type: 'consumable', icon: 'potion_mp', desc: 'ฟื้นฟู MP 60', price: 30, rarity: 0, mana: 60, stack: true },
   // Materials
   slime_gel: { id: 'slime_gel', name: 'เจลสไลม์', type: 'material', icon: 'gel', desc: 'เจลเหนียวหนืด ขายได้', price: 8, rarity: 0, stack: true },
@@ -86,7 +95,10 @@ export function itemDef(id: string): ItemDef {
   return d;
 }
 
-export const SHOP_STOCK = ['hp_potion', 'hp_potion_l', 'mp_potion', 'mana_shard', 'iron_sword', 'short_bow', 'hunter_bow', 'apprentice_wand', 'oak_staff', 'iron_mace', 'war_hammer', 'knight_blade', 'leather_armor', 'chain_mail', 'copper_ring', 'ruby_amulet', 'sage_pendant'];
+/** the NPC shop sells supplies, not gear (gear comes from drops, the forge and the player market) */
+export const SHOP_STOCK = ['hp_potion', 'hp_potion_l', 'mp_potion', 'scroll_return', 'ration', 'tonic_atk', 'tonic_def', 'tonic_exp', 'mana_shard'];
+/** mana crystals the shop sells per day */
+export const SHOP_SHARD_DAILY = 5;
 
 export const MAX_UPGRADE = 10;
 /** Success chance for upgrading from +n to +n+1 */

@@ -18,7 +18,7 @@ import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
-import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
+import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
 import { sellUid, sellJunk, clampVitals, reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
@@ -55,6 +55,12 @@ export class Panels {
   constructor(private ui: UIScene) {}
 
   get isOpen() { return this.cur !== null; }
+  /** item icon fitted inside a slot of `box` px (keeps a margin so it sits inside the frame) */
+  ico(x: number, y: number, key: string, box: number) {
+    const im = this.ui.add.image(x, y, key);
+    const f = (box * 0.66) / Math.max(im.width, im.height); im.setScale(f);
+    return im;
+  }
   get k() { return this.ui.kit; }
 
   open(id: PanelId) {
@@ -154,7 +160,7 @@ export class Panels {
       k.iconSlot(g, sx, sy, 28, it ? RARITY_COLORS[rarOf(it)] : undefined, it?.uid === this.selUid && !!it);
       c.add(k.text(sx + 14, sy + 30, label, 6.5, '#b8a078').setOrigin(0.5, 0));
       if (it) {
-        c.add(ui.add.image(sx + 14, sy + 14, `icon_${itemDef(it.id).icon}`).setScale(0.7));
+        c.add(this.ico(sx + 14, sy + 14, `icon_${itemDef(it.id).icon}`, 28));
         if (it.upg) c.add(k.text(sx + 27, sy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
         const z = ui.add.zone(sx, sy, 28, 28).setOrigin(0).setInteractive();
         z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
@@ -175,7 +181,7 @@ export class Panels {
       const def = it ? itemDef(it.id) : null;
       k.iconSlot(g, cx, cy, cs, it ? RARITY_COLORS[rarOf(it)] : undefined, !!it && it.uid === this.selUid);
       if (it && def) {
-        c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.75));
+        c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs));
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
         if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
         if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
@@ -199,7 +205,7 @@ export class Panels {
     const rr = rarOf(it), rcol = '#' + RARITY_COLORS[rr].toString(16).padStart(6, '0');
     k.iconSlot(g, x + 6, y + 6, 30, RARITY_COLORS[rr]);
     if (rr >= 2) g.fillStyle(RARITY_COLORS[rr], 0.18).fillRoundedRect(x + 7, y + 7, 28, 28, 3);
-    c.add(ui.add.image(x + 21, y + 21, `icon_${def.icon}`).setScale(0.8));
+    c.add(this.ico(x + 21, y + 21, `icon_${def.icon}`, 30));
     c.add(k.text(x + 42, y + 6, def.name + (it.upg ? ` +${it.upg}` : ''), 9.5, rcol, { wordWrap: { width: w - 46 } }));
     const CLS_TH: Record<string, string> = { sword: '⚔ สายดาบ', archer: '🏹 สายธนู', mage: '✦ สายเวท', cleric: '✚ สายนักบวช' };
     const offCls = !!def.cls && !!s.cls && s.cls !== 'novice' && def.cls !== s.cls;
@@ -226,7 +232,12 @@ export class Panels {
       by -= 26;
     };
     if (mode === 'bag') {
-      if (def.type === 'consumable') btn('ใช้', () => { const r = useItem(s, it.uid); if (r) { sfx.potion(); bus.emit(EV.TOAST, `ฟื้นฟู ${r.heal ? 'HP +' + r.heal : 'MP +' + r.mana}`, '#9fffb0'); } this.selUid = null; bus.emit(EV.STATE_CHANGED); }, 0x1f4a2a);
+      if (def.type === 'consumable') btn('ใช้', () => {
+        const r = useItem(s, it.uid); if (!r) return; sfx.potion();
+        bus.emit(EV.TOAST, r.recall ? 'วาร์ปกลับหมู่บ้าน...' : r.buff ? `${r.buff} ทำงานแล้ว` : r.food ? `อาหารในคลัง +${r.food}` : `ฟื้นฟู ${r.heal ? 'HP +' + r.heal : 'MP +' + r.mana}`, '#9fffb0');
+        if (!s.inventory.find(i => i.uid === it.uid)) this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED);
+        if (r.recall) { this.close(); bus.emit('td:recall'); } else this.rebuild();
+      }, 0x1f4a2a);
       if (def.type === 'weapon' || def.type === 'armor' || def.type === 'accessory') {
         if (isEquipped(s, it.uid)) btn('ถอดออก', () => { unequipUid(s, it.uid); bus.emit(EV.STATE_CHANGED); });
         else {
@@ -439,7 +450,10 @@ export class Panels {
     const { x, y, g } = this.window(c, W, H, s.tier === 0 ? 'เลือกสายอาชีพ — ร่างที่ 2' : `เปลี่ยนร่างที่ ${(nf ?? s.tier) + 1}`);
     const top = y + 32;
     const doIt = (cls?: ClassId) => {
+      const wasVillager = (s.tier ?? 0) === 0;
       if (advanceClass(s, cls)) {
+        // a starter weapon for the new class line (the NPC shop no longer sells gear)
+        if (wasVillager) { const w = ({ sword: 'iron_sword', archer: 'short_bow', mage: 'apprentice_wand', cleric: 'iron_mace' } as Record<string, string>)[s.cls]; if (w && addItem(s, w, 1)) { const it = s.inventory[s.inventory.length - 1]; equip(s, it.uid); bus.emit(EV.TOAST, `ได้รับอาวุธเริ่มต้น: ${itemDef(w).name}`, '#9fffb0'); } }
         sfx.levelUp();
         const nm = formName(s.cls, s.tier);
         bus.emit(EV.TOAST, `กลายเป็น ${nm}!`, '#ffd84a');
@@ -740,14 +754,19 @@ export class Panels {
         const cx = x + 14 + (i % cols) * (cw + 6), cy = top + Math.floor(i / cols) * (ch + 4);
         g.fillStyle(0x2a1d12, 0.85).fillRoundedRect(cx, cy, cw, ch, 3);
         g.lineStyle(1, RARITY_COLORS[def.rarity], 0.6).strokeRoundedRect(cx, cy, cw, ch, 3);
-        c.add(ui.add.image(cx + 20, cy + ch / 2, `icon_${def.icon}`).setScale(0.8));
+        c.add(this.ico(cx + 20, cy + ch / 2, `icon_${def.icon}`, 30));
         c.add(k.text(cx + 38, cy + 4, def.name, 9, '#' + RARITY_COLORS[def.rarity].toString(16).padStart(6, '0')));
         c.add(k.text(cx + 38, cy + 20, statLines(def).join('  ') || def.desc, 7, '#c8b898', { wordWrap: { width: cw - 110 } }));
-        const can = s.gold >= def.price;
+        const sd = (s as unknown as { shopDay?: { d: string; shards: number } }), today = new Date().toDateString();
+        if (sd.shopDay?.d !== today) sd.shopDay = { d: today, shards: 0 };
+        const capped = id === 'mana_shard' && sd.shopDay.shards >= SHOP_SHARD_DAILY;
+        const can = s.gold >= def.price && !capped;
+        if (id === 'mana_shard') c.add(k.text(cx + cw - 70, cy + ch - 9, `วันนี้ ${sd.shopDay.shards}/${SHOP_SHARD_DAILY}`, 6.5, capped ? '#ff8a6a' : '#c8b898').setOrigin(1, 0.5));
         c.add(k.button(cx + cw - 66, cy + 9, 60, 22, `${def.price} G`, () => {
           if (s.gold < def.price) { sfx.error(); bus.emit(EV.TOAST, 'ทองไม่พอ', '#ff8a8a'); return; }
           if (!addItem(s, id, 1)) { sfx.error(); bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a8a'); return; }
-          s.gold -= def.price; sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${def.name}`, '#9fffb0'); bus.emit(EV.STATE_CHANGED);
+          if (capped) return;
+          s.gold -= def.price; if (id === 'mana_shard') sd.shopDay!.shards++; sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${def.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
         }, { size: 9, disabled: !can, color: 0x5a3a10 }));
       });
     } else {
@@ -757,7 +776,7 @@ export class Panels {
         const def = itemDef(it.id);
         const cx = x + 14 + (i % cols) * (cs + 3), cy = top + Math.floor(i / cols) * (cs + 3);
         k.iconSlot(g, cx, cy, cs, RARITY_COLORS[def.rarity], it.uid === this.selUid);
-        c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.75));
+        c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs));
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
         if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
         const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
@@ -791,7 +810,7 @@ export class Panels {
       const def = itemDef(it.id);
       const cx = x + 14 + (i % cols) * (cs + 4), cy = top + Math.floor(i / cols) * (cs + 4);
       k.iconSlot(g, cx, cy, cs, RARITY_COLORS[def.rarity], it.uid === this.selUid);
-      c.add(ui.add.image(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`).setScale(0.8));
+      c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs));
       if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7.5, '#9fffb0').setOrigin(1, 0));
       if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
       const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
