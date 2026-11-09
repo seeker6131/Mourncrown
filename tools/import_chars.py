@@ -2,6 +2,7 @@
 Sources: art-source/pixellab/chars/<key>.zip (API) and older hand-downloaded zips mapped in OLD.
 Sheets: idle = 1 row x 8 dirs (or 4); anim = rows = directions (DIRS order, missing dirs skipped), cols = frames."""
 import os, io, re, json, zipfile
+import numpy as np
 from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'assets', 'td'); PL = os.path.join(ROOT, 'art-source', 'pixellab')
@@ -38,10 +39,30 @@ def build(key, zips, man):
         rot.update(r); anims.update(a)
     dirs = [d for d in DIRS if d in rot]
     w = rot[dirs[0]].width
+    # some PixelLab idle poses are bigger than their canvas (wings cut off): use the first frame of the attack (drawn on a
+    # bigger canvas, same pose family) or of the walk for that direction instead; the idle canvas grows to fit
+    clipped = lambda im: (lambda al: al[:, 0].max() > 0 or al[:, -1].max() > 0 or al[0].max() > 0)(np.asarray(im)[..., 3])
+    for d in dirs:
+        if not clipped(rot[d]): continue
+        for a in ('attack', 'walk'):
+            f0 = anims.get(a, {}).get(d, [None])[0]
+            if f0 is not None and not clipped(f0): rot[d] = f0; break
+    w = max(rot[d].width for d in dirs)
+    for d in dirs:
+        if rot[d].width != w: pad = Image.new('RGBA', (w, w)); pad.paste(rot[d], ((w - rot[d].width) // 2, w - rot[d].height)); rot[d] = pad
     sh = Image.new('RGBA', (w * len(dirs), w))
     for i, d in enumerate(dirs): sh.paste(rot[d], (i * w, 0))
     sh.save(os.path.join(OUT, f'{key}_idle.webp'), lossless=True)
     info = {'dirs': dirs, 'idleFs': w, 'idleFoot': foot([rot[d] for d in dirs]), 'anims': {}}
+    # animation frames cut by the canvas edge: use the mirrored opposite side (east<->west ...) when that one is clean,
+    # otherwise drop the direction so the game plays the neighbouring one
+    MIRROR = {'east': 'west', 'west': 'east', 'north-east': 'north-west', 'north-west': 'north-east', 'south-east': 'south-west', 'south-west': 'south-east'}
+    for a, dd in anims.items():
+        for d in list(dd):
+            if not any(clipped(im) for im in dd[d]): continue
+            m = MIRROR.get(d)
+            if m and m in dd and not any(clipped(im) for im in dd[m]): dd[d] = [im.transpose(Image.FLIP_LEFT_RIGHT) for im in dd[m]]
+            elif len(dd) > 1: del dd[d]
     for a, dd in anims.items():
         ad = [d for d in dirs if d in dd]
         if not ad: continue

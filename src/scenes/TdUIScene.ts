@@ -142,12 +142,16 @@ export class TdUIScene extends Phaser.Scene {
     this.hpText = k.text(128, 9.5, '', 7, '#ffffff').setOrigin(0.5, 0);
     this.expText = k.text(128, 29, '', 6, '#e0d0ff').setOrigin(0.5, 0);
     this.mpText = k.text(128, 20.5, '', 6, '#d8ecff').setOrigin(0.5, 0);
-    this.stageText = k.text(this.VW / 2, 8, '', 10, '#ffe7a0').setOrigin(0.5, 0);
+    const topL = 216, topR = this.VW - 224, midR = this.VW - 152;
+    this.stageText = k.text((topL + topR) / 2, 8, '', topR - topL < 300 ? 8 : 10, '#ffe7a0', { wordWrap: { width: Math.max(120, topR - topL - 6) }, align: 'center' }).setOrigin(0.5, 0);
+    this.bandX = (topL + midR) / 2; this.bandW = Math.max(150, midR - topL - 52);
     // tutorial banner under the title
-    this.tutG = this.add.graphics(); this.tutTx = k.text(this.VW / 2, 30, '', 9, '#fff4c8', { wordWrap: { width: 360 }, align: 'center' }).setOrigin(0.5, 0);
+    this.tutG = this.add.graphics(); this.tutTx = k.text(this.bandX, 60, '', 8.5, '#fff4c8', { wordWrap: { width: Math.min(360, this.bandW - 16) }, align: 'center' }).setOrigin(0.5, 0);
     this.tutSkip = k.button(this.VW / 2 + 190, 28, 40, 16, 'ข้าม', () => { const st = S() as ReturnType<typeof S> & { tut?: number }; st.tut = 99; if (!('refused' in act('tutorialDone', {}))) this.toast('🎓 ข้ามการสอน — ได้รับของเริ่มต้นแล้ว', '#ffd84a'); saveGame(st); this.refresh(); }, { size: 7.5, color: 0x3a2a1a });
     this.root.add([this.tutG, this.tutTx, this.tutSkip]);
     this.root.add([this.hud, this.portrait, ring, this.lvText, this.hpText, this.expText, this.mpText, this.stageText]);
+    // tap the portrait for the profile
+    { const pz = this.add.zone(6, 6, 46, 48).setOrigin(0).setInteractive({ useHandCursor: true }); pz.on('pointerup', () => this.panels.open('profile')); this.root.add(pz); }
     this.resTexts = (['res0', 'res1', 'res2', 'res3'] as const).map((ic, i) => {
       const x = 56 + i * 38, im = this.add.image(x, 44, 'ui_' + ic); im.setScale(11 / im.height);
       const t = k.text(x + 7, 44, '0', 7.5, '#ffe7a0').setOrigin(0, 0.5);
@@ -201,7 +205,7 @@ export class TdUIScene extends Phaser.Scene {
     const onLoot = (p: { id: string; rar: number; set?: string }) => this.loot?.push(p);
     bus.on('loot:popup', onLoot); this.events.once('shutdown', () => bus.off('loot:popup', onLoot));
     this.minimap = new Minimap(this as never, () => (this.td as unknown as { mapInfo(): MapInfo | null }).mapInfo());
-    this.formBtn = k.button(this.VW - 350, 46, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
+    this.formBtn = k.button(this.bandX - 97, 58, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
     this.formBtn.setVisible(false);
     this.root.add(this.formBtn);
     this.tweens.add({ targets: this.formBtn, alpha: 0.6, duration: 600, yoyo: true, repeat: -1 });
@@ -246,12 +250,14 @@ export class TdUIScene extends Phaser.Scene {
     return this.panels.isOpen || this.input.hitTestPointer(p).length > 0;
   }
 
+  bandX = 0; bandW = 300;
   tutG!: Phaser.GameObjects.Graphics; tutTx!: Phaser.GameObjects.Text; tutSkip!: Phaser.GameObjects.Container;
   refresh() {
     if (!this.hud) return;
     const s = S(), d = derive(s), k = this.kit, g = this.hud;
     { const t = (this.td as unknown as { tutText(): string }).tutText?.() ?? ''; this.tutTx.setText(t); this.tutG.clear(); this.tutSkip.setVisible(!!t);
-      if (t) { const w = Math.min(380, this.tutTx.width + 24), h = this.tutTx.height + 8; this.tutG.fillStyle(0x1a1208, 0.85).fillRoundedRect(this.VW / 2 - w / 2, 27, w, h, 5).lineStyle(1, 0xffd84a, 0.9).strokeRoundedRect(this.VW / 2 - w / 2, 27, w, h, 5); this.tutSkip.setPosition(this.VW / 2 + w / 2 + 4, 27); } }
+      if (t) { const w = Math.min(this.bandW, this.tutTx.width + 24), h = this.tutTx.height + 8, bx = this.bandX; this.tutG.fillStyle(0x1a1208, 0.85).fillRoundedRect(bx - w / 2, 57, w, h, 5).lineStyle(1, 0xffd84a, 0.9).strokeRoundedRect(bx - w / 2, 57, w, h, 5); this.tutSkip.setPosition(bx + w / 2 + 4, 57); }
+      this.formBtn?.setPosition(this.bandX - 97, t ? 62 + this.tutTx.height + 10 : 58); }
     g.clear();
     g.fillStyle(0x140d08, 1).fillCircle(28, 30, 17);
     const need = expToNext(s.level);

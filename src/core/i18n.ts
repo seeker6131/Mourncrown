@@ -8,6 +8,8 @@ export const lang = () => cur;
 export function setLang(l: Lang) { cur = l; try { localStorage.setItem('lang', l); } catch { /* ignore */ } }
 
 const EN: Record<string, string> = {
+  // profile
+  '👤 โปรไฟล์': '👤 Profile', '📊 ค่าพลัง': '📊 Stats', '📜 บันทึกการผจญภัย': '📜 Adventure log', 'ร่างที่': 'Form', 'ชาวบ้าน (ยังไม่เลือกสาย)': 'Villager (no class yet)', '⚔ สายดาบ': '⚔ Sword line', '🏹 สายธนู': '🏹 Bow line', '✦ สายเวท': '✦ Magic line', '✚ สายนักบวช': '✚ Cleric line', 'ยังไม่ใช่ VIP': 'Not VIP', '👑 VIP เหลือ': '👑 VIP left', '🏆 เปลี่ยนฉายา': '🏆 Change title', '◆ โบนัสเซ็ต:': '◆ Set bonus:', '◆ ยังไม่มีโบนัสเซ็ต': '◆ No set bonus yet', 'ปราบมอน': 'Monsters defeated', 'มอนทอง': 'Golden monsters', 'ผ่านดันเจี้ยน': 'Dungeons cleared', 'ล่าสัตว์': 'Animals hunted', 'ขุดแร่': 'Ore mined', 'แร่หายาก': 'Rare gems', 'ปรุงยา': 'Elixirs brewed', 'แผนที่ไกลสุด': 'Farthest map', 'ความสำเร็จ': 'Achievements', 'สมุดมอน': 'Monster codex', 'ล็อกอิน': 'Logins',
   // auto monsters only
   'ออโต้เปิดแล้ว — ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน (ป่าดงดิบต้องเก็บเอง)': 'Auto on — works on monster maps and the dungeon only (gather by hand in the Deepwild)', 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง': 'Auto works on monster maps and the dungeon only — gather by hand in the Deepwild',
   // economy

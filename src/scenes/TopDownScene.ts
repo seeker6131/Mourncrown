@@ -57,6 +57,14 @@ const PLOTS: { x: number; y: number }[] = [
   { x: 440, y: 880 }, { x: 790, y: 880 }, { x: 1000, y: 800 },
   { x: 1150, y: 935 },
 ];
+/** NPC houses that are always there (not plots) */
+const HOUSES: [string, number, number][] = [['townhall_1', 345, 322], ['house_1', 846, 300], ['house_0', 1090, 330], ['house_2', 1180, 760]];
+/** organic stone yard under / in front of every building (jagged edge from noise) */
+function yardAt(x: number, y: number) {
+  const n = fbm(x / 38, y / 38) - 0.5;
+  for (const P of [...PLOTS, ...HOUSES.map(([, hx, hy]) => ({ x: hx, y: hy }))]) { const d = Math.hypot((x - P.x) / 104, (y - P.y - 8) / 50); if (d + n * 0.9 < 1) return true; }
+  return false;
+}
 const PLOT_OF: Record<string, number> = { forge: 0, barn: 1, lumber: 2, tavern: 3, kitchen: 4, market: 5, warehouse: 6, quarry: 7, tower: 8 };
 export const HOME_PLOT = 9;
 /** building art level: 3 art stages over 5 building levels */
@@ -95,13 +103,17 @@ const pick = (p: RGB[], r: number) => p[Math.min(p.length - 1, Math.floor(r * p.
 const riverX = (y: number) => 930 + Math.sin(y / 130) * 46 + Math.sin(y / 47) * 10;
 const roadY = (x: number) => 420 + Math.sin(x / 160) * 18;
 const PLAZA = { x: 520, y: 410, r: 92 };
-const POND = { x: 200, y: 840, r: 56 };
+const POND = { x: 200, y: 845, r: 70 };
 const BRIDGE = { y0: roadY(930) - 20, y1: roadY(930) + 20 };
+/** south road: forge -> second bridge -> the east district */
+const road2Y = (x: number) => 712 + Math.sin(x / 90) * 10;
+const BRIDGE2 = { y0: road2Y(930) - 20, y1: road2Y(930) + 20 };
+const onBridge = (y: number) => (y > BRIDGE.y0 && y < BRIDGE.y1) || (y > BRIDGE2.y0 && y < BRIDGE2.y1);
 function surface(x: number, y: number) {
   const n = (fbm(x / 22, y / 22) - 0.5) * 10;
   const dr = Math.abs(x - riverX(y));
-  if (dr < 26 + n * 0.6) return y > BRIDGE.y0 && y < BRIDGE.y1 && dr < 40 ? 'bridge' : 'water';
-  if (dr < 31 + n) return y > BRIDGE.y0 && y < BRIDGE.y1 ? 'bridge' : 'mud';
+  if (dr < 26 + n * 0.6) return onBridge(y) && dr < 40 ? 'bridge' : 'water';
+  if (dr < 31 + n) return onBridge(y) ? 'bridge' : 'mud';
   const dp = Math.hypot(x - POND.x, (y - POND.y) * 1.3);
   if (dp < POND.r + n) return 'water';
   if (dp < POND.r + 5 + n) return 'mud';
@@ -230,7 +242,8 @@ export class TopDownScene extends Phaser.Scene {
     const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
     bus.on('td:recall', recall); this.events.once('shutdown', () => bus.off('td:recall', recall));
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
-    if (this.village) { populateVillage(this.village, roadY); this.castShadow(this.hero, true); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
+    this.castShadow(this.hero, true);
+    if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;
     if (this.wild) { const r = act('wildRooms', { pick: this.roomPick }); if (r.refused) bus.emit(EV.TOAST, 'ห้องเต็ม — ย้ายไปห้องที่ว่าง', '#ff8a6a'); this.room = r.room; this.online = r.rooms[r.room - 1].count; this.onlineT = this.time.now + 30000; }
     if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
@@ -239,7 +252,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.stageN) { this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲'); this.addPortal(70, roadY(70), WILD, '◀ ป่าดงดิบ'); }
 
     const cam = this.cameras.main;
-    cam.postFX?.clear(); this.dayFx = !this.stageN && this.renderer.type === Phaser.WEBGL ? cam.postFX.addColorMatrix() : null;
+    cam.postFX?.clear(); this.dayFx = null;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
     const zoom = () => cam.setZoom(Math.max(1.5, Math.round(this.scale.height / 480 * 2) / 2));
     zoom(); this.scale.on('resize', zoom);
@@ -292,9 +305,17 @@ export class TopDownScene extends Phaser.Scene {
         else if (clr && (clr.boss || g0 === 'dung')) t = 'c';
         V[j * VW + i] = t; continue;
       }
-      if (Math.abs(x - riverX(y)) < 30 || Math.hypot(x - POND.x, (y - POND.y) * 1.3) < POND.r) t = 'w';
-      else if (Math.hypot(x - PLAZA.x, (y - PLAZA.y) * 1.1) < PLAZA.r) t = 'c';
-      else if (Math.abs(y - roadY(x)) < 22 || (Math.abs(x - PLAZA.x) < 22 && y < PLAZA.y) || (Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < 22 && y > PLAZA.y)) t = 'd';
+      // organic layout: wobbly water edges with a rocky shore, stone yards under buildings, roads of uneven width,
+      // grass islands left inside the larger stone areas
+      const wob = fbm(x / 46, y / 46) - 0.5, isl = fbm(x / 24 + 9, y / 24 + 4);
+      const rd = Math.abs(x - riverX(y)), pd = Math.hypot(x - POND.x, (y - POND.y) * 1.3);
+      const roadW = 22 + wob * 26;
+      const onRoad = Math.abs(y - roadY(x)) < roadW || (x > 730 && x < 1130 && Math.abs(y - road2Y(x)) < roadW * 0.8) || (Math.abs(x - PLAZA.x) < roadW && y < PLAZA.y) || (Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < roadW && y > PLAZA.y);
+      const roadCore = Math.abs(y - roadY(x)) < 12 || (Math.abs(x - PLAZA.x) < 12 && y < PLAZA.y) || (Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < 12 && y > PLAZA.y);
+      if (rd < 30 + wob * 14 || pd < POND.r + wob * 22) t = 'w';
+      else if (Math.hypot(x - PLAZA.x, (y - PLAZA.y) * 1.1) < PLAZA.r + 18 + wob * 60) t = isl > 0.72 && !roadCore ? 'g' : 'c';
+      else if (yardAt(x, y)) t = isl > 0.74 && !roadCore ? 'g' : 'c';
+      else if (onRoad) t = 'd';
       V[j * VW + i] = t;
     }
     // roads touching the plaza become paved; roads never touch water (the bridge spans the gap)
@@ -356,7 +377,7 @@ export class TopDownScene extends Phaser.Scene {
     // per-pixel surface from the same vertices (bilinear, threshold 0.5)
     const S: string[] = new Array(MW * MH);
     this.surf = S;
-    const BR = this.stageN ? { x0: -99, x1: -99, y0: -99, y1: -99 } : { x0: riverX(roadY(930)) - 46, x1: riverX(roadY(930)) + 46, y0: roadY(930) - 15, y1: roadY(930) + 15 };
+    const BRS = this.stageN ? [] : [roadY(930), road2Y(930)].map(cy => ({ x0: riverX(cy) - 46, x1: riverX(cy) + 46, y0: cy - 15, y1: cy + 15 }));
     for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
       const cx = Math.min(NX - 1, Math.floor(x / T)), cy = Math.min(NY - 1, Math.floor(y / T));
       const fx = (x - cx * T + 0.5) / T, fy = (y - cy * T + 0.5) / T;
@@ -364,7 +385,7 @@ export class TopDownScene extends Phaser.Scene {
       const wt = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
       const sum = (f: (t: Ter) => boolean) => c.reduce((a, t, i) => a + (f(t) ? wt[i] : 0), 0);
       let v = 'grass';
-      if (x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1) v = 'bridge';
+      if (BRS.some(BR => x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1)) v = 'bridge';
       else if (sum(t => t === 'w') > 0.5) v = 'water';
       else if (sum(t => t === 'c' || t === 'd') > 0.5) v = 'cobble';
       if (LS && (land === 'haunt' || land === 'snow') && v === 'water') v = 'grass';
@@ -372,12 +393,14 @@ export class TopDownScene extends Phaser.Scene {
       if (v === 'water') this.block(x, y);
     }
     // wooden bridge over the river (drawn planks, walkable)
+    for (const BR of BRS) {
     for (let y = BR.y0; y <= BR.y1; y++) for (let x = Math.round(BR.x0); x <= BR.x1; x++) {
       const rail = y < BR.y0 + 3 || y > BR.y1 - 3, gap = (x - Math.round(BR.x0)) % 6 === 0;
       const col = rail ? [62, 44, 30] : gap ? [44, 31, 22] : pick(PAL.plank, hash(Math.floor((x - BR.x0) / 6), 7) * 0.6 + hash(x, y) * 0.4);
       ctx.fillStyle = `rgb(${col[0] * 0.8},${col[1] * 0.8},${col[2] * 0.8})`; ctx.fillRect(x, y, 1, 1);
     }
     ctx.fillStyle = 'rgba(8,14,12,0.45)'; ctx.fillRect(Math.round(BR.x0), BR.y1 + 1, Math.round(BR.x1 - BR.x0), 3);
+    }
     if (this.textures.exists('td_ground')) this.textures.remove('td_ground');
     this.textures.addCanvas('td_ground', cv);
     this.add.image(0, 0, 'td_ground').setOrigin(0).setDepth(0);
@@ -696,44 +719,30 @@ export class TopDownScene extends Phaser.Scene {
   }
   casts: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; live: boolean }[] = [];
   /** dark silhouette of the object laid on the ground, pointing away from the sun (updated by updateDayNight) */
+  /** dark silhouette of the object laid on the ground to the south (fixed light, see placeShadow) */
   castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live = false) {
     const sh = this.add.image(src.x, src.y, src.texture.key, src.frame.name).setOrigin(src.originX, src.originY).setTintFill(0x050a08).setAlpha(0).setDepth(1.3);
     this.casts.push({ src, sh, live });
     return sh;
   }
+
   clock() { const h = this.dayHour(), hh = Math.floor(h), mm = Math.floor((h - hh) * 60); return `${h >= 6 && h < 18 ? '☀' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; }
   /** hour of the village day (0-24): one full day lasts 20 real minutes */
   dayHour() { return ((Date.now() / 1200000) % 1) * 24; }
   dayFx: Phaser.FX.ColorMatrix | null = null;
-  dayT = 0; light = 0; sunAng = 0; sunLen = 1; shAlpha = 0;
+  dayT = -1e9; light = 0; sunAng = Math.PI / 2; sunLen = 0.95; shAlpha = 0.58;
+  /** director: no day / night — the original moody tone, one fixed light so every shadow falls to the south (down the screen) */
   updateDayNight(time: number) {
-    if (this.stageN) return;
-    const h = this.dayHour();
-    if (time - this.dayT > 400) {
-      this.dayT = time;
-      const day = h >= 6 && h < 18, t = day ? (h - 6) / 12 : (((h - 18) + 24) % 24) / 12;   // 0..1 across the sky
-      const elev = Math.sin(t * Math.PI);                                                      // 0 at the horizon, 1 overhead
-      this.sunAng = Math.PI + t * Math.PI;                    // shadows point west at sunrise, north at noon, east at sunset
-      this.sunLen = 0.35 + (1 - elev) * 1.1;
-      const edge = Math.min(1, Math.min(t, 1 - t) * 8);       // fade the shadows in/out at sunrise/sunset and moonrise/moonset
-      this.shAlpha = (day ? 0.6 : 0.32) * edge;
-      // light: 0 = night (the original moody tone), 1 = full day
-      this.light = Phaser.Math.Clamp(day ? Math.min(1, elev * 2.2) : 0, 0, 1);
-      if (this.dayFx) {
-        this.dayFx.reset();
-        if (this.light > 0) { this.dayFx.brightness(1 + 0.32 * this.light, true); this.dayFx.saturate(0.18 * this.light, true); }
-      }
-      for (const c of this.casts) if (!c.live) this.placeShadow(c);
-      for (const l of this.lamps) l.setData('base', 1 - this.light).setVisible(this.light < 0.85);
-    }
+    if (time - this.dayT > 400) { this.dayT = time; for (const c of this.casts) if (!c.live) this.placeShadow(c); }
     for (const c of this.casts) if (c.live) this.placeShadow(c);
   }
   placeShadow(c: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image }) {
     const { src, sh } = c;
     if (!src.active) { sh.setVisible(false); return; }
     if (sh.texture.key !== src.texture.key || sh.frame.name !== src.frame.name) sh.setTexture(src.texture.key, src.frame.name);
-    sh.setPosition(src.x, src.y).setOrigin(src.originX, src.originY).setFlipX(src.flipX)
-      .setRotation(this.sunAng + Math.PI / 2).setScale(src.scaleX, src.scaleY * this.sunLen * 0.62)
+    // a short shadow lying flat to the south that starts a little UNDER the base, so it is glued to the object (no gap)
+    sh.setPosition(src.x, src.y - 4 * src.scaleY).setOrigin(src.originX, src.originY).setFlipX(!src.flipX)
+      .setRotation(this.sunAng + Math.PI / 2).setScale(src.scaleX, src.scaleY * this.sunLen * 0.4)
       .setAlpha(this.shAlpha * src.alpha).setVisible(src.visible && this.shAlpha > 0.01);
   }
 
@@ -747,7 +756,7 @@ export class TopDownScene extends Phaser.Scene {
       // soft contact shadow as wide as the object, and (village) a cast shadow that follows the sun / moon
       const ow = (m.x1 - m.x0) * sc;
       this.contact(x, y - 1, Math.max(10, ow * 0.95), Math.max(6, Math.min(ow * 0.32, (fd + 6) * 1.6)), 0.45);
-      if (!this.stageN && (m.foot - m.top) * sc > 24) this.castShadow(im);
+      if ((m.foot - m.top) * sc > 24) this.castShadow(im);
     }
     for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
     if (m.chim) this.smoke(Math.round(x) - m.w / 2 * sc + m.chim[0] * sc, Math.round(y) - m.foot * sc + m.chim[1] * sc);
@@ -777,10 +786,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.wild) { this.placeWild(rnd, pick, free); return; }
     if (this.stageN) { this.placeStage(rnd, pick, free); return; }
     // village buildings (level art from PixelLab Objects)
-    const B: [string, number, number][] = [
-      ['townhall_1', 345, 322], ['house_1', 846, 300], ['house_0', 1090, 330], ['house_2', 1180, 760],
-    ];
-    for (const [n, x, y] of B) {
+    for (const [n, x, y] of HOUSES) {
       const m = OM[n]; this.obj(n, x, y, 0.82, Math.round((m.foot - m.top) * 0.42));
       // keep the trees away from the building
       for (let j = -(m.foot - m.top) - 60; j <= 40; j += 4) for (let i = -(m.x1 - m.x0) * 0.75; i <= (m.x1 - m.x0) * 0.75; i += 4) if (!this.isBlocked(x + i, y + j)) this.reserved.add(Math.round((x + i) / 4) + ',' + Math.round((y + j) / 4));
@@ -789,8 +795,45 @@ export class TopDownScene extends Phaser.Scene {
     const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
     // market stalls and village clutter around the plaza
     for (const [x, y] of [[600, 520], [652, 500], [436, 522]]) this.obj(pick('stall', 5), x, y, 0.8, 10);
-    for (const [k, x, y] of [['well_0', 590, 318], ['barrel_0', 812, 660], ['barrel_1', 822, 668], ['crate_0', 628, 664], ['logs_0', 252, 350], 
-      ['hay_0', 400, 668], ['hay_1', 410, 676], ['sign_0', 880, 456], ['stump_0', 232, 392]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
+    for (const [k, x, y] of [['well_0', 590, 318], ['sign_0', 880, 456]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
+    // each building gets its own working clutter at its sides (the front door stays clear)
+    const DRESS: Record<string, [string, number, number][]> = {
+      forge: [['ore_1', -86, -4], ['rock_2', -96, 10], ['barrel_2', 84, -2], ['crate_1', 96, 12], ['logs_1', 74, 22]],
+      barn: [['hay_0', 84, -6], ['hay_1', 96, 8], ['hay_2', 78, 20], ['cart_0', -92, 6]],
+      lumber: [['logs_2', 86, -2], ['logs_3', 98, 14], ['logs_4', 80, 26], ['stump_1', -84, 4], ['stump_2', -98, 18]],
+      tavern: [['barrel_0', -86, -2], ['barrel_1', -96, 10], ['crate_2', 88, 6], ['sign_1', -54, 30]],
+      kitchen: [['barrel_3', -84, 0], ['crate_3', -96, 14], ['well_1', 90, 10]],
+      market: [['crate_0', -84, 2], ['barrel_1', -96, 14], ['cart_1', 92, 8]],
+      warehouse: [['crate_0', -84, -4], ['crate_1', -96, 8], ['crate_2', -84, 18], ['barrel_2', 88, 4], ['barrel_3', 98, 16]],
+      quarry: [['rock_0', -86, 0], ['rock_3', -98, 14], ['ore_2', 86, 2], ['ore_4', 98, 16]],
+      tower: [['sign_2', -70, 26], ['crate_3', 86, 8]],
+      house: [['barrel_0', -70, 6], ['crate_1', 72, 10]],
+    };
+    const typeOf = Object.fromEntries(Object.entries(PLOT_OF).map(([k, v]) => [v, k])) as Record<number, string>;
+    PLOTS.forEach((P, i) => { for (const [k, dx, dy] of DRESS[typeOf[i]] ?? []) if (OM[k] && !this.isBlocked(P.x + dx, P.y + dy)) this.obj(k, P.x + dx, P.y + dy, 0.5, 3, true, 0.9); });
+    for (const [n, x, y] of HOUSES) if (n.startsWith('house')) for (const [k, dx, dy] of DRESS.house) if (OM[k] && !this.isBlocked(x + dx, y + dy)) this.obj(k, x + dx, y + dy, 0.5, 3, true, 0.9);
+    // rocky, reedy banks along the river and around the pond
+    for (let y = 20; y < MH - 10; y += 14) for (const side of [-1, 1]) {
+      const x = riverX(y) + side * (40 + rnd() * 10);
+      if ((y > BRIDGE.y0 - 30 && y < BRIDGE.y1 + 30) || (y > BRIDGE2.y0 - 30 && y < BRIDGE2.y1 + 30)) continue;
+      if (this.isBlocked(x, y) || this.surfAt(x, y) !== 'grass') continue;
+      const r = rnd();
+      if (r < 0.28) this.obj(pick('rock', 8), x, y, 0.5, 3, true, 0.75 + rnd() * 0.3);
+      else if (r < 0.75) this.add.image(Math.round(x), Math.round(y), 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y);
+    }
+    for (let a = 0; a < Math.PI * 2; a += 0.22) {
+      const x = POND.x + Math.cos(a) * (POND.r + 14 + rnd() * 8), y = POND.y + Math.sin(a) * (POND.r / 1.3 + 12 + rnd() * 6);
+      if (this.isBlocked(x, y) || this.surfAt(x, y) !== 'grass') continue;
+      if (rnd() < 0.35) this.obj(pick('rock', 8), x, y, 0.5, 3, true, 0.7 + rnd() * 0.3); else this.add.image(Math.round(x), Math.round(y), 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y);
+    }
+    // a few lone trees inside the village, beside the paths
+    { let placed = 0; const roadAt = (x: number, y: number) => ['cobble', 'dirt'].includes(this.surfAt(x, y));
+      for (let k = 0; k < 400 && placed < 8; k++) {
+        const x = 110 + rnd() * (MW - 220), y = 250 + rnd() * (MH - 380);
+        if (!free(x, y, 44) || near(x, y) || this.isBlocked(x, y) || !(roadAt(x + 40, y) || roadAt(x - 40, y) || roadAt(x, y + 36))) continue;
+        if (Math.hypot(x - PLAZA.x, y - PLAZA.y) < PLAZA.r + 60) continue;
+        this.obj(rnd() < 0.6 ? pick('oak', 3) : pick('pine', 3), x, y, 0.22, 16, true, 0.8); placed++;
+      } }
     // forest edge and clusters
     for (let k = 0; k < 900; k++) {
       const x = 16 + rnd() * (MW - 32), y = 50 + rnd() * (MH - 60);
@@ -873,7 +916,7 @@ export class TopDownScene extends Phaser.Scene {
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
   stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
-    const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
+    const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
   levelUpFx() {
     const h = this.hero;

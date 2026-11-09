@@ -31,7 +31,8 @@ import { RECIPES } from '../data/alchemy';
 import { act, refused } from '../net/client';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
-import { SETS, LAND_SET, fxText } from '../data/sets';
+import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
+import { vipActive, vipLeftMs as vipLeft2 } from '../systems/premium';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
@@ -40,7 +41,7 @@ import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon' | 'profile';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -137,6 +138,7 @@ export class Panels {
       case 'login': this.buildLogin(c); break;
       case 'collection': this.buildCollection(c); break;
       case 'dungeon': this.buildDungeon(c); break;
+      case 'profile': this.buildProfile(c); break;
     }
   }
 
@@ -838,6 +840,50 @@ export class Panels {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
     });
+  }
+
+  // ---------------- PROFILE (tap the portrait) ----------------
+  buildProfile(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, d = derive(s), ps = pstats(s);
+    const W = Math.min(640, ui.VW - 12), H = 340;
+    const { x, y, g } = this.window(c, W, H, '👤 โปรไฟล์');
+    const t = s.tier ?? 0, key = formKeyOf(s.cls, t), sx = x + 14, sy = y + 32, cw = 190;
+    // left: the hero
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(sx, sy, cw, H - 44, 5);
+    if (ui.textures.exists(`c_${key}_idle`)) { const im = ui.add.image(sx + cw / 2, sy + 116, `c_${key}_idle`, 0).setOrigin(0.5, 1); im.setScale(104 / im.height); c.add(im); }
+    const title = titleOf(s);
+    c.add(k.text(sx + cw / 2, sy + 6, s.name || 'ผู้กล้า', 12, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
+    if (title) c.add(k.text(sx + cw / 2, sy + 22, `「${title}」`, 8.5, '#ffd84a').setOrigin(0.5, 0));
+    const cls = s.cls && s.cls !== 'novice' ? ({ sword: '⚔ สายดาบ', archer: '🏹 สายธนู', mage: '✦ สายเวท', cleric: '✚ สายนักบวช' } as Record<string, string>)[s.cls] : 'ชาวบ้าน (ยังไม่เลือกสาย)';
+    c.add(k.text(sx + cw / 2, sy + 122, `${formName(s.cls, t)} • ร่างที่ ${t + 1}`, 10, '#ffe7a0').setOrigin(0.5, 0));
+    c.add(k.text(sx + cw / 2, sy + 138, cls, 8.5, '#c8b898').setOrigin(0.5, 0));
+    c.add(k.text(sx + cw / 2, sy + 156, `Lv ${s.level}`, 16, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
+    const need = expToNext(s.level), f = Math.min(1, s.exp / need);
+    g.fillStyle(0x1a120c, 1).fillRoundedRect(sx + 12, sy + 180, cw - 24, 8, 3).fillStyle(0x8a6aff, 1).fillRoundedRect(sx + 12, sy + 180, (cw - 24) * f, 8, 3);
+    c.add(k.text(sx + cw / 2, sy + 190, `EXP ${Math.floor(f * 1000) / 10}%`, 7.5, '#c8b8ff').setOrigin(0.5, 0));
+    g.fillStyle(0x2a1d12, 1).fillRoundedRect(sx + 12, sy + 206, cw - 24, 30, 4).lineStyle(1, GOLD, 1).strokeRoundedRect(sx + 12, sy + 206, cw - 24, 30, 4);
+    c.add(k.text(sx + cw / 2, sy + 212, `พลังรบ ${d.power.toLocaleString()}`, 12, '#ffd84a').setOrigin(0.5, 0));
+    const vip = vipActive(s);
+    c.add(k.text(sx + cw / 2, sy + 244, vip ? `👑 VIP เหลือ ${Math.ceil(vipLeft2(s) / 86400000)} วัน` : 'ยังไม่ใช่ VIP', 8.5, vip ? '#ffd84a' : '#8a7a60').setOrigin(0.5, 0));
+    c.add(k.button(sx + 20, sy + H - 76, cw - 40, 20, '🏆 เปลี่ยนฉายา', () => this.open('collection'), { size: 8.5, color: 0x4a3a10 }));
+    // middle: stats
+    const mx = sx + cw + 8, mw = 196;
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(mx, sy, mw, H - 44, 5);
+    c.add(k.text(mx + 8, sy + 6, '📊 ค่าพลัง', 10, '#ffe7a0'));
+    const rows: [string, string][] = [['HP', d.maxHp.toLocaleString()], ['MP', d.maxMp.toLocaleString()], ['ATK', d.atk.toLocaleString()], ['MATK', d.matk.toLocaleString()], ['DEF', d.def.toLocaleString()],
+      ['คริ', (d.crit * 100).toFixed(1) + '%'], ['ตีเร็ว', (1000 / d.attackInterval).toFixed(2) + '/วิ'], ['ดูดเลือด', Math.round(d.leech * 100) + '%'], ['🍀 โชค', '+' + Math.round(d.mf)], ['EXP', '+' + Math.round((d.expBonus - 1) * 100) + '%']];
+    rows.forEach(([a, b], i) => { const ry = sy + 26 + i * 18; c.add(k.text(mx + 12, ry, a, 9, '#c8b898')); c.add(k.text(mx + mw - 12, ry, b, 9, '#ffffff').setOrigin(1, 0)); });
+    const sf = setBonus((['weapon', 'armor', 'accessory'] as const).map(sl => s.inventory.find(q => q.uid === s.equip[sl])?.set));
+    c.add(k.text(mx + 12, sy + 214, Object.keys(sf).length ? `◆ โบนัสเซ็ต: ${fxText(sf)}` : '◆ ยังไม่มีโบนัสเซ็ต', 8, Object.keys(sf).length ? '#7ad88a' : '#8a7a60', { wordWrap: { width: mw - 20 } }));
+    // right: records
+    const rx = mx + mw + 8, rw = x + W - 14 - rx;
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, sy, rw, H - 44, 5);
+    c.add(k.text(rx + 8, sy + 6, '📜 บันทึกการผจญภัย', 10, '#ffe7a0'));
+    const sv = s as unknown as { tdMaxMap?: number; login?: { n: number } };
+    const rec: [string, string][] = [['ปราบมอน', ps.kills.toLocaleString()], ['มอนทอง', ps.golden.toLocaleString()], ['ปราบบอส', String(s.bossDefeated ?? 0)], ['ผ่านดันเจี้ยน', String(ps.dungeons)],
+      ['ล่าสัตว์', ps.animals.toLocaleString()], ['ขุดแร่', ps.ore.toLocaleString()], ['แร่หายาก', String(ps.gems)], ['ปรุงยา', String(ps.brews)], ['แผนที่ไกลสุด', String(sv.tdMaxMap ?? 0)],
+      ['ความสำเร็จ', `${titlesOf(s).length}/${ACHS.length}`], ['สมุดมอน', `${CODEX.filter(m => (ps.kinds[m.kind] ?? 0) > 0).length}/${CODEX.length}`], ['ล็อกอิน', `${sv.login?.n ?? 0} วัน`], ['เวลาเล่น', `${Math.floor(s.playTime / 3600)} ชม. ${Math.floor(s.playTime / 60) % 60} นาที`]];
+    rec.forEach(([a, b], i) => { const ry = sy + 26 + i * 17; c.add(k.text(rx + 12, ry, a, 8.5, '#c8b898')); c.add(k.text(rx + rw - 12, ry, b, 8.5, '#ffffff').setOrigin(1, 0)); });
   }
 
   // ---------------- DAILY DUNGEON ----------------
