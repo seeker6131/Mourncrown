@@ -58,7 +58,7 @@ export class Combat {
     this.s.time.delayedCall(delay, () => {
       if (!this.s.sys.isActive() || this.s.stageN !== this.stage?.n) return;
       const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
-      m.sp.destroy(); m.bar.destroy();
+      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
       const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
       this.spawn(m.m, p.x, p.y, m.boss);
       const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
@@ -76,6 +76,9 @@ export class Combat {
     const ph = CH[m.key] ? null : sc.add.ellipse(x, y - m.size * 0.3, m.size * 0.6, m.size * 0.5, 0x5a2a3a).setStrokeStyle(1, 0x140a10);
     if (ph) sp.setData('ph', ph);
     const bar = sc.add.graphics().setDepth(99960);
+    const shw = m.size * (boss ? 0.75 : 0.62);
+    const sh = sc.add.image(x, y, sc.textures.exists('td_shadow') ? 'td_shadow' : '__WHITE').setDisplaySize(shw, shw * 0.34).setAlpha(0.5).setDepth(1);
+    sp.setData('sh', sh);
     this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0 });
   }
 
@@ -287,6 +290,7 @@ export class Combat {
 
   kill(m: Mon) {
     m.alive = false; m.bar.clear();
+    { const sh = m.sp.getData('sh') as Phaser.GameObjects.Image | undefined; if (sh) this.s.tweens.add({ targets: sh, alpha: 0, duration: 400 }); }
     const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
     if (ph) { this.s.tweens.add({ targets: ph, alpha: 0, scale: 1.4, duration: 300, onComplete: () => ph.destroy() }); m.sp.setVisible(false); }
     else if (m.boss && hasAnim(m.m.key, 'die')) {
@@ -396,6 +400,7 @@ export class Combat {
         if (!attacking) { if (moving) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }
       }
       m.sp.setPosition(m.x, m.y).setDepth(m.y);
+      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
       const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
       if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);
       const w = m.boss ? 60 : 22, top = m.y - m.m.size * (m.boss ? 0.95 : 0.85);

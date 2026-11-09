@@ -6,7 +6,7 @@ import { CH, playAnim, setIdle, hasAnim } from './chars';
 
 export interface Pt { x: number; y: number }
 export interface Step { kind: 'go' | 'work' | 'inside' | 'wander'; to?: Pt; ms?: number; face?: number }
-interface Npc { key: string; name: string; sp: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Ellipse; tag: Phaser.GameObjects.Text;
+interface Npc { key: string; name: string; sp: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text;
   plan: Step[]; i: number; path: Pt[]; until: number; dir: number; speed: number; home: Pt; back: Pt; hidden: boolean; anim: string; bob?: Phaser.Tweens.Tween }
 
 export interface NpcHost extends Phaser.Scene { isBlocked(x: number, y: number): boolean }
@@ -59,7 +59,8 @@ export class Village {
     const sc = this.s;
     const a0 = visible ? 1 : 0;
     const sp = sc.add.sprite(home.x, home.y, `c_${key}_idle`).setAlpha(a0).setDepth(home.y); setIdle(sp, key, 0);
-    const shadow = sc.add.ellipse(home.x, home.y, 14, 5, 0x0a1008, 0.4).setDepth(1).setAlpha(a0);
+    const fw = (CH[key]?.idleFs ?? 48) * 0.5;
+    const shadow = sc.add.image(home.x, home.y, sc.textures.exists('td_shadow') ? 'td_shadow' : '__WHITE').setDisplaySize(fw, fw * 0.34).setDepth(1).setAlpha(a0 * 0.5);
     const tag = sc.add.text(home.x, home.y, name, { fontFamily: 'sans-serif', fontSize: '6px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990).setAlpha(a0 * 0.85);
     this.npcs.push({ key, name, sp, shadow, tag, plan, i: -1, path: [], until: sc.time.now + Math.random() * 3000, dir: 0, speed, home, back: home, hidden: !visible, anim: hasAnim(key, 'chop') ? 'chop' : hasAnim(key, 'mine') ? 'mine' : hasAnim(key, 'attack') ? 'attack' : 'walk' });
   }
@@ -86,7 +87,7 @@ export class Village {
     n.hidden = !on;
     if (on) n.sp.setPosition(n.back.x, n.back.y);      // reappear where they went in (their door, or the edge of the map)
     else n.back = { x: n.sp.x, y: n.sp.y };
-    this.s.tweens.add({ targets: [n.sp, n.shadow], alpha: on ? 1 : 0, duration: 450 });
+    this.s.tweens.add({ targets: n.sp, alpha: on ? 1 : 0, duration: 450 }); this.s.tweens.add({ targets: n.shadow, alpha: on ? 0.5 : 0, duration: 450 });
     this.s.tweens.add({ targets: n.tag, alpha: on ? 0.85 : 0, duration: 450 });
   }
 

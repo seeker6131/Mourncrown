@@ -101,7 +101,7 @@ function surface(x: number, y: number) {
 
 export class TopDownScene extends Phaser.Scene {
   hero!: Phaser.GameObjects.Sprite;
-  shadow!: Phaser.GameObjects.Ellipse;
+  shadow!: Phaser.GameObjects.Image;
   blocked!: Uint8Array;
   keys?: Record<string, Phaser.Input.Keyboard.Key>;
   dir = 0;
@@ -186,19 +186,20 @@ export class TopDownScene extends Phaser.Scene {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
-    this.lamps = []; this.fires = []; this.nodes = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
+    this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
     this.animateWater();
     this.makePropTextures();
     createCharAnims(this);
-    this.shadow = this.add.ellipse(PLAZA.x, PLAZA.y + 40, 18, 7, 0x10180f, 0.45).setDepth(1);
+    this.shadowTex();
+    this.shadow = this.contact(PLAZA.x, PLAZA.y + 40, 24, 9, 0.5);
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.placeProps();
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
-    if (this.village) populateVillage(this.village, roadY);
+    if (this.village) { populateVillage(this.village, roadY); this.castShadow(this.hero, true); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;
     if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
@@ -206,6 +207,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲');
 
     const cam = this.cameras.main;
+    cam.postFX?.clear(); this.dayFx = !this.stageN && this.renderer.type === Phaser.WEBGL ? cam.postFX.addColorMatrix() : null;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
     const zoom = () => cam.setZoom(Math.max(1.5, Math.round(this.scale.height / 480 * 2) / 2));
     zoom(); this.scale.on('resize', zoom);
@@ -417,7 +419,7 @@ export class TopDownScene extends Phaser.Scene {
 
   prop(key: string, x: number, y: number, foot: number, ox = 0.5) {
     const im = this.add.image(x, y, key).setOrigin(ox, 1).setDepth(y);
-    this.add.ellipse(x, y - 1, Math.max(8, im.width * 0.55), 5, 0x10180f, 0.35).setDepth(1);
+    this.contact(x, y - 1, Math.max(10, im.width * 0.8), Math.max(5, im.width * 0.22), 0.4);
     for (let j = -2; j <= 1; j++) for (let i = -foot; i <= foot; i += 2) this.block(x + i, y + j);
     return im;
   }
@@ -524,12 +526,72 @@ export class TopDownScene extends Phaser.Scene {
   portalCool = 0;
   portalArmed = false;
 
+  // ---------- shadows + day / night (village) ----------
+  shadowTex() {
+    if (this.textures.exists('td_shadow')) return;
+    const c = document.createElement('canvas'); c.width = 64; c.height = 32; const k = c.getContext('2d')!;
+    const g = k.createRadialGradient(32, 16, 0, 32, 16, 32); g.addColorStop(0, 'rgba(6,10,8,0.95)'); g.addColorStop(0.55, 'rgba(6,10,8,0.6)'); g.addColorStop(1, 'rgba(6,10,8,0)');
+    k.save(); k.scale(1, 0.5); k.fillStyle = g; k.fillRect(0, 0, 64, 64); k.restore();
+    this.textures.addCanvas('td_shadow', c);
+  }
+  /** soft oval shadow under something (w × h px) */
+  contact(x: number, y: number, w: number, h: number, alpha = 0.45) {
+    return this.add.image(x, y, 'td_shadow').setDisplaySize(w, h).setAlpha(alpha).setDepth(1);
+  }
+  casts: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; live: boolean }[] = [];
+  /** dark silhouette of the object laid on the ground, pointing away from the sun (updated by updateDayNight) */
+  castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live = false) {
+    const sh = this.add.image(src.x, src.y, src.texture.key, src.frame.name).setOrigin(src.originX, src.originY).setTintFill(0x050a08).setAlpha(0).setDepth(1.3);
+    this.casts.push({ src, sh, live });
+    return sh;
+  }
+  clock() { const h = this.dayHour(), hh = Math.floor(h), mm = Math.floor((h - hh) * 60); return `${h >= 6 && h < 18 ? '☀' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; }
+  /** hour of the village day (0-24): one full day lasts 20 real minutes */
+  dayHour() { return ((Date.now() / 1200000) % 1) * 24; }
+  dayFx: Phaser.FX.ColorMatrix | null = null;
+  dayT = 0; light = 0; sunAng = 0; sunLen = 1; shAlpha = 0;
+  updateDayNight(time: number) {
+    if (this.stageN) return;
+    const h = this.dayHour();
+    if (time - this.dayT > 400) {
+      this.dayT = time;
+      const day = h >= 6 && h < 18, t = day ? (h - 6) / 12 : (((h - 18) + 24) % 24) / 12;   // 0..1 across the sky
+      const elev = Math.sin(t * Math.PI);                                                      // 0 at the horizon, 1 overhead
+      this.sunAng = Math.PI + t * Math.PI;                    // shadows point west at sunrise, north at noon, east at sunset
+      this.sunLen = 0.35 + (1 - elev) * 1.1;
+      const edge = Math.min(1, Math.min(t, 1 - t) * 8);       // fade the shadows in/out at sunrise/sunset and moonrise/moonset
+      this.shAlpha = (day ? 0.6 : 0.32) * edge;
+      // light: 0 = night (the original moody tone), 1 = full day
+      this.light = Phaser.Math.Clamp(day ? Math.min(1, elev * 2.2) : 0, 0, 1);
+      if (this.dayFx) {
+        this.dayFx.reset();
+        if (this.light > 0) { this.dayFx.brightness(1 + 0.32 * this.light, true); this.dayFx.saturate(0.18 * this.light, true); }
+      }
+      for (const c of this.casts) if (!c.live) this.placeShadow(c);
+      for (const l of this.lamps) l.setData('base', 1 - this.light).setVisible(this.light < 0.85);
+    }
+    for (const c of this.casts) if (c.live) this.placeShadow(c);
+  }
+  placeShadow(c: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image }) {
+    const { src, sh } = c;
+    if (!src.active) { sh.setVisible(false); return; }
+    if (sh.texture.key !== src.texture.key || sh.frame.name !== src.frame.name) sh.setTexture(src.texture.key, src.frame.name);
+    sh.setPosition(src.x, src.y).setOrigin(src.originX, src.originY).setFlipX(src.flipX)
+      .setRotation(this.sunAng + Math.PI / 2).setScale(src.scaleX, src.scaleY * this.sunLen * 0.62)
+      .setAlpha(this.shAlpha * src.alpha).setVisible(src.visible && this.shAlpha > 0.01);
+  }
+
   /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
   obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
     const m = OM[name]; if (!m) return null;
     const im = this.add.image(Math.round(x), Math.round(y), 'o_' + name).setOrigin(0.5, m.foot / m.h).setDepth(y).setScale(sc);
     const w = (m.x1 - m.x0) * fw * sc;
-    if (shadow) this.add.ellipse(x, y - 1, Math.max(8, (m.x1 - m.x0) * 0.7 * sc), Math.max(4, fd * 0.9), 0x0a1008, 0.4).setDepth(1);
+    if (shadow) {
+      // soft contact shadow as wide as the object, and (village) a cast shadow that follows the sun / moon
+      const ow = (m.x1 - m.x0) * sc;
+      this.contact(x, y - 1, Math.max(10, ow * 0.95), Math.max(6, Math.min(ow * 0.32, (fd + 6) * 1.6)), 0.45);
+      if (!this.stageN && (m.foot - m.top) * sc > 24) this.castShadow(im);
+    }
     for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
     if (m.chim) this.smoke(Math.round(x) - m.w / 2 * sc + m.chim[0] * sc, Math.round(y) - m.foot * sc + m.chim[1] * sc);
     return im;
@@ -638,7 +700,7 @@ export class TopDownScene extends Phaser.Scene {
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
+  stageTitle() { const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
   levelUpFx() {
     const h = this.hero;
@@ -879,7 +941,7 @@ export class TopDownScene extends Phaser.Scene {
         h.setPosition(PLAZA.x, PLAZA.y + 40).setAngle(0).setAlpha(0).setVisible(true).clearTint();
         setIdle(h, this.F.key, 0);
         this.tweens.add({ targets: h, alpha: 1, duration: 500, onComplete: () => { this.dead = false; } });
-        this.shadow.setAlpha(1);
+        this.shadow.setAlpha(0.5);
       });
     });
   }
@@ -1019,7 +1081,8 @@ export class TopDownScene extends Phaser.Scene {
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);
-    for (const [i, l] of this.lamps.entries()) l.setAlpha(0.75 + Math.sin(time / 180 + i * 1.7) * 0.12);
+    for (const [i, l] of this.lamps.entries()) l.setAlpha((0.75 + Math.sin(time / 180 + i * 1.7) * 0.12) * (l.getData('base') ?? 1));
+    this.updateDayNight(time);
     for (const [i, f] of this.fires.entries()) {
       const fl = 0.7 + Math.sin(time / 70 + i) * 0.12 + Math.sin(time / 33 + i * 3) * 0.08 + (Math.random() - 0.5) * 0.12;
       f.g.setAlpha(fl).setScale(1.5 + fl * 0.25); f.core.setAlpha(0.6 + fl * 0.4).setScale(0.5 + fl * 0.1);
