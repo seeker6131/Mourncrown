@@ -2,12 +2,14 @@
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import Phaser from 'phaser';
 import { activeElixir } from '../systems/alchemy';
+import { act } from '../net/client';
+import { Minimap, type MapInfo } from '../ui/minimap';
 import { UIKit } from '../ui/kit';
 import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
 import { derive, expToNext, nextForm, activeTier, currentSkills } from '../systems/stats';
 import { SKILL_BY_ID } from '../data/skills';
-import { tdQuest, claimTdQuest, rewardText } from '../systems/tdQuests';
+import { tdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { uiOpt } from '../core/uiOptions';
@@ -105,7 +107,7 @@ export class TdUIScene extends Phaser.Scene {
     return { hero: { ai: true, portrait: () => ({ key: `c_${key}_idle`, frame: 0 }) }, levelUpFx: () => this.td.levelUpFx() };
   }
   controlsReset() { this.td.resetJoy(); }
-  enterStage(n: number) { (this.td as unknown as { enterStage(n: number): void }).enterStage(n); }
+  enterStage(n: number, room?: number) { (this.td as unknown as { enterStage(n: number, room?: number): void }).enterStage(n, room); }
   /** which buildings a plot may hold: the home plot only takes the player's home */
   plotChoices(plot: number): string[] { return plot === 9 ? ['home'] : []; }
   reloadWorld() { this.scene.get('TopDown').scene.restart({ stage: 0 }); }
@@ -161,7 +163,7 @@ export class TdUIScene extends Phaser.Scene {
     this.questText = k.text(14, 66, '', 7.5, '#f3e6c4', { wordWrap: { width: 186 }, lineSpacing: 1 });
     this.questZone = this.add.zone(8, 60, 200, 30).setOrigin(0).setInteractive();
     this.questZone.on('pointerup', () => {
-      const s = S(), q = claimTdQuest(s);
+      const s = S(), q = act('claimTdQuest', {});
       if (q) { sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
     });
     this.root.add([this.questG, this.questText, this.questZone]);
@@ -187,7 +189,8 @@ export class TdUIScene extends Phaser.Scene {
       this.root.add([sl, im, t, z]);
     });
     // class change ready
-    this.formBtn = k.button(this.VW - 206, 64, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
+    this.minimap = new Minimap(this as never, () => (this.td as unknown as { mapInfo(): MapInfo | null }).mapInfo());
+    this.formBtn = k.button(this.VW - 350, 46, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
     this.formBtn.setVisible(false);
     this.root.add(this.formBtn);
     this.tweens.add({ targets: this.formBtn, alpha: 0.6, duration: 600, yoyo: true, repeat: -1 });
@@ -205,7 +208,7 @@ export class TdUIScene extends Phaser.Scene {
     const st = S();
     if (!st.introSeen) {
       st.introSeen = true;
-      this.time.delayedCall(800, () => this.panels.openDialog('elder', 'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูแผนที่ทางเหนือ ล่ามอนสเตอร์ เก็บเหรียญ ไอเทม ไม้ หิน อาหาร ยิ่งเลเวลสูงยิ่งไปแผนที่ที่ไกลขึ้นได้ ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!'));
+      this.time.delayedCall(800, () => this.panels.openDialog('elder', 'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูแผนที่ทางเหนือ ล่ามอนสเตอร์ เก็บเหรียญและไอเทม ส่วนไม้ หิน แร่ อาหาร ไปหาที่ป่าดงดิบทางประตูซ้าย ยิ่งเลเวลสูงยิ่งไปแผนที่ที่ไกลขึ้นได้ ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!'));
     }
   }
 
@@ -286,7 +289,9 @@ export class TdUIScene extends Phaser.Scene {
     if (this.toasts.length > 4) this.toasts.shift()?.destroy();
   }
 
+  minimap?: Minimap;
   update(time: number) {
+    this.minimap?.update(time);
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;
     this.root.setVisible(!sel).setAlpha(uiOpt(S()).alpha);

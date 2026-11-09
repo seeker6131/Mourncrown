@@ -320,3 +320,11 @@
 - หน้าต่าง ⚗ ปรุงยา: `buildAlchemy` (เปิดจากครัว) • HUD โชว์ยาที่ออกฤทธิ์ + เวลา
 - รูปใหม่ PixelLab: `tools/gen_jungle.py` → jtree_0-2, palm_0, fern_0-1, pit_0-1 (ตัดขอบวงกลมแล้ว ต้นฉบับ _*_raw.png), mine_0, vein_0-3 → `python3 -I tools/import_td_objs.py` • ไอคอนแร่/ยา 20 ชิ้น `tools/gen_item_icons.py`
 - เทส: `tests/alchemy.test.ts`
+
+## รอบ 2026-11-09 (ดึกมาก) — แยกมอน/ทรัพยากร + ชั้นเซิร์ฟ + ห้อง + มินิแมพ
+- `src/server/handlers.ts` = ตรรกะฝั่งเซิร์ฟทั้งหมด (pure) • `src/server/config.ts` (DEV_TOOLS, WILD_ROOM_CAP=100) • `src/net/client.ts` `act(name,args)` = ทางเดียวที่ client เปลี่ยนของมีค่า (ห้าม import systems ที่เปลี่ยนค่าเข้า ui/scenes/world อีก)
+- ตอนมีเซิร์ฟจริง: ย้าย handlers.ts ไปรันบนเซิร์ฟ, act() เปลี่ยนเป็นส่งคำขอผ่านเน็ต, เซฟเก็บฐานข้อมูล
+- rewards.ts: มอนไม่ให้ไม้/หิน/อาหาร • tdCombat: แผนที่มอนไม่มีสัตว์ • placeStage/หมู่บ้าน: ไม่มี node เก็บของ
+- ห้องป่าดงดิบ: handler `wildRooms`, หน้าต่าง `buildRooms` (เปิดจากแท็บ 🌿 / ประตูซ้ายหมู่บ้าน), TopDownScene.room
+- มินิแมพ: `src/ui/minimap.ts` (อยู่ใน TdUI) + `TopDownScene.mapInfo()`
+- เทส: `tests/server.test.ts`

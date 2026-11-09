@@ -27,10 +27,10 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   s.gold += gold;
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);
-  // village materials: wood and stone from every kill, food by size
   const k = stageN === WILD ? 1 + s.level / 25 : 1 + stageN / 12;
-  const wood = animal ? 0 : Math.round(between(rnd, 1, 3) * k * (boss ? 15 : 1)), stone = animal ? 0 : Math.round(between(rnd, 0, 2) * k * (boss ? 15 : 1));
-  const food = animal ? Math.round(between(rnd, base.meat?.[0] ?? 2, base.meat?.[1] ?? 6) * k * 1.5) : boss ? Math.round(10 * k) : rnd() < 0.35 ? 1 : 0;
+  // monsters ≠ resources: wood / stone / meat come only from the Deepwild (animals + gathering); monsters give EXP, gold and items
+  const wood = 0, stone = 0;
+  const food = animal ? Math.round(between(rnd, base.meat?.[0] ?? 2, base.meat?.[1] ?? 6) * k * 1.5) : 0;
   s.res.wood += wood; s.res.stone += stone; s.res.food += food;
   // crafting materials from the monster's drop table
   const mats: KillResult['mats'] = [];

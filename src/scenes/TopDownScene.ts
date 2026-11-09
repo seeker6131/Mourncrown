@@ -6,7 +6,8 @@ import Phaser from 'phaser';
 import { Combat } from '../world/tdCombat';
 import { STAGES, WILD, PITS } from '../world/stages';
 import { Crowd } from '../world/crowd';
-import { gatherReward, type Vein } from '../systems/alchemy';
+import { act, refused } from '../net/client';
+import { type Vein } from '../systems/alchemy';
 import { itemDef } from '../data/items';
 import { S } from '../core/events';
 import { saveGame, loadGame, startNewGame } from '../core/save';
@@ -16,14 +17,14 @@ import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
 import { SKILL_BY_ID } from '../data/skills';
-import { useItem, addItem } from '../systems/inventory';
+
 import { vipActive } from '../systems/premium';
 import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
-import { stageFood, payStage, isHungry } from '../systems/supplies';
+import { stageFood, isHungry } from '../systems/supplies';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
-import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
+import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, formKeyOf } from '../world/chars';
@@ -173,7 +174,7 @@ export class TopDownScene extends Phaser.Scene {
     // the land's monsters, its boss (boss stages) and the wild game in a stage
     const heroes = ['hero', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
     const st = this.stageN && this.stageN !== WILD ? STAGES[this.stageN - 1] : null;
-    const keys = this.stageN === WILD ? [...heroes, 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : []), 'mo16', 'mo17']
+    const keys = this.stageN === WILD ? [...heroes, 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : [])]
       : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
     preloadChars(this, keys);
   }
@@ -185,8 +186,9 @@ export class TopDownScene extends Phaser.Scene {
   village?: Village;
   portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
   get wild() { return this.stageN === WILD; }
-  init(data: { stage?: number }) {
-    this.stageN = data?.stage ?? 0; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
+  room = 1; roomPick?: number;
+  init(data: { stage?: number; room?: number }) {
+    this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
     if (this.wild) this.makeWild(); else if (this.stageN) this.makeTrails(this.stageN);
   }
 
@@ -212,6 +214,8 @@ export class TopDownScene extends Phaser.Scene {
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
     if (this.village) { populateVillage(this.village, roadY); this.castShadow(this.hero, true); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;
+    if (refused(act('enterMap', { n: this.stageN }))) { bus.emit(EV.TOAST, 'เซิร์ฟปฏิเสธการเข้าแผนที่', '#ff8a6a'); this.time.delayedCall(50, () => this.scene.restart({ stage: 0 })); }
+    if (this.wild) { const r = act('wildRooms', { pick: this.roomPick }); if (r.refused) bus.emit(EV.TOAST, 'ห้องเต็ม — ย้ายไปห้องที่ว่าง', '#ff8a6a'); this.room = r.room; this.online = r.rooms[r.room - 1].count; this.onlineT = this.time.now + 30000; }
     if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
@@ -497,7 +501,7 @@ export class TopDownScene extends Phaser.Scene {
       if (has('pit_' + (p.i % 2))) { const im = this.add.image(p.x, p.y, 'o_pit_' + (p.i % 2)).setDepth(1).setAlpha(0.95); im.setScale((p.r * 2.1) / Math.max(im.width, 1)); }
       if (has('mine_0')) this.obj('mine_0', p.x - p.r * 0.2, p.y - p.r * 0.78, 0.8, 10, true, 0.9);
       this.add.text(p.x, p.y - p.r * 0.78 - 96, `⛏ ${P.name} • Lv${P.req}`, { fontFamily: 'sans-serif', fontSize: '9px', color: '#ffe8a0', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99990);
-      const vein = { ore: P.ore, gem: P.gem, req: P.req };
+      const vein = { ore: P.ore, gem: P.gem, req: P.req, pit: p.i };
       for (let k = 0; k < 40; k++) {
         const a = rnd() * Math.PI * 2, rr = p.r * (0.32 + rnd() * 0.5), x = p.x + Math.cos(a) * rr, y = p.y + Math.sin(a) * rr / 1.25;
         if (this.isBlocked(x, y) || this.nodes.some(n => Math.hypot(n.x - x, n.y - y) < 34)) continue;
@@ -567,19 +571,19 @@ export class TopDownScene extends Phaser.Scene {
       if (this.trailOff(x, y) < 70 || this.trailOff(x, y - hgt * 0.5) < 50 || this.trailOff(x, y - hgt) < 30 || inClear(x, y) || !free(x, y, 48)) continue;
       const t = this.obj(key, x, y, 0.16, 4, true);
       if (t && g !== 'forest') t.setTint(tint[g]);
-      this.addNode(t, x, y, 'wood');
+      void t;
     }
     if (g === 'dung' || g === 'lava') for (let k = 0; k < 260 * area; k++) {   // boulders and ore instead of a forest
       const x = 10 + rnd() * (MW - 20), y = 40 + rnd() * (MH - 50);
       if (this.trailOff(x, y) < 50 || inClear(x, y) || !free(x, y, 12)) continue;
       const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
-      this.addNode(o, x, y, 'stone');
+      void o;
     }
     for (let k = 0; k < 220 * area; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 8)) continue;
       const r = rnd(), im = this.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.5 ? pick('rock', 8) : r < 0.75 ? pick('tuft', 2) : pick('pebble', 6))).setOrigin(0.5, 0.85).setDepth(y);
-      if (r < 0.5) this.addNode(im, x, y, 'stone');
+      void im;
     }
     const gy = this.trailMain(24);
     this.addPortal(24, gy, 0, 'กลับหมู่บ้าน');
@@ -610,16 +614,18 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   /** going out costs supplies (food); stages 1-2 are free */
-  enterStage(n: number) {
+  enterStage(n: number, room?: number) {
     const s = S();
     if (n === WILD) {   // free, any level; everyone goes in villager clothes
       if (s.outfit !== 'gather') { s.outfit = 'gather'; bus.emit(EV.TOAST, 'สวมชุดชาวบ้าน (ชุดหาทรัพยากร) แล้ว', '#ffd8a0'); }
-      saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: WILD })); return;
+      saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: WILD, room })); return;
     }
     const st = STAGES[n - 1], sv = s as unknown as { tdUnlockAll?: boolean };
     if (s.level < st.req && !sv.tdUnlockAll) { bus.emit(EV.TOAST, `ต้องเลเวล ${st.req} ถึงจะเข้าแผนที่ ${n} ได้`, '#ff8a6a'); return; }
-    if (!payStage(s, n)) { bus.emit(EV.TOAST, `อาหารไม่พอ! แผนที่ ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ป่าหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
-    if (stageFood(n)) bus.emit(EV.TOAST, `ใช้เสบียง 🍖${stageFood(n)}`, '#ffd8a0');
+    if (s.res.food < stageFood(n) && !vipActive(s)) { bus.emit(EV.TOAST, `อาหารไม่พอ! แผนที่ ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ในป่าดงดิบหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
+    if (s.outfit === 'gather') { s.outfit = 'hunt'; bus.emit(EV.TOAST, 'สวมชุดนักรบแล้ว (แผนที่มอน)', '#ffd8a0'); }
+    bus.emit(EV.TOAST, 'แผนที่มอน: ได้ EXP ทอง ไอเทม • ทรัพยากรอยู่ที่ 🌿 ป่าดงดิบ', '#c8e8ff');
+    if (stageFood(n) && !vipActive(s)) bus.emit(EV.TOAST, `ใช้เสบียง 🍖${stageFood(n)}`, '#ffd8a0');
     saveGame(s);
     this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n }));
   }
@@ -750,14 +756,14 @@ export class TopDownScene extends Phaser.Scene {
       const inVillage = x > 60 && x < 1240 && y > 230 && y < MH - 60 && edge > 70;
       if (!dense || inVillage || !free(x, y, 48) || near(x, y)) continue;   // roots stay off roads
       const r = rnd();
-      this.addNode(this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true), x, y, 'wood');
+      this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true);
     }
     for (let k = 0; k < 170; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 10) || near(x, y)) continue;
       const r = rnd();
       if (r < 0.5) this.add.image(Math.round(x), Math.round(y), 'o_' + pick('bush', 5)).setOrigin(0.5, 0.85).setDepth(y);
-      else if (r < 0.85) this.addNode(this.obj(pick('rock', 8), x, y, 0.6, 4), x, y, 'stone');
+      else if (r < 0.85) this.obj(pick('rock', 8), x, y, 0.6, 4);
       else this.obj(pick('stump', 5), x, y, 0.5, 3);
     }
     // campfires: flickering warm light + rising embers
@@ -805,11 +811,21 @@ export class TopDownScene extends Phaser.Scene {
       .setDepth(100002);
   }
 
+  /** what the minimap shows */
+  mapInfo() {
+    if (!this.hero || !this.sys.isActive()) return null;
+    const exits = this.portals.map(p => ({ x: p.x, y: p.y, label: p.to === 0 ? 'หมู่บ้าน' : p.to === 'select' ? 'แผนที่มอน' : p.to === WILD ? 'ป่าดงดิบ' : `แผนที่ ${p.to}` }));
+    const marks = this.wild ? this.pits.map(p => ({ x: p.x, y: p.y, label: `⛏ ${PITS[p.i].name} Lv${PITS[p.i].req}`, col: S().level >= PITS[p.i].req ? '#ffe8a0' : '#a89878' })) : [];
+    const dots: { x: number; y: number; kind: 'mon' | 'boss' | 'animal' | 'player' }[] = [];
+    if (this.stageN) for (const m of this.combat.mons) if (m.alive) dots.push({ x: m.x, y: m.y, kind: m.boss ? 'boss' : m.animal ? 'animal' : 'mon' });
+    for (const c of this.crowd?.list ?? []) dots.push({ x: c.x, y: c.y, kind: 'player' });
+    return { key: String(this.stageN), w: MW, h: MH, hero: { x: this.hero.x, y: this.hero.y, dir: this.dir }, exits, marks, dots };
+  }
   get F() { const s = S(); const t = activeTier(s); return { key: formKeyOf(s.cls, t), name: formName(s.cls, t) }; }
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ (แมพรวมทั้งเซิร์ฟ) • 👥 ออนไลน์ ${this.online}`; const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
+  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100`; const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
   levelUpFx() {
     const h = this.hero;
@@ -899,8 +915,8 @@ export class TopDownScene extends Phaser.Scene {
     const s = S(), h = this.hero, d = derive(s);
     if (s.hp < d.maxHp * 0.35 && time > this.potT) {
       let it = s.inventory.find(i => i.id === 'hp_potion_l') ?? s.inventory.find(i => i.id === 'hp_potion');
-      if (!it && vipActive(s) && s.gold >= 25 && addItem(s, 'hp_potion', 1)) { s.gold -= 25; it = s.inventory.find(i => i.id === 'hp_potion'); }   // VIP: auto-buy
-      if (it) { const r = useItem(s, it.uid); this.potT = time + 2500; if (r) this.combat.float(h.x, h.y - 44, `+${r.heal}`, '#7aff8a', 11); }
+      if (!it && vipActive(s) && !refused(act('autoPotion', {}))) it = s.inventory.find(i => i.id === 'hp_potion');   // VIP: auto-buy
+      if (it) { const r = act('useItem', { uid: it.uid }); this.potT = time + 2500; if (r) this.combat.float(h.x, h.y - 44, `+${r.heal}`, '#7aff8a', 11); }
     }
     const bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
     const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
@@ -910,7 +926,7 @@ export class TopDownScene extends Phaser.Scene {
       if (!n) return [0, 0];
       tx = n.x; ty = n.y + 14; reach = 16; target = n;
     } else {
-      if (!this.stageN) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ตีมอนทำงานในด่าน — ในหมู่บ้านใส่ชุดหาทรัพยากรเพื่อออโต้ตัดไม้/ขุดหิน', '#e8c872'); } return [0, 0]; }
+      if (!this.stageN) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ตีมอนทำงานในแผนที่มอน — ออโต้เก็บทรัพยากรทำงานในป่าดงดิบ', '#e8c872'); } return [0, 0]; }
       const alive = this.combat.alive().filter(m => !bad(m));
       const foes = alive.filter(m => !m.animal);
       const m = near(foes.length ? foes : alive);
@@ -1022,7 +1038,7 @@ export class TopDownScene extends Phaser.Scene {
       } else if (!show && v.bubble) { v.bubble.destroy(); v.bubble = undefined; }
       // walk up to a building to collect what it made
       if (show && Math.hypot(P.x - this.hero.x, P.y + 10 - this.hero.y) < 46) {
-        const r = settleCollect(s, i);
+        const r = act('collect', { plot: i });
         if (r) { this.combat.float(P.x, P.y - 60, `+${r.amount} ${RES_NAMES[r.res]}`, '#9fffb0', 10); saveGame(s); bus.emit(EV.STATE_CHANGED); }
       }
     });
@@ -1132,7 +1148,8 @@ export class TopDownScene extends Phaser.Scene {
     this.attacking = true;
     const done = () => {
       this.attacking = false; setIdle(h, key, this.dir);
-      const s = S(), r = gatherReward(s, n.kind, this.stageN, n.vein ?? null);
+      const s = S(), r = act('gather', { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold });
+      if (refused(r)) { if (r.refused === 'level') bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein?.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); return; }
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
       if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
       if (r.gold) this.combat.float(n.x - 10, n.y - 52, `💰 +${r.gold}G`, '#ffd84a', 10);
@@ -1179,7 +1196,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
     this.updatePlots(time); this.updateAction(time); this.updateGuide(time); this.updateOcclusion(time);
-    if (!this.stageN) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ออกล่าสัตว์ป่าหาเนื้อ', '#ff8a6a'); this.hungryWarned = h; }
+    if (!this.stageN) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ไปล่าสัตว์ที่ป่าดงดิบ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;
     if (k && !this.ui?.panels.isOpen) { mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0); my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0); }
@@ -1208,13 +1225,14 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
-    if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; this.online = 30 + Math.floor(Math.random() * 40) + (this.crowd?.list.length ?? 0); }
+    if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; const r = act('wildRooms', { pick: this.room }); this.online = r.rooms[this.room - 1].count; }
     else this.village?.update(time, dt);
     // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
     if (!this.portalArmed && this.portals.every(p => Math.hypot(p.x - h.x, p.y - h.y) > 30)) this.portalArmed = true;
     for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
       this.portalArmed = false;
       if (p.to === 'select') this.stageSelect();
+      else if (p.to === WILD) { const u = this.ui; u?.panels.open('rooms'); this.portalCool = time + 600; }
       else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }
       else { this.portalCool = time + 2500; this.enterStage(p.to as number); }
     }

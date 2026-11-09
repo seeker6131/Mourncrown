@@ -12,31 +12,32 @@ import { GOLD, GOLD_D } from './kit';
 import { S, bus, EV, runtime } from '../core/events';
 import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
-import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf, underConstruction } from '../systems/settlement';
-import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass, activeTier } from '../systems/stats';
+import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/settlement';
+import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
-import { sellUid, sellJunk, clampVitals, reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
+import { clampVitals, reqLevel, isEquipped, sellPrice, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
-import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
+import { activeQuest, nextAvailable, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
-import { giveTestKit, testLevelUp } from '../systems/testKit';
+
 import { STAGES, LANDS, WILD } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
-import { canBrew, brew, activeElixir } from '../systems/alchemy';
-import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, listItem, cancelListing, sampleListings } from '../systems/market';
-import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady, claimVipGift, buyDiamondItem, grantVip, grantDiamonds } from '../systems/premium';
+import { act, refused } from '../net/client';
+import { canBrew, activeElixir } from '../systems/alchemy';
+import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
+import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood } from '../systems/supplies';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -129,6 +130,7 @@ export class Panels {
       case 'premium': this.buildPremium(c); break;
       case 'market': this.buildMarket(c); break;
       case 'alchemy': this.buildAlchemy(c); break;
+      case 'rooms': this.buildRooms(c); break;
     }
   }
 
@@ -240,24 +242,24 @@ export class Panels {
     };
     if (mode === 'bag') {
       if (def.type === 'consumable') btn('ใช้', () => {
-        const r = useItem(s, it.uid); if (!r) return; sfx.potion();
+        const r = act('useItem', { uid: it.uid }); if (!r) return; sfx.potion();
         bus.emit(EV.TOAST, r.recall ? 'วาร์ปกลับหมู่บ้าน...' : r.buff ? `${r.buff} ทำงานแล้ว` : r.food ? `อาหารในคลัง +${r.food}` : `ฟื้นฟู ${r.heal ? 'HP +' + r.heal : 'MP +' + r.mana}`, '#9fffb0');
         if (!s.inventory.find(i => i.uid === it.uid)) this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED);
         if (r.recall) { this.close(); bus.emit('td:recall'); } else this.rebuild();
       }, 0x1f4a2a);
       if (def.type === 'weapon' || def.type === 'armor' || def.type === 'accessory') {
-        if (isEquipped(s, it.uid)) btn('ถอดออก', () => { unequipUid(s, it.uid); bus.emit(EV.STATE_CHANGED); });
+        if (isEquipped(s, it.uid)) btn('ถอดออก', () => { act('unequip', { uid: it.uid }); bus.emit(EV.STATE_CHANGED); });
         else {
           const rq = reqLevel(it.id);
           if (s.level < rq) btn(`ต้อง Lv ${rq} ถึงจะใส่ได้`, () => undefined, undefined, true);
-          else btn('สวมใส่', () => { equip(s, it.uid); sfx.pickup(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
-          btn('ย่อยเป็นวัตถุดิบ', () => { const r = dismantle(s, it.uid); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; bus.emit(EV.STATE_CHANGED); } }, 0x4a2a5a);
+          else btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.pickup(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
+          btn('ย่อยเป็นวัตถุดิบ', () => { const r = act('dismantle', { uid: it.uid }); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; bus.emit(EV.STATE_CHANGED); } }, 0x4a2a5a);
         }
       }
     } else if (mode === 'sell') {
       const price = sellPrice(it), eq = isEquipped(s, it.uid);
       const sell = (n: number) => {
-        const name = def.name, got = sellUid(s, it.uid, n);
+        const name = def.name, got = act('sell', { uid: it.uid, qty: n });
         if (!got) { sfx.error(); return; }
         sfx.coin(); bus.emit(EV.TOAST, `ขาย ${name} x${n} ได้ ${got.toLocaleString()} G`, '#ffd84a');
         if (!s.inventory.find(i => i.uid === it.uid)) this.selUid = null;
@@ -284,7 +286,7 @@ export class Panels {
 
   doUpgrade(uid: number) {
     const s = S();
-    const r = tryUpgrade(s, uid);
+    const r = act('upgradeItem', { uid });
     const msg: Record<string, [string, string]> = {
       ok: ['ตีบวกสำเร็จ!', '#9fffb0'], fail: ['ตีบวกล้มเหลว... (เสียวัตถุดิบ)', '#ff8a8a'], max: ['ระดับสูงสุดแล้ว', '#ffe7a0'],
       no_gold: ['ทองไม่พอ', '#ff8a8a'], no_shard: ['ผลึกมานาไม่พอ (ดรอปจากมอนสเตอร์/ซื้อที่ร้าน)', '#ff8a8a'], invalid: ['ตีบวกไม่ได้', '#ff8a8a'],
@@ -333,7 +335,7 @@ export class Panels {
       c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
       const slv = s.skillLv[sk.id] ?? 1;
       c.add(k.text(rx + 38, sy + 2, sk.name + `  Lv ${slv}`, 9, locked ? '#8a7a60' : '#9ad8ff'));
-      if (!locked && slv < SKILL_MAX) c.add(k.button(x + W - 50, sy + 2, 30, 20, '+', () => { if (upSkill(s, sk.id)) { sfx.levelUp(); bus.emit(EV.STATE_CHANGED); } }, { size: 11, disabled: s.skillPts < 1, color: 0x1f4a2a }));
+      if (!locked && slv < SKILL_MAX) c.add(k.button(x + W - 50, sy + 2, 30, 20, '+', () => { if (act('upSkill', { id: sk.id })) { sfx.levelUp(); bus.emit(EV.STATE_CHANGED); } }, { size: 11, disabled: s.skillPts < 1, color: 0x1f4a2a }));
       c.add(k.text(rx + 38, sy + 15, `${sk.desc}\nMP ${sk.mp}  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 46 }, lineSpacing: 1 }));
     });
   }
@@ -383,7 +385,7 @@ export class Panels {
         this.addCost(c, cx + 5, cy + 42, cw - 10, levelCost(d, 1));
         const ok = !have && canAfford(s, levelCost(d, 1));
         c.add(k.button(cx + 5, cy + ch - 24, cw - 10, 19, have ? 'สร้างแล้ว' : 'สร้าง', () => {
-          if (build(s, this.plot, id)) { sfx.levelUp(); bus.emit(EV.TOAST, `เริ่มก่อสร้าง${d.name}!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.close(); }
+          if (act('build', { plot: this.plot, id })) { sfx.levelUp(); bus.emit(EV.TOAST, `เริ่มก่อสร้าง${d.name}!`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.close(); }
           else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ', '#ff8a8a'); }
         }, { size: 9, disabled: !ok, color: 0x1f4a2a }));
       });
@@ -400,8 +402,8 @@ export class Panels {
       c.add(k.text(lx + 8, top + 86, `อัปเกรดเป็น Lv ${b.level + 1}: ${d.effect(b.level + 1)}`, 8.5, '#9fffb0', { wordWrap: { width: lw - 16 } }));
       const ey = this.addCost(c, lx + 8, top + 122, lw - 16, levelCost(d, b.level + 1));
       c.add(k.button(lx + 8, Math.max(ey + 4, top + H - 82), lw - 16, 26, `⬆ อัปเกรด Lv ${b.level + 1}`, () => {
-        if (upgrade(s, this.plot)) { sfx.levelUp(); bus.emit(EV.TOAST, `เริ่มอัปเกรด ${d.name} → Lv ${b.level}`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.close(); }
-        else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ — ออกล่ามอนสเตอร์เพื่อหาวัตถุดิบ', '#ff8a8a'); }
+        if (act('upgradeBuilding', { plot: this.plot })) { sfx.levelUp(); bus.emit(EV.TOAST, `เริ่มอัปเกรด ${d.name} → Lv ${b.level}`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.close(); }
+        else { sfx.error(); bus.emit(EV.TOAST, 'วัตถุดิบไม่พอ — ไปเก็บที่ 🌿 ป่าดงดิบ', '#ff8a8a'); }
       }, { size: 10, color: 0x1f4a2a, disabled: !canAfford(s, levelCost(d, b.level + 1)) }));
     } else c.add(k.text(lx + 8, top + 90, 'เลเวลสูงสุดแล้ว', 9, '#ffd84a'));
     const rx = lx + lw + 8, rw = x + W - 14 - rx;
@@ -414,7 +416,7 @@ export class Panels {
         c.add(k.text(rx + 12, yy + 4, `${['อาวุธ', 'เกราะ', 'เครื่องประดับ'][i]}  • ขั้นต่ำ ${RARITY_NAMES[r.minRarity]}`, 9, '#' + RARITY_COLORS[r.minRarity].toString(16).padStart(6, '0')));
         this.addCost(c, rx + 12, yy + 20, rw - 110, r.cost);
         c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'หลอม', () => {
-          const res = craft(s, slot);
+          const res = act('craft', { slot });
           if (res.ok) {
             for (const t of dailyProgress(s, 'craft')) bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind]} สำเร็จ! +${t.gold} G`, '#9fffb0');
             sfx.upgradeOk(); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
@@ -435,9 +437,9 @@ export class Panels {
         c.add(k.text(rx + 12, yy + 4, md.name + (lockd ? `  🔒 ครัว Lv${md.minLv}` : ''), 10, lockd ? '#8a7a60' : '#ffd84a'));
         c.add(k.text(rx + 12, yy + 22, `${md.desc} +${p.pct}% นาน ${p.mins} นาที`, 8, '#e8dcc0', { wordWrap: { width: rw - 110 } }));
         c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'ทำ', () => {
-          const r = cook(s, m);
+          const r = act('cook', { meal: m });
           if (r === 'ok') { sfx.heal(); bus.emit(EV.TOAST, `กิน${md.name}! +${p.pct}%`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
-          else { sfx.error(); bus.emit(EV.TOAST, r === 'no_food' ? 'อาหารไม่พอ — ล่ามอนสเตอร์เพื่อหาอาหาร' : 'ยังทำไม่ได้', '#ff8a8a'); }
+          else { sfx.error(); bus.emit(EV.TOAST, r === 'no_food' ? 'อาหารไม่พอ — ล่าสัตว์ใน 🌿 ป่าดงดิบ' : 'ยังทำไม่ได้', '#ff8a8a'); }
         }, { size: 10, color: 0x5a3a10, disabled: lockd }));
       });
     } else if (d.produces) {
@@ -459,9 +461,10 @@ export class Panels {
     const top = y + 32;
     const doIt = (cls?: ClassId) => {
       const wasVillager = (s.tier ?? 0) === 0;
-      if (advanceClass(s, cls)) {
-        // a starter weapon for the new class line (the NPC shop no longer sells gear)
-        if (wasVillager) { const w = ({ sword: 'iron_sword', archer: 'short_bow', mage: 'apprentice_wand', cleric: 'iron_mace' } as Record<string, string>)[s.cls]; if (w && addItem(s, w, 1)) { const it = s.inventory[s.inventory.length - 1]; equip(s, it.uid); bus.emit(EV.TOAST, `ได้รับอาวุธเริ่มต้น: ${itemDef(w).name}`, '#9fffb0'); } }
+      const ar = act('advanceClass', { cls });
+      if (ar.ok) {
+        // a starter weapon for the new class line (given by the server; the NPC shop no longer sells gear)
+        if (wasVillager && ar.weapon) bus.emit(EV.TOAST, `ได้รับอาวุธเริ่มต้น: ${itemDef(ar.weapon).name}`, '#9fffb0');
         sfx.levelUp();
         const nm = formName(s.cls, s.tier);
         bus.emit(EV.TOAST, `กลายเป็น ${nm}!`, '#ffd84a');
@@ -504,7 +507,7 @@ export class Panels {
     c.add(k.text(x + 16, top, 'ชุดสำหรับการออกเดินทาง', 10, '#ffe7a0'));
     const opts: ['hunt' | 'gather', string, string][] = [
       ['hunt', '⚔ ชุดล่ามอนสเตอร์', 'สวมชุดนักรบ พลังโจมตีเต็มที่\nเหมาะกับการล่ามอนและหาไอเทม'],
-      ['gather', '⛏ ชุดหาทรัพยากร', 'ใส่ชุดชาวบ้าน เก็บไม้/หินได้ x2\nแต่ตีมอน -40%'],
+      ['gather', '⛏ ชุดหาทรัพยากร', 'ชุดชาวบ้าน ใช้ใน 🌿 ป่าดงดิบ\nตัดไม้ ขุดแร่ ล่าสัตว์'],
     ];
     const cw = (W - 38) / 2;
     opts.forEach(([id, t, d], i) => {
@@ -602,9 +605,9 @@ export class Panels {
     b('🖥 ปรับ UI (ขนาด / ปุ่ม / ความโปร่ง)', () => this.open('uiopt'), 0x2a4a5a);
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
-    b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
-    b('🧪 ทดสอบ: VIP 3 วัน + 💎1000', () => { grantVip(s, 3); grantDiamonds(s, 1000); sfx.levelUp(); bus.emit(EV.TOAST, 'ได้ VIP 3 วัน + เพชร 1000 (ทดสอบ)', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
-    b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { testLevelUp(s); clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
+    b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = act('dev', { op: 'kit' }); if (refused(got)) { sfx.error(); bus.emit(EV.TOAST, 'ปิดปุ่มทดสอบแล้ว', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
+    b('🧪 ทดสอบ: VIP 3 วัน + 💎1000', () => { if (refused(act('dev', { op: 'vip', n: 3 }))) return; act('dev', { op: 'diamonds', n: 1000 }); sfx.levelUp(); bus.emit(EV.TOAST, 'ได้ VIP 3 วัน + เพชร 1000 (ทดสอบ)', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
+    b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { if (refused(act('dev', { op: 'level', n: 10 }))) return; clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
@@ -625,7 +628,7 @@ export class Panels {
       g.fillStyle(on ? 0x3a2a08 : 0x1a140e, 0.9).fillRoundedRect(x + 14, top, 236, H - 76, 5).lineStyle(1.5, on ? 0xffd84a : 0x6a5a40, 1).strokeRoundedRect(x + 14, top, 236, H - 76, 5);
       c.add(k.text(x + 24, top + 8, on ? `👑 VIP เหลือ ${Math.floor(left / 86400000)} วัน ${Math.floor(left / 3600000) % 24} ชม.` : '👑 สิทธิ์ VIP', 10, '#ffd84a'));
       c.add(k.text(x + 24, top + 28, VIP_PERKS.map(p => '✔ ' + p).join('\n'), 7.8, '#f3e6c4', { lineSpacing: 3, wordWrap: { width: 220 } }));
-      if (on) c.add(k.button(x + 24, top + H - 110, 216, 24, vipGiftReady(s) ? '🎁 รับของขวัญ VIP วันนี้' : '🎁 รับแล้ววันนี้', () => { if (claimVipGift(s)) { sfx.levelUp(); bus.emit(EV.TOAST, 'ได้รับ ม้วนกลับหมู่บ้าน x3 + ยาฟื้นพลังใหญ่ x5', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); } }, { size: 9, color: 0x6a4a10, disabled: !vipGiftReady(s) }));
+      if (on) c.add(k.button(x + 24, top + H - 110, 216, 24, vipGiftReady(s) ? '🎁 รับของขวัญ VIP วันนี้' : '🎁 รับแล้ววันนี้', () => { if (act('vipGift', {})) { sfx.levelUp(); bus.emit(EV.TOAST, 'ได้รับ ม้วนกลับหมู่บ้าน x3 + ยาฟื้นพลังใหญ่ x5', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); } }, { size: 9, color: 0x6a4a10, disabled: !vipGiftReady(s) }));
       const cx0 = x + 262, cw = (W - 276 - 12) / 3;
       VIP_CARDS.forEach((v, i) => {
         const cx = cx0 + i * (cw + 6), per = (v.thb / v.days).toFixed(1);
@@ -664,7 +667,7 @@ export class Panels {
         c.add(k.text(cx + 8, cy + 24, it.desc, 6.8, '#c8b898', { wordWrap: { width: cw - 84 } }));
         const label = it.soon ? 'เร็วๆ นี้' : owned ? (worn ? 'ใช้อยู่' : 'ใช้') : `💎 ${it.price}`;
         c.add(k.button(cx + cw - 72, cy + ch - 26, 66, 20, label, () => {
-          const r = buyDiamondItem(s, it.id);
+          const r = act('buyDiamond', { id: it.id });
           if (r === 'ok' || r === 'owned') { sfx.coin(); bus.emit(EV.TOAST, r === 'ok' ? `ซื้อ ${it.name} แล้ว` : `ใช้ ${it.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); }
           else bus.emit(EV.TOAST, r === 'diamonds' ? 'เพชรไม่พอ — เติมได้เมื่อระบบชำระเงินเปิด' : r === 'max' ? 'ขยายครบแล้ว' : 'เร็วๆ นี้', '#ff9a6a');
           this.rebuild();
@@ -733,7 +736,7 @@ export class Panels {
         [['-50%', 0.5], ['-10%', 0.9], ['+10%', 1.1], ['x2', 2]].forEach(([l, f], i) => c.add(k.button(dx + 8 + i * ((dw - 16) / 4), top + 104, (dw - 16) / 4 - 4, 20, l as string, step(f as number), { size: 8.5 })));
         c.add(k.text(dx + 10, top + 134, `ราคาแนะนำ ${(suggestPrice(it) * it.qty).toLocaleString()}  •  NPC รับซื้อ ${(sellPrice(it) * it.qty).toLocaleString()}\nภาษีตลาด 8%: -${fee.toLocaleString()}  →  ได้รับ ${(this.mkPrice - fee).toLocaleString()} 💰\nขึ้นขาย ${LISTING_HOURS} ชม. ไม่มีคนซื้อ = คืนของ`, 7.5, '#e8dcc0', { lineSpacing: 3 }));
         c.add(k.button(dx + 8, top + H - 108, dw - 16, 24, `ลงขาย (${myListings(s).length}/${MAX_LISTINGS})`, () => {
-          const r = listItem(s, it.uid, it.qty, this.mkPrice);
+          const r = act('marketList', { uid: it.uid, qty: it.qty, price: this.mkPrice });
           if (typeof r === 'string') { sfx.error(); bus.emit(EV.TOAST, { equipped: 'ถอดก่อนจึงจะลงขายได้', missing: 'ไม่พบของ', full: 'ลงขายได้สูงสุด 10 รายการ', price: 'ราคาไม่ถูกต้อง' }[r], '#ff8a6a'); return; }
           sfx.coin(); bus.emit(EV.TOAST, `ลงขาย ${d.name} ราคา ${this.mkPrice.toLocaleString()} 💰 แล้ว`, '#9fffb0'); this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
         }, { size: 9.5, color: 0x1f4a2a }));
@@ -748,7 +751,7 @@ export class Panels {
         c.add(k.text(x + 42, ry + 6, `${d.name}${l.item.upg ? ' +' + l.item.upg : ''}${l.item.qty > 1 ? ' x' + l.item.qty : ''}`, 8.5, rcol(rr)));
         c.add(k.text(x + W - 260, ry + 6, left > 0 ? `เหลือ ${Math.floor(left / 3600000)} ชม. • รอผู้ซื้อ (เมื่อออนไลน์)` : 'หมดเวลา', 7.5, '#c8b898'));
         c.add(k.text(x + W - 100, ry + 5, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
-        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { if (cancelListing(s, l.id)) { bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); } else bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a6a'); this.rebuild(); }, { size: 8, color: 0x5a1a1a }));
+        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { if (act('marketCancel', { id: l.id })) { bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); } else bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a6a'); this.rebuild(); }, { size: 8, color: 0x5a1a1a }));
       });
     }
   }
@@ -777,7 +780,7 @@ export class Panels {
       g.lineStyle(sel ? 2 : 1, sel ? 0xffd84a : 0x5a4a3a, 1).strokeRoundedRect(tx, ty, tw, th, 5);
       c.add(k.text(tx + 8, ty + 6, ld.name, 9.5, open ? '#ffffff' : '#6a6050'));
       c.add(k.text(tx + 8, ty + 24, open ? `มอน Lv${first.level}-${STAGES[i * 10 + 9].level}` : `🔒 Lv${first.req}`, 8, open ? HI[i] : '#6a6050'));
-      c.add(k.text(tx + tw - 6, ty + 6, ['🪵🪵🍖', '🪵🍖', '🪨🪨🍖', '🪵🍖', '🪨🪨🍖'][i], 8).setOrigin(1, 0));
+      c.add(k.text(tx + tw - 6, ty + 6, '💰🎁', 8).setOrigin(1, 0));
       const z = ui.add.zone(tx, ty, tw, th).setOrigin(0).setInteractive();
       z.on('pointerup', () => { sfx.click(); this.land = i; this.rebuild(); });
       c.add(z);
@@ -789,7 +792,7 @@ export class Panels {
       c.add(k.text(tx + 6, wy + 3, '🌿 ป่าดงดิบ', 9.5, '#ffffff'));
       c.add(k.text(tx + tw - 5, wy + 4, '⛏🍖💰', 8).setOrigin(1, 0));
       const z = ui.add.zone(tx, wy, tw, wh).setOrigin(0).setInteractive();
-      z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(WILD); });
+      z.on('pointerup', () => { sfx.click(); this.open('rooms'); });
       c.add(z);
     }
     // stage cards
@@ -826,6 +829,24 @@ export class Panels {
     });
   }
 
+  // ---------------- DEEPWILD ROOMS (100 players each) ----------------
+  buildRooms(c: Phaser.GameObjects.Container) {
+    const ui = this.ui, k = this.k, info = act('wildRooms', {});
+    const W = Math.min(420, ui.VW - 20), H = 250;
+    const { x, y, g } = this.window(c, W, H, '🌿 ป่าดงดิบ — เลือกห้อง');
+    c.add(k.text(x + 16, y + 32, `${info.cap} คนต่อห้อง • ไม่มีมอน • ตัดไม้ ขุดแร่ ล่าสัตว์ • ใส่ชุดชาวบ้านให้อัตโนมัติ`, 8, '#9fe0a0', { wordWrap: { width: W - 32 } }));
+    const cols = 3, cw = (W - 32 - (cols - 1) * 8) / cols, ch = 70;
+    info.rooms.forEach((r, i) => {
+      const cx = x + 16 + (i % cols) * (cw + 8), cy = y + 60 + Math.floor(i / cols) * (ch + 8), full = r.count >= info.cap, cur = r.id === info.room;
+      g.fillStyle(full ? 0x2a1410 : 0x1f3a24, 0.95).fillRoundedRect(cx, cy, cw, ch, 5).lineStyle(cur ? 2 : 1, cur ? 0xffd84a : full ? 0x6a3a2a : 0x5a8a5a, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
+      c.add(k.text(cx + 8, cy + 6, `ห้อง ${r.id}`, 11, full ? '#a88878' : '#ffffff', { fontStyle: 'bold' }));
+      const f = r.count / info.cap;
+      g.fillStyle(0x0b0805, 1).fillRect(cx + 8, cy + 30, cw - 16, 7).fillStyle(f >= 1 ? 0xff5a4a : f > 0.75 ? 0xffb040 : 0x5ad86a, 1).fillRect(cx + 8, cy + 30, (cw - 16) * Math.min(1, f), 7);
+      c.add(k.text(cx + 8, cy + 42, full ? `เต็ม ${r.count}/${info.cap}` : `👥 ${r.count}/${info.cap}`, 9, full ? '#ff8a6a' : '#c8e8c0'));
+      if (!full) { const z = ui.add.zone(cx, cy, cw, ch).setOrigin(0).setInteractive(); z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number, room?: number) => void }).enterStage?.(WILD, r.id); }); c.add(z); }
+    });
+  }
+
   // ---------------- ALCHEMY (kitchen) ----------------
   buildAlchemy(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
@@ -853,7 +874,7 @@ export class Panels {
       c.add(k.text(nx + 2, ny, `💰${r.gold} 🍖${r.food}`, 7, s.gold >= r.gold && s.res.food >= r.food ? '#ffe7a0' : '#ff8a6a'));
       const lock = kl < r.kitchen;
       c.add(k.button(cx + cw - 52, cy + 6, 46, 22, lock ? `🔒ครัว${r.kitchen}` : 'ปรุง', () => {
-        const res = brew(s, r.out);
+        const res = act('brew', { out: r.out });
         if (res === 'ok') { sfx.upgradeOk(); bus.emit(EV.TOAST, `ปรุงสำเร็จ! ${d.name} — ดื่มได้ในกระเป๋า`, rc); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }
         else { sfx.error(); bus.emit(EV.TOAST, { kitchen: `ต้องอัปเกรดครัวเป็น Lv${r.kitchen}`, items: 'แร่ไม่พอ — ไปขุดที่เหมืองใน 🌿 ป่าดงดิบ', gold: 'ทองไม่พอ', food: 'อาหารไม่พอ — ล่าสัตว์ใน 🌿 ป่าดงดิบ', bag: 'กระเป๋าเต็ม' }[res], '#ff8a8a'); }
       }, { size: lock ? 7 : 9.5, color: d.rarity >= 3 ? 0x6a1a8a : 0x5a3a10, disabled: lock || !!f }));
@@ -905,7 +926,7 @@ export class Panels {
       const a = activeQuest(s);
       if (a?.status === 'ready') btns.push(['✔ ส่งภารกิจ', () => {
         const def = QUEST_BY_ID[a.id];
-        const lv = completeQuest(s, a.id);
+        const lv = act('completeQuest', { id: a.id });
         if (lv < 0) { bus.emit(EV.TOAST, 'ของไม่ครบ', '#ff8a8a'); return; }
         sfx.levelUp();
         bus.emit(EV.TOAST, `สำเร็จ! +${def.reward.exp} EXP +${def.reward.gold} G`, '#9fffb0');
@@ -917,7 +938,7 @@ export class Panels {
       }, 0x1f4a2a]);
       else if (!a) {
         const n = nextAvailable(s, 'elder');
-        if (n && s.level >= n.minLevel) btns.push(['📜 รับภารกิจ', () => { acceptQuest(s, n.id); sfx.pickup(); bus.emit(EV.TOAST, `รับภารกิจ: ${n.title}`, '#ffe7a0'); this.close(); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a]);
+        if (n && s.level >= n.minLevel) btns.push(['📜 รับภารกิจ', () => { act('acceptQuest', { id: n.id }); sfx.pickup(); bus.emit(EV.TOAST, `รับภารกิจ: ${n.title}`, '#ffe7a0'); this.close(); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a]);
       }
     } else if (this.dialogNpc === 'merchant') btns.push(['🛒 ร้านค้า', () => { this.shopTab = 'buy'; this.open('shop'); }, 0x1f3a5a]);
     else {
@@ -961,10 +982,9 @@ export class Panels {
         const can = s.gold >= def.price && !capped;
         if (id === 'mana_shard') c.add(k.text(cx + cw - 70, cy + ch - 9, `วันนี้ ${sd.shopDay.shards}/${SHOP_SHARD_DAILY}`, 6.5, capped ? '#ff8a6a' : '#c8b898').setOrigin(1, 0.5));
         c.add(k.button(cx + cw - 66, cy + 9, 60, 22, `${def.price} G`, () => {
-          if (s.gold < def.price) { sfx.error(); bus.emit(EV.TOAST, 'ทองไม่พอ', '#ff8a8a'); return; }
-          if (!addItem(s, id, 1)) { sfx.error(); bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a8a'); return; }
-          if (capped) return;
-          s.gold -= def.price; if (id === 'mana_shard') sd.shopDay!.shards++; sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${def.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+          const br = act('shopBuy', { id });
+          if (refused(br)) { sfx.error(); bus.emit(EV.TOAST, ({ gold: 'ทองไม่พอ', bag: 'กระเป๋าเต็ม', cap: 'วันนี้ซื้อครบแล้ว' } as Record<string, string>)[br.refused] ?? 'ซื้อไม่ได้', '#ff8a8a'); return; }
+          sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${def.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
         }, { size: 9, disabled: !can, color: 0x5a3a10 }));
       });
     } else {
@@ -989,7 +1009,7 @@ export class Panels {
       c.add(k.button(x + 14, y + H - 34, 96, 22, `ระดับ: ${['Common', '≤ Uncommon', '≤ Rare'][this.junkRar]}`, () => { this.junkRar = (this.junkRar + 1) % 3; this.junkConfirm = false; this.rebuild(); }, { size: 8 }));
       c.add(k.button(x + 114, y + H - 34, cols * (cs + 3) - 100, 22, this.junkConfirm ? `ยืนยัน! ขาย ${junk.length} ชิ้น (+${jg.toLocaleString()} G)` : `ขายอุปกรณ์ที่ไม่ได้ใส่ ${junk.length} ชิ้น`, () => {
         if (!this.junkConfirm) { this.junkConfirm = true; this.rebuild(); return; }
-        const r = sellJunk(s, this.junkRar); this.junkConfirm = false; this.selUid = null;
+        const r = act('sellJunk', { maxRar: this.junkRar }); this.junkConfirm = false; this.selUid = null;
         if (r.count) { sfx.coin(); bus.emit(EV.TOAST, `ขาย ${r.count} ชิ้น ได้ ${r.gold.toLocaleString()} G`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); }
         this.rebuild();
       }, { size: 8.5, color: this.junkConfirm ? 0x8a2a1a : 0x5a3a10, disabled: !junk.length }));

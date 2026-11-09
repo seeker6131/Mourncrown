@@ -6,9 +6,9 @@ import { S, bus, EV } from '../core/events';
 import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
-import { applyKill } from '../systems/rewards';
+import { act, refused } from '../net/client';
 import { Vfx } from './vfx';
-import { vipActive, slashFx } from '../systems/premium';
+import { slashFx } from '../systems/premium';
 import { sellJunk } from '../systems/inventory';
 import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
@@ -60,7 +60,6 @@ export class Combat {
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot;
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
-    for (let i = 0; i < 6; i++) { const p = pick(); this.spawn(GAME[i % 2], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
   }
   /** bring a dead monster back somewhere else on the map */
   respawn(m: Mon) {
@@ -317,13 +316,14 @@ export class Combat {
       m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
-    const s = S(), st = this.stage!;
-    const r = applyKill(s, st.n, m.m, m.boss, m.boss);
-    if (vipActive(s) && s.inventory.length >= invSize(s) - 2) { const j = sellJunk(s, 1); if (j.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${j.count} ชิ้น +${j.gold}G`, '#ffd84a', 8); }
+    const s = S();
+    const r = act('kill', { kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
     this.respawn(m);
-    this.float(m.x, m.y - 20, `+${r.exp} EXP  +${r.gold}G`, '#bfffb0', 8);
+    if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
+    if (r.junk?.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${r.junk.count} ชิ้น +${r.junk.gold}G`, '#ffd84a', 8);
+    this.float(m.x, m.y - 20, r.gold ? `+${r.exp} EXP  +${r.gold}G` : `+${r.exp} EXP`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
-    this.float(m.x + 14, m.y - 8, `🪵${r.wood} 🪨${r.stone} 🍖${r.food}`, '#ffd8a0', 7);
+    if (r.food) this.float(m.x + 14, m.y - 8, `🍖${r.food}`, '#ffd8a0', 8);
     r.mats.forEach((q, i) => this.float(m.x - 14, m.y - 46 - i * 10, `+${q.qty} ${itemDef(q.id).name}`, '#c8e8ff', 8));
     r.gear.forEach((q, i) => this.float(m.x, m.y - 34 - i * 12, `${RARITY_NAMES[q.rar]} ${itemDef(q.id).name}`, '#' + RARITY_COLORS[q.rar].toString(16).padStart(6, '0'), 9));
     if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที', '#ffd040');

@@ -103,14 +103,14 @@ describe('quests', () => {
 import { applyKill } from '../src/systems/rewards';
 import { STAGES } from '../src/world/stages';
 describe('top-down kill rewards (server-side candidate)', () => {
-  it('is deterministic for the same rnd and always gives materials', () => {
+  it('is deterministic for the same rnd; monsters give gold + EXP, never resources', () => {
     const seq = () => { let x = 7; return () => (x = (x * 16807) % 2147483647) / 2147483647; };
     const a = startNewGame(), b = startNewGame();
     const mon = STAGES[0].land.mobs[0];
     const ra = applyKill(a, 1, mon, false, false, seq()), rb = applyKill(b, 1, mon, false, false, seq());
     expect(ra).toEqual(rb);
-    expect(ra.wood).toBeGreaterThan(0); expect(ra.food).toBeGreaterThan(0);
-    expect(a.res.wood).toBe(ra.wood); expect(a.gold).toBe(50 + ra.gold);
+    expect(ra.wood).toBe(0); expect(ra.stone).toBe(0); expect(ra.food).toBe(0);
+    expect(ra.gold).toBeGreaterThan(0); expect(ra.exp).toBeGreaterThan(0); expect(a.gold).toBe(50 + ra.gold);
   });
   it('a boss gives 3 gear drops, counts the boss and clears the stage', () => {
     const s = startNewGame();

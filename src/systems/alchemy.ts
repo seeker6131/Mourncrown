@@ -5,7 +5,7 @@ import { WILD } from '../world/stages';
 import { addItem, countItem, removeItem } from './inventory';
 import { levelOf } from './settlement';
 
-export interface Vein { ore: string; gem: string; req: number; rare?: boolean; gold?: boolean }
+export interface Vein { ore: string; gem: string; req: number; rare?: boolean; gold?: boolean; pit?: number }
 export interface GatherResult { amt: number; ore: string | null; oreQty: number; gem: string | null; gold: number; low?: number }
 /** One hit on a tree or rock. mapN: 0 = village, 1-50 = monster maps, WILD = the Deepwild.
  *  Ores, rare gems and gold veins exist only in the Deepwild mine pits (vein = that pit's ore). */
