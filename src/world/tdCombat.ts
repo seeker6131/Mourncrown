@@ -6,7 +6,7 @@ import { S, bus, EV } from '../core/events';
 import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
-import { pickBase, rollRarity, makeGear, isGear } from '../systems/loot';
+import { applyKill } from '../systems/rewards';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
 import { STAGES, scaleStats, type Stage, type StageMon } from './stages';
 
@@ -159,35 +159,18 @@ export class Combat {
       playAnim(m.sp, m.m.key, 'die', m.dir, false); this.s.cameras.main.shake(400, 0.008);
       m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
-    const s = S(), st = this.stage!, d = derive(s), base0 = MONSTERS[m.m.kind];
-    const g = Phaser.Math.Between(m.gold[0], m.gold[1]); s.gold += g;
-    const lv = gainExp(s, m.exp * d.expBonus);
-    this.float(m.x, m.y - 20, `+${Math.round(m.exp * d.expBonus)} EXP  +${g}G`, '#bfffb0', 8);
-    if (lv > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
-    // village materials: wood and stone from every kill, food by size; crafting drops from the monster's table
-    const tierK = 1 + st.n / 12, wood = Math.round(Phaser.Math.Between(1, 3) * tierK * (m.boss ? 15 : 1)), stone = Math.round(Phaser.Math.Between(0, 2) * tierK * (m.boss ? 15 : 1));
-    const food = Math.max(1, Math.round((m.m.size / 24) * tierK * (m.boss ? 10 : 1)));
-    s.res.wood += wood; s.res.stone += stone; s.res.food += food;
-    this.float(m.x + 14, m.y - 8, `🪵${wood} 🪨${stone} 🍖${food}`, '#ffd8a0', 7);
-    for (const dr of base0.drops) {
-      if (isGear(itemDef(dr.id))) continue;
-      if (Math.random() < dr.chance) { const q = dr.min ? Phaser.Math.Between(dr.min, dr.max ?? dr.min) : 1; if (addItem(s, dr.id, q)) this.float(m.x - 14, m.y - 46, `+${q} ${itemDef(dr.id).name}`, '#c8e8ff', 8); }
-    }
-    if (m.boss) { s.bossDefeated = (s.bossDefeated ?? 0) + 1; bus.emit(EV.TOAST, `ปราบบอสสำเร็จ!`, '#ffd040'); }
-    // loot: rarity floor and magic find grow with the stage
-    const drops = m.boss ? 3 : Math.random() < 0.16 + st.n * 0.002 ? 1 : 0;
-    for (let i = 0; i < drops; i++) {
-      const base = pickBase(Math.random, st.level), rar = rollRarity(Math.random, st.mf + d.mf, m.boss ? Math.max(st.minRar, 2) : st.minRar);
-      if (addItem(s, base.id, 1, 0, makeGear(Math.random, base.id, rar)))
-        this.float(m.x, m.y - 34 - i * 12, `${RARITY_NAMES[rar]} ${itemDef(base.id).name}`, '#' + RARITY_COLORS[rar].toString(16).padStart(6, '0'), 9);
-    }
+    // rewards are decided by a pure system function (moves to the server when the game goes online)
+    const s = S(), st = this.stage!;
+    const last = this.mons.every(q => !q.alive) && !this.cleared;
+    const r = applyKill(s, st.n, m.m, m.boss, last);
+    this.float(m.x, m.y - 20, `+${r.exp} EXP  +${r.gold}G`, '#bfffb0', 8);
+    if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
+    this.float(m.x + 14, m.y - 8, `🪵${r.wood} 🪨${r.stone} 🍖${r.food}`, '#ffd8a0', 7);
+    r.mats.forEach((q, i) => this.float(m.x - 14, m.y - 46 - i * 10, `+${q.qty} ${itemDef(q.id).name}`, '#c8e8ff', 8));
+    r.gear.forEach((q, i) => this.float(m.x, m.y - 34 - i * 12, `${RARITY_NAMES[q.rar]} ${itemDef(q.id).name}`, '#' + RARITY_COLORS[q.rar].toString(16).padStart(6, '0'), 9));
+    if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ!', '#ffd040');
     saveGame(s);
-    if (this.mons.every(q => !q.alive) && !this.cleared) {
-      this.cleared = true;
-      const sv = s as unknown as { tdCleared?: number };
-      sv.tdCleared = Math.max(sv.tdCleared ?? 0, st.n); saveGame(s);
-      this.s.events.emit('stageCleared', st.n);
-    }
+    if (r.cleared) { this.cleared = true; this.s.events.emit('stageCleared', st.n); }
   }
 
   /** big readable damage numbers: pop in, hang, drift up; crits get a label and a bigger punch */

@@ -99,3 +99,23 @@ describe('quests', () => {
     expect(removeItem(s, 'spore_cap', 1)).toBe(false);
   });
 });
+
+import { applyKill } from '../src/systems/rewards';
+import { STAGES } from '../src/world/stages';
+describe('top-down kill rewards (server-side candidate)', () => {
+  it('is deterministic for the same rnd and always gives materials', () => {
+    const seq = () => { let x = 7; return () => (x = (x * 16807) % 2147483647) / 2147483647; };
+    const a = startNewGame(), b = startNewGame();
+    const mon = STAGES[0].land.mobs[0];
+    const ra = applyKill(a, 1, mon, false, false, seq()), rb = applyKill(b, 1, mon, false, false, seq());
+    expect(ra).toEqual(rb);
+    expect(ra.wood).toBeGreaterThan(0); expect(ra.food).toBeGreaterThan(0);
+    expect(a.res.wood).toBe(ra.wood); expect(a.gold).toBe(50 + ra.gold);
+  });
+  it('a boss gives 3 gear drops, counts the boss and clears the stage', () => {
+    const s = startNewGame();
+    const r = applyKill(s, 10, STAGES[9].land.boss, true, true);
+    expect(r.gear.length).toBe(3); expect(s.bossDefeated).toBe(1); expect(r.cleared).toBe(true);
+    expect((s as unknown as { tdCleared: number }).tdCleared).toBe(10);
+  });
+});
