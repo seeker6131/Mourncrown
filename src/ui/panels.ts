@@ -72,7 +72,7 @@ export class Panels {
   get k() { return this.ui.kit; }
 
   open(id: PanelId) {
-    sfx.click();
+    if (this.cur) sfx.page(); else sfx.open();
     this.cur = id;
     this.selUid = null;
     this.confirmNew = false;
@@ -81,7 +81,7 @@ export class Panels {
   }
 
   close() {
-    if (this.cur) saveGame(S());
+    if (this.cur) { saveGame(S()); sfx.close(); }
     this.cur = null;
     this.c?.destroy(); this.c = null;
   }
@@ -261,7 +261,7 @@ export class Panels {
         else {
           const rq = reqLevel(it.id);
           if (s.level < rq) btn(`ต้อง Lv ${rq} ถึงจะใส่ได้`, () => undefined, undefined, true);
-          else btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.pickup(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
+          else btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.equip(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
           btn('ย่อยเป็นวัตถุดิบ', () => { const r = act('dismantle', { uid: it.uid }); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; bus.emit(EV.STATE_CHANGED); } }, 0x4a2a5a);
         }
       }
@@ -525,7 +525,7 @@ export class Panels {
       c.add(k.text(cx + 10, top + 22, t + (on ? '  ✔' : ''), 11, on ? '#ffd84a' : '#f3e6c4'));
       c.add(k.text(cx + 10, top + 42, d, 8, '#d8ccb0', { lineSpacing: 2 }));
       const z = ui.add.zone(cx, top + 16, cw, 74).setOrigin(0).setInteractive();
-      z.on('pointerup', () => { s.outfit = id; sfx.pickup(); bus.emit(EV.STATE_CHANGED); this.rebuild(); });
+      z.on('pointerup', () => { s.outfit = id; sfx.cloth(); bus.emit(EV.STATE_CHANGED); this.rebuild(); });
       c.add(z);
     });
     c.add(k.text(x + 16, top + 102, 'เลือกร่างที่จะสวม (แต่ละร่างมีสกิลของตัวเอง)', 10, '#ffe7a0'));

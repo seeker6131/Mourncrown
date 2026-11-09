@@ -215,6 +215,7 @@ export class TopDownScene extends Phaser.Scene {
     createCharAnims(this);
     this.shadowTex();
     this.shadow = this.contact(PLAZA.x, PLAZA.y + 40, 24, 9, 0.5);
+    this.time.delayedCall(250, () => sfx.door());   // arriving on a map
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);
@@ -495,7 +496,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.dDone || this.dead) return;
     const r = act('dungeonClear', {});
     if (refused(r)) { bus.emit(EV.TOAST, 'เซิร์ฟไม่รับผลดันเจี้ยน', '#ff8a6a'); return; }
-    this.dDone = true; this.levelUpFx(); this.combat.vfx.star(this.hero.x, this.hero.y - 30, 0xffd84a, 2.4);
+    this.dDone = true; sfx.chest(); this.levelUpFx(); this.combat.vfx.star(this.hero.x, this.hero.y - 30, 0xffd84a, 2.4);
     bus.emit(EV.TOAST, `🎁 ผ่านดันเจี้ยน! 💰${r.gold.toLocaleString()} + ผลึกมานา ${r.shards}`, '#ffd84a');
     for (const g of r.gear) { bus.emit(EV.TOAST, `◆ ${SETS[g.set!].name}: ${idef(g.id).name}`, '#' + SETS[g.set!].col.toString(16).padStart(6, '0')); bus.emit('loot:popup', { id: g.id, rar: g.rar, set: g.set }); }
     this.addPortal(this.hero.x + 40, this.hero.y, 0, 'กลับหมู่บ้าน'); saveGame(S()); bus.emit(EV.STATE_CHANGED);
@@ -1022,6 +1023,7 @@ export class TopDownScene extends Phaser.Scene {
       this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
     }
+    sfx.cast();
     this.combat.castSkill(r);
     bus.emit(EV.STATE_CHANGED);
   }
@@ -1213,6 +1215,7 @@ export class TopDownScene extends Phaser.Scene {
       if (n.hp <= 0) { const t = n.vein?.rare ? 240000 : this.wild ? 45000 : 90000; n.until = this.time.now + t; n.hp = n.vein?.rare ? 6 : 4; n.im.setAlpha(0.45); this.time.delayedCall(t, () => n.im.active && n.im.setAlpha(1)); }
       bus.emit(EV.STATE_CHANGED);
     };
+    this.time.delayedCall(380, () => (n.kind === 'wood' ? sfx.chop() : sfx.mine()));
     if (playAnim(h, key, anim, this.dir, false) || playAnim(h, key, 'attack', this.dir, false)) h.once('animationcomplete', done);
     else this.time.delayedCall(500, done);
   }
@@ -1245,6 +1248,7 @@ export class TopDownScene extends Phaser.Scene {
   }
   tutText() { const s = S(); return tutActive(s) ? `🎓 ${tutStep(s) + 1}/${TUT_STEPS.length}  ${TUT_STEPS[tutStep(s)]}` : ''; }
   titleTx!: Phaser.GameObjects.Text;
+  stepT = 0;
   /** other players who may grab loot (simulated crowd in the Deepwild) */
   others() { const c = this.crowd; return c ? c.list.map(p => ({ x: p.x, y: p.y, name: p.name, grab: (x: number, y: number) => c.grab(p, x, y, this.time.now) })) : []; }
   stunUntil = 0;
@@ -1269,6 +1273,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero;
     const F = this.F;
     playAnim(h, F.key, this.swing, this.dir, false);
+    this.time.delayedCall(120, () => sfx.swing());
     if (this.stageN) this.combat.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }
@@ -1305,6 +1310,7 @@ export class TopDownScene extends Phaser.Scene {
       const ang = Math.atan2(my, mx);                       // 0 = east
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
       playAnim(h, this.F.key, 'walk', this.dir);
+      if (time > this.stepT) { this.stepT = time + 310; sfx.step(); }
     } else if (h.anims.isPlaying && !this.attacking && !this.dead) {
       setIdle(h, this.F.key, this.dir);
     }

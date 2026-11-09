@@ -337,3 +337,9 @@
 - ดันเจี้ยน: `DUNGEON=200`+ดินแดน, `isDungeon`, `dungeonStage`, `dungeonLand` (stages.ts) • Combat.startDungeon/nextWave • TopDownScene.startDungeon/clearDungeon • panel `dungeon` (ปุ่มในหน้าเลือกแผนที่)
 - หน้าต่างใหม่: `login`, `collection`, `dungeon` • เมนูมีปุ่ม 📅 / 🏆
 - เทส: `tests/retention.test.ts`, ดันเจี้ยนใน `tests/server.test.ts` (57 ข้อ)
+
+## เสียง (2026-11-09)
+- Kenney "RPG Audio" (CC0, ผู้กำกับอัปโหลด) → `src/assets/sfx/*.ogg` (41 ไฟล์ที่ใช้) + `KENNEY_LICENSE.txt` • ต้นฉบับ `art-source/audio/kenney_rpg-audio.zip`
+- `src/audio/sfx.ts`: `sample()` เล่นไฟล์ (สุ่มไฟล์ + ปรับ pitch เล็กน้อย) ถ้ายังไม่โหลดจะใช้เสียงสังเคราะห์แทน • โหลดหลังแตะจอครั้งแรก
+- จุดที่ผูกเสียง: ฟัน, ตัดไม้ (chop), ขุด (metalPot), เดิน (footstep ทุก 0.31 วิ), เก็บของ, ทอง, สวมอุปกรณ์, เปลี่ยนชุด, เปิด/ปิด/สลับหน้าต่าง, ปุ่ม, สกิล, เข้าแผนที่ (door), หีบดันเจี้ยน (creak), โดนตี, คริ
+- ยังขาด: เพลงพื้นหลังจริง (ยังเป็นเพลงสังเคราะห์), เสียงเวท/ระเบิด/เสียงมอน — ดูลิงก์แนะนำในแชต

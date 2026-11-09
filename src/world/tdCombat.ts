@@ -7,6 +7,7 @@ import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
 import { act, refused } from '../net/client';
+import { sfx } from '../audio/sfx';
 import { SETS } from '../data/sets';
 import { Vfx } from './vfx';
 import { slashFx } from '../systems/premium';
@@ -69,6 +70,7 @@ export class Combat {
   }
   // ---------- loot on the ground: the item itself with a rarity aura; flies into the hero when close ----------
   ground: Loot[] = [];
+  hitSfxT = 0;
   bagWarnT = 0;
   dropLoot(x: number, y: number, drops: { did: number; id: string; qty: number; rar: number; set?: string }[]) {
     const sc = this.s;
@@ -113,7 +115,7 @@ export class Combat {
       }
       this.removeLoot(g); return;
     }
-    this.removeLoot(g);
+    this.removeLoot(g); sfx.pickup();
     const def = itemDef(r.id), col = '#' + RARITY_COLORS[r.rar].toString(16).padStart(6, '0');
     this.float(sc.hero.x, sc.hero.y - 52, `+${def.name}${r.qty > 1 ? ' x' + r.qty : ''}`, col, 8);
     const gear = ['weapon', 'armor', 'accessory'].includes(def.type);
@@ -382,6 +384,7 @@ export class Combat {
   hurtMon(m: Mon, dmg: number, crit: boolean, magic = false) {
     if (!m.alive) return;
     m.hp -= dmg; m.hitT = this.s.time.now;
+    if (this.s.time.now > this.hitSfxT) { this.hitSfxT = this.s.time.now + 70; if (crit) sfx.crit(); else sfx.hit(); }
     const st = magic ? (crit ? DMG.magicCrit : DMG.magic) : (crit ? DMG.physCrit : DMG.phys);
     this.dmgText(m.x + (Math.random() - 0.5) * 10, m.y - m.m.size * 0.75, dmg, st, crit, magic);
     if (!magic) this.vfx.impact(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xfff4dc, crit);
@@ -419,6 +422,7 @@ export class Combat {
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
     if (r.drops?.length) this.dropLoot(m.x, m.y, r.drops);
+    if (r.gold) sfx.coinSoft();
     if (r.junk?.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${r.junk.count} ชิ้น +${r.junk.gold}G`, '#ffd84a', 8);
     this.float(m.x, m.y - 20, r.gold ? `+${r.exp} EXP  +${r.gold}G` : `+${r.exp} EXP`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
@@ -511,6 +515,7 @@ export class Combat {
           if (!m.alive || this.s.dead || Math.hypot(h.x - m.x, h.y - m.y) > reach + 8) return;
           const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
           s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+          if (!r.miss) sfx.hurt();
           this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
           if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
           if (s.hp <= 0) this.s.heroDie();

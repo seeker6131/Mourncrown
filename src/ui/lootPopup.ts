@@ -4,6 +4,7 @@
 import Phaser from 'phaser';
 import { itemDef, RARITY_COLORS, RARITY_NAMES } from '../data/items';
 import { SETS } from '../data/sets';
+import { sfx } from '../audio/sfx';
 
 interface Host extends Phaser.Scene { VW: number; VH: number; root: Phaser.GameObjects.Container; kit: { text(x: number, y: number, t: string, size: number, col?: string, st?: object): Phaser.GameObjects.Text } }
 const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
@@ -24,6 +25,7 @@ export class LootPopup {
     const W = [0, 0, 190, 250, 290, 330][r], H = [0, 0, 52, 70, 86, 110][r];
     const cx = r === 2 ? ui.VW - W / 2 - 12 : ui.VW / 2, cy = r === 2 ? 128 : ui.VH * 0.38;
     const life = [0, 0, 1900, 2500, 3200, 4200][r];
+    if (r >= 4) sfx.levelUp(); else sfx.upgradeOk();
     if (r >= 5) {   // SL: dim the screen + a white flash
       const dim = add(ui.add.rectangle(0, 0, ui.VW, ui.VH, 0x000000, 0).setOrigin(0));
       ui.tweens.add({ targets: dim, fillAlpha: 0.65, duration: 300 });
