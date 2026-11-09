@@ -575,15 +575,19 @@
 "foot": 164
 },
 "walk": {
-"fs": 180,
-"n": 9,
+"fs": 128,
+"n": 8,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 158
+"foot": 128
 },
 "die": {
 "fs": 180,
