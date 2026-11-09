@@ -149,10 +149,12 @@
   "cid": "c63d1244-7e03-4541-89b9-4feaac6c36c6"
  },
  "hr11": {
-  "cid": "6563876c-d993-46b9-aca0-be6b0a0a23b5"
+  "cid": "6563876c-d993-46b9-aca0-be6b0a0a23b5",
+  "walk": "done"
  },
  "hr12": {
-  "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0"
+  "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0",
+  "walk": "done"
  },
  "np1": {
   "cid": "8e93d3e3-f754-453c-b5e9-c83fcae74927"
