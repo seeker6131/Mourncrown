@@ -11,6 +11,7 @@ import { Crowd } from '../world/crowd';
 import { sfx } from '../audio/sfx';
 import { playSkill } from '../audio/skillSfx';
 import { PathGrid } from '../world/pathfind';
+import { ensurePfx, pfxFor } from '../world/pfx';
 import { act, refused } from '../net/client';
 import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
 import { titleOf } from '../data/achievements';
@@ -237,6 +238,7 @@ export class TopDownScene extends Phaser.Scene {
     this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);
     // register the map with the server BEFORE anything spawns (entering clears the server's spawn list)
     if (refused(act('enterMap', { n: this.stageN }))) { bus.emit(EV.TOAST, 'เซิร์ฟปฏิเสธการเข้าแผนที่', '#ff8a6a'); this.time.delayedCall(50, () => this.scene.restart({ stage: 0 })); }
+    ensurePfx(this, pfxFor(currentSkills(S())));   // skill effects for the current form (loaded in the background)
     this.placeProps();
     // return scroll: back to the village from any map
     const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
@@ -1363,7 +1365,7 @@ export class TopDownScene extends Phaser.Scene {
     let mx = 0, my = 0;
     this.label.setVisible(false);
     const s1 = S();
-    if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
+    if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; ensurePfx(this, pfxFor(currentSkills(S()))); if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
     this.updateTutorial(time);

@@ -9,6 +9,7 @@ import { addItem } from '../systems/inventory';
 import { act, refused } from '../net/client';
 import { sfx } from '../audio/sfx';
 import { element } from '../audio/skillSfx';
+import { SKILL_PFX, playPfx } from './pfx';
 import { SETS } from '../data/sets';
 import { Vfx } from './vfx';
 import { slashFx } from '../systems/premium';
@@ -223,11 +224,13 @@ export class Combat {
     const times = (n: number, gap: number, f: (i: number) => void) => { for (let i = 0; i < n; i++) this.s.time.delayedCall(i * gap, () => f(i)); };
     // PixelLab effect art layered over the procedural effects
     const el = element(sk), V = this.vfx;
+    const pf = (SKILL_PFX[sk.id] ?? []).some(u => this.s.anims.exists('pfx_' + u.fx));
+    const artOn = !pf;
     const blastKey = el === 'fire' ? 'px_fx_blast_fire' : el === 'dark' ? 'px_fx_blast_arcane' : 'px_fx_blast_w';
     const blastTint = el === 'fire' || el === 'dark' ? undefined : col;
-    const circle = (x: number, y: number, size: number, dur = 600) => V.art('px_fx_circle_w', x, y, { s0: size * 0.35, s1: size, sy: 0.55, a0: 0.95, tint: col, dur, depth: y - 2, spin: 60 });
-    const blast = (x: number, y: number, size: number, delay = 0) => V.art(blastKey, x, y, { s0: size * 0.3, s1: size, a0: 1, dur: 420, tint: blastTint, delay });
-    const slashArt = (x: number, y: number, a: number, size: number, flip = false) => V.art('px_fx_slash', x, y, { rot: a - Math.PI / 2 + (flip ? Math.PI : 0), s0: size * 0.7, s1: size * 1.1, a0: 1, dur: 360, tint: col });
+    const circle = (x: number, y: number, size: number, dur = 600) => !artOn ? null : V.art('px_fx_circle_w', x, y, { s0: size * 0.35, s1: size, sy: 0.55, a0: 0.95, tint: col, dur, depth: y - 2, spin: 60 });
+    const blast = (x: number, y: number, size: number, delay = 0) => !artOn ? null : V.art(blastKey, x, y, { s0: size * 0.3, s1: size, a0: 1, dur: 420, tint: blastTint, delay });
+    const slashArt = (x: number, y: number, a: number, size: number, flip = false) => !artOn ? null : V.art('px_fx_slash', x, y, { rot: a - Math.PI / 2 + (flip ? Math.PI : 0), s0: size * 0.7, s1: size * 1.1, a0: 1, dur: 360, tint: col });
     switch (sk.kind) {
       case 'strike': {
         const n = sk.count ?? 1;
@@ -240,7 +243,7 @@ export class Combat {
       }
       case 'spin': {
         const n = sk.count ?? 2, r = sk.radius ?? 48;
-        times(n, 220, i => { this.ring(h.x, h.y, r, col, 300); circle(h.x, h.y, r / 70, 380); for (let k = 0; k < 2; k++) V.art('px_fx_slash', h.x, h.y - 10, { rot: k * Math.PI + i, s0: r / 90, s1: r / 70, a0: 1, dur: 300, tint: col, spin: 200 }); for (let k = 0; k < 4; k++) this.vfx.slash(h.x, h.y - 10, k * Math.PI / 2 + i * 0.8, col, 1.25); this.vfx.burst(h.x, h.y - 10, col, 16, 160, 420); this.vfx.dust(h.x, h.y, 6, 40); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
+        times(n, 220, i => { this.ring(h.x, h.y, r, col, 300); circle(h.x, h.y, r / 70, 380); for (let k = 0; k < 2 && artOn; k++) V.art('px_fx_slash', h.x, h.y - 10, { rot: k * Math.PI + i, s0: r / 90, s1: r / 70, a0: 1, dur: 300, tint: col, spin: 200 }); for (let k = 0; k < 4; k++) this.vfx.slash(h.x, h.y - 10, k * Math.PI / 2 + i * 0.8, col, 1.25); this.vfx.burst(h.x, h.y - 10, col, 16, 160, 420); this.vfx.dust(h.x, h.y, 6, 40); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
         break;
       }
       case 'dash': {
@@ -302,15 +305,21 @@ export class Combat {
           if (!m.alive) return;
           const tx = m.x, ty = m.y - m.m.size * 0.3;
           const fall = sk.fall ?? 'arrow';
+          if (pf && (fall === 'meteor' || fall === 'bolt')) {
+            const fxk = fall === 'meteor' ? 'meteor' : 'lightning-strike', u = SKILL_PFX[sk.id].find(q => q.fx === fxk);
+            const t = playPfx(this.s, fxk, m.x, m.y + 2, { scale: u?.scale, flip: Math.random() < 0.5 });
+            this.s.time.delayedCall(Math.max(0, t), () => { if (m.alive) { this.hitSk(m, sk, 4); this.vfx.impact(m.x, m.y - m.m.size * 0.3, col, true); } });
+            return;
+          }
           if (fall === 'bolt') {
             const g = this.s.add.graphics().setDepth(99951).setBlendMode(Phaser.BlendModes.ADD);
             for (const [w, a2] of [[5, 0.35], [2, 1]] as const) { g.lineStyle(w, w > 2 ? col : 0xffffff, a2).beginPath().moveTo(tx, ty - 160); let px = tx; for (let k = 1; k <= 8; k++) { px = tx + (Math.random() - 0.5) * 22; g.lineTo(px, ty - 160 + k * 20); } g.strokePath(); }
             this.s.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() });
-            this.vfx.impact(tx, ty, col, true); this.vfx.glow(tx, ty - 40, col, 1.6, 260); V.art('px_fx_lightning', tx, ty + 10, { oy: 1, s0: 1.2, s1: 1.4, a0: 1, dur: 480 }); this.hitSk(m, sk, 4); return;
+            this.vfx.impact(tx, ty, col, true); this.vfx.glow(tx, ty - 40, col, 1.6, 260); artOn && V.art('px_fx_lightning', tx, ty + 10, { oy: 1, s0: 1.2, s1: 1.4, a0: 1, dur: 480 }); this.hitSk(m, sk, 4); return;
           }
           const meteor = fall === 'meteor';
           this.vfx.bolt(tx - 40, ty - 160, tx, ty, col, meteor ? 2.2 : fall === 'blade' ? 1.3 : 1, meteor ? 520 : 800, () => {
-            if (meteor) V.art('px_fx_blast_fire', tx, ty, { s0: 0.4, s1: 1.1, dur: 460 });
+            if (meteor && artOn) V.art('px_fx_blast_fire', tx, ty, { s0: 0.4, s1: 1.1, dur: 460 });
             if (fall === 'blade') slashArt(tx, ty, Math.PI / 2, 0.45);
             if (meteor) { this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, 42, col, 460); this.vfx.debris(tx, ty + 6, col, 14); this.vfx.burst(tx, ty, 0xffa040, 22, 190, 560, 0.22, 140); }
             else { this.vfx.impact(tx, ty, col, fall === 'blade'); this.vfx.wave(tx, ty + 6, 16, col, 280); }
@@ -333,9 +342,10 @@ export class Combat {
       }
       case 'buff': case 'heal': case 'shield': {
         const r = selfEffect(s, sk);
-        this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
-        circle(h.x, h.y, 0.75, 900); V.art('px_fx_pillar', h.x, h.y + 4, { oy: 1, s0: 0.6, s1: 1.1, sy: 1.4, a0: 1, dur: 800, tint: sk.kind === 'shield' ? undefined : col });
-        this.vfx.pillar(h.x, h.y, col, sk.kind === 'buff' ? 150 : 110, 600); this.vfx.glow(h.x, h.y - 16, col, 1.4, 400); this.vfx.wave(h.x, h.y, 36, col, 500);
+        if (!pf) this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
+        circle(h.x, h.y, 0.75, 900); if (artOn) V.art('px_fx_pillar', h.x, h.y + 4, { oy: 1, s0: 0.6, s1: 1.1, sy: 1.4, a0: 1, dur: 800, tint: sk.kind === 'shield' ? undefined : col });
+        if (!pf) { this.vfx.pillar(h.x, h.y, col, sk.kind === 'buff' ? 150 : 110, 600); this.vfx.wave(h.x, h.y, 36, col, 500); }
+        this.vfx.glow(h.x, h.y - 16, col, 1.4, 400);
         if (r.heal !== undefined) this.float(h.x, h.y - 40, `+${r.heal}`, '#7aff8a', 12);
         if (r.shield) {
           this.shieldHp = r.shield; this.shieldUntil = this.s.time.now + 12000;
@@ -344,6 +354,26 @@ export class Combat {
         }
         break;
       }
+    }
+    this.skillPfx(sk, aim, fx, fy);
+  }
+
+  /** pixelfx layer for a skill: on the hero, in front, on the targets (same picks as the skill), or where a dash / leap lands */
+  skillPfx(sk: SkillDef, aim: number, fx: number, fy: number) {
+    const uses = SKILL_PFX[sk.id]; if (!uses) return;
+    const h = this.s.hero, left = fx < -0.2;
+    const targets = (): { x: number; y: number }[] => {
+      if (sk.kind === 'rain') return this.nearest(230).slice(0, sk.count ?? 5);
+      if (sk.kind === 'pierce') return this.alive().filter(m => { const px = m.x - h.x, py = m.y - h.y, t = px * fx + py * fy, d = Math.abs(-px * fy + py * fx); return t > 0 && t < 230 && d < 24; });
+      return this.nearest(sk.kind === 'shot' ? 200 : 120).slice(0, Math.max(1, sk.count ?? 1));
+    };
+    for (const u of uses) {
+      if (u.at === 'target' && sk.kind === 'rain' && (sk.fall === 'meteor' || sk.fall === 'bolt')) continue;   // played by the rain itself
+      const depth = u.behind ? h.y - 1 : undefined, o = { scale: (u.scale ?? 1) * 0.9, flip: left, depth };
+      if (u.at === 'hero') playPfx(this.s, u.fx, h.x, h.y, { ...o, delay: u.delay });
+      else if (u.at === 'front') playPfx(this.s, u.fx, h.x + fx * 26, h.y + fy * 14 + 4, { ...o, delay: u.delay });
+      else if (u.at === 'land') this.s.time.delayedCall(u.delay ?? 0, () => playPfx(this.s, u.fx, h.x, h.y, o));
+      else targets().forEach((m, i) => playPfx(this.s, u.fx, m.x, m.y, { ...o, delay: (u.delay ?? 0) + i * 90 }));
     }
   }
 
