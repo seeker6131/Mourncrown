@@ -12,7 +12,7 @@ import { STAGES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -154,9 +154,11 @@ export class Combat {
   kill(m: Mon) {
     m.alive = false; m.bar.clear();
     const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
-    if (ph) { this.s.tweens.add({ targets: ph, alpha: 0, scale: 1.4, duration: 300, onComplete: () => ph.destroy() }); }
-    else this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff);
-    m.sp.setVisible(false);
+    if (ph) { this.s.tweens.add({ targets: ph, alpha: 0, scale: 1.4, duration: 300, onComplete: () => ph.destroy() }); m.sp.setVisible(false); }
+    else if (m.boss && hasAnim(m.m.key, 'die')) {
+      playAnim(m.sp, m.m.key, 'die', m.dir, false); this.s.cameras.main.shake(400, 0.008);
+      m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
+    } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
     const s = S(), st = this.stage!, d = derive(s);
     const g = Phaser.Math.Between(m.gold[0], m.gold[1]); s.gold += g;
     const lv = gainExp(s, m.exp * d.expBonus);
@@ -213,6 +215,24 @@ export class Combat {
       } else if (dist >= aggro) {
         const bx = m.hx - m.x, by = m.hy - m.y, bd = Math.hypot(bx, by);
         if (bd > 6) { const sp = base.speed * 0.5 * dt / 1000; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); moving = true; }
+      }
+      if (m.boss && !this.s.dead && dist < 200 && time - (m.spT ?? 0) > 6500 && hasAnim(m.m.key, 'special')) {
+        m.spT = time; m.atkT = time + 600; m.dir = dirOf(dx, dy);
+        playAnim(m.sp, m.m.key, 'special', m.dir, false);
+        const cx = h.x, cy = h.y, R = 46;
+        const warn = this.s.add.ellipse(cx, cy, R * 2, R * 1.2, 0xff2a2a, 0.18).setStrokeStyle(2, 0xff5a4a, 0.9).setDepth(2);
+        this.s.tweens.add({ targets: warn, alpha: { from: 0.4, to: 1 }, duration: 200, yoyo: true, repeat: 2 });
+        this.s.time.delayedCall(1100, () => {
+          warn.destroy(); if (!m.alive) return;
+          this.glowTex();
+          const boom = this.s.add.image(cx, cy - 6, 'fx_dot').setTint(0xff6a3a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99954).setScale(1);
+          this.s.tweens.add({ targets: boom, scale: 4, alpha: 0, duration: 450, onComplete: () => boom.destroy() });
+          this.sparks(cx, cy - 6, 0xffa050, 14); this.s.cameras.main.shake(250, 0.01);
+          if (!this.s.dead && Math.hypot((h.x - cx) / R, (h.y - cy) / (R * 0.6)) < 1) {
+            const r = calcDamage(m.atk * 2.2, d.def, 1, 0, Math.random, 0); s.hp = Math.max(0, s.hp - r.dmg);
+            this.float(h.x, h.y - 40, `-${r.dmg}`, '#ff4a3a', 13); if (s.hp <= 0) this.s.heroDie();
+          }
+        });
       }
       if (!this.s.dead && dist <= reach && time - m.last > base.attackCooldown) {
         m.last = time; m.atkT = time; m.dir = dirOf(dx, dy);

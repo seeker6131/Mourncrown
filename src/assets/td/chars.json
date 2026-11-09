@@ -297,6 +297,52 @@
 }
 }
 },
+"hr2": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 47,
+"anims": {
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 57
+},
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 57
+}
+}
+},
 "hr5": {
 "dirs": [
 "south",
@@ -340,6 +386,133 @@
 "south-west"
 ],
 "foot": 63
+}
+}
+},
+"hr6": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 59
+},
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east"
+],
+"foot": 58
+}
+}
+},
+"hr7": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 47,
+"anims": {
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east"
+],
+"foot": 57
+},
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 57
+}
+}
+},
+"hr8": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"walk": {
+"fs": 64,
+"n": 18,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 54
+},
+"attack": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west"
+],
+"foot": 64
 }
 }
 },

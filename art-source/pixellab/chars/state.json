@@ -6,7 +6,10 @@
   "zip": 1
  },
  "hr2": {
-  "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793"
+  "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
  },
  "hr5": {
   "cid": "b2384178-a25a-4a3d-b753-8db5961bbb80",
@@ -16,7 +19,9 @@
  },
  "hr6": {
   "cid": "63b5475c-9848-4b58-b9ed-cf1d16dd853d",
-  "walk": "done"
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
  },
  "mo1": {
   "cid": "4b012d32-7ed9-4e21-8204-117085658759",
@@ -129,9 +134,27 @@
   "zip": 1
  },
  "hr7": {
-  "cid": "ffb301c7-a8ea-46ab-8133-715945c6088f"
+  "cid": "ffb301c7-a8ea-46ab-8133-715945c6088f",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
  },
  "hr8": {
-  "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5"
+  "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
+ },
+ "hr10": {
+  "cid": "c63d1244-7e03-4541-89b9-4feaac6c36c6"
+ },
+ "hr11": {
+  "cid": "6563876c-d993-46b9-aca0-be6b0a0a23b5"
+ },
+ "hr12": {
+  "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0"
+ },
+ "np1": {
+  "cid": "8e93d3e3-f754-453c-b5e9-c83fcae74927"
  }
 }

@@ -403,7 +403,7 @@ export class TopDownScene extends Phaser.Scene {
       const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
       const r = rnd(), key = trees ? pick(trees[0], trees[1]) : r < 0.45 ? pick('pine', 3) : r < 0.88 ? pick('oak', 3) : pick('dead', 2);
       const below = y - tY(x), hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
-      if ((below > 0 && below < hgt + 30) || (below <= 0 && -below < 60) || !free(x, y, 30)) continue;   // never hide the trail
+      if ((below > 0 && below < hgt + 30) || (below <= 0 && -below < 70) || !free(x, y, 48)) continue;   // never hide the trail, roots stay off it   // never hide the trail
       const t = this.obj(key, x, y, 0.16, 4, true);
       if (t && g !== 'forest') t.setTint(tint[g]);
     }
@@ -501,7 +501,7 @@ export class TopDownScene extends Phaser.Scene {
     // village buildings (level art from PixelLab Objects)
     const B: [string, number, number][] = [
       ['townhall_1', 345, 322], ['tavern_0', 702, 322], ['house_1', 846, 300], ['lumber_0', 150, 330],
-      ['forge_1', 722, 650], ['barn_1', 300, 660], ['market_1', 120, 650],
+      ['forge_1', 722, 650], ['barn_2', 300, 660], ['market_1', 120, 650],
       ['house_0', 1090, 330], ['kitchen_0', 1100, 600], ['house_2', 1180, 760],
     ];
     for (const [n, x, y] of B) {
@@ -512,7 +512,7 @@ export class TopDownScene extends Phaser.Scene {
     const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
     // market stalls and village clutter around the plaza
     for (const [x, y] of [[600, 520], [652, 500], [436, 522]]) this.obj(pick('stall', 5), x, y, 0.8, 10);
-    for (const [k, x, y] of [['well_0', 590, 318], ['cart_0', 256, 470], ['barrel_0', 812, 660], ['barrel_1', 822, 668], ['crate_0', 628, 664], ['logs_0', 252, 350], ['logs_3', 252, 372],
+    for (const [k, x, y] of [['well_0', 590, 318], ['barrel_0', 812, 660], ['barrel_1', 822, 668], ['crate_0', 628, 664], ['logs_0', 252, 350], 
       ['hay_0', 400, 668], ['hay_1', 410, 676], ['sign_0', 880, 456], ['stump_0', 232, 392]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
     // forest edge and clusters
     for (let k = 0; k < 900; k++) {
@@ -520,7 +520,7 @@ export class TopDownScene extends Phaser.Scene {
       const edge = Math.min(x, MW - x, y, MH - y);
       const dense = edge < 80 || fbm(x / 140, y / 140) > 0.62;
       const inVillage = x > 60 && x < 1240 && y > 230 && y < 740 && edge > 70;
-      if (!dense || inVillage || !free(x, y, 30) || near(x, y)) continue;
+      if (!dense || inVillage || !free(x, y, 48) || near(x, y)) continue;   // roots stay off roads
       const r = rnd();
       this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true);
     }
