@@ -532,10 +532,15 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
-"north"
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 157
+"foot": 159
 },
 "walk": {
 "fs": 128,
@@ -595,9 +600,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 159
 },
@@ -685,11 +694,15 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 146
+"foot": 155
 },
 "special": {
 "fs": 172,
