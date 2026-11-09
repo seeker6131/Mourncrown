@@ -89,7 +89,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo2": {
   "cid": "4a4f8d42-86c7-492e-b3f7-106626dcb0c4",
