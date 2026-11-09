@@ -26,12 +26,12 @@ import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 
-import { STAGES, LANDS, WILD } from '../world/stages';
+import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, refused } from '../net/client';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
-import { SETS, fxText } from '../data/sets';
+import { SETS, LAND_SET, fxText } from '../data/sets';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
@@ -40,7 +40,7 @@ import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -136,6 +136,7 @@ export class Panels {
       case 'rooms': this.buildRooms(c); break;
       case 'login': this.buildLogin(c); break;
       case 'collection': this.buildCollection(c); break;
+      case 'dungeon': this.buildDungeon(c); break;
     }
   }
 
@@ -778,6 +779,7 @@ export class Panels {
     if (this.land < 0) this.land = Math.floor((best - 1) / 10);
     const W = Math.min(620, ui.VW - 16), H = 336;
     const { x, y, g } = this.window(c, W, H, 'เลือกแผนที่');
+    { const di = act('dungeonInfo', {}); c.add(k.button(x + 14, y + 4, 140, 20, `⚔ ดันเจี้ยนรายวัน ${di.max - di.used}/${di.max}`, () => this.open('dungeon'), { size: 8.5, color: 0x6a2a10 })); }
     const COL = [0x2e5a3a, 0x4a3a6a, 0x7a3a1a, 0x3a5a7a, 0x3a3a40], HI = ['#9fe0a0', '#c8a8ff', '#ffb080', '#a8d8ff', '#c8c8d0'];
     // previews of this land's monsters and boss (idle sheets load on demand)
     const L = LANDS[this.land];
@@ -837,6 +839,29 @@ export class Panels {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
     });
+  }
+
+  // ---------------- DAILY DUNGEON ----------------
+  buildDungeon(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, di = act('dungeonInfo', {}), st = dungeonStage(di.li, s.level), set = SETS[LAND_SET[st.land.id]];
+    const W = Math.min(460, ui.VW - 20), H = 260, left = di.max - di.used;
+    const { x, y, g } = this.window(c, W, H, '⚔ ดันเจี้ยนรายวัน — ถ้ำเงา');
+    loadIdle(ui, [st.land.boss.key], () => { if (this.cur === 'dungeon') this.rebuild(); });
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(x + 14, y + 32, W - 28, H - 80, 4);
+    if (ui.textures.exists(`c_${st.land.boss.key}_idle`)) { const im = ui.add.image(x + W - 70, y + 150, `c_${st.land.boss.key}_idle`, 0).setOrigin(0.5, 1); im.setScale(96 / im.height); c.add(im); }
+    c.add(k.text(x + 24, y + 40, [
+      `ดินแดน: ${st.land.name} (ตามเลเวลของคุณ) • มอน Lv${st.level}`,
+      `คลื่นมอน ${DUNGEON_WAVES.join(' → ')} ตัว แล้วบอส ${st.land.boss.name}`,
+      `เวลา ${DUNGEON_SECS / 60} นาที • ในดันเจี้ยนมอนจะไล่ตีคุณ!`,
+      '',
+      '🎁 รางวัล: ชิ้นส่วน ' + set.name + ' (Rare ขึ้นไป) 1-2 ชิ้น',
+      '   + ทอง + ผลึกมานา 3-5 • มอนทองก็มีโอกาสเกิด',
+      '',
+      `เข้าได้วันละ ${di.max} ครั้ง (VIP 3) • วันนี้เหลือ ${left} ครั้ง`,
+    ].join('\n'), 8.5, '#e8dcc0', { lineSpacing: 3 }));
+    c.add(k.button(x + W / 2 - 80, y + H - 40, 160, 28, left > 0 ? '⚔ เข้าดันเจี้ยน' : 'วันนี้ครบแล้ว', () => {
+      this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(DUNGEON + di.li);
+    }, { size: 11, color: 0x7a2a10, disabled: left <= 0 }));
   }
 
   // ---------------- COLLECTION: achievements / titles / monster codex ----------------

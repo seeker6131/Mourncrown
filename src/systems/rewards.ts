@@ -4,7 +4,7 @@
 import type { GameState } from '../core/state';
 import { MONSTERS } from '../data/monsters';
 import { itemDef } from '../data/items';
-import { stageOf, scaleStats, WILD, type StageMon } from '../world/stages';
+import { stageOf, scaleStats, WILD, DUNGEON, isDungeon, type StageMon } from '../world/stages';
 import { derive, gainExp } from './stats';
 import { addItem } from './inventory';
 import { pickBase, rollRarity, makeGear, isGear } from './loot';
@@ -30,7 +30,8 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   s.gold += gold;
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);
-  const k = stageN === WILD ? 1 + s.level / 25 : 1 + stageN / 12;
+  const effN = isDungeon(stageN) ? (stageN - DUNGEON) * 10 + 5 : stageN === WILD ? 1 : stageN;   // map tier for drop rates
+  const k = stageN === WILD ? 1 + s.level / 25 : 1 + effN / 12;
   // monsters ≠ resources: wood / stone / meat come only from the Deepwild (animals + gathering); monsters give EXP, gold and items
   const wood = 0, stone = 0;
   const food = animal ? Math.round(between(rnd, base.meat?.[0] ?? 2, base.meat?.[1] ?? 6) * k * 1.5) : 0;
@@ -45,7 +46,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   }
   // gear: rarity floor and magic find grow with the stage
   const gear: KillResult['gear'] = [];
-  const n = animal ? 0 : boss ? 3 : elite ? 1 : rnd() < 0.04 + stageN * 0.0006 ? 1 : 0;
+  const n = animal ? 0 : boss ? 3 : elite ? 1 : rnd() < 0.04 + effN * 0.0006 ? 1 : 0;
   const setId = LAND_SET[st.land.id];
   for (let i = 0; i < n; i++) {
     const b = pickBase(rnd, st.level, s.cls), rar = Math.min(5, rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : elite ? st.minRar + 1 : st.minRar));

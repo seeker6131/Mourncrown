@@ -329,3 +329,11 @@
 - มินิแมพ: `src/ui/minimap.ts` (อยู่ใน TdUI) + `TopDownScene.mapInfo()`
 - เทส: `tests/server.test.ts`
 - ชาวบ้านมือเปล่า 'hg' (ป่าดงดิบ + ชุดหาทรัพยากร): เดินมือเปล่า, ตัดไม้/ตีสัตว์ = ขวาน (chop), ขุด = พิก (mine) • tools/gen_gatherer.py • import เฉพาะตัวแล้ว merge chars.json (ห้ามรัน import_chars.py ทั้งชุดทับ ถ้าไม่จำเป็น)
+
+## รอบ 2026-11-09 (ต่อ) — ระบบเล่นยาว
+- `src/systems/progress.ts` (สอนเล่น + ล็อกอิน 7 วัน) • `src/data/sets.ts` (เซ็ต, setBonus ใน derive) • `src/data/achievements.ts` (ความสำเร็จ/ฉายา/สมุดมอน, ตัวนับ `stats2`)
+- เซิร์ฟ: handler `spawn` (เซิร์ฟตั้ง id ให้ทุกตัว + สุ่มมอนทอง) — `kill` ต้องอ้าง sid ที่ยังมีชีวิต • `tutorialDone`, `loginClaim`, `achClaim`, `setTitle`, `dungeonInfo`, `dungeonClear`
+- ⚠️ `enterMap` ต้องเรียกก่อน placeProps (ล้างรายการ spawn ของเซิร์ฟ) — แก้บัคแล้ว
+- ดันเจี้ยน: `DUNGEON=200`+ดินแดน, `isDungeon`, `dungeonStage`, `dungeonLand` (stages.ts) • Combat.startDungeon/nextWave • TopDownScene.startDungeon/clearDungeon • panel `dungeon` (ปุ่มในหน้าเลือกแผนที่)
+- หน้าต่างใหม่: `login`, `collection`, `dungeon` • เมนูมีปุ่ม 📅 / 🏆
+- เทส: `tests/retention.test.ts`, ดันเจี้ยนใน `tests/server.test.ts` (57 ข้อ)

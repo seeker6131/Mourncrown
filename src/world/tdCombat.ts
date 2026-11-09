@@ -15,7 +15,7 @@ import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
-import { STAGES, WILD, wildStage, scaleStats, type Stage, type StageMon } from './stages';
+import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
@@ -61,6 +61,18 @@ export class Combat {
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot;
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
+  }
+  /** Daily dungeon: waves of the land's monsters, then its boss. They fight back (challenge mode) and never respawn. */
+  dungeon: { wave: number; left: number; onWave: (w: number) => void; onClear: () => void } | null = null;
+  startDungeon(li: number, level: number, pick: () => { x: number; y: number }, onWave: (w: number) => void, onClear: () => void) {
+    this.stage = dungeonStage(li, level); this.pickSpot = pick; this.bossSpot = null;
+    this.dungeon = { wave: 0, left: 0, onWave, onClear }; this.nextWave();
+  }
+  nextWave() {
+    const d = this.dungeon!, L = this.stage!.land;
+    if (d.wave < DUNGEON_WAVES.length) { const n = DUNGEON_WAVES[d.wave]; for (let i = 0; i < n; i++) { const p = this.pickSpot!(); this.spawn(L.mobs[(i + d.wave) % L.mobs.length], p.x, p.y, false); } d.left = n; }
+    else { const p = this.pickSpot!(); this.spawn(L.boss, p.x, p.y, true); d.left = 1; }
+    d.wave++; d.onWave(d.wave);
   }
   /** bring a dead monster back somewhere else on the map */
   respawn(m: Mon) {
@@ -328,7 +340,8 @@ export class Combat {
     const s = S();
     (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
     const r = act('kill', { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
-    this.respawn(m);
+    if (!this.dungeon) this.respawn(m);
+    if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
     if (r.junk?.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${r.junk.count} ชิ้น +${r.junk.gold}G`, '#ffd84a', 8);
@@ -369,9 +382,10 @@ export class Combat {
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);
       const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
       // every creature is peaceful until the hero hits it (fleeing game never fights); it calms down when the hero gets far away
-      if (m.hitT > 0 && dist > 320) m.hitT = 0;
-      const angry = m.hitT > 0 && !m.animal;
-      const aggro = !angry ? 0 : m.boss ? 260 : 130;
+      const dg = !!this.dungeon;
+      if (!dg && m.hitT > 0 && dist > 320) m.hitT = 0;
+      const angry = (m.hitT > 0 || dg) && !m.animal;
+      const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;
       let moving = false;
       if (!angry) {
         let tx = 0, ty = 0;

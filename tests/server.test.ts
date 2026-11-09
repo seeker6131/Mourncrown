@@ -50,3 +50,24 @@ describe('server checks', () => {
     expect(r.cap).toBe(100); expect(r.rooms.every(q => q.count <= 100)).toBe(true);
   });
 });
+
+describe('daily dungeon', () => {
+  const D = 200;
+  it('2 runs a day, land must match your level', () => {
+    expect(handlers.enterMap(s, { n: D + 3 }, c())).toEqual({ refused: 'level' });
+    expect(handlers.enterMap(s, { n: D }, c())).toEqual({ ok: true });
+    expect(handlers.enterMap(s, { n: D }, c())).toEqual({ ok: true });
+    expect(handlers.enterMap(s, { n: D }, c())).toEqual({ refused: 'runs' });
+  });
+  it('the chest opens only after every wave died', async () => {
+    const { LANDS, DUNGEON_WAVES } = await import('../src/world/stages');
+    handlers.enterMap(s, { n: D }, c());
+    expect(handlers.dungeonClear(s, {}, c())).toEqual({ refused: 'waves' });
+    const L = LANDS[0], mobs = DUNGEON_WAVES.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < mobs; i++) { const m = L.mobs[i % L.mobs.length]; handlers.kill(s, sp({ kind: m.kind, key: m.key, name: m.name, size: m.size, boss: false }), c()); }
+    handlers.kill(s, sp({ kind: L.boss.kind, key: L.boss.key, name: L.boss.name, size: L.boss.size, boss: true }), c());
+    const r = handlers.dungeonClear(s, {}, c()) as { gear: { set?: string }[] };
+    expect(r.gear.length).toBeGreaterThan(0); expect(r.gear[0].set).toBe('root');
+    expect(handlers.dungeonClear(s, {}, c())).toEqual({ refused: 'map' });   // only once
+  });
+});

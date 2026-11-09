@@ -4,7 +4,9 @@
 // Open with ?td in the URL.
 import Phaser from 'phaser';
 import { Combat } from '../world/tdCombat';
-import { STAGES, WILD, PITS } from '../world/stages';
+import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES } from '../world/stages';
+import { itemDef as idef } from '../data/items';
+import { SETS } from '../data/sets';
 import { Crowd } from '../world/crowd';
 import { sfx } from '../audio/sfx';
 import { act, refused } from '../net/client';
@@ -176,8 +178,8 @@ export class TopDownScene extends Phaser.Scene {
     // only the characters this scene shows: hero forms always; villagers + animals in the village;
     // the land's monsters, its boss (boss stages) and the wild game in a stage
     const heroes = ['hero', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
-    const st = this.stageN && this.stageN !== WILD ? STAGES[this.stageN - 1] : null;
-    const keys = this.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : [])]
+    const st = this.stageN && this.stageN !== WILD ? this.st : null;
+    const keys = this.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss || this.dungeon ? [st.land.boss.key] : [])]
       : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
     preloadChars(this, keys);
   }
@@ -189,10 +191,14 @@ export class TopDownScene extends Phaser.Scene {
   village?: Village;
   portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
   get wild() { return this.stageN === WILD; }
+  get dungeon() { return isDungeon(this.stageN); }
+  /** the map's stage data (monster maps, the dungeon, the Deepwild) */
+  get st() { return stageOf(this.stageN, S().level); }
   room = 1; roomPick?: number;
   init(data: { stage?: number; room?: number }) {
     this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
-    if (this.wild) this.makeWild(); else if (this.stageN) this.makeTrails(this.stageN);
+    if (this.dungeon) { MW = 1536; MH = 1024; }
+    if (this.wild) this.makeWild(); else if (this.dungeon) this.makeTrails((this.stageN - DUNGEON) * 10 + 2); else if (this.stageN) this.makeTrails(this.stageN);
   }
 
   create() {
@@ -211,6 +217,8 @@ export class TopDownScene extends Phaser.Scene {
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);
+    // register the map with the server BEFORE anything spawns (entering clears the server's spawn list)
+    if (refused(act('enterMap', { n: this.stageN }))) { bus.emit(EV.TOAST, 'เซิร์ฟปฏิเสธการเข้าแผนที่', '#ff8a6a'); this.time.delayedCall(50, () => this.scene.restart({ stage: 0 })); }
     this.placeProps();
     // return scroll: back to the village from any map
     const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
@@ -218,7 +226,6 @@ export class TopDownScene extends Phaser.Scene {
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
     if (this.village) { populateVillage(this.village, roadY); this.castShadow(this.hero, true); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;
-    if (refused(act('enterMap', { n: this.stageN }))) { bus.emit(EV.TOAST, 'เซิร์ฟปฏิเสธการเข้าแผนที่', '#ff8a6a'); this.time.delayedCall(50, () => this.scene.restart({ stage: 0 })); }
     if (this.wild) { const r = act('wildRooms', { pick: this.roomPick }); if (r.refused) bus.emit(EV.TOAST, 'ห้องเต็ม — ย้ายไปห้องที่ว่าง', '#ff8a6a'); this.room = r.room; this.online = r.rooms[r.room - 1].count; this.onlineT = this.time.now + 30000; }
     if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
@@ -269,8 +276,8 @@ export class TopDownScene extends Phaser.Scene {
         V[j * VW + i] = t; continue;
       }
       if (this.stageN) {   // wild stage: one winding trail from the west gate to the east gate, clearings along it, a pond
-        const off = this.trailOff(x, y), n = this.stageN;
-        const g0 = STAGES[n - 1].land.ground;
+        const off = this.trailOff(x, y), n = this.dungeon ? (this.stageN - DUNGEON) * 10 + 2 : this.stageN;
+        const g0 = this.st.land.ground;
         const clr = this.clearings.find(c => Math.hypot(x - c.x, (y - c.y) * 1.2) < c.r);
         if (off > 70 && this.ponds.some(c => Math.hypot(x - c.x, (y - c.y) * 1.3) < c.r)) t = 'w';
         else if (g0 === 'lava' && off > 80 && Math.abs(Math.sin(x / 130 + n) * Math.cos(y / 110 + n)) > 0.9) t = 'w';     // lava pools between the trails
@@ -309,7 +316,7 @@ export class TopDownScene extends Phaser.Scene {
       } else ctx.drawImage(img, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
     };
     const tl1 = src('td_ft3'), tl2 = src('td_ft2'), tl3 = src('td_ft3');
-    const land = this.stageN && !this.wild ? STAGES[this.stageN - 1].land.ground : 'forest';
+    const land = this.stageN && !this.wild ? this.st.land.ground : 'forest';
     // other lands: 32px PixelLab sets — haunt TL5 (forest floor / leaf trail), snow TL6 (snow / ice path), lava TL7 (basalt / lava pools), dungeon TL8 (flagstones / water channel)
     const LAND: Record<string, { k: string; up: Ter[] } | undefined> = { haunt: { k: 'td_tl5', up: ['d', 'c'] }, snow: { k: 'td_tl6', up: ['g', 'w'] }, lava: { k: 'td_tl7', up: ['w'] }, dung: { k: 'td_tl8', up: ['g', 'd', 'c'] } };
     const LS = LAND[land];
@@ -473,6 +480,26 @@ export class TopDownScene extends Phaser.Scene {
     this.ponds = [{ x: W * (0.2 + r() * 0.6), y: (y1(W * 0.5) + y2(W * 0.5)) / 2, r: 50 + r() * 20 }, { x: W * (0.2 + r() * 0.6), y: (y2(W * 0.5) + y3(W * 0.5)) / 2, r: 45 + r() * 20 }];
   }
 
+  // ---------- daily dungeon ----------
+  dWave = 0; dEnd = 0; dDone = false;
+  startDungeon(spot: () => { x: number; y: number }) {
+    this.dWave = 0; this.dDone = false; this.dEnd = this.time.now + DUNGEON_SECS * 1000;
+    const c = this.clearings.reduce((b, q) => Math.abs(q.x - MW * 0.55) < Math.abs(b.x - MW * 0.55) ? q : b, this.clearings[0]);
+    const near = () => { for (let i = 0; i < 40; i++) { const x = c.x + (Math.random() - 0.5) * c.r * 2.4, y = c.y + (Math.random() - 0.5) * c.r * 1.8; if (!this.isBlocked(x, y) && this.surfAt(x, y) !== 'water') return { x, y }; } return spot(); };
+    this.combat.startDungeon(this.stageN - DUNGEON, S().level, near, w => {
+      this.dWave = w; bus.emit(EV.TOAST, w > DUNGEON_WAVES.length ? `👑 คลื่นสุดท้าย: ${this.st.land.boss.name}!` : `⚔ คลื่นที่ ${w}/${DUNGEON_WAVES.length + 1}`, '#ffb080');
+    }, () => this.clearDungeon());
+  }
+  clearDungeon() {
+    if (this.dDone || this.dead) return;
+    const r = act('dungeonClear', {});
+    if (refused(r)) { bus.emit(EV.TOAST, 'เซิร์ฟไม่รับผลดันเจี้ยน', '#ff8a6a'); return; }
+    this.dDone = true; this.levelUpFx(); this.combat.vfx.star(this.hero.x, this.hero.y - 30, 0xffd84a, 2.4);
+    bus.emit(EV.TOAST, `🎁 ผ่านดันเจี้ยน! 💰${r.gold.toLocaleString()} + ผลึกมานา ${r.shards}`, '#ffd84a');
+    for (const g of r.gear) bus.emit(EV.TOAST, `◆ ${SETS[g.set!].name}: ${idef(g.id).name}`, '#' + SETS[g.set!].col.toString(16).padStart(6, '0'));
+    this.addPortal(this.hero.x + 40, this.hero.y, 0, 'กลับหมู่บ้าน'); saveGame(S()); bus.emit(EV.STATE_CHANGED);
+  }
+
   // ---------- the Deepwild: one big shared jungle for gathering (no monsters) ----------
   pits: { x: number; y: number; r: number; i: number }[] = [];
   crowd?: Crowd;
@@ -562,7 +589,7 @@ export class TopDownScene extends Phaser.Scene {
 
   /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
   placeStage(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
-    const st = STAGES[this.stageN - 1];
+    const st = this.st;
     const tint: Record<string, number> = { forest: 0xffffff, haunt: 0xb8a8d8, lava: 0x8a5a50, snow: 0xe8f4ff, dung: 0x9aa8b8 };
 
     const g = st.land.ground;
@@ -605,9 +632,9 @@ export class TopDownScene extends Phaser.Scene {
       }
       return { x: MW * 0.5, y: this.trailMain(MW * 0.5) };
     };
+    if (this.dungeon) { this.portals[this.portals.length - 1].label.setText('ออกจากดันเจี้ยน'); this.startDungeon(spot); return; }
     const boss = this.clearings.find(c => c.boss) ?? null;
     this.combat.spawnMap(this.stageN, spot, boss ? { x: boss.x, y: boss.y } : null);
-    const s0 = S() as unknown as { tdMaxMap?: number }; s0.tdMaxMap = Math.max(s0.tdMaxMap ?? 0, this.stageN);
   }
 
   addPortal(x: number, y: number, to: number | 'select', text: string) {
@@ -622,6 +649,10 @@ export class TopDownScene extends Phaser.Scene {
   /** going out costs supplies (food); stages 1-2 are free */
   enterStage(n: number, room?: number) {
     const s = S();
+    if (isDungeon(n)) {   // daily dungeon: free, the server counts the runs
+      if (s.outfit === 'gather') s.outfit = 'hunt';
+      saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n })); return;
+    }
     if (n === WILD) {   // free, any level; everyone goes in villager clothes
       if (s.outfit !== 'gather') { s.outfit = 'gather'; bus.emit(EV.TOAST, 'สวมชุดชาวบ้าน (ชุดหาทรัพยากร) แล้ว', '#ffd8a0'); }
       saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: WILD, room })); return;
@@ -834,7 +865,9 @@ export class TopDownScene extends Phaser.Scene {
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100`; const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
+  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100`;
+    if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
+    const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
   levelUpFx() {
     const h = this.hero;
@@ -858,7 +891,9 @@ export class TopDownScene extends Phaser.Scene {
     const next = this.portals.find(p => p.to === 'select');
     const boss = this.stageN ? this.combat.mons.find(m => m.boss && m.alive) : null;
     const tut = this.tutTarget();
+    const dm = this.dungeon && !this.dDone ? this.combat.nearest(9999)[0] : null;
     if (tut) { tx = tut.x; ty = tut.y; label = tut.label; }
+    else if (dm) { tx = dm.x; ty = dm.y; label = dm.boss ? `👑 ${dm.m.name}` : dm.m.name; }
     else if (next) { tx = next.x; ty = next.y; label = 'ประตูแผนที่'; }
     else if (boss) { tx = boss.x; ty = boss.y; label = `👑 ${boss.m.name}`; }   // farming maps: point at the boss while it is alive
     else return;
@@ -1267,6 +1302,7 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
+    if (this.dungeon && !this.dDone && !this.dead && this.dEnd && time > this.dEnd) { this.dEnd = 0; bus.emit(EV.TOAST, '⏱ หมดเวลา! ดันเจี้ยนล้มเหลว', '#ff6a5a'); this.time.delayedCall(1500, () => { showWait(); this.scene.restart({ stage: 0 }); }); }
     if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; const r = act('wildRooms', { pick: this.room }); this.online = r.rooms[this.room - 1].count; }
     else this.village?.update(time, dt);
     // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
@@ -1281,7 +1317,7 @@ export class TopDownScene extends Phaser.Scene {
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
       if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
-      const st = this.stageN && !this.wild ? STAGES[this.stageN - 1] : null;
+      const st = this.stageN && !this.wild && !this.dungeon ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);

@@ -7,7 +7,10 @@
 import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP } from './config';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
-import { STAGES, WILD, PITS, stageOf, scaleStats } from '../world/stages';
+import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
+import { pickBase, makeGear, rollRarity } from '../systems/loot';
+import { LAND_SET } from '../data/sets';
+import { dayKey } from '../systems/daily';
 import { applyKill } from '../systems/rewards';
 import { gatherReward, brew, type Vein } from '../systems/alchemy';
 import { derive } from '../systems/stats';
@@ -32,7 +35,7 @@ export type Refused = { refused: string };
 const no = (why: string): Refused => ({ refused: why });
 
 // ---- per-player anti-cheat memory (on the server this lives in the player's session) ----
-const mem = { spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+const mem = { dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -40,12 +43,24 @@ function rateOk(key: string, perSec: number, now: number) {
 /** damage budget: the hero can only deal so much damage per second (generous: crits, skills, area hits) */
 function dpsOf(s: GameState) { const d = derive(s); return Math.max(d.atk, d.matk) * (1 + d.crit) * (1000 / d.attackInterval) * 2.5; }
 
+function dungeonRuns(s: GameState, now: number) {
+  const t = s as GameState & { dng?: { day: string; used: number } }, day = dayKey(now);
+  if (t.dng?.day !== day) t.dng = { day, used: 0 };
+  return Object.assign(t.dng, { max: vipActive(s, now) ? 3 : 2 }) as { day: string; used: number; max: number };
+}
+
 export const handlers = {
   /** entering a map (server remembers where the player is) */
   enterMap(s: GameState, a: { n: number }, c: Ctx) {
     mem.spawns.clear();
     if (a.n === 0) { mem.map = 0; return { ok: true }; }
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
+    if (isDungeon(a.n)) {   // daily dungeon: 2 runs a day (VIP 3), land by level
+      const li = a.n - DUNGEON; if (li > dungeonLand(s.level)) return no('level');
+      const d = dungeonRuns(s, c.now); if (d.used >= d.max) return no('runs');
+      d.used++; mem.map = a.n; mem.dungeon = { li, start: c.now, kills: 0 }; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now;
+      return { ok: true };
+    }
     const st = STAGES[a.n - 1]; if (!st) return no('map');
     if (s.level < st.req && !(DEV_TOOLS && (s as { tdUnlockAll?: boolean }).tdUnlockAll)) return no('level');
     if (!payStage(s, a.n)) return no('food');
@@ -64,14 +79,16 @@ export const handlers = {
   kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean }, c: Ctx) {
     const n = mem.map, base = MONSTERS[a.kind]; if (!n || !base) return no('map');
     const sp = mem.spawns.get(a.sid); if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');   // must be a live monster the server spawned
-    if (!rateOk('kill', 8, c.now)) return no('rate');
+    if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
+    else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     if (!DEV_TOOLS && mem.dmg < hp) return no('dps');
     mem.dmg = Math.max(0, mem.dmg - hp); mem.spawns.delete(a.sid);
-    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss, c.rnd, sp.elite);
+    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss && !isDungeon(n), c.rnd, sp.elite);
+    if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
     const ps = pstats(s); if (base.animal) ps.animals++; else { ps.kills++; ps.kinds[a.kind] = (ps.kinds[a.kind] ?? 0) + 1; if (sp.elite) ps.golden++; }
     const junk = vipActive(s, c.now) && s.inventory.length >= invSize(s) - 2 ? sellJunk(s, 1) : null;   // VIP auto-sell
     return { ...r, junk };
@@ -145,6 +162,24 @@ export const handlers = {
   claimTdQuest: (s: GameState, _a: object) => claimTdQuest(s),
   acceptQuest: (s: GameState, a: { id: string }) => acceptQuest(s, a.id),
   completeQuest: (s: GameState, a: { id: string }) => completeQuest(s, a.id),
+  /** dungeon cleared: the server checks every wave died in a believable time, then opens the chest */
+  dungeonClear(s: GameState, _a: object, c: Ctx) {
+    const d = mem.dungeon; if (!d || !isDungeon(mem.map)) return no('map');
+    const secs = (c.now - d.start) / 1000;
+    if (d.kills < DUNGEON_NEED) return no('waves');
+    if (!DEV_TOOLS && secs < 40) return no('fast');
+    if (secs > DUNGEON_SECS + 30) return no('time');
+    mem.dungeon = null; pstats(s).dungeons++;
+    const st = stageOf(DUNGEON + d.li, s.level), set = LAND_SET[LANDS[d.li].id], gear: { id: string; rar: number; set?: string }[] = [];
+    for (let i = 0; i < (c.rnd() < 0.3 ? 2 : 1); i++) {   // set pieces: Rare or better
+      const b = pickBase(c.rnd, st.level, s.cls), rar = Math.max(2, Math.min(5, rollRarity(c.rnd, st.mf, 2)));
+      if (addItem(s, b.id, 1, 0, { ...makeGear(c.rnd, b.id, rar), set })) gear.push({ id: b.id, rar, set });
+    }
+    const gold = Math.round(200 + st.level * 40), shards = 3 + Math.floor(c.rnd() * 3);
+    s.gold += gold; addItem(s, 'mana_shard', shards);
+    return { gold, shards, gear };
+  },
+  dungeonInfo: (s: GameState, _a: object, c: Ctx) => ({ ...dungeonRuns(s, c.now), li: dungeonLand(s.level) }),
   /** tutorial finished (or skipped): one-time starter reward */
   tutorialDone: (s: GameState, _a: object) => (tutPay(s) ? { ok: true } : no('paid')),
   /** daily login calendar: one claim per day */

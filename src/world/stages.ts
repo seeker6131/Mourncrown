@@ -30,7 +30,16 @@ export const STAGES: Stage[] = Array.from({ length: 50 }, (_, i) => {
  *  mine pits and rare ore veins. Animals scale to the hero's level. Entered from the map select (free, any level). */
 export const WILD = 100;
 export const wildStage = (level: number): Stage => ({ n: WILD, land: LANDS[0], level: Math.max(1, level), req: 1, count: 0, boss: false, minRar: 0, mf: 0 });
-export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : STAGES[n - 1];
+/** Daily dungeon (ถ้ำเงา): map id DUNGEON + land index. Waves of the land's monsters at the hero's level, then its boss. */
+export const DUNGEON = 200;
+export const isDungeon = (n: number) => n >= DUNGEON && n < DUNGEON + LANDS.length;
+export const DUNGEON_WAVES = [6, 8, 10];          // + the land boss as the last wave
+export const DUNGEON_NEED = DUNGEON_WAVES.reduce((a, b) => a + b, 0) + 1;
+export const DUNGEON_SECS = 300;
+/** the best land a hero of this level may enter */
+export const dungeonLand = (level: number) => { let li = 0; LANDS.forEach((_, i) => { if (level >= STAGES[i * 10].req) li = i; }); return li; };
+export const dungeonStage = (li: number, level: number): Stage => { const f = STAGES[li * 10]; return { n: DUNGEON + li, land: LANDS[li], level: Math.max(f.level, level), req: f.req, count: 0, boss: false, minRar: Math.max(1, f.minRar), mf: 40 + li * 20 }; };
+export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : STAGES[n - 1];
 /** mine pits of the Deepwild: each pit has its own ore, rare gem and the level needed to dig there */
 export const PITS = [
   { ore: 'ore_iron', gem: 'gem_emerald', req: 1, name: 'เหมืองเหล็ก' },

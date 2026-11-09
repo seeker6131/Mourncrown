@@ -2,8 +2,9 @@
 // Progress is read from the save (kills, stages cleared, level, form, home level, skills cast).
 import type { GameState } from '../core/state';
 import { addItem } from './inventory';
+import { pstats } from '../data/achievements';
 
-type Metric = 'kills' | 'clear' | 'level' | 'tier' | 'home' | 'casts' | 'boss' | 'map';
+type Metric = 'kills' | 'clear' | 'level' | 'tier' | 'home' | 'casts' | 'boss' | 'map' | 'animals' | 'ore' | 'brews' | 'dungeons';
 export interface TdQuest { id: string; title: string; metric: Metric; need: number; relative?: boolean; reward: { gold?: number; wood?: number; stone?: number; food?: number; items?: Record<string, number> } }
 
 export const TD_QUESTS: TdQuest[] = [
@@ -11,11 +12,15 @@ export const TD_QUESTS: TdQuest[] = [
   { id: 'q2', title: 'ปราบมอนสเตอร์ 30 ตัว', metric: 'kills', need: 30, relative: true, reward: { gold: 80, wood: 20 } },
   { id: 'q3', title: 'สร้างบ้านของคุณในหมู่บ้าน', metric: 'home', need: 1, reward: { gold: 100, stone: 20 } },
   { id: 'q4', title: 'ถึงเลเวล 5', metric: 'level', need: 5, reward: { gold: 150, items: { mp_potion: 3 } } },
+  { id: 'q4b', title: 'ไปป่าดงดิบ (ประตูซ้ายหมู่บ้าน) ล่าสัตว์ 5 ตัว', metric: 'animals', need: 5, relative: true, reward: { gold: 150, items: { hp_potion: 3 } } },
+  { id: 'q4c', title: 'ขุดแร่ในเหมืองป่าดงดิบ 10 ก้อน', metric: 'ore', need: 10, relative: true, reward: { gold: 200, items: { scroll_return: 2 } } },
   { id: 'q5', title: 'ใช้สกิล 10 ครั้ง', metric: 'casts', need: 10, relative: true, reward: { gold: 120, items: { mana_shard: 2 } } },
   { id: 'q6', title: 'ไปถึงแผนที่ 5', metric: 'map', need: 5, reward: { gold: 250, wood: 60, stone: 40 } },
   { id: 'q7', title: 'ถึงเลเวล 10', metric: 'level', need: 10, reward: { gold: 300 } },
   { id: 'q8', title: 'เลือกสายอาชีพกับผู้เฒ่า', metric: 'tier', need: 1, reward: { gold: 300, items: { mana_shard: 3 } } },
+  { id: 'q8b', title: 'ปรุงยาจากแร่ที่ครัว 1 ขวด', metric: 'brews', need: 1, relative: true, reward: { gold: 300, items: { ore_iron: 6 } } },
   { id: 'q9', title: 'ปราบบอสแผนที่ 10 — มารดารากเน่า', metric: 'clear', need: 10, reward: { gold: 600, wood: 120, stone: 100, items: { hp_potion_l: 3 } } },
+  { id: 'q9b', title: 'ผ่านดันเจี้ยนรายวัน 1 ครั้ง', metric: 'dungeons', need: 1, relative: true, reward: { gold: 600, items: { mana_shard: 3 } } },
   { id: 'q10', title: 'อัปเกรดบ้านเป็น Lv2', metric: 'home', need: 2, reward: { gold: 400, items: { wolf_pelt: 4 } } },
   { id: 'q11', title: 'ปราบมอนสเตอร์ 150 ตัว', metric: 'kills', need: 150, relative: true, reward: { gold: 800, items: { mana_shard: 5 } } },
   { id: 'q12', title: 'ปราบบอสแผนที่ 20 — ราชากวางโครงกระดูก', metric: 'clear', need: 20, reward: { gold: 1200, wood: 200, stone: 200, items: { goblin_fang: 5 } } },
@@ -40,6 +45,7 @@ function metric(s: QS, m: Metric) {
     case 'tier': return s.tier ?? 0;
     case 'home': return s.buildings.find(b => b.type === 'home' && !(b.done && Date.now() < b.done))?.level ?? 0;
     case 'boss': return s.bossDefeated ?? 0;
+    case 'animals': case 'ore': case 'brews': case 'dungeons': return pstats(s)[m];
   }
 }
 function state(s: QS) {
