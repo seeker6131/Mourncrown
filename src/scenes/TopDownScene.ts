@@ -9,6 +9,7 @@ import { S } from '../core/events';
 import { saveGame, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
 import { derive } from '../systems/stats';
+import { Village, populateVillage } from '../world/npcs';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -155,6 +156,7 @@ export class TopDownScene extends Phaser.Scene {
   hudT = 0;
   regenT = 0;
   combat!: Combat;
+  village?: Village;
   portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
   init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; }
 
@@ -172,6 +174,8 @@ export class TopDownScene extends Phaser.Scene {
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.placeProps();
+    this.village = this.stageN ? undefined : new Village(this, MW, MH);
+    if (this.village) populateVillage(this.village, roadY);
     if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูด่าน ▲');
 
     const cam = this.cameras.main;
@@ -679,6 +683,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
+    else this.village?.update(time, dt);
     for (const p of this.portals) if (!this.dead && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
       if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
       else { this.portalCool = time + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: p.to })); }

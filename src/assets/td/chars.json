@@ -297,6 +297,98 @@
 }
 }
 },
+"hr10": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"attack": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 55
+},
+"walk": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 54
+}
+}
+},
+"hr11": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 47,
+"anims": {
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 57
+},
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 57
+}
+}
+},
 "hr2": {
 "dirs": [
 "south",
@@ -1142,6 +1234,87 @@
 ],
 "foot": 56
 },
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 57
+}
+}
+},
+"np1": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"walk": {
+"fs": 60,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 52
+}
+}
+},
+"np2": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 44,
+"anims": {
+"walk": {
+"fs": 56,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 49
+}
+}
+},
+"np3": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 47,
+"anims": {
 "walk": {
 "fs": 68,
 "n": 9,
