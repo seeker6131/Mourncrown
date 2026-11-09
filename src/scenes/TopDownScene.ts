@@ -183,6 +183,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
+    this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false;
     this.lamps = []; this.fires = []; this.nodes = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
