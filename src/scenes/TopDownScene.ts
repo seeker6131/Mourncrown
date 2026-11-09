@@ -547,7 +547,7 @@ export class TopDownScene extends Phaser.Scene {
         const o = this.obj(key, x, y, 0.6, 4); if (!veins.length) o?.setTint(0xff9cff);
         const gl = this.add.image(x, y - 10, 'td_glow').setTint(0xd89cff).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(0.8);
         this.tweens.add({ targets: gl, alpha: { from: 0.35, to: 0.9 }, duration: 1100 + k * 200, yoyo: true, repeat: -1 });
-        this.addNode(o, x, y, 'stone', { ...vein, rare: true });
+        this.addNode(o, x, y, 'stone', { ...vein, rare: true }); if (o) this.nodes[this.nodes.length - 1].glow = gl;
       }
       { const x = p.x, y = p.y + 4; const o = this.obj(has('vein_2') ? 'vein_2' : pick('ore', 7), x, y, 0.6, 4); if (!has('vein_2')) o?.setTint(0xffd84a); this.addNode(o, x, y, 'stone', { ...vein, gold: true }); }
     }
@@ -586,7 +586,7 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.spawnMap(WILD, spot, null);
     // other players gathering here (simulated until the server exists)
     const work = this.nodes.filter(n => !n.vein || n.vein.req <= 20);
-    this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
+    this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.filter(n => n.until <= this.time.now).map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
   }
 
   /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
@@ -1184,9 +1184,9 @@ export class TopDownScene extends Phaser.Scene {
 
   attacking = false;
   // ---------- gathering (gathering outfit + axe / pickaxe) ----------
-  nodes: { x: number; y: number; kind: 'wood' | 'stone'; im: Phaser.GameObjects.Image; hp: number; until: number; vein?: Vein }[] = [];
+  nodes: { x: number; y: number; kind: 'wood' | 'stone'; im: Phaser.GameObjects.Image; hp: number; until: number; vein?: Vein; sc: number; glow?: Phaser.GameObjects.Image; stump?: Phaser.GameObjects.Image; timer?: Phaser.GameObjects.Text }[] = [];
   gatherTipT = 0;
-  addNode(im: Phaser.GameObjects.Image | null, x: number, y: number, kind: 'wood' | 'stone', vein?: Vein) { if (im) this.nodes.push({ x, y, kind, im, hp: vein?.rare ? 6 : 4, until: 0, vein }); }
+  addNode(im: Phaser.GameObjects.Image | null, x: number, y: number, kind: 'wood' | 'stone', vein?: Vein) { if (im) this.nodes.push({ x, y, kind, im, hp: vein?.rare ? 6 : 4, until: 0, vein, sc: im.scaleX }); }
   nearNode(r = 34) {
     const h = this.hero, now = this.time.now;
     let best: (typeof this.nodes)[number] | null = null, bd = r;
@@ -1212,7 +1212,7 @@ export class TopDownScene extends Phaser.Scene {
       if (r.gem) { this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); bus.emit('loot:popup', { id: r.gem, rar: itemDef(r.gem).rarity }); saveGame(s); }
       this.tweens.add({ targets: n.im, x: n.im.x + 2, duration: 40, yoyo: true, repeat: 2 });
       n.hp--;
-      if (n.hp <= 0) { const t = n.vein?.rare ? 240000 : this.wild ? 45000 : 90000; n.until = this.time.now + t; n.hp = n.vein?.rare ? 6 : 4; n.im.setAlpha(0.45); this.time.delayedCall(t, () => n.im.active && n.im.setAlpha(1)); }
+      if (n.hp <= 0) this.depleteNode(n, n.vein?.rare ? 240000 : this.wild ? 45000 : 90000);
       bus.emit(EV.STATE_CHANGED);
     };
     this.time.delayedCall(380, () => (n.kind === 'wood' ? sfx.chop() : sfx.mine()));
@@ -1261,6 +1261,33 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.float(h.x, h.y - 46, '💫 มึน!', '#ffe080', 10);
     this.combat.vfx.dust?.(h.x, h.y);
   }
+  /** a tree cut down leaves a stump, a mined rock leaves rubble; a countdown shows when it grows back */
+  depleteNode(n: (typeof this.nodes)[number], ms: number) {
+    n.until = this.time.now + ms; n.hp = n.vein?.rare ? 6 : 4;
+    this.tweens.killTweensOf(n.im); n.im.setVisible(false); n.glow?.setVisible(false);
+    this.faded.delete(n.im);
+    const wood = n.kind === 'wood', key = wood ? `o_stump_${Math.floor(Math.random() * 5)}` : `o_pebble_${Math.floor(Math.random() * 6)}`;
+    n.stump = this.add.image(n.x, n.y, key).setOrigin(0.5, 0.85).setDepth(n.y).setScale(wood ? (n.im.width > 150 ? 1.5 : 1.15) : 1.3);
+    this.combat.vfx.dust(n.x, n.y - 4, 10, wood ? 34 : 24);
+    n.timer = this.add.text(n.x, n.y - (wood ? 44 : 22), '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#e8dcc0', stroke: '#0b0f0c', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99990);
+    this.time.delayedCall(ms, () => {
+      if (!n.im.active) return;
+      n.stump?.destroy(); n.stump = undefined; n.timer?.destroy(); n.timer = undefined;
+      n.im.setVisible(true).setAlpha(0).setScale(n.sc * 0.25); n.glow?.setVisible(true);
+      this.tweens.add({ targets: n.im, alpha: 1, scale: n.sc, duration: 700, ease: 'Back.easeOut' });
+    });
+  }
+  nodeT = 0;
+  /** countdown text over stumps / rubble near the hero */
+  updateNodeTimers(time: number) {
+    if (time - this.nodeT < 250) return; this.nodeT = time;
+    const h = this.hero;
+    for (const n of this.nodes) {
+      if (!n.timer) continue;
+      const near = Math.abs(n.x - h.x) < 320 && Math.abs(n.y - h.y) < 220, left = Math.max(0, Math.ceil((n.until - time) / 1000));
+      n.timer.setVisible(near).setText(near ? `⏳ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '');
+    }
+  }
   attack() {
     if (this.time.now < this.stunUntil) return;
     this.tutAttacked = true;
@@ -1286,6 +1313,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
     this.updateTutorial(time);
+    if (this.wild) this.updateNodeTimers(time);
     this.updatePlots(time); this.updateAction(time); this.updateGuide(time); this.updateOcclusion(time);
     if (!this.stageN) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ไปล่าสัตว์ที่ป่าดงดิบ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }

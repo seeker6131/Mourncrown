@@ -1,7 +1,6 @@
-// Synthesised sound effects + ambient music via WebAudio (no audio files required).
+// Sound effects via WebAudio: recorded Kenney samples with synthesised fallbacks. No background music.
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let musicGain: GainNode | null = null;
 export const audioState = { sfx: true, music: true };
 
 function ac(): AudioContext | null {
@@ -10,7 +9,6 @@ function ac(): AudioContext | null {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       ctx = new AC();
       master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination);
-      musicGain = ctx.createGain(); musicGain.gain.value = 0.0; musicGain.connect(master);
     } catch { return null; }
   }
   if (ctx.state === 'suspended') ctx.resume();
@@ -102,31 +100,5 @@ export const sfx = {
   upgradeFail() { if (!audioState.sfx) return; tone(300, 0.3, 'sawtooth', 0.12, -200); },
 };
 
-// ---- Ambient music: gentle pentatonic arpeggio over pads ----
-let musicTimer: number | null = null;
-let step = 0;
-const CHORDS = [[220, 277, 330], [196, 247, 294], [175, 220, 262], [196, 247, 330]];
-const SCALE = [440, 494, 554, 659, 740, 880, 988];
-
-export function startMusic() {
-  const c = ac(); if (!c || !musicGain || musicTimer !== null) return;
-  musicGain.gain.cancelScheduledValues(c.currentTime);
-  musicGain.gain.setTargetAtTime(audioState.music ? 0.35 : 0, c.currentTime, 0.5);
-  const beat = 0.42;
-  musicTimer = window.setInterval(() => {
-    if (!audioState.music || !musicGain) return;
-    const chord = CHORDS[Math.floor(step / 8) % CHORDS.length];
-    if (step % 8 === 0) for (const f of chord) tone(f / 2, beat * 8, 'triangle', 0.05, 0, 0, musicGain);
-    if (step % 2 === 0 || Math.random() < 0.3) {
-      const n = SCALE[(step * 3 + Math.floor(step / 8)) % SCALE.length];
-      tone(n * (step % 16 < 8 ? 1 : 0.5), beat * 1.5, 'sine', 0.06, 0, 0, musicGain);
-    }
-    step++;
-  }, beat * 1000);
-}
-
-export function setMusic(on: boolean) {
-  audioState.music = on;
-  const c = ac(); if (!c || !musicGain) return;
-  musicGain.gain.setTargetAtTime(on ? 0.35 : 0, c.currentTime, 0.3);
-}
+/** background music was removed (director); kept as a no-op so old saves / callers still work */
+export function setMusic(on: boolean) { audioState.music = on; }
