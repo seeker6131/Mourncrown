@@ -119,6 +119,8 @@ const EN: Record<string, string> = {
   'ป่า': 'Forest', 'ผีสิง': 'Haunted', 'ลาวา': 'Lava', 'หิมะ': 'Snow', 'คุก': 'Dungeon',
   'อยากตัดไม้/ขุดหิน? สวมชุดหาทรัพยากรที่ปุ่ม 👕 ชุด ด้านบน': 'Want to chop wood or mine stone? Wear the gathering outfit (👕 Outfit, top right)',
   'ตัดไม้': 'Chop wood', 'ขุดหิน': 'Mine stone', 'ชุด': 'Outfit',
+  'ออโต้: ตัดไม้/ขุดหินเอง': 'Auto: chopping and mining', 'ออโต้: ตีมอนเอง': 'Auto: hunting monsters', 'ปิดออโต้': 'Auto off',
+  'ออโต้ตีมอนทำงานในด่าน — ในหมู่บ้านใส่ชุดหาทรัพยากรเพื่อออโต้ตัดไม้/ขุดหิน': 'Auto hunting works in stages — in the village wear the gathering outfit to auto chop/mine',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

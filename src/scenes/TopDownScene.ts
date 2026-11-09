@@ -12,6 +12,8 @@ import { derive } from '../systems/stats';
 import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
+import { SKILL_BY_ID } from '../data/skills';
+import { useItem } from '../systems/inventory';
 import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, payStage, isHungry } from '../systems/supplies';
@@ -220,7 +222,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.on('addedtoscene', (o: Phaser.GameObjects.GameObject) => { if (!this.makingUi) uiCam.ignore(o); });
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
-    if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard!.on('keydown-' + k, () => this.castSkill(i))); }
+    if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard!.on('keydown-' + k, () => this.castSkill(i))); this.input.keyboard.on('keydown-Q', () => this.toggleAuto()); }
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.ui?.blocks(p) || this.selectUi) return; if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
@@ -682,6 +684,66 @@ export class TopDownScene extends Phaser.Scene {
   }
   heroKeyNow = '';
   lastLevel = 0;
+
+  // ---------- auto farm: hunt monsters (hunting outfit) or chop/mine (gathering outfit) ----------
+  manualT = 0; potT = 0; autoTipT = 0;
+  autoStuck = { x: 0, y: 0, t: 0 };
+  autoBad = new Map<object, number>();
+  autoTarget: object | null = null;
+  toggleAuto() {
+    const s = S(); s.auto = !s.auto; this.autoBad.clear(); saveGame(s);
+    bus.emit(EV.TOAST, s.auto ? (this.gathering() ? 'ออโต้: ตัดไม้/ขุดหินเอง' : 'ออโต้: ตีมอนเอง') : 'ปิดออโต้', s.auto ? '#9fffb0' : '#e8c872');
+    bus.emit(EV.STATE_CHANGED);
+  }
+  /** returns the direction to walk this frame (or 0,0) and attacks / casts / gathers when in reach */
+  autoStep(time: number): [number, number] {
+    const s = S(), h = this.hero, d = derive(s);
+    if (s.hp < d.maxHp * 0.35 && time > this.potT) {
+      const it = s.inventory.find(i => i.id === 'hp_potion_l') ?? s.inventory.find(i => i.id === 'hp_potion');
+      if (it) { const r = useItem(s, it.uid); this.potT = time + 2500; if (r) this.combat.float(h.x, h.y - 44, `+${r.heal}`, '#7aff8a', 11); }
+    }
+    const bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
+    const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
+    let tx: number, ty: number, reach: number, target: object;
+    if (this.gathering()) {
+      const n = near(this.nodes.filter(q => q.until <= this.time.now && !bad(q)));
+      if (!n) return [0, 0];
+      tx = n.x; ty = n.y + 14; reach = 16; target = n;
+    } else {
+      if (!this.stageN) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ตีมอนทำงานในด่าน — ในหมู่บ้านใส่ชุดหาทรัพยากรเพื่อออโต้ตัดไม้/ขุดหิน', '#e8c872'); } return [0, 0]; }
+      const alive = this.combat.alive().filter(m => !bad(m));
+      const foes = alive.filter(m => !m.animal);
+      const m = near(foes.length ? foes : alive);
+      if (!m) return [0, 0];
+      const dist = Math.hypot(m.x - h.x, m.y - h.y);
+      // skills: buffs/attacks when a foe is close, heal and shield only when hurt
+      if (dist < 150) for (let i = 0; i < 3; i++) {
+        const id = currentSkills(s)[i], sk = id ? SKILL_BY_ID[id] : null;
+        if (!sk || (this.skillReady[id] ?? 0) > this.time.now || (s.mp ?? 0) < sk.mp) continue;
+        if (sk.kind === 'heal' && s.hp > d.maxHp * 0.6) continue;
+        if (sk.kind === 'shield' && s.hp > d.maxHp * 0.85) continue;
+        if (sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff' && dist > (sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain' ? 150 : 60)) continue;
+        this.castSkill(i); return [0, 0];
+      }
+      const ranged = ['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9'].includes(this.F.key);
+      tx = m.x; ty = m.y; reach = ranged ? 120 : 20 + m.m.size * 0.25; target = m;
+    }
+    if (target !== this.autoTarget) { this.autoTarget = target; this.autoStuck = { x: h.x, y: h.y, t: time }; }
+    const dx = tx - h.x, dy = ty - h.y, dist = Math.hypot(dx, dy);
+    if (dist <= reach) {
+      this.dir = (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
+      this.attack(); return [0, 0];
+    }
+    // stuck behind something for 1.5 s: try another target for a while
+    if (Math.hypot(h.x - this.autoStuck.x, h.y - this.autoStuck.y) > 8) this.autoStuck = { x: h.x, y: h.y, t: time };
+    else if (time - this.autoStuck.t > 1500) { this.autoBad.set(target, time + 8000); this.autoStuck.t = time; return [0, 0]; }
+    const a0 = Math.atan2(dy, dx);
+    for (const da of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8]) {
+      const a = a0 + da, nx = h.x + Math.cos(a) * 10, ny = h.y + Math.sin(a) * 10;
+      if (!this.isBlocked(nx - 5, ny) && !this.isBlocked(nx + 5, ny)) return [Math.cos(a), Math.sin(a)];
+    }
+    return [dx / dist, dy / dist];
+  }
   skillReady: Record<string, number> = {};
   /** skill button i (0-2): pay MP / check cooldown in systems, then play it */
   castSkill(i: number) {
@@ -913,6 +975,8 @@ export class TopDownScene extends Phaser.Scene {
       const l = Math.hypot(this.joy.dx, this.joy.dy);
       if (l > 6) { mx = this.joy.dx / l; my = this.joy.dy / l; }
     }
+    if (mx || my) this.manualT = time;
+    if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.ui?.panels.isOpen && !this.selectUi) [mx, my] = this.autoStep(time);
     const len = Math.hypot(mx, my);
     const h = this.hero;
     if (this.dead) { /* dying */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
@@ -933,7 +997,7 @@ export class TopDownScene extends Phaser.Scene {
     else this.village?.update(time, dt);
     // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
     if (!this.portalArmed && this.portals.every(p => Math.hypot(p.x - h.x, p.y - h.y) > 30)) this.portalArmed = true;
-    for (const p of this.portals) if (!this.dead && this.portalArmed && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
+    for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
       this.portalArmed = false;
       if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
       else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }

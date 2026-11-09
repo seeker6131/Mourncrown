@@ -20,7 +20,7 @@ import type { UIScene } from '../ui/panels';
 const VH = 400;
 export interface TdHost extends Phaser.Scene {
   heroKey(): string; levelUpFx(): void; resetJoy(): void; stageTitle(): string;
-  castSkill(i: number): void; skillReady: Record<string, number>; stageN: number;
+  castSkill(i: number): void; skillReady: Record<string, number>; stageN: number; toggleAuto(): void;
 }
 
 export class TdUIScene extends Phaser.Scene {
@@ -37,6 +37,7 @@ export class TdUIScene extends Phaser.Scene {
   toasts: Phaser.GameObjects.Text[] = [];
   lastKey = ''; refreshT = 0;
   mpText!: Phaser.GameObjects.Text;
+  autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
   skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number; r: number }[] = [];
   skillSet = '';
@@ -141,6 +142,17 @@ export class TdUIScene extends Phaser.Scene {
     });
     this.resText = this.resTexts[0];
 
+    // AUTO toggle (above the attack button)
+    {
+      const bs = uiOpt(S()).btn, R9 = this.VH / 9 * bs, ax = this.VW - R9 * 1.3, ay = this.VH - R9 * 1.3;
+      const x = Math.min(this.VW - 30, ax + 22 * bs), y = ay - 122 * bs * this.VH / 400;
+      this.autoBtn = this.add.container(x, y);
+      this.autoBg = this.add.graphics(); this.autoTx = k.text(0, 0, 'AUTO', 9, '#ffffff').setOrigin(0.5);
+      const z = this.add.zone(0, 0, 54, 26).setInteractive();
+      z.on('pointerup', () => { sfx.click(); this.td.toggleAuto(); });
+      this.autoBtn.add([this.autoBg, this.autoTx, z]); this.root.add(this.autoBtn);
+    }
+
     // quest tracker under the status box: tap to claim when done
     this.questG = this.add.graphics();
     this.questText = k.text(14, 66, '', 7.5, '#f3e6c4', { wordWrap: { width: 186 }, lineSpacing: 1 });
@@ -238,6 +250,11 @@ export class TdUIScene extends Phaser.Scene {
     }
     this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}`);
     this.formBtn.setVisible(nextForm(s) !== null && !this.panels.isOpen);
+    if (this.autoBg) {
+      const on = !!s.auto, w = 54, h2 = 22;
+      this.autoBg.clear().fillStyle(on ? 0x1f6a2a : 0x1a140e, 0.92).fillRoundedRect(-w / 2, -h2 / 2, w, h2, 6).lineStyle(1.5, on ? 0x9fffb0 : 0x8a6a40, 1).strokeRoundedRect(-w / 2, -h2 / 2, w, h2, 6);
+      this.autoTx.setText(on ? (s.outfit === 'gather' ? '⛏ AUTO' : '⚔ AUTO') : 'AUTO').setColor(on ? '#ffffff' : '#c8b898');
+    }
     const t = tdQuest(s), qg = this.questG; qg.clear();
     if (t) {
       this.questText.setText(t.done ? `✔ ${t.q.title}\nแตะเพื่อรับรางวัล!` : `📜 ${t.q.title}  ${t.cur}/${t.q.need}`).setColor(t.done ? '#9fffb0' : '#f3e6c4');
