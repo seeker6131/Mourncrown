@@ -207,10 +207,15 @@
   "walk8group": "5eee9f63-47aa-4aff-a572-7941e4cf719a",
   "walk8dirs": [
    "east",
+   "north",
    "north-east",
+   "north-west",
    "south",
-   "south-east"
-  ]
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo6": {
   "cid": "6de2d572-9a1d-4ac4-9bb8-71cf8f19b6c3",
@@ -708,7 +713,18 @@
   "special": "done",
   "die": "done",
   "zip": 1,
-  "walk8group": "6f034916-0369-41be-a34d-a0c99874da4a"
+  "walk8group": "6f034916-0369-41be-a34d-a0c99874da4a",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "an1": {
   "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e",
