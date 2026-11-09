@@ -16,7 +16,7 @@ def norm(a):
     if any(w in a for w in ('swing', 'slash', 'shoot', 'thrust', 'smash', 'attack', 'lift')): return 'attack'
     return re.sub(r'[^a-z0-9]+', '_', a).strip('_')
 
-def frames_of(z):
+def frames_of(z, old_walk=False):
     names = z.namelist(); load = lambda n: Image.open(io.BytesIO(z.read(n))).convert('RGBA')
     rot = {d: load(n) for d in DIRS for n in names if n.endswith(f'rotations/{d}.png')}
     anims = {}
@@ -24,7 +24,9 @@ def frames_of(z):
     for n in names:
         m = re.search(r'animations/([^/]+)/([a-z-]+)/frame_(\d+)\.png$', n)
         # the skeleton-template 'walking' (8 directions, real leg motion) replaces the old text-made 'walk'
-        if m and m.group(1) != 'walking' and norm(m.group(1)) == 'walk' and 'walking' in folders: continue
+        if m and m.group(1) != 'walking' and norm(m.group(1)) == 'walk' and 'walking' in folders and not old_walk: continue
+        # bosses: the skeleton 'walking' template deforms non-human shapes (wings / extra arms / tree body lost) -> keep the old walk
+        if m and m.group(1) == 'walking' and old_walk and any(f != 'walking' and norm(f) == 'walk' for f in folders): continue
         if m: anims.setdefault(norm(m.group(1)), {}).setdefault(m.group(2), []).append((int(m.group(3)), n))
     return rot, {a: {d: [load(n) for _, n in sorted(v)] for d, v in dd.items()} for a, dd in anims.items()}, load
 
@@ -35,7 +37,7 @@ def foot(ims):
 def build(key, zips, man):
     rot, anims = {}, {}
     for zp in zips:
-        r, a, _ = frames_of(zipfile.ZipFile(zp))
+        r, a, _ = frames_of(zipfile.ZipFile(zp), key.startswith('bs'))
         rot.update(r); anims.update(a)
     dirs = [d for d in DIRS if d in rot]
     w = rot[dirs[0]].width
