@@ -46,3 +46,13 @@ export function playAnim(sp: Phaser.GameObjects.Sprite, k: string, a: string, d:
   sp.setOrigin(0.5, i.foot / i.fs).play(key, ignoreIfPlaying);
   return true;
 }
+
+/** PixelLab character per class line and form tier (0 = villager) */
+const FORM_KEYS: Record<string, string[]> = {
+  novice: ['hero'], sword: ['hero', 'hr1', 'hr2', 'hr3'], archer: ['hero', 'hr4', 'hr5', 'hr6'],
+  mage: ['hero', 'hr7', 'hr8', 'hr9'], cleric: ['hero', 'hr10', 'hr11', 'hr12'],
+};
+export function formKeyOf(cls: string, tier: number) {
+  const k = FORM_KEYS[cls]?.[tier] ?? 'hero';
+  return CH[k] ? k : 'hero';
+}

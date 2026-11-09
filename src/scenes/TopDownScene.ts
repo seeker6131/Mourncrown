@@ -14,12 +14,12 @@ import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
 import { uiOpt } from '../core/uiOptions';
 import { stageFood, payStage, isHungry } from '../systems/supplies';
-import { formName, type ClassId } from '../data/classes';
+import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
-import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim } from '../world/chars';
+import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, formKeyOf } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OM = objMeta as unknown as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number; chim?: [number, number] }>;
@@ -35,16 +35,6 @@ import ft3Wang from '../assets/td/ft3_wang.png';
 
 // hero forms (PixelLab characters listed in chars.json)
 const LANDS_LABEL = ['ป่า', 'ผีสิง', 'ลาวา', 'หิมะ', 'คุก'];
-/** PixelLab character per class line and form tier (0 = villager) */
-const FORM_KEYS: Record<ClassId, string[]> = {
-  novice: ['hero'], sword: ['hero', 'hr1', 'hr2', 'hr3'], archer: ['hero', 'hr4', 'hr5', 'hr6'],
-  mage: ['hero', 'hr7', 'hr8', 'hr9'], cleric: ['hero', 'hr10', 'hr11', 'hr12'],
-};
-export function formKeyOf(cls: ClassId, tier: number) {
-  const k = FORM_KEYS[cls]?.[tier] ?? 'hero';
-  return CH[k] ? k : 'hero';
-}
-
 /** Village plots (index = save plot number). 0-8 are the NPCs' buildings, standing from the start; 9 is the player's home. */
 const PLOTS: { x: number; y: number }[] = [
   { x: 722, y: 650 }, { x: 300, y: 660 }, { x: 150, y: 330 }, { x: 702, y: 322 }, { x: 1100, y: 600 }, { x: 120, y: 650 },

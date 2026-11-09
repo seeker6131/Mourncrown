@@ -1,9 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
-import { WorldScene } from './scenes/WorldScene';
-import { UIScene } from './scenes/UIScene';
-import { PreviewScene } from './scenes/PreviewScene';
 import { TopDownScene } from './scenes/TopDownScene';
 import { TdUIScene } from './scenes/TdUIScene';
 import { installDebug } from './core/debug';
@@ -37,7 +34,7 @@ const game = new Phaser.Game({
     zoom: 1 / DPR,
   },
   input: { activePointers: 4 },
-  scene: [BootScene, TitleScene, WorldScene, UIScene, PreviewScene, TopDownScene, TdUIScene],
+  scene: [BootScene, TitleScene, TopDownScene, TdUIScene],
   fps: { target: 60 },
 });
 

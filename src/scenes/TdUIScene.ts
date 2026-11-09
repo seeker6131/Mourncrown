@@ -14,7 +14,7 @@ import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
 import { sfx } from '../audio/sfx';
-import type { UIScene } from './UIScene';
+import type { UIScene } from '../ui/panels';
 
 const VH = 400;
 export interface TdHost extends Phaser.Scene {
@@ -44,7 +44,11 @@ export class TdUIScene extends Phaser.Scene {
     const files = import.meta.glob('../assets/skills/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
     for (const [p, u] of Object.entries(files)) { const k = 'sk_' + p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists(k)) this.load.image(k, u); }
     const icons = import.meta.glob('../assets/icons/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-    for (const [p, u] of Object.entries(icons)) { const k = 'icon_' + p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists(k)) this.load.image(k, u); }
+    // PixelLab item icons replace the code-drawn fallback icons made at boot
+    for (const [p, u] of Object.entries(icons)) { const n = p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists('pl_icon_' + n)) this.load.image('pl_icon_' + n, u); }
+    this.load.once('complete', () => {
+      for (const k of this.textures.getTextureKeys()) if (k.startsWith('pl_icon_')) { const t = k.slice(3); if (this.textures.exists(t)) this.textures.remove(t); this.textures.renameTexture(k, t); }
+    });
   }
 
   /** three skill buttons around the attack button (stages only) */

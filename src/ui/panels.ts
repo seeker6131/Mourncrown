@@ -1,14 +1,20 @@
 import { hasSkin, panelFrame, skillIconKey } from './skin';
 // Modal panels: Bag/Equipment, Stats/Skills, Quests, Menu, NPC dialog, Shop, Blacksmith.
 import Phaser from 'phaser';
-import type { UIScene } from '../scenes/UIScene';
+import type { UIKit } from './kit';
+/** the scene hosting the panels (TdUIScene) */
+export interface UIScene extends Phaser.Scene {
+  kit: UIKit; VW: number;
+  world: { hero: { ai: boolean; portrait(): { key: string; frame?: string | number } }; levelUpFx(): void };
+  controlsReset(): void; reloadWorld(): void; toggleFullscreen(): void;
+}
 import { GOLD, GOLD_D } from './kit';
 import { S, bus, EV, runtime } from '../core/events';
 import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf, underConstruction } from '../systems/settlement';
 import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass, activeTier } from '../systems/stats';
-import { portraitKey } from '../art/formAssets';
+import { formKeyOf } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
@@ -22,7 +28,6 @@ import { saveGame, loadGame, deleteSave } from '../core/save';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
-import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
 type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt';
@@ -480,8 +485,8 @@ export class Panels {
     tiers.forEach((t, i) => {
       const bx = x + 14 + i * (bw + 8), by = top + 120, on = activeTier(s) === t;
       g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(bx, by, bw, 128, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(bx, by, bw, 128, 4);
-      const pk = portraitKey(ui, formCode(s.cls, t));
-      if (pk) { const im = ui.add.image(bx + bw / 2, by + 44, pk); im.setScale(70 / Math.max(im.width, im.height)); c.add(im); }
+      const pk = `c_${formKeyOf(s.cls, t)}_idle`;
+      if (ui.textures.exists(pk)) { const im = ui.add.image(bx + bw / 2, by + 44, pk, 0); im.setScale(70 / Math.max(im.width, im.height)); c.add(im); }
       c.add(k.text(bx + bw / 2, by + 84, formName(s.cls, t) + (on ? ' ✔' : ''), 9.5, on ? '#ffd84a' : '#f3e6c4').setOrigin(0.5, 0));
       c.add(k.text(bx + bw / 2, by + 100, classSkills(s.cls, t).map(q => SKILL_BY_ID[q].name).join(' • '), 6.5, '#9ad8ff', { align: 'center', wordWrap: { width: bw - 8 } }).setOrigin(0.5, 0));
       const z = ui.add.zone(bx, by, bw, 128).setOrigin(0).setInteractive();
@@ -562,7 +567,6 @@ export class Panels {
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
     b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
     b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { testLevelUp(s); clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
-    b(`✏ เส้นขอบตัวละคร/วัตถุ: ${strokeEnabled() ? 'เปิด' : 'ปิด'}`, () => { saveGame(s); setStroke(!strokeEnabled()); location.reload(); });
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
@@ -600,9 +604,10 @@ export class Panels {
     c.add([blocker, g]);
     g.fillStyle(0x0a0705, 1).fillRoundedRect(x + 10, y + 10, 64, 64, 4);
     g.lineStyle(1.5, GOLD, 1).strokeRoundedRect(x + 10, y + 10, 64, 64, 4);
-    const hi = ui.textures.exists(`an_${info.tex}_idle`);
-    const por = hi ? ui.add.sprite(x + 42, y + 74, `an_${info.tex}_idle`, 0).setOrigin(0.5, 1) : ui.add.sprite(x + 42, y + 44, info.tex, 'idle_0').setScale(2.2);
-    if (hi) por.setScale(60 / por.height);
+    // portrait: the villager's PixelLab character (elder np1, merchant np2, smith np3)
+    const pk = `c_${({ elder: 'np1', merchant: 'np2', smith: 'np3' } as Record<string, string>)[this.dialogNpc] ?? 'np1'}_idle`;
+    const por = ui.add.image(x + 42, y + 72, ui.textures.exists(pk) ? pk : '__DEFAULT', 0).setOrigin(0.5, 1);
+    por.setScale(58 / por.height);
     c.add(por);
     c.add(k.text(x + 42, y + 78, info.name, 8.5, '#ffd84a').setOrigin(0.5, 0));
     c.add(k.text(x + 84, y + 10, this.dialogText, 9.5, '#f3e6c4', { wordWrap: { width: W - 96 }, lineSpacing: 3 }));

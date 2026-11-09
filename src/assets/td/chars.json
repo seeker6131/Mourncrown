@@ -705,7 +705,8 @@
 "north-east",
 "north",
 "north-west",
-"west"
+"west",
+"south-west"
 ],
 "foot": 58
 }

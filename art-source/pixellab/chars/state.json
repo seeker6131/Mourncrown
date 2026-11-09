@@ -15,7 +15,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "hr2": {
   "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793",
@@ -431,7 +432,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "hr10": {
   "cid": "c63d1244-7e03-4541-89b9-4feaac6c36c6",

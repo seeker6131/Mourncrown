@@ -19,6 +19,14 @@ ICONS = {
  'hammer1': 'an iron war hammer with a square head',
  'hammer2': 'a heavy steel war hammer with a rivetted head and a small shield emblem',
  'hammer3': 'a huge titan maul with glowing orange runes on a stone head',
+
+ 'sword0': 'a plain wooden training sword', 'sword1': 'a sharp steel sword with a leather grip', 'sword2': 'an ornate silver knight sword with a blue gem in the hilt',
+ 'sword3': 'a flaming red saber with fire along the blade', 'staff0': 'a twisted oak staff topped with a green-blue orb',
+ 'armor0': 'a plain linen tunic', 'armor1': 'a brown leather hunter armour vest', 'armor2': 'a grey chain mail shirt', 'armor3': 'a golden knight breastplate with a red cape',
+ 'ring0': 'a simple copper ring with a small green stone', 'amulet0': 'a gold amulet with a big red ruby', 'amulet1': 'a silver pendant with a glowing violet crystal',
+ 'gem0': 'a glowing green forest heart gem', 'potion_hp': 'a small round red health potion bottle', 'potion_hp_l': 'a large red health potion flask with a gold cap',
+ 'potion_mp': 'a small round blue mana potion bottle', 'gel': 'a blob of green slime gel', 'spore': 'a purple spotted mushroom cap', 'pelt': 'a folded grey wolf pelt',
+ 'fang': 'a single sharp goblin fang', 'essence': 'a floating pale blue spirit wisp essence', 'shard': 'a glowing purple mana crystal shard',
 }
 def run(k):
     out = os.path.join(RAW, k + '.png')
