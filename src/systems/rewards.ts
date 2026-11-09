@@ -23,6 +23,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   const st = STAGES[stageN - 1], base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
   const gold = between(rnd, sc.gold[0], sc.gold[1]), exp = Math.round(sc.exp * d.expBonus);
   s.gold += gold;
+  (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);
   // village materials: wood and stone from every kill, food by size
   const k = 1 + stageN / 12;

@@ -19,7 +19,7 @@ ICONS = {
  'a2_fan': 'five arrows spreading out in a fan shape',
  'a2_focus': 'a hunter eye with a green crosshair reticle',
  'a3_pierce': 'one long arrow piercing straight through three red hearts in a line',
- 'a3_rain': 'dozens of arrows falling diagonally from dark clouds',
+ 'a3_rain': 'a dark storm cloud with many wooden arrows falling straight down out of it',
  'a3_trap': 'thorny green vines bursting out of the ground in a circle',
  'a4_spirit': 'three glowing pale green spirit arrows with ghostly trails',
  'a4_storm': 'a storm of emerald green arrows swirling in a tornado',

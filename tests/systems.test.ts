@@ -119,3 +119,17 @@ describe('top-down kill rewards (server-side candidate)', () => {
     expect((s as unknown as { tdCleared: number }).tdCleared).toBe(10);
   });
 });
+
+import { tdQuest, claimTdQuest } from '../src/systems/tdQuests';
+describe('top-down quest chain', () => {
+  it('counts kills from when the quest started and pays once', () => {
+    const s = startNewGame();
+    (s as unknown as { tdKills: number }).tdKills = 3;
+    expect(tdQuest(s)!.cur).toBe(0);
+    (s as unknown as { tdKills: number }).tdKills = 8;
+    expect(tdQuest(s)!.done).toBe(true);
+    const g = s.gold; expect(claimTdQuest(s)!.id).toBe('q1'); expect(s.gold).toBe(g + 60);
+    expect(claimTdQuest(s)).toBeNull();          // q2 (clear stage 1) not done yet
+    expect(tdQuest(s)!.q.id).toBe('q2');
+  });
+});

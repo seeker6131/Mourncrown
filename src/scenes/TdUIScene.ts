@@ -6,6 +6,9 @@ import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
 import { derive, expToNext, nextForm, activeTier, currentSkills } from '../systems/stats';
 import { SKILL_BY_ID } from '../data/skills';
+import { tdQuest, claimTdQuest, rewardText } from '../systems/tdQuests';
+import { itemDef } from '../data/items';
+import { saveGame } from '../core/save';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
@@ -32,6 +35,7 @@ export class TdUIScene extends Phaser.Scene {
   toasts: Phaser.GameObjects.Text[] = [];
   lastKey = ''; refreshT = 0;
   mpText!: Phaser.GameObjects.Text;
+  questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
   skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number }[] = [];
   skillSet = '';
 
@@ -128,6 +132,16 @@ export class TdUIScene extends Phaser.Scene {
     });
     this.resText = this.resTexts[0];
 
+    // quest tracker under the status box: tap to claim when done
+    this.questG = this.add.graphics();
+    this.questText = k.text(14, 66, '', 7.5, '#f3e6c4', { wordWrap: { width: 186 }, lineSpacing: 1 });
+    this.questZone = this.add.zone(8, 60, 200, 30).setOrigin(0).setInteractive();
+    this.questZone.on('pointerup', () => {
+      const s = S(), q = claimTdQuest(s);
+      if (q) { sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
+    });
+    this.root.add([this.questG, this.questText, this.questZone]);
+
     // top-right menu: icon buttons
     const menu: [string, string, () => void][] = [['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
@@ -209,6 +223,13 @@ export class TdUIScene extends Phaser.Scene {
     }
     this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}`);
     this.formBtn.setVisible(nextForm(s) !== null && !this.panels.isOpen);
+    const t = tdQuest(s), qg = this.questG; qg.clear();
+    if (t) {
+      this.questText.setText(t.done ? `✔ ${t.q.title}\nแตะเพื่อรับรางวัล!` : `📜 ${t.q.title}  ${t.cur}/${t.q.need}`).setColor(t.done ? '#9fffb0' : '#f3e6c4');
+      const h = this.questText.height + 8;
+      qg.fillStyle(t.done ? 0x1f4a2a : 0x0b0806, t.done ? 0.85 : 0.6).fillRoundedRect(8, 62, 200, h, 4).lineStyle(1, t.done ? 0x9fffb0 : 0x6a5a40, 0.9).strokeRoundedRect(8, 62, 200, h, 4);
+      this.questZone.setSize(200, h);
+    } else this.questText.setText('');
   }
 
   toast(text: string, color = '#ffe7a0') {

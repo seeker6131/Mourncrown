@@ -13,6 +13,7 @@ export function beginCast(s: GameState, id: string, now: number, readyAt: Record
   if ((s.mp ?? 0) < sk.mp) return 'mp';
   s.mp -= sk.mp;
   readyAt[id] = now + sk.cooldown;
+  (s as GameState & { tdCasts?: number }).tdCasts = ((s as GameState & { tdCasts?: number }).tdCasts ?? 0) + 1;
   return sk;
 }
 /** Self effects: buff (stored on the save like the old game), heal amount, shield amount. */
