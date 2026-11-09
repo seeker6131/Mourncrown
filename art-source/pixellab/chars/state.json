@@ -192,15 +192,51 @@
   "zip": 1
  },
  "np7": {
-  "cid": "e5f4d228-c69e-4c5d-ba3d-f783f0c84608"
+  "cid": "e5f4d228-c69e-4c5d-ba3d-f783f0c84608",
+  "walk": "done",
+  "zip": 1
  },
  "np8": {
-  "cid": "56516064-f4d7-4d80-bd14-ac65f3ee2196"
+  "cid": "56516064-f4d7-4d80-bd14-ac65f3ee2196",
+  "walk": "done",
+  "zip": 1
  },
  "np9": {
-  "cid": "bc06cf86-8c78-4a89-b2e6-bae85c2caef4"
+  "cid": "bc06cf86-8c78-4a89-b2e6-bae85c2caef4",
+  "walk": "done",
+  "zip": 1
  },
  "np10": {
-  "cid": "dffc5338-cc73-403c-90dc-0efe82ad5064"
+  "cid": "dffc5338-cc73-403c-90dc-0efe82ad5064",
+  "walk": "done",
+  "zip": 1
+ },
+ "bs2": {
+  "cid": "fdf72665-6219-4ec5-b46e-b472202cee0a",
+  "walk": "done",
+  "attack": "done",
+  "special": "done"
+ },
+ "bs3": {
+  "cid": "0ceec01e-5ac4-41de-aded-58071611c0e0",
+  "walk": "done",
+  "attack": "done"
+ },
+ "bs4": {
+  "cid": "c16fbed6-6a62-4353-aab6-fc1ac7ad821b",
+  "walk": "done",
+  "attack": "done",
+  "special": "done"
+ },
+ "bs5": {
+  "cid": "96fa7e23-cba0-4c3b-a787-e43e0d62a097",
+  "walk": "done",
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1
+ },
+ "an1": {
+  "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e"
  }
 }
