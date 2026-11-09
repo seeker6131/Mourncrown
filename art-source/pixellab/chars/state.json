@@ -159,7 +159,9 @@
  },
  "hr12": {
   "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0",
-  "walk": "done"
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
  },
  "np1": {
   "cid": "8e93d3e3-f754-453c-b5e9-c83fcae74927",
@@ -215,18 +217,25 @@
   "cid": "fdf72665-6219-4ec5-b46e-b472202cee0a",
   "walk": "done",
   "attack": "done",
-  "special": "done"
+  "special": "done",
+  "die": "done",
+  "zip": 1
  },
  "bs3": {
   "cid": "0ceec01e-5ac4-41de-aded-58071611c0e0",
   "walk": "done",
-  "attack": "done"
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1
  },
  "bs4": {
   "cid": "c16fbed6-6a62-4353-aab6-fc1ac7ad821b",
   "walk": "done",
   "attack": "done",
-  "special": "done"
+  "special": "done",
+  "die": "done",
+  "zip": 1
  },
  "bs5": {
   "cid": "96fa7e23-cba0-4c3b-a787-e43e0d62a097",
@@ -237,6 +246,28 @@
   "zip": 1
  },
  "an1": {
-  "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e"
+  "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e",
+  "walk": "done",
+  "zip": 1
+ },
+ "an2": {
+  "cid": "3abddde1-e74d-4bdb-a862-5600d76ac240",
+  "walk": "done",
+  "zip": 1
+ },
+ "an3": {
+  "cid": "4f9e285e-4480-4b50-82e4-daccc419a5cf",
+  "walk": "done",
+  "zip": 1
+ },
+ "an4": {
+  "cid": "e3ce156c-0dd1-4d8c-bacf-02f8a29ee939",
+  "walk": "done",
+  "zip": 1
+ },
+ "an5": {
+  "cid": "155d3783-4d98-4930-a821-dc8bec2b1cde",
+  "walk": "done",
+  "zip": 1
  }
 }
