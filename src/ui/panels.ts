@@ -36,6 +36,7 @@ export class Panels {
   selUid: number | null = null;
   plot = 0;
   shopTab: 'buy' | 'sell' = 'buy';
+  shopPage = 0;
   dialogNpc = '';
   dialogText = '';
   confirmNew = false;
@@ -618,8 +619,14 @@ export class Panels {
     c.add(k.text(x + W - 80, y + 31, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
     const top = y + 54;
     if (this.shopTab === 'buy') {
-      const cols = 2, cw = (W - 34) / cols, ch = 40;
-      SHOP_STOCK.forEach((id, i) => {
+      const cols = 2, cw = (W - 34) / cols, ch = 40, per = 10, pages = Math.ceil(SHOP_STOCK.length / per);
+      this.shopPage = Math.min(this.shopPage, pages - 1);
+      if (pages > 1) {
+        c.add(k.button(x + 170, y + 28, 30, 20, '◀', () => { this.shopPage = (this.shopPage + pages - 1) % pages; this.rebuild(); }, { size: 9.5 }));
+        c.add(k.text(x + 216, y + 31, `${this.shopPage + 1}/${pages}`, 9, '#ffe7a0').setOrigin(0.5, 0));
+        c.add(k.button(x + 232, y + 28, 30, 20, '▶', () => { this.shopPage = (this.shopPage + 1) % pages; this.rebuild(); }, { size: 9.5 }));
+      }
+      SHOP_STOCK.slice(this.shopPage * per, this.shopPage * per + per).forEach((id, i) => {
         const def = itemDef(id);
         const cx = x + 14 + (i % cols) * (cw + 6), cy = top + Math.floor(i / cols) * (ch + 4);
         g.fillStyle(0x2a1d12, 0.85).fillRoundedRect(cx, cy, cw, ch, 3);
