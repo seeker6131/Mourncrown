@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { lang, setLang } from '../core/i18n';
 import { UIKit } from '../ui/kit';
 import { hasSave, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
@@ -68,6 +69,8 @@ export class TitleScene extends Phaser.Scene {
     if (hasSave()) { this.add.existing(k.button(VW / 2 - 80, by, 160, 30, '▶ เล่นต่อ', () => start(false), { size: 12, color: 0x1f4a2a })); by += 38; }
     this.add.existing(k.button(VW / 2 - 80, by, 160, 30, hasSave() ? 'เริ่มเกมใหม่' : '▶ เริ่มผจญภัย', () => start(!hasSave() ? true : true), { size: 12 }));
     k.text(VW / 2, 350, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
+    // language switch (English by default on the first visit)
+    this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));
     this.cameras.main.fadeIn(400);
   }
 }

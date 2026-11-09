@@ -20,6 +20,7 @@ import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
+import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
@@ -541,7 +542,7 @@ export class Panels {
   // ---------------- MENU ----------------
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = 280, H = 340;
+    const W = 280, H = 362;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let yy = y + 34;
     const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 21, label, cb, { size: 9, color })); yy += 25; };
@@ -557,6 +558,7 @@ export class Panels {
     b(`🎵 เพลง: ${s.music ? 'เปิด' : 'ปิด'}`, () => { s.music = !s.music; setMusic(s.music); this.rebuild(); });
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
     b('🖥 ปรับ UI (ขนาด / ปุ่ม / ความโปร่ง)', () => this.open('uiopt'), 0x2a4a5a);
+    b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
     b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
     b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { testLevelUp(s); clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);

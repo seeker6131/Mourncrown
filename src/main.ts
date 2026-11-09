@@ -7,6 +7,16 @@ import { PreviewScene } from './scenes/PreviewScene';
 import { TopDownScene } from './scenes/TopDownScene';
 import { TdUIScene } from './scenes/TdUIScene';
 import { installDebug } from './core/debug';
+import { tr, lang } from './core/i18n';
+
+// Language: every text object goes through tr() (English by default, Thai when chosen)
+{
+  const T = Phaser.GameObjects.Text.prototype as unknown as { setText(v: string | string[]): unknown };
+  const orig = T.setText;
+  T.setText = function (this: unknown, v: string | string[]) { return orig.call(this, Array.isArray(v) ? v.map(tr) : typeof v === 'string' ? tr(v) : v); };
+  document.title = tr(document.title);
+  document.documentElement.lang = lang();
+}
 
 // Render at device resolution (capped) for crisp text; CSS scales the canvas down.
 export const DPR = Math.min(window.devicePixelRatio || 1, 2);
