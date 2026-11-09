@@ -664,9 +664,13 @@
    "east",
    "north",
    "north-east",
+   "north-west",
    "south",
-   "south-east"
-  ]
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "bs3": {
   "cid": "0ceec01e-5ac4-41de-aded-58071611c0e0",
@@ -680,9 +684,13 @@
    "east",
    "north",
    "north-east",
+   "north-west",
    "south",
-   "south-east"
-  ]
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "bs4": {
   "cid": "c16fbed6-6a62-4353-aab6-fc1ac7ad821b",
@@ -699,7 +707,8 @@
   "attack": "done",
   "special": "done",
   "die": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "6f034916-0369-41be-a34d-a0c99874da4a"
  },
  "an1": {
   "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e",
