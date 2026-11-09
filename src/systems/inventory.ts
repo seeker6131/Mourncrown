@@ -9,7 +9,7 @@ export function countItem(s: GameState, id: string): number {
   return s.inventory.filter(i => i.id === id).reduce((a, b) => a + b.qty, 0);
 }
 
-export function addItem(s: GameState, id: string, qty = 1, upg = 0, gear?: { rar?: number; aff?: { k: string; v: number }[] }): boolean {
+export function addItem(s: GameState, id: string, qty = 1, upg = 0, gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }): boolean {
   const d = itemDef(id);
   if (d.stack) {
     const ex = s.inventory.find(i => i.id === id);

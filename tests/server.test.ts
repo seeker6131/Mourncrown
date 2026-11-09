@@ -7,7 +7,8 @@ import type { GameState } from '../src/core/state';
 let s: GameState; let t = 1_800_000_000_000;
 const c = () => ({ now: (t += 1000), rnd: () => 0.5 });
 beforeEach(() => { s = startNewGame(); handlers.enterMap(s, { n: 0 }, c()); });
-const deer = { kind: 'deer' as const, key: 'mo16', name: 'กวางป่า', size: 48, boss: false };
+const deerB = { kind: 'deer' as const, key: 'mo16', name: 'กวางป่า', size: 48, boss: false };
+const sp = <T extends { key: string; boss: boolean }>(m: T) => ({ ...m, sid: handlers.spawn(s, { key: m.key, boss: m.boss }, c()).sid });
 
 describe('server checks', () => {
   it('refuses a map above your level', () => {
@@ -15,13 +16,15 @@ describe('server checks', () => {
   });
   it('monsters only count on their own map; animals only in the Deepwild', () => {
     handlers.enterMap(s, { n: 1 }, c());
-    expect(handlers.kill(s, deer, c())).toEqual({ refused: 'kind' });
+    expect(handlers.kill(s, sp(deerB), c())).toEqual({ refused: 'kind' });
     const other = STAGES[20].land.mobs[0];
-    expect(handlers.kill(s, { kind: other.kind, key: other.key, name: other.name, size: other.size, boss: false }, c())).toEqual({ refused: 'kind' });
+    expect(handlers.kill(s, sp({ kind: other.kind, key: other.key, name: other.name, size: other.size, boss: false }), c())).toEqual({ refused: 'kind' });
     const mine = STAGES[0].land.mobs[0];
-    expect('gold' in handlers.kill(s, { kind: mine.kind, key: mine.key, name: mine.name, size: mine.size, boss: false }, c())).toBe(true);
+    expect('gold' in handlers.kill(s, sp({ kind: mine.kind, key: mine.key, name: mine.name, size: mine.size, boss: false }), c())).toBe(true);
+    // a kill without a live spawn id (replayed / invented) is refused
+    expect(handlers.kill(s, { sid: 999999, kind: mine.kind, key: mine.key, name: mine.name, size: mine.size, boss: false }, c())).toEqual({ refused: 'spawn' });
     handlers.enterMap(s, { n: WILD }, c());
-    const r = handlers.kill(s, deer, c()); expect('food' in r && r.food > 0).toBe(true);
+    const r = handlers.kill(s, sp(deerB), c()); expect('food' in r && r.food > 0).toBe(true);
   });
   it('gathering only works in the Deepwild and a node runs dry', () => {
     expect(handlers.gather(s, { node: 1, kind: 'stone', pit: 0 }, c())).toEqual({ refused: 'map' });

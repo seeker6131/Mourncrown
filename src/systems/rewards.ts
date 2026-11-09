@@ -8,22 +8,25 @@ import { stageOf, scaleStats, WILD, type StageMon } from '../world/stages';
 import { derive, gainExp } from './stats';
 import { addItem } from './inventory';
 import { pickBase, rollRarity, makeGear, isGear } from './loot';
+import { LAND_SET } from '../data/sets';
 
 export interface KillResult {
+  elite?: boolean;
   gold: number; exp: number; levels: number; wood: number; stone: number; food: number;
   mats: { id: string; qty: number }[];
-  gear: { id: string; rar: number }[];
+  gear: { id: string; rar: number; set?: string }[];
   cleared: boolean;
 }
 
 const between = (rnd: () => number, a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
 
 /** Apply the rewards for killing `mon` in stage `stageN`. `lastOfStage` = it was the last monster alive. */
-export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boolean, lastOfStage: boolean, rnd: () => number = Math.random): KillResult {
+/** elite = a golden monster (5x HP): 5x gold, 3x EXP, a sure gear drop one rarity higher, 15% chance it is a set piece */
+export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boolean, lastOfStage: boolean, rnd: () => number = Math.random, elite = false): KillResult {
   const st = stageOf(stageN, s.level), base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
   const animal = !!base.animal;
   const vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now();
-  const gold = animal ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1));
+  const gold = animal ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1) * (elite ? 5 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1) * (elite ? 3 : 1));
   s.gold += gold;
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);
@@ -42,13 +45,15 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   }
   // gear: rarity floor and magic find grow with the stage
   const gear: KillResult['gear'] = [];
-  const n = animal ? 0 : boss ? 3 : rnd() < 0.04 + stageN * 0.0006 ? 1 : 0;
+  const n = animal ? 0 : boss ? 3 : elite ? 1 : rnd() < 0.04 + stageN * 0.0006 ? 1 : 0;
+  const setId = LAND_SET[st.land.id];
   for (let i = 0; i < n; i++) {
-    const b = pickBase(rnd, st.level, s.cls), rar = rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : st.minRar);
-    if (addItem(s, b.id, 1, 0, makeGear(rnd, b.id, rar))) gear.push({ id: b.id, rar });
+    const b = pickBase(rnd, st.level, s.cls), rar = Math.min(5, rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : elite ? st.minRar + 1 : st.minRar));
+    const set = (boss && i === 0) || (elite && rnd() < 0.15) ? setId : undefined;
+    if (addItem(s, b.id, 1, 0, { ...makeGear(rnd, b.id, rar), ...(set ? { set } : {}) })) gear.push({ id: b.id, rar, set });
   }
   if (boss) s.bossDefeated = (s.bossDefeated ?? 0) + 1;
   let cleared = false;
   if (lastOfStage) { const sv = s as unknown as { tdCleared?: number }; cleared = true; sv.tdCleared = Math.max(sv.tdCleared ?? 0, stageN); }
-  return { gold, exp, levels, wood, stone, food, mats, gear, cleared };
+  return { elite, gold, exp, levels, wood, stone, food, mats, gear, cleared };
 }

@@ -23,6 +23,7 @@ import { payStage } from '../systems/supplies';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
 import { invSize } from '../core/state';
 import { tutPay, claimLogin } from '../systems/progress';
+import { pstats, claimAch, setTitle } from '../data/achievements';
 import type { BuildingId, MealId } from '../data/buildings';
 import type { ClassId } from '../data/classes';
 
@@ -31,7 +32,7 @@ export type Refused = { refused: string };
 const no = (why: string): Refused => ({ refused: why });
 
 // ---- per-player anti-cheat memory (on the server this lives in the player's session) ----
-const mem = { dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+const mem = { spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -42,6 +43,7 @@ function dpsOf(s: GameState) { const d = derive(s); return Math.max(d.atk, d.mat
 export const handlers = {
   /** entering a map (server remembers where the player is) */
   enterMap(s: GameState, a: { n: number }, c: Ctx) {
+    mem.spawns.clear();
     if (a.n === 0) { mem.map = 0; return { ok: true }; }
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
     const st = STAGES[a.n - 1]; if (!st) return no('map');
@@ -51,17 +53,26 @@ export const handlers = {
     const sv = s as unknown as { tdMaxMap?: number }; sv.tdMaxMap = Math.max(sv.tdMaxMap ?? 0, a.n);
     return { ok: true };
   },
+  /** the server owns every spawn: it hands out an id and decides golden monsters (3%, never bosses / animals / the Deepwild) */
+  spawn(_s: GameState, a: { key: string; boss: boolean; animal?: boolean }, c: Ctx) {
+    if (mem.spawns.size > 400) mem.spawns.delete(mem.spawns.keys().next().value!);
+    const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = mem.sid++;
+    mem.spawns.set(sid, { key: a.key, elite, boss: a.boss });
+    return { sid, elite };
+  },
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
-  kill(s: GameState, a: { kind: MonsterKind; key: string; name: string; size: number; boss: boolean }, c: Ctx) {
+  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean }, c: Ctx) {
     const n = mem.map, base = MONSTERS[a.kind]; if (!n || !base) return no('map');
+    const sp = mem.spawns.get(a.sid); if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');   // must be a live monster the server spawned
     if (!rateOk('kill', 8, c.now)) return no('rate');
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
-    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp, dps = dpsOf(s);
+    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     if (!DEV_TOOLS && mem.dmg < hp) return no('dps');
-    mem.dmg = Math.max(0, mem.dmg - hp);
-    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss, c.rnd);
+    mem.dmg = Math.max(0, mem.dmg - hp); mem.spawns.delete(a.sid);
+    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss, c.rnd, sp.elite);
+    const ps = pstats(s); if (base.animal) ps.animals++; else { ps.kills++; ps.kinds[a.kind] = (ps.kinds[a.kind] ?? 0) + 1; if (sp.elite) ps.golden++; }
     const junk = vipActive(s, c.now) && s.inventory.length >= invSize(s) - 2 ? sellJunk(s, 1) : null;   // VIP auto-sell
     return { ...r, junk };
   },
@@ -75,6 +86,7 @@ export const handlers = {
     const vein: Vein | null = P ? { ore: P.ore, gem: P.gem, req: P.req, rare: !!a.rare, gold: !!a.gold } : null;
     const r = gatherReward(s, a.kind, WILD, vein, c.rnd);
     if (r.low) return { ...r, refused: 'level' };
+    { const ps = pstats(s); ps.ore += r.oreQty; if (r.gem) ps.gems++; }
     nd.hits++; const max = a.rare ? 6 : 4;
     if (nd.hits >= max) { nd.hits = 0; nd.until = c.now + (a.rare ? 240000 : 45000) - 1500; }
     mem.nodes.set(a.node, nd);
@@ -90,7 +102,9 @@ export const handlers = {
     sv.wildRoom = room;
     return { rooms, room, cap: WILD_ROOM_CAP };
   },
-  brew: (s: GameState, a: { out: string }) => brew(s, a.out),
+  brew(s: GameState, a: { out: string }) { const r = brew(s, a.out); if (r === 'ok') pstats(s).brews++; return r; },
+  achClaim: (s: GameState, a: { id: string }) => claimAch(s, a.id),
+  setTitle: (s: GameState, a: { id: string | null }) => setTitle(s, a.id),
   shopBuy(s: GameState, a: { id: string }, c: Ctx) {
     if (!SHOP_STOCK.includes(a.id)) return no('item');
     const def = itemDef(a.id), sd = s as unknown as { shopDay?: { d: string; shards: number } }, today = new Date(c.now).toDateString();

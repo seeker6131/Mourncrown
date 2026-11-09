@@ -31,6 +31,8 @@ import { RECIPES } from '../data/alchemy';
 import { act, refused } from '../net/client';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
+import { SETS, fxText } from '../data/sets';
+import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood } from '../systems/supplies';
@@ -38,7 +40,7 @@ import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -133,6 +135,7 @@ export class Panels {
       case 'alchemy': this.buildAlchemy(c); break;
       case 'rooms': this.buildRooms(c); break;
       case 'login': this.buildLogin(c); break;
+      case 'collection': this.buildCollection(c); break;
     }
   }
 
@@ -196,6 +199,7 @@ export class Panels {
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
         if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
         if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
+        if (it.set) c.add(k.text(cx + cs - 2, cy + cs - 10, '◆', 7, '#' + SETS[it.set].col.toString(16).padStart(6, '0')).setOrigin(1, 0));
         const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
         z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
         c.add(z);
@@ -226,6 +230,8 @@ export class Panels {
     if (offCls) info += '\n⚠ ไม่ตรงสาย: ค่าพลังเหลือ 60%';
     const aff = (it.aff ?? []).map(a => '✦ ' + affixText(a as never)).join('\n');
     if (aff) info += '\n' + aff;
+    if (it.set) { const st = SETS[it.set], worn = (['weapon', 'armor', 'accessory'] as const).filter(sl => { const u = s.equip[sl]; return u != null && s.inventory.find(q => q.uid === u)?.set === it.set; }).length;
+      info += `\n◆ ${st.name} (สวม ${worn}/3)\n  2 ชิ้น: ${fxText(st.b2)}\n  3 ชิ้น: ${fxText(st.b3)}`; }
     if (isGear(def) && mode === 'bag' && !isEquipped(s, it.uid)) {
       const cur = derive(s).power;
       const slot = def.type as 'weapon' | 'armor' | 'accessory';
@@ -594,6 +600,7 @@ export class Panels {
     let yy = y + 34;
     const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 19, label, cb, { size: 8.5, color })); yy += 22; };
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
+    b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
       const st = loadGame();
@@ -830,6 +837,49 @@ export class Panels {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
     });
+  }
+
+  // ---------------- COLLECTION: achievements / titles / monster codex ----------------
+  colTab: 'ach' | 'codex' = 'ach'; colPage = 0;
+  buildCollection(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(640, ui.VW - 12), H = 340;
+    const { x, y, g } = this.window(c, W, H, '🏆 สะสม & ฉายา');
+    ([['ach', '🏆 ความสำเร็จ / ฉายา'], ['codex', '📖 สมุดมอน']] as const).forEach(([id, label], i) => c.add(k.button(x + 14 + i * 150, y + 28, 144, 20, label, () => { this.colTab = id; this.colPage = 0; this.rebuild(); }, { size: 9, color: this.colTab === id ? 0x6a4a10 : 0x2a1d12 })));
+    const cur = titleOf(s);
+    c.add(k.text(x + W - 16, y + 32, `ฉายาตอนนี้: ${cur ?? '-'}`, 8.5, '#ffd84a').setOrigin(1, 0));
+    const top = y + 56;
+    if (this.colTab === 'ach') {
+      const per = 10, pages = Math.ceil(ACHS.length / per), list = ACHS.slice(this.colPage * per, this.colPage * per + per);
+      const cw = (W - 34) / 2, ch = 46;
+      list.forEach((a, i) => {
+        const cx = x + 14 + (i % 2) * (cw + 6), cy = top + Math.floor(i / 2) * (ch + 4), p = achProgress(s, a), done = p >= a.need, own = titlesOf(s).includes(a.id), using = (s as unknown as { title?: string }).title === a.id;
+        g.fillStyle(own ? 0x1f2a14 : done ? 0x4a3a10 : 0x1a140e, 0.95).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, using ? 0xffd84a : own ? 0x7ad88a : 0x4a3a2a, 1).strokeRoundedRect(cx, cy, cw, ch, 4);
+        c.add(k.text(cx + 6, cy + 3, `「${a.title}」`, 9, own ? '#ffd84a' : done ? '#ffffff' : '#a89878'));
+        c.add(k.text(cx + 6, cy + 17, `${a.desc} • 💰${a.gold.toLocaleString()}`, 7, '#c8b898'));
+        g.fillStyle(0x0b0805, 1).fillRect(cx + 6, cy + 32, cw - 100, 6).fillStyle(done ? 0x7ad88a : 0xc89a4a, 1).fillRect(cx + 6, cy + 32, (cw - 100) * p / a.need, 6);
+        c.add(k.text(cx + cw - 90, cy + 29, `${p.toLocaleString()}/${a.need.toLocaleString()}`, 7, '#e8dcc0').setOrigin(1, 0));
+        const btn = own ? (using ? 'ใช้อยู่' : 'ใช้ฉายา') : done ? 'รับ!' : '🔒';
+        c.add(k.button(cx + cw - 80, cy + 10, 72, 22, btn, () => {
+          if (!own) { const r = act('achClaim', { id: a.id }); if (typeof r === 'object') { sfx.levelUp(); bus.emit(EV.TOAST, `🏆 ได้ฉายา「${a.title}」 + 💰${a.gold.toLocaleString()}`, '#ffd84a'); } }
+          else act('setTitle', { id: using ? null : a.id });
+          saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+        }, { size: 8.5, color: own ? (using ? 0x3a5a2a : 0x2a3a5a) : 0x6a4a10, disabled: !own && !done }));
+      });
+      if (pages > 1) for (let i = 0; i < pages; i++) c.add(k.button(x + W / 2 - pages * 18 + i * 36, y + H - 30, 30, 18, String(i + 1), () => { this.colPage = i; this.rebuild(); }, { size: 8, color: i === this.colPage ? 0x6a4a10 : 0x2a1d12 }));
+    } else {
+      const ps = pstats(s), keys = CODEX.map(m => m.key);
+      if (loadIdle(ui, keys, () => { if (this.cur === 'collection') this.rebuild(); })) { /* rebuilt when the sheets arrive */ }
+      const cols = 8, cw = (W - 28 - (cols - 1) * 5) / cols, ch = 64, seen = CODEX.filter(m => (ps.kinds[m.kind] ?? 0) > 0).length;
+      c.add(k.text(x + 14, top - 2, `พบแล้ว ${seen}/${CODEX.length} ชนิด — ปราบครบทุกชนิดได้ฉายา「นักสะสมมอน」`, 8, '#9fe0a0'));
+      CODEX.forEach((m, i) => {
+        const cx = x + 14 + (i % cols) * (cw + 5), cy = top + 14 + Math.floor(i / cols) * (ch + 5), n = ps.kinds[m.kind] ?? 0;
+        g.fillStyle(n ? 0x22301f : 0x15120e, 0.95).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, n ? 0x5a8a5a : 0x3a3228, 1).strokeRoundedRect(cx, cy, cw, ch, 4);
+        const key = `c_${m.key}_idle`;
+        if (ui.textures.exists(key)) { const im = ui.add.image(cx + cw / 2, cy + ch - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, (cw - 6) / im.width)); if (!n) im.setTintFill(0x0a0806); c.add(im); }
+        c.add(k.text(cx + cw / 2, cy + ch - 13, n ? `x${n.toLocaleString()}` : '???', 7, n ? '#e8dcc0' : '#5a5040').setOrigin(0.5, 0));
+      });
+    }
   }
 
   // ---------------- DAILY LOGIN (7-day calendar) ----------------

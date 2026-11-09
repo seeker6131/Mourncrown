@@ -9,6 +9,7 @@ import { Crowd } from '../world/crowd';
 import { sfx } from '../audio/sfx';
 import { act, refused } from '../net/client';
 import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
+import { titleOf } from '../data/achievements';
 import { type Vein } from '../systems/alchemy';
 import { itemDef } from '../data/items';
 import { S } from '../core/events';
@@ -209,6 +210,7 @@ export class TopDownScene extends Phaser.Scene {
     this.shadow = this.contact(PLAZA.x, PLAZA.y + 40, 24, 9, 0.5);
     this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
+    this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);
     this.placeProps();
     // return scroll: back to the village from any map
     const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
@@ -1200,6 +1202,7 @@ export class TopDownScene extends Phaser.Scene {
     return null;
   }
   tutText() { const s = S(); return tutActive(s) ? `🎓 ${tutStep(s) + 1}/${TUT_STEPS.length}  ${TUT_STEPS[tutStep(s)]}` : ''; }
+  titleTx!: Phaser.GameObjects.Text;
   stunUntil = 0;
   /** animal kick: pushed back a little and dazed (can't move or swing) */
   stunHero(ms: number, fx: number, fy: number) {
@@ -1282,6 +1285,7 @@ export class TopDownScene extends Phaser.Scene {
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);
+    { const t = titleOf(S()); this.titleTx.setText(t ? `「${t}」` : '').setPosition(h.x, h.y - 46).setVisible(!this.dead); }
     for (const [i, l] of this.lamps.entries()) l.setAlpha((0.75 + Math.sin(time / 180 + i * 1.7) * 0.12) * (l.getData('base') ?? 1));
     this.updateDayNight(time);
     for (const [i, f] of this.fires.entries()) {

@@ -7,6 +7,7 @@ import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
 import { act, refused } from '../net/client';
+import { SETS } from '../data/sets';
 import { Vfx } from './vfx';
 import { slashFx } from '../systems/premium';
 import { sellJunk } from '../systems/inventory';
@@ -18,7 +19,7 @@ import { STAGES, WILD, wildStage, scaleStats, type Stage, type StageMon } from '
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean;
 }
 
 export interface Host extends Phaser.Scene {
@@ -67,7 +68,7 @@ export class Combat {
     this.s.time.delayedCall(delay, () => {
       if (!this.s.sys.isActive() || this.s.stageN !== this.stage?.n) return;
       const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
-      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
+      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
       const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
       this.spawn(m.m, p.x, p.y, m.boss);
       const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
@@ -78,6 +79,8 @@ export class Combat {
 
   spawn(m: StageMon, x: number, y: number, boss: boolean) {
     const base = MONSTERS[m.kind]; const st = scaleStats(base, this.stage!.level, boss);
+    const reg = act('spawn', { key: m.key, boss, animal: !!base.animal });   // the server names the spawn and decides golden monsters
+    if (reg.elite) st.hp *= 5;
     const sc = this.s;
     let sp: Phaser.GameObjects.Sprite;
     if (CH[m.key]) { sp = sc.add.sprite(x, y, `c_${m.key}_idle`); setIdle(sp, m.key, 0); }
@@ -88,7 +91,13 @@ export class Combat {
     const shw = m.size * (boss ? 0.75 : 0.62);
     const sh = sc.add.image(x, y, sc.textures.exists('td_shadow') ? 'td_shadow' : '__WHITE').setDisplaySize(shw, shw * 0.34).setAlpha(0.5).setDepth(1);
     sp.setData('sh', sh);
-    this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0 });
+    if (reg.elite) {   // golden monster: gold aura, a bit bigger
+      sp.setScale(1.2);
+      const au = sc.add.image(x, y - m.size * 0.35, 'td_glow').setTint(0xffd84a).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(m.size / 40);
+      sc.tweens.add({ targets: au, alpha: { from: 0.45, to: 1 }, scale: { from: m.size / 44, to: m.size / 34 }, duration: 700, yoyo: true, repeat: -1 });
+      sp.setData('aura', au);
+    }
+    this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite });
   }
 
   // ---------- skills ----------
@@ -317,15 +326,18 @@ export class Combat {
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
     const s = S();
-    const r = act('kill', { kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
+    (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
+    const r = act('kill', { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
     this.respawn(m);
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
+    if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
     if (r.junk?.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${r.junk.count} ชิ้น +${r.junk.gold}G`, '#ffd84a', 8);
     this.float(m.x, m.y - 20, r.gold ? `+${r.exp} EXP  +${r.gold}G` : `+${r.exp} EXP`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
     if (r.food) this.float(m.x + 14, m.y - 8, `🍖${r.food}`, '#ffd8a0', 8);
     r.mats.forEach((q, i) => this.float(m.x - 14, m.y - 46 - i * 10, `+${q.qty} ${itemDef(q.id).name}`, '#c8e8ff', 8));
-    r.gear.forEach((q, i) => this.float(m.x, m.y - 34 - i * 12, `${RARITY_NAMES[q.rar]} ${itemDef(q.id).name}`, '#' + RARITY_COLORS[q.rar].toString(16).padStart(6, '0'), 9));
+    r.gear.forEach((q, i) => this.float(m.x, m.y - 34 - i * 12, `${q.set ? '◆ ' + SETS[q.set].name + ' ' : ''}${RARITY_NAMES[q.rar]} ${itemDef(q.id).name}`, '#' + RARITY_COLORS[q.rar].toString(16).padStart(6, '0'), 9));
+    for (const q of r.gear) if (q.set) bus.emit(EV.TOAST, `◆ ได้ชิ้นส่วน ${SETS[q.set].name}: ${itemDef(q.id).name}`, '#' + SETS[q.set].col.toString(16).padStart(6, '0'));
     if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที', '#ffd040');
     saveGame(s);
   }
@@ -421,6 +433,7 @@ export class Combat {
         if (!attacking) { if (moving) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }
       }
       m.sp.setPosition(m.x, m.y).setDepth(m.y);
+      (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
       (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
       const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
       if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);
