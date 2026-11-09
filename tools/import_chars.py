@@ -23,7 +23,7 @@ def frames_of(z):
     for n in names:
         m = re.search(r'animations/([^/]+)/([a-z-]+)/frame_(\d+)\.png$', n)
         # the skeleton-template 'walking' (8 directions, real leg motion) replaces the old text-made 'walk'
-        if m and m.group(1) == 'walk' and 'walking' in folders: continue
+        if m and m.group(1) != 'walking' and norm(m.group(1)) == 'walk' and 'walking' in folders: continue
         if m: anims.setdefault(norm(m.group(1)), {}).setdefault(m.group(2), []).append((int(m.group(3)), n))
     return rot, {a: {d: [load(n) for _, n in sorted(v)] for d, v in dd.items()} for a, dd in anims.items()}, load
 

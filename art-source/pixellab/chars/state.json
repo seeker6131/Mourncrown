@@ -4,31 +4,90 @@
   "walk": "done",
   "attack": "done",
   "zip": 1,
-  "walk8group": "2ebfb52e-3845-4dfa-80c9-8a08916514c3"
+  "walk8group": "2ebfb52e-3845-4dfa-80c9-8a08916514c3",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr2": {
   "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "28b688d6-e556-4b12-81ff-9afb65c1edfb",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr5": {
   "cid": "b2384178-a25a-4a3d-b753-8db5961bbb80",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "8414f554-1b46-40ea-955a-9dd34eefc1b7",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr6": {
   "cid": "63b5475c-9848-4b58-b9ed-cf1d16dd853d",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "34687fd8-3450-4ff3-a79d-6681158ddde8",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo1": {
   "cid": "4b012d32-7ed9-4e21-8204-117085658759",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "571dfd1d-c6ed-4674-8b43-e6e70e349815",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo2": {
   "cid": "4a4f8d42-86c7-492e-b3f7-106626dcb0c4",
@@ -58,13 +117,15 @@
   "cid": "f1f4726f-6f82-4c2a-97d4-6d3138885545",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "feb725c8-0b8b-476e-9bd2-956fbf4a5824"
  },
  "mo17": {
   "cid": "289f8d6f-7d9b-4a01-8444-380ceff4dae1",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "970d91b1-b37c-4286-a9cb-4ee02833c3fb"
  },
  "bs1": {
   "cid": "8a209fd4-3eea-41bb-bcdd-56d83be85f18",
@@ -102,7 +163,19 @@
   "cid": "1d20def0-85f2-4fb5-ab2f-460897b3ee16",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "82ca4c16-d4aa-44af-a8e9-1e8c1d4c2d55",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo11": {
   "cid": "3c0f50dd-a206-47e5-bf12-2067b07dc18e",
@@ -114,55 +187,163 @@
   "cid": "d7bc8522-c7d6-4258-ad8b-2c3b1695a52a",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "518ab64d-82f3-48d5-8f8b-b14e1bbd55ac",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo13": {
   "cid": "b6466faa-8cf6-492f-904b-a4ec4f2c9f96",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "fb9931d1-90f4-4b98-8d52-94b64e358ccb",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo14": {
   "cid": "a6a253d9-4a1e-4c81-9000-17f3bff1ea54",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "1c746469-058f-4da8-8873-5bd2936e96fc",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo15": {
   "cid": "bb61a8a1-f094-4665-90d9-a3291444f0a8",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "7b979dd9-ed44-4082-9aac-8c5498314876",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr7": {
   "cid": "ffb301c7-a8ea-46ab-8133-715945c6088f",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "0f862dd2-9ab9-493f-b92d-be748ac2fe8d",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr8": {
   "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "0d7eadaf-0200-40c8-988a-c77622448ab3",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr10": {
   "cid": "c63d1244-7e03-4541-89b9-4feaac6c36c6",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "5ff2bb33-8fe7-4b3a-99c3-dfca160b0f9d",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr11": {
   "cid": "6563876c-d993-46b9-aca0-be6b0a0a23b5",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "c392dce9-b237-4df0-be33-5acb5e497e0a",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "hr12": {
   "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "6f25e5c0-8d33-4c24-9245-4124714ea21c",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "np1": {
   "cid": "8e93d3e3-f754-453c-b5e9-c83fcae74927",
