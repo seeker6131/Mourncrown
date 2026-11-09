@@ -174,7 +174,7 @@ export class TopDownScene extends Phaser.Scene {
     // the land's monsters, its boss (boss stages) and the wild game in a stage
     const heroes = ['hero', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
     const st = this.stageN && this.stageN !== WILD ? STAGES[this.stageN - 1] : null;
-    const keys = this.stageN === WILD ? [...heroes, 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : [])]
+    const keys = this.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : [])]
       : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
     preloadChars(this, keys);
   }
@@ -553,7 +553,7 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.spawnMap(WILD, spot, null);
     // other players gathering here (simulated until the server exists)
     const work = this.nodes.filter(n => !n.vein || n.vein.req <= 20);
-    this.crowd = new Crowd(this as never, () => work.map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
+    this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
   }
 
   /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
@@ -823,7 +823,10 @@ export class TopDownScene extends Phaser.Scene {
     for (const c of this.crowd?.list ?? []) dots.push({ x: c.x, y: c.y, kind: 'player' });
     return { key: String(this.stageN), w: MW, h: MH, hero: { x: this.hero.x, y: this.hero.y, dir: this.dir }, exits, marks, dots };
   }
-  get F() { const s = S(); const t = activeTier(s); return { key: formKeyOf(s.cls, t), name: formName(s.cls, t) }; }
+  /** in the Deepwild the gathering outfit is the empty-handed villager 'hg' (axe / pickaxe only when working) */
+  get F() { const s = S(); const t = activeTier(s); if (this.wild && s.outfit === 'gather' && CH.hg) return { key: 'hg', name: formName(s.cls, 0) }; return { key: formKeyOf(s.cls, t), name: formName(s.cls, t) }; }
+  /** the swing used to hit: the empty-handed villager hits with the axe */
+  get swing() { return this.F.key === 'hg' ? 'chop' : 'attack'; }
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
@@ -969,8 +972,8 @@ export class TopDownScene extends Phaser.Scene {
     const s = S(), id = currentSkills(s)[i]; if (!id) return;
     const r = beginCast(s, id, this.time.now, this.skillReady);
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
-    if (hasAnim(this.F.key, 'attack')) {
-      this.attacking = true; playAnim(this.hero, this.F.key, 'attack', this.dir, false);
+    if (hasAnim(this.F.key, this.swing)) {
+      this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
     }
     this.combat.castSkill(r);
@@ -1181,11 +1184,11 @@ export class TopDownScene extends Phaser.Scene {
     const node = this.nearNode();
     if (node && this.gathering()) { this.gather(node); return; }
     if (node && this.time.now > this.gatherTipT && !this.combat.nearest(90).length) { this.gatherTipT = this.time.now + 20000; bus.emit(EV.TOAST, 'อยากตัดไม้/ขุดหิน? สวมชุดหาทรัพยากรที่ปุ่ม 👕 ชุด ด้านบน', '#ffd8a0'); }
-    if (!hasAnim(this.F.key, 'attack')) return;
+    if (!hasAnim(this.F.key, this.swing)) return;
     this.attacking = true;
     const h = this.hero;
     const F = this.F;
-    playAnim(h, F.key, 'attack', this.dir, false);
+    playAnim(h, F.key, this.swing, this.dir, false);
     if (this.stageN) this.combat.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }

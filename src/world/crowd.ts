@@ -15,11 +15,11 @@ interface P { sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: 
 
 export class Crowd {
   list: P[] = [];
-  constructor(private sc: Phaser.Scene & Host, private spots: () => Spot[], n: number, start: (i: number) => { x: number; y: number }) {
+  constructor(private sc: Phaser.Scene & Host, private k: string, private spots: () => Spot[], n: number, start: (i: number) => { x: number; y: number }) {
     for (let i = 0; i < n; i++) {
       const p0 = start(i);
-      const sp = sc.add.sprite(p0.x, p0.y, 'c_hero_idle', 0).setTint(TINTS[i % TINTS.length]);
-      setIdle(sp, 'hero', i % 8);
+      const sp = sc.add.sprite(p0.x, p0.y, `c_${k}_idle`, 0).setTint(TINTS[i % TINTS.length]);
+      setIdle(sp, k, i % 8);
       const sh = sc.contact(p0.x, p0.y - 1, 22, 8, 0.45);
       const tag = sc.add.text(p0.x, p0.y - 40, NAMES[i % NAMES.length], { fontFamily: 'sans-serif', fontSize: '7px', color: '#bfe8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99990);
       this.list.push({ sp, sh, tag, x: p0.x, y: p0.y, tx: p0.x, ty: p0.y, dir: i % 8, work: 0, until: 0, anim: '', stuck: 0 });
@@ -35,7 +35,7 @@ export class Crowd {
   update(time: number, dt: number) {
     for (const p of this.list) {
       if (p.work > 0) {                       // working at a node: swing a few times, then move on
-        if (time > p.until) { p.work--; p.until = time + 900; if (!playAnim(p.sp, 'hero', p.anim, p.dir, false)) playAnim(p.sp, 'hero', 'attack', p.dir, false); if (p.work === 0) { setIdle(p.sp, 'hero', p.dir); p.until = time + 1500 + Math.random() * 4000; p.tx = NaN; } }
+        if (time > p.until) { p.work--; p.until = time + 900; if (!playAnim(p.sp, this.k, p.anim, p.dir, false)) playAnim(p.sp, this.k, 'attack', p.dir, false); if (p.work === 0) { setIdle(p.sp, this.k, p.dir); p.until = time + 1500 + Math.random() * 4000; p.tx = NaN; } }
       } else if (Number.isNaN(p.tx)) { if (time > p.until) this.plan(p, time); }
       else {
         const dx = p.tx - p.x, dy = p.ty - p.y, d = Math.hypot(dx, dy);
@@ -45,8 +45,8 @@ export class Crowd {
           let moved = false;
           if (!this.sc.isBlocked(nx, p.y)) { p.x = nx; moved = true; }
           if (!this.sc.isBlocked(p.x, ny)) { p.y = ny; moved = true; }
-          if (!moved && ++p.stuck > 30) { p.stuck = 0; p.tx = NaN; p.until = time + 500; setIdle(p.sp, 'hero', p.dir); continue; }
-          p.dir = dirOf(dx, dy); playAnim(p.sp, 'hero', 'walk', p.dir);
+          if (!moved && ++p.stuck > 30) { p.stuck = 0; p.tx = NaN; p.until = time + 500; setIdle(p.sp, this.k, p.dir); continue; }
+          p.dir = dirOf(dx, dy); playAnim(p.sp, this.k, 'walk', p.dir);
         }
       }
       p.sp.setPosition(p.x, p.y).setDepth(p.y); p.sh.setPosition(p.x, p.y - 1); p.tag.setPosition(p.x, p.y - 40);
