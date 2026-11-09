@@ -25,7 +25,8 @@ export const GEAR_BASES = Object.values(ITEMS).filter(isGear);
 /** Roll a rarity 0..5 (SL); `mf` = magic find %, `min` = floor. */
 export function rollRarity(rnd: () => number, mf = 0, min = 0): number {
   const boost = 1 + mf / 100;
-  const w = [100, 30 * boost, 10 * boost, 3 * boost, 0.6 * boost, 0.08 * boost];
+  // magic find helps the rare tiers more than the common ones (so it still matters when the floor is raised); SL is very rare
+  const w = [100, 30 * boost, 10 * boost ** 1.25, 3 * boost ** 1.5, 0.5 * boost ** 1.75, 0.012 * boost ** 2];
   for (let i = 0; i < min; i++) w[i] = 0;
   const tot = w.reduce((a, b) => a + b, 0);
   let r = rnd() * tot;

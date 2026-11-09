@@ -579,10 +579,14 @@ export class Panels {
   land = -1;
   buildStages(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const cleared = (s as unknown as { tdCleared?: number }).tdCleared ?? 0, top = Math.min(50, cleared + 1);
-    if (this.land < 0) this.land = Math.floor((top - 1) / 10);
+    // maps unlock by hero level; the 'recommended' map is the highest one the hero can enter
+    const all = !!(s as unknown as { tdUnlockAll?: boolean }).tdUnlockAll;
+    const canEnter = (st: (typeof STAGES)[number]) => all || s.level >= st.req;
+    const best = [...STAGES].reverse().find(canEnter)?.n ?? 1;
+    const bossDone = (s as unknown as { tdCleared?: number }).tdCleared ?? 0;
+    if (this.land < 0) this.land = Math.floor((best - 1) / 10);
     const W = Math.min(620, ui.VW - 16), H = 330;
-    const { x, y, g } = this.window(c, W, H, 'เลือกด่าน');
+    const { x, y, g } = this.window(c, W, H, 'เลือกแผนที่');
     const COL = [0x2e5a3a, 0x4a3a6a, 0x7a3a1a, 0x3a5a7a, 0x3a3a40], HI = ['#9fe0a0', '#c8a8ff', '#ffb080', '#a8d8ff', '#c8c8d0'];
     // previews of this land's monsters and boss (idle sheets load on demand)
     const L = LANDS[this.land];
@@ -590,12 +594,11 @@ export class Panels {
     // land tabs
     const tx = x + 12, tw = 118, th = 46, ty0 = y + 34;
     LANDS.forEach((ld, i) => {
-      const first = i * 10 + 1, open = first <= top, ty = ty0 + i * (th + 6), sel = i === this.land;
-      const done = Math.max(0, Math.min(10, cleared - i * 10));
+      const first = STAGES[i * 10], open = canEnter(first), ty = ty0 + i * (th + 6), sel = i === this.land;
       g.fillStyle(open ? COL[i] : 0x1a1612, sel ? 1 : 0.55).fillRoundedRect(tx, ty, tw, th, 5);
       g.lineStyle(sel ? 2 : 1, sel ? 0xffd84a : 0x5a4a3a, 1).strokeRoundedRect(tx, ty, tw, th, 5);
       c.add(k.text(tx + 8, ty + 6, ld.name, 9.5, open ? '#ffffff' : '#6a6050'));
-      c.add(k.text(tx + 8, ty + 24, open ? `${done}/10 ✔` : `🔒 ${first}`, 8, open ? HI[i] : '#6a6050'));
+      c.add(k.text(tx + 8, ty + 24, open ? `มอน Lv${first.level}-${STAGES[i * 10 + 9].level}` : `🔒 Lv${first.req}`, 8, open ? HI[i] : '#6a6050'));
       const z = ui.add.zone(tx, ty, tw, th).setOrigin(0).setInteractive();
       z.on('pointerup', () => { sfx.click(); this.land = i; this.rebuild(); });
       c.add(z);
@@ -604,15 +607,17 @@ export class Panels {
     const gx = tx + tw + 12, gw = x + W - 14 - gx, cols = 5, cw = (gw - (cols - 1) * 6) / cols, ch = 92;
     STAGES.slice(this.land * 10, this.land * 10 + 10).forEach((st, i) => {
       const cx = gx + (i % cols) * (cw + 6), cy = y + 34 + Math.floor(i / cols) * (ch + 6);
-      const open = st.n <= top, done = st.n <= cleared, food = stageFood(st.n);
+      const open = canEnter(st), food = stageFood(st.n);
       g.fillStyle(open ? (st.boss ? 0x4a1a14 : 0x22301f) : 0x15120e, 0.95).fillRoundedRect(cx, cy, cw, ch, 5);
-      g.lineStyle(st.boss ? 2 : 1, !open ? 0x3a3228 : st.boss ? 0xff6a3a : st.n === top ? 0xffd84a : COL[this.land] + 0x303030, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
+      g.lineStyle(st.boss ? 2 : 1, !open ? 0x3a3228 : st.boss ? 0xff6a3a : st.n === best ? 0xffd84a : COL[this.land] + 0x303030, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
       if (st.boss && ui.textures.exists(`c_${L.boss.key}_idle`)) {
         const im = ui.add.image(cx + cw / 2, cy + ch - 18, `c_${L.boss.key}_idle`, 0).setOrigin(0.5, 1); im.setScale(52 / im.height); if (!open) im.setTint(0x202020); c.add(im);
       }
       c.add(k.text(cx + 6, cy + 4, String(st.n), st.boss ? 16 : 18, open ? '#ffffff' : '#5a5040', { fontStyle: 'bold' }));
       if (st.boss) c.add(k.text(cx + cw - 6, cy + 6, '👑', 11).setOrigin(1, 0));
-      if (!st.boss) c.add(k.text(cx + cw / 2, cy + 40, open ? (done ? '✔' : st.n === top ? '▶' : '') : '🔒', 18, done ? '#9fffb0' : '#ffd84a').setOrigin(0.5));
+      if (!st.boss) c.add(k.text(cx + cw / 2, cy + 40, open ? (st.n === best ? '▶' : '') : `🔒\nLv${st.req}`, open ? 18 : 9, '#ffd84a', { align: 'center' }).setOrigin(0.5));
+      else if (st.n <= bossDone) c.add(k.text(cx + cw - 6, cy + 24, '✔', 10, '#9fffb0').setOrigin(1, 0));
+      if (st.boss && !open) c.add(k.text(cx + cw / 2, cy + 40, `🔒 Lv${st.req}`, 9, '#ffd84a').setOrigin(0.5));
       c.add(k.text(cx + 6, cy + ch - 28, `Lv${st.level}`, 8.5, open ? '#e8dcc0' : '#5a5040'));
       c.add(k.text(cx + 6, cy + ch - 15, food ? `🍖${food}` : 'ฟรี', 8, open ? (s.res.food >= food ? '#ffd8a0' : '#ff8a6a') : '#5a5040'));
       if (open) {

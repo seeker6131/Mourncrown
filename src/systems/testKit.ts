@@ -18,7 +18,7 @@ export function giveTestKit(s: GameState, rarity = 5, rnd: () => number = Math.r
     if (!addItem(s, d.id, 1, 0, makeGear(rnd, d.id, rarity))) continue;
     s.equip[d.type as 'weapon' | 'armor' | 'accessory'] = s.inventory[s.inventory.length - 1].uid; got.push(d.name);   // test kit ignores the level requirement
   }
-  (s as GameState & { tdCleared?: number }).tdCleared = 50;   // every stage unlocked
+  (s as GameState & { tdUnlockAll?: boolean }).tdUnlockAll = true;   // every map unlocked regardless of level
   s.gold += 50000; s.res.wood += 5000; s.res.stone += 5000; s.res.food += 2000;
   addItem(s, 'mana_shard', 50); addItem(s, 'hp_potion_l', 20); addItem(s, 'mp_potion', 20);
   for (const id of ['slime_gel', 'spore_cap', 'wolf_pelt', 'goblin_fang', 'wisp_essence', 'ancient_core']) addItem(s, id, 20);

@@ -48,7 +48,7 @@ export const HOME_PLOT = 9;
 /** building art level: 3 art stages over 5 building levels */
 const artLv = (lv: number) => lv >= 5 ? 2 : lv >= 3 ? 1 : 0;
 
-const MW = 1280;                      // map size in game px (1 texel = 1 px)
+let MW = 1280;                        // map size in game px (1 texel = 1 px): village 1280x1024, farming maps 2048x1408
 let MH = 800;                         // village is taller (south district), stages 800
 const CELL = 4;                       // collision grid
 const DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'];
@@ -180,7 +180,7 @@ export class TopDownScene extends Phaser.Scene {
   combat!: Combat;
   village?: Village;
   portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
-  init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; MH = this.stageN ? 800 : 1024; }
+  init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; MW = this.stageN ? 2048 : 1280; MH = this.stageN ? 1408 : 1024; if (this.stageN) this.makeTrails(this.stageN); }
 
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
@@ -203,7 +203,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
-    if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูด่าน ▲');
+    if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲');
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
@@ -241,15 +241,14 @@ export class TopDownScene extends Phaser.Scene {
       const x = i * T, y = j * T;
       let t: Ter = 'g';
       if (this.stageN) {   // wild stage: one winding trail from the west gate to the east gate, clearings along it, a pond
-        const py = MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
-        const clear = [0.2, 0.42, 0.64, 0.86].some(f => Math.hypot(x - MW * f, (y - (MH / 2 + Math.sin(MW * f / 170 + this.stageN) * 120)) * 1.2) < 70);
-        const g0 = STAGES[this.stageN - 1].land.ground;
-        const off = Math.abs(y - py);
-        if (Math.hypot(x - MW * 0.53, y - (this.stageN % 2 ? 150 : MH - 150)) < 48) t = 'w';
-        else if (g0 === 'lava' && off > 70 && Math.abs(Math.sin(x / 95 + y / 140 + this.stageN) * 60 + (y - py) * 0.5 - 90) < 16) t = 'w';     // lava rivers beside the trail
-        else if (g0 === 'dung' && off > 60 && (Math.abs(((x + this.stageN * 37) % 260) - 130) < 14 || Math.abs((y % 220) - 110) < 12)) t = 'w'; // sewer channels
-        else if (Math.abs(y - py) < 20) t = 'd';
-        else if (clear && this.stageN % 10 === 0 && x > MW * 0.75) t = 'c';
+        const off = this.trailOff(x, y), n = this.stageN;
+        const g0 = STAGES[n - 1].land.ground;
+        const clr = this.clearings.find(c => Math.hypot(x - c.x, (y - c.y) * 1.2) < c.r);
+        if (off > 70 && this.ponds.some(c => Math.hypot(x - c.x, (y - c.y) * 1.3) < c.r)) t = 'w';
+        else if (g0 === 'lava' && off > 80 && Math.abs(Math.sin(x / 130 + n) * Math.cos(y / 110 + n)) > 0.9) t = 'w';     // lava pools between the trails
+        else if (g0 === 'dung' && off > 60 && (Math.abs(((x + n * 37) % 260) - 130) < 14 || Math.abs((y % 220) - 110) < 12)) t = 'w'; // sewer channels
+        else if (off < 20) t = 'd';
+        else if (clr && (clr.boss || g0 === 'dung')) t = 'c';
         V[j * VW + i] = t; continue;
       }
       if (Math.abs(x - riverX(y)) < 30 || Math.hypot(x - POND.x, (y - POND.y) * 1.3) < POND.r) t = 'w';
@@ -423,45 +422,77 @@ export class TopDownScene extends Phaser.Scene {
     return im;
   }
 
-  /** Wild stage: dense forest off the trail, rocks and decals, monsters in the clearings, gates at both ends. */
+  // ---------- farming map layout: three winding east-west trails joined by two north-south ones ----------
+  clearings: { x: number; y: number; r: number; boss?: boolean }[] = [];
+  ponds: { x: number; y: number; r: number }[] = [];
+  trailMain = (x: number) => x;
+  trailOff = (_x: number, _y: number) => 1e9;
+  makeTrails(n: number) {
+    const W = MW, H = MH;
+    const wave = (x: number, base: number, ph: number) => base + Math.sin(x / 190 + ph) * 90 + Math.sin(x / 67 + ph * 2) * 18;
+    const y1 = (x: number) => wave(x, H * 0.24, n), y2 = (x: number) => wave(x, H * 0.5, n + 1.7), y3 = (x: number) => wave(x, H * 0.77, n + 3.1);
+    const v1 = (y: number) => W * 0.3 + Math.sin(y / 150 + n) * 50, v2 = (y: number) => W * 0.68 + Math.sin(y / 140 + n * 2) * 50;
+    this.trailMain = y2;
+    this.trailOff = (x, y) => {
+      let d = Math.min(Math.abs(y - y1(x)), Math.abs(y - y2(x)), Math.abs(y - y3(x)));
+      if (y > y1(x) - 10 && y < y3(x) + 10) d = Math.min(d, Math.abs(x - v1(y)), Math.abs(x - v2(y)));
+      return d;
+    };
+    let seed = n * 977 + 13; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const lines = [y1, y2, y3];
+    this.clearings = Array.from({ length: 9 }, (_, k) => { const x = W * (0.14 + 0.095 * k) + (r() - 0.5) * 60; return { x, y: lines[k % 3](x) + (r() - 0.5) * 40, r: 70 + r() * 30 }; });
+    if (n % 10 === 0) this.clearings.push({ x: W * 0.88, y: y2(W * 0.88), r: 120, boss: true });
+    this.ponds = [{ x: W * (0.2 + r() * 0.6), y: (y1(W * 0.5) + y2(W * 0.5)) / 2, r: 50 + r() * 20 }, { x: W * (0.2 + r() * 0.6), y: (y2(W * 0.5) + y3(W * 0.5)) / 2, r: 45 + r() * 20 }];
+  }
+
+  /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
   placeStage(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
     const st = STAGES[this.stageN - 1];
     const tint: Record<string, number> = { forest: 0xffffff, haunt: 0xb8a8d8, lava: 0x8a5a50, snow: 0xe8f4ff, dung: 0x9aa8b8 };
 
-    const tY = (x: number) => MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
     const g = st.land.ground;
+    const area = (MW * MH) / (1280 * 800);
+    const inClear = (x: number, y: number) => this.clearings.some(c => Math.hypot(x - c.x, (y - c.y) * 1.2) < c.r + 20);
     const trees = g === 'haunt' || g === 'lava' ? ['dead', 2] as const : g === 'snow' ? ['pine', 3] as const : null;
-    for (let k = 0; k < (g === 'dung' ? 0 : g === 'lava' ? 160 : 520); k++) {
+    for (let k = 0; k < (g === 'dung' ? 0 : g === 'lava' ? 160 : 520) * area; k++) {
       const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
       const r = rnd(), key = trees ? pick(trees[0], trees[1]) : r < 0.45 ? pick('pine', 3) : r < 0.88 ? pick('oak', 3) : pick('dead', 2);
-      const below = y - tY(x), hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
-      if ((below > 0 && below < hgt + 30) || (below <= 0 && -below < 70) || !free(x, y, 48)) continue;   // never hide the trail, roots stay off it   // never hide the trail
+      const hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
+      // never hide a trail behind the crown, roots stay off it, clearings stay open
+      if (this.trailOff(x, y) < 70 || this.trailOff(x, y - hgt * 0.5) < 50 || this.trailOff(x, y - hgt) < 30 || inClear(x, y) || !free(x, y, 48)) continue;
       const t = this.obj(key, x, y, 0.16, 4, true);
       if (t && g !== 'forest') t.setTint(tint[g]);
       this.addNode(t, x, y, 'wood');
     }
-    if (g === 'dung' || g === 'lava') for (let k = 0; k < 260; k++) {   // boulders and ore instead of a forest
+    if (g === 'dung' || g === 'lava') for (let k = 0; k < 260 * area; k++) {   // boulders and ore instead of a forest
       const x = 10 + rnd() * (MW - 20), y = 40 + rnd() * (MH - 50);
-      if (Math.abs(y - (MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22)) < 50 || !free(x, y, 12)) continue;
+      if (this.trailOff(x, y) < 50 || inClear(x, y) || !free(x, y, 12)) continue;
       const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
       this.addNode(o, x, y, 'stone');
     }
-    for (let k = 0; k < 220; k++) {
+    for (let k = 0; k < 220 * area; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 8)) continue;
       const r = rnd(), im = this.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.5 ? pick('rock', 8) : r < 0.75 ? pick('tuft', 2) : pick('pebble', 6))).setOrigin(0.5, 0.85).setDepth(y);
       if (r < 0.5) this.addNode(im, x, y, 'stone');
     }
-    const trailY = (x: number) => MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
-    this.addPortal(24, trailY(24), 0, 'กลับหมู่บ้าน');
-    this.hero.setPosition(46, trailY(46));
-    const spots: [number, number][] = [0.22, 0.42, 0.62, 0.84].map(f => [MW * f, MH / 2 + Math.sin(MW * f / 170 + this.stageN) * 120]);
-    this.combat.spawnStage(this.stageN, spots);
-    this.events.once('stageCleared', (n: number) => {
-      const nx = MW - 30;
-      if (n < 50) this.addPortal(nx, trailY(nx), n + 1, `ด่าน ${n + 1} ▶`); else this.addPortal(nx, trailY(nx), 0, 'จบเกม! กลับหมู่บ้าน');
-      this.combat.float(this.hero.x, this.hero.y - 60, `ผ่านด่าน ${n}!`, '#ffd24a', 16);
-    });
+    const gy = this.trailMain(24);
+    this.addPortal(24, gy, 0, 'กลับหมู่บ้าน');
+    this.hero.setPosition(56, this.trailMain(56));
+    // monsters appear anywhere walkable, away from the gate and out of the hero's sight
+    const spot = () => {
+      for (let i = 0; i < 80; i++) {
+        const c = rnd() < 0.55 ? this.clearings[Math.floor(rnd() * this.clearings.length)] : null;
+        const x = c ? c.x + (rnd() - 0.5) * c.r * 1.6 : 40 + rnd() * (MW - 80), y = c ? c.y + (rnd() - 0.5) * c.r * 1.2 : 40 + rnd() * (MH - 80);
+        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || Math.hypot(x - 24, y - gy) < 260) continue;
+        if (Math.hypot(x - this.hero.x, y - this.hero.y) < 240 && i < 60) continue;
+        return { x, y };
+      }
+      return { x: MW * 0.5, y: this.trailMain(MW * 0.5) };
+    };
+    const boss = this.clearings.find(c => c.boss) ?? null;
+    this.combat.spawnMap(this.stageN, spot, boss ? { x: boss.x, y: boss.y } : null);
+    const s0 = S() as unknown as { tdMaxMap?: number }; s0.tdMaxMap = Math.max(s0.tdMaxMap ?? 0, this.stageN);
   }
 
   addPortal(x: number, y: number, to: number | 'select', text: string) {
@@ -476,7 +507,9 @@ export class TopDownScene extends Phaser.Scene {
   /** going out costs supplies (food); stages 1-2 are free */
   enterStage(n: number) {
     const s = S();
-    if (!payStage(s, n)) { bus.emit(EV.TOAST, `อาหารไม่พอ! ด่าน ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ป่าหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
+    const st = STAGES[n - 1], sv = s as unknown as { tdUnlockAll?: boolean };
+    if (s.level < st.req && !sv.tdUnlockAll) { bus.emit(EV.TOAST, `ต้องเลเวล ${st.req} ถึงจะเข้าแผนที่ ${n} ได้`, '#ff8a6a'); return; }
+    if (!payStage(s, n)) { bus.emit(EV.TOAST, `อาหารไม่พอ! แผนที่ ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ป่าหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
     if (stageFood(n)) bus.emit(EV.TOAST, `ใช้เสบียง 🍖${stageFood(n)}`, '#ffd8a0');
     saveGame(s);
     this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n }));
@@ -605,7 +638,7 @@ export class TopDownScene extends Phaser.Scene {
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `ด่าน ${st.n} ${st.land.name} (มอน Lv${st.level})` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
+  stageTitle() { const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
   levelUpFx() {
     const h = this.hero;
@@ -627,8 +660,9 @@ export class TopDownScene extends Phaser.Scene {
     if (this.dead || this.selectUi || this.ui?.panels.isOpen) return;
     let tx: number, ty: number, label: string;
     const next = this.portals.find(p => p.to !== 0);
-    if (next) { tx = next.x; ty = next.y; label = typeof next.to === 'number' ? `ด่าน ${next.to}` : 'ประตูด่าน'; }
-    else if (this.stageN) { tx = MW - 30; ty = MH / 2 + Math.sin((MW - 30) / 170 + this.stageN) * 120 + Math.sin((MW - 30) / 61) * 22; label = '🔒 ประตูถัดไป'; }
+    const boss = this.stageN ? this.combat.mons.find(m => m.boss && m.alive) : null;
+    if (next) { tx = next.x; ty = next.y; label = 'ประตูแผนที่'; }
+    else if (boss) { tx = boss.x; ty = boss.y; label = `👑 ${boss.m.name}`; }   // farming maps: point at the boss while it is alive
     else return;
     const cam = this.cameras.main, z = cam.zoom, W = this.scale.width, H = this.scale.height;
     const sx = (tx - cam.worldView.x) * z, sy = (ty - cam.worldView.y) * z;

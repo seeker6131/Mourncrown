@@ -4,7 +4,8 @@ import { expToNext } from '../systems/stats';
 
 export interface StageMon { key: string; kind: MonsterKind; name: string; size: number }
 export interface Land { id: string; name: string; ground: 'forest' | 'haunt' | 'lava' | 'snow' | 'dung'; mobs: StageMon[]; boss: StageMon }
-export interface Stage { n: number; land: Land; level: number; count: number; boss: boolean; minRar: number; mf: number }
+/** a farming map: monsters respawn forever; `req` = hero level needed to enter (unlock by level, not by clearing) */
+export interface Stage { n: number; land: Land; level: number; req: number; count: number; boss: boolean; minRar: number; mf: number }
 
 const M = (key: string, kind: MonsterKind, name: string, size = 48): StageMon => ({ key, kind, name, size });
 export const LANDS: Land[] = [
@@ -21,7 +22,8 @@ export const LANDS: Land[] = [
 ];
 export const STAGES: Stage[] = Array.from({ length: 50 }, (_, i) => {
   const n = i + 1, land = LANDS[Math.floor(i / 10)], boss = n % 10 === 0;
-  return { n, land, level: Math.round(1 + (n - 1) * 2.05), count: boss ? 6 : 8 + Math.floor((n % 10) * 0.8), boss,
+  const level = Math.round(1 + (n - 1) * 2.05);
+  return { n, land, level, req: Math.max(1, level - 2), count: 26 + Math.floor(n / 2), boss,
            minRar: n >= 41 ? 2 : n >= 21 ? 1 : 0, mf: n * 3 + (boss ? 60 : 0) };
 });
 /** Monster stats for a stage level, tuned against a reference hero of the same level (typical gear):
@@ -38,7 +40,8 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   const cd = (base.attackCooldown ?? 1400) / 1000;
   const want = refHp * cd / (boss ? 28 : 55) * ka;
   const atk = Math.round(want * (100 + refDef * 3) / 100);
-  const exp = Math.round(expToNext(L) * (boss ? 1.5 : (0.8 + 0.4 * kf) / 7));
+  // MMO pace: a level takes ~(15 + 6L) kills on a map of your level (Lv1 ≈ 20 kills, Lv50 ≈ 300, Lv100 ≈ 600) → Lv100 in ~40 h of farming
+  const exp = Math.max(1, Math.round(expToNext(L) * (boss ? 0.5 : (0.8 + 0.4 * kf) / (15 + 6 * L))));
   const g = (k: number) => Math.round(k * (boss ? 15 : 1));
   return { hp, atk, def, exp, gold: [g(3 + L * 1.5), g(6 + L * 2.5)] as [number, number] };
 }

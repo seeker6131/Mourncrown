@@ -16,8 +16,8 @@ const EN: Record<string, string> = {
   'ข้ามีภารกิจใหม่ แต่เจ้ายังอ่อนเกินไป กลับมาเมื่อถึงเลเวล': 'I have a new task, but you are still too weak. Come back at level',
   'ยินดีต้อนรับสู่ร้านของมิร่า! มียา อาวุธ และเครื่องประดับชั้นดี จะซื้อหรือขายดีล่ะ?': "Welcome to Mira's shop! Potions, weapons and fine trinkets — buying or selling?",
   'อยากให้อาวุธคมขึ้นหรือเกราะแกร่งขึ้นหรือ? เอาผลึกมานากับทองมา ข้าจะตีบวกให้!': 'Want a sharper blade or tougher armour? Bring mana crystals and gold and I will upgrade it!',
-  'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูด่านทางเหนือ ล่ามอนสเตอร์ เก็บไม้ หิน อาหาร กลับมาสร้างหมู่บ้านที่แปลงว่าง ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!':
-    'A black curse is swallowing Eldergrove... You are only a villager with a wooden sword. Go out through the stage gate to the north, hunt monsters, gather wood, stone and food, and come back to build your home. Reach level 10 and see me to choose your path as a warrior!',
+  'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูแผนที่ทางเหนือ ล่ามอนสเตอร์ เก็บเหรียญ ไอเทม ไม้ หิน อาหาร ยิ่งเลเวลสูงยิ่งไปแผนที่ที่ไกลขึ้นได้ ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!':
+    'A black curse is swallowing Eldergrove... You are only a villager with a wooden sword. Go out through the map gate to the north, hunt monsters and gather coins, items, wood, stone and food — the higher your level, the farther maps you can enter. Reach level 10 and see me to choose your path as a warrior!',
   'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... หมู่บ้านเราคือที่หลบภัยสุดท้าย เจ้าเป็นแค่ชาวบ้านถือดาบไม้ แต่ถ้าแกร่งพอถึงเลเวล 10 กลับมาหาข้า แล้วเลือกเส้นทางนักรบของเจ้า ล่ามอนสเตอร์ เก็บวัตถุดิบ สร้างหมู่บ้านทางใต้ แล้วชำระคำสาปให้สิ้น!':
     'A black curse is swallowing Eldergrove... our village is the last refuge. You are only a villager with a wooden sword, but reach level 10 and come back to choose your warrior path. Hunt, gather, build, and lift the curse!',
   'เจ้าเลเวล': 'You are level', 'แล้ว ถึงเลเวล 10 กลับมาหาข้า จะได้เลือกสายอาชีพ — ดาบ ธนู เวท หรือแทงค์': '. Reach level 10 and come back to choose a class — sword, bow, magic or tank.',
@@ -122,6 +122,10 @@ const EN: Record<string, string> = {
   'ออโต้: ตัดไม้/ขุดหินเอง': 'Auto: chopping and mining', 'ออโต้: ตีมอนเอง': 'Auto: hunting monsters', 'ปิดออโต้': 'Auto off',
   'ออโต้ตีมอนทำงานในด่าน — ในหมู่บ้านใส่ชุดหาทรัพยากรเพื่อออโต้ตัดไม้/ขุดหิน': 'Auto hunting works in stages — in the village wear the gathering outfit to auto chop/mine',
   'มอนในดินแดนนี้': 'Monsters in this land', 'ฟรี': 'Free', 'เลือกด่าน': 'Choose a stage',
+  'เลือกแผนที่': 'Choose a map', 'ประตูแผนที่': 'Map Gate', 'แผนที่': 'Map', 'ไปถึงแผนที่ 5': 'Reach map 5', 'ปราบมอนสเตอร์ 30 ตัว': 'Defeat 30 monsters',
+  'ต้องเลเวล': 'Need level', 'ถึงจะเข้าแผนที่': 'to enter map', 'ได้': '', 'ปรากฏตัวอีกครั้ง!': 'has returned!', 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที': 'Boss defeated! It returns in 5 minutes',
+  'ปราบบอสแผนที่ 10 — มารดารากเน่า': 'Defeat the map 10 boss — Rotroot Mother', 'ปราบบอสแผนที่ 20 — ราชากวางโครงกระดูก': 'Defeat the map 20 boss — Bone Stag King', 'ปราบบอสแผนที่ 30 — อสรพิษแก้วดำ': 'Defeat the map 30 boss — Obsidian Serpent',
+  'ปราบบอสแผนที่ 40 — ผู้คุมเหมันต์': 'Defeat the map 40 boss — Frost Warden', 'ปราบบอสแผนที่ 50 — มงกุฎกลวง ชำระคำสาป!': 'Defeat the map 50 boss — The Hollow Crown, lift the curse!',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

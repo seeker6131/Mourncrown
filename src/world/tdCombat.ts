@@ -19,10 +19,12 @@ export interface Mon {
 
 export interface Host extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; dir: number; isBlocked(x: number, y: number): boolean; surfAt(x: number, y: number): string;
-  burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean;
+  burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean; stageN: number;
 }
 
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
+/** wild game that wanders every map (meat and hides) */
+const GAME: StageMon[] = [{ key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, { key: 'mo17', kind: 'boar', name: 'หมูป่า', size: 48 }];
 const RANGED = new Set(['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9']);
 const MAGIC = new Set(['hr7', 'hr8', 'hr9']);
 /** damage number styles: physical / physical crit / magic / magic crit */
@@ -36,22 +38,31 @@ const DMG = {
 export class Combat {
   mons: Mon[] = [];
   stage: Stage | null = null;
-  cleared = false;
   constructor(public s: Host) {}
 
-  spawnStage(n: number, spots: [number, number][]) {
-    const st = STAGES[n - 1]; this.stage = st;
-    const list: StageMon[] = [];
-    for (let i = 0; i < st.count; i++) list.push(st.land.mobs[(i + n) % st.land.mobs.length]);
-    if (st.boss) list.push(st.land.boss);
-    list.forEach((m, i) => { const p = spots[i % spots.length]; this.spawn(m, p[0] + (i % 3) * 14, p[1] + Math.floor(i / spots.length) * 18, m === st.land.boss); });
-    // wild game to hunt for meat and hides (not needed to clear the stage)
-    const game: StageMon[] = [{ key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, { key: 'mo17', kind: 'boar', name: 'หมูป่า', size: 48 }];
-    for (let i = 0; i < 2 + (n % 2); i++) {
-      const p = spots[(i * 2 + 1) % spots.length], g = game[i % 2], ox = (i % 2 ? 1 : -1) * (50 + i * 12), oy = (i % 2 ? -1 : 1) * 70;
-      const x = this.s.isBlocked(p[0] + ox, p[1] + oy) ? p[0] + ox : p[0] + ox, y = this.s.isBlocked(p[0] + ox, p[1] + oy) ? p[1] : p[1] + oy;
-      this.spawn(g, x, y, false); const a = this.mons[this.mons.length - 1]; a.animal = true;
-    }
+  /** where a respawning monster may appear (set by the scene: a free spot away from the hero and the gate) */
+  pickSpot: (() => { x: number; y: number }) | null = null;
+  bossSpot: { x: number; y: number } | null = null;
+  /** Farming map: lots of monsters spread over the map; every kill respawns after a while, the boss every 5 minutes. */
+  spawnMap(n: number, pick: () => { x: number; y: number }, bossSpot: { x: number; y: number } | null) {
+    const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot;
+    for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
+    if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
+    for (let i = 0; i < 6; i++) { const p = pick(); this.spawn(GAME[i % 2], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
+  }
+  /** bring a dead monster back somewhere else on the map */
+  respawn(m: Mon) {
+    const delay = m.boss ? 300000 : m.animal ? 20000 : 8000 + Math.random() * 6000;
+    this.s.time.delayedCall(delay, () => {
+      if (!this.s.sys.isActive() || this.s.stageN !== this.stage?.n) return;
+      const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
+      m.sp.destroy(); m.bar.destroy();
+      const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
+      this.spawn(m.m, p.x, p.y, m.boss);
+      const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
+      nm.sp.setAlpha(0); this.s.tweens.add({ targets: nm.sp, alpha: 1, duration: 600 });
+      if (m.boss) bus.emit(EV.TOAST, `${m.m.name} ปรากฏตัวอีกครั้ง!`, '#ff8a6a');
+    });
   }
 
   spawn(m: StageMon, x: number, y: number, boss: boolean) {
@@ -303,16 +314,15 @@ export class Combat {
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
     const s = S(), st = this.stage!;
-    const last = !m.animal && this.mons.every(q => !q.alive || q.animal) && !this.cleared;
-    const r = applyKill(s, st.n, m.m, m.boss, last);
+    const r = applyKill(s, st.n, m.m, m.boss, m.boss);
+    this.respawn(m);
     this.float(m.x, m.y - 20, `+${r.exp} EXP  +${r.gold}G`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
     this.float(m.x + 14, m.y - 8, `🪵${r.wood} 🪨${r.stone} 🍖${r.food}`, '#ffd8a0', 7);
     r.mats.forEach((q, i) => this.float(m.x - 14, m.y - 46 - i * 10, `+${q.qty} ${itemDef(q.id).name}`, '#c8e8ff', 8));
     r.gear.forEach((q, i) => this.float(m.x, m.y - 34 - i * 12, `${RARITY_NAMES[q.rar]} ${itemDef(q.id).name}`, '#' + RARITY_COLORS[q.rar].toString(16).padStart(6, '0'), 9));
-    if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ!', '#ffd040');
+    if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที', '#ffd040');
     saveGame(s);
-    if (r.cleared) { this.cleared = true; this.s.events.emit('stageCleared', st.n); }
   }
 
   /** big readable damage numbers: pop in, hang, drift up; crits get a label and a bigger punch */
