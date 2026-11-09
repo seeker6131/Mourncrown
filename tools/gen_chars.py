@@ -85,7 +85,8 @@ def run(spec):
 
 if __name__ == '__main__':
     only = set(sys.argv[1:])
-    todo = [s for s in SPECS if (not only or s[0] in only) and not STATE.get(s[0], {}).get('zip')]
-    with cf.ThreadPoolExecutor(2) as ex:
+    pri = lambda k: (0 if k in ('mo1', 'mo3', 'mo2', 'mo4', 'mo5', 'mo16', 'mo17', 'bs1') else 1 if k.startswith('mo') else 2 if k.startswith('hr') else 3 if k.startswith('np') else 4)
+    todo = sorted([s for s in SPECS if (not only or s[0] in only) and not STATE.get(s[0], {}).get('zip')], key=lambda s: pri(s[0]))
+    with cf.ThreadPoolExecutor(4) as ex:
         for r in ex.map(run, todo): print(*r, flush=True)
     print(P.call('GET', '/balance')['subscription'])

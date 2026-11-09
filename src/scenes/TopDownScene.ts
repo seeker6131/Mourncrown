@@ -3,6 +3,12 @@
 // placeholders until the PixelLab/ChatGPT art arrives. The hero is the PixelLab villager (8 directions).
 // Open with ?td in the URL.
 import Phaser from 'phaser';
+import { Combat } from '../world/tdCombat';
+import { STAGES } from '../world/stages';
+import { S } from '../core/events';
+import { saveGame, loadGame, startNewGame } from '../core/save';
+import { runtime } from '../core/events';
+import { derive } from '../systems/stats';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -14,6 +20,7 @@ import ft2Wang from '../assets/td/ft2_wang.png';
 import ft3Wang from '../assets/td/ft3_wang.png';
 
 // hero forms (PixelLab characters listed in chars.json)
+const LANDS_LABEL = ['ป่า', 'ผีสิง', 'ลาวา', 'หิมะ', 'คุก'];
 const FORMS: { key: string; name: string }[] = [
   { key: 'hero', name: 'ชาวบ้าน' }, { key: 'hr1', name: 'นักดาบ' }, { key: 'hr2', name: 'อัศวิน' }, { key: 'hr3', name: 'ลอร์ดอัศวิน' },
   { key: 'hr4', name: 'นักธนู' }, { key: 'hr5', name: 'พรานป่า' }, { key: 'hr6', name: 'เรนเจอร์ราชันย์' }, { key: 'hr7', name: 'จอมเวท' },
@@ -140,17 +147,28 @@ export class TopDownScene extends Phaser.Scene {
     preloadChars(this);
   }
 
+  stageN = 0;
+  hudT = 0;
+  regenT = 0;
+  combat!: Combat;
+  portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
+  init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; }
+
   create() {
+    if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
+    (window as unknown as { __tdS: typeof S }).__tdS = S;
+    this.lamps = []; this.fires = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = [];
+    this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
     this.animateWater();
     this.makePropTextures();
-    this.placeProps();
-
     createCharAnims(this);
     this.shadow = this.add.ellipse(PLAZA.x, PLAZA.y + 40, 18, 7, 0x10180f, 0.45).setDepth(1);
-    this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, 'hero', 0);
-    this.form = 0;
+    this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, 0);
+    { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
+    this.placeProps();
+    if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูด่าน ▲');
 
     const cam = this.cameras.main;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor('#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
@@ -162,10 +180,13 @@ export class TopDownScene extends Phaser.Scene {
     const ui = [this.vignette, this.label, this.joyG = this.add.graphics()];
     const uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     uiCam.ignore(this.children.list.filter(o => !ui.includes(o as never)));
+    this.uiCam = uiCam;
+    this.events.once('shutdown', () => this.events.off('addedtoscene'));
+    this.events.on('addedtoscene', (o: Phaser.GameObjects.GameObject) => { if (!this.makingUi) uiCam.ignore(o); });
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
     if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); }
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.7 && p.y < this.scale.height * 0.25) { this.nextForm(); return; } if (p.x < this.scale.width * 0.35 && p.y < this.scale.height * 0.18) { this.heroDie(); return; } if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.7 && p.y < this.scale.height * 0.25) { this.nextForm(); return; } if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
@@ -183,6 +204,14 @@ export class TopDownScene extends Phaser.Scene {
     for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) {
       const x = i * T, y = j * T;
       let t: Ter = 'g';
+      if (this.stageN) {   // wild stage: one winding trail from the west gate to the east gate, clearings along it, a pond
+        const py = MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
+        const clear = [0.2, 0.42, 0.64, 0.86].some(f => Math.hypot(x - MW * f, (y - (MH / 2 + Math.sin(MW * f / 170 + this.stageN) * 120)) * 1.2) < 70);
+        if (Math.hypot(x - MW * 0.53, y - (this.stageN % 2 ? 150 : MH - 150)) < 48) t = 'w';
+        else if (Math.abs(y - py) < 20) t = 'd';
+        else if (clear && this.stageN % 10 === 0 && x > MW * 0.75) t = 'c';
+        V[j * VW + i] = t; continue;
+      }
       if (Math.abs(x - riverX(y)) < 30 || Math.hypot(x - POND.x, (y - POND.y) * 1.3) < POND.r) t = 'w';
       else if (Math.hypot(x - PLAZA.x, (y - PLAZA.y) * 1.1) < PLAZA.r) t = 'c';
       else if (Math.abs(y - roadY(x)) < 22 || (Math.abs(x - PLAZA.x) < 22 && y < PLAZA.y) || (Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < 22 && y > PLAZA.y)) t = 'd';
@@ -224,7 +253,7 @@ export class TopDownScene extends Phaser.Scene {
     // per-pixel surface from the same vertices (bilinear, threshold 0.5)
     const S: string[] = new Array(MW * MH);
     this.surf = S;
-    const BR = { x0: riverX(roadY(930)) - 46, x1: riverX(roadY(930)) + 46, y0: roadY(930) - 15, y1: roadY(930) + 15 };
+    const BR = this.stageN ? { x0: -99, x1: -99, y0: -99, y1: -99 } : { x0: riverX(roadY(930)) - 46, x1: riverX(roadY(930)) + 46, y0: roadY(930) - 15, y1: roadY(930) + 15 };
     for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
       const cx = Math.min(NX - 1, Math.floor(x / T)), cy = Math.min(NY - 1, Math.floor(y / T));
       const fx = (x - cx * T + 0.5) / T, fy = (y - cy * T + 0.5) / T;
@@ -330,6 +359,75 @@ export class TopDownScene extends Phaser.Scene {
     return im;
   }
 
+  /** Wild stage: dense forest off the trail, rocks and decals, monsters in the clearings, gates at both ends. */
+  placeStage(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
+    const st = STAGES[this.stageN - 1];
+    const tint: Record<string, number> = { forest: 0xffffff, haunt: 0xb8a8d8, lava: 0xffb090, snow: 0xe8f4ff, dung: 0x9aa8b8 };
+    (this.children.list.find(o => (o as Phaser.GameObjects.Image).texture?.key === 'td_ground') as Phaser.GameObjects.Image | undefined)?.setTint(tint[st.land.ground]);
+    const trees = st.land.ground === 'haunt' || st.land.ground === 'dung' ? ['dead', 2] as const : st.land.ground === 'snow' ? ['pine', 3] as const : null;
+    const tY = (x: number) => MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
+    for (let k = 0; k < 520; k++) {
+      const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
+      const r = rnd(), key = trees ? pick(trees[0], trees[1]) : r < 0.45 ? pick('pine', 3) : r < 0.88 ? pick('oak', 3) : pick('dead', 2);
+      const below = y - tY(x), hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
+      if ((below > 0 && below < hgt + 30) || (below <= 0 && -below < 60) || !free(x, y, 30)) continue;   // never hide the trail
+      const t = this.obj(key, x, y, 0.16, 4, true);
+      if (t && st.land.ground !== 'forest') t.setTint(tint[st.land.ground]);
+    }
+    for (let k = 0; k < 220; k++) {
+      const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
+      if (!free(x, y, 8)) continue;
+      const r = rnd(); this.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.5 ? pick('rock', 8) : r < 0.75 ? pick('tuft', 2) : pick('pebble', 6))).setOrigin(0.5, 0.85).setDepth(y);
+    }
+    const trailY = (x: number) => MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
+    this.addPortal(24, trailY(24), 0, 'กลับหมู่บ้าน');
+    this.hero.setPosition(46, trailY(46));
+    const spots: [number, number][] = [0.22, 0.42, 0.62, 0.84].map(f => [MW * f, MH / 2 + Math.sin(MW * f / 170 + this.stageN) * 120]);
+    this.combat.spawnStage(this.stageN, spots);
+    this.events.once('stageCleared', (n: number) => {
+      const nx = MW - 30;
+      if (n < 50) this.addPortal(nx, trailY(nx), n + 1, `ด่าน ${n + 1} ▶`); else this.addPortal(nx, trailY(nx), 0, 'จบเกม! กลับหมู่บ้าน');
+      this.combat.float(this.hero.x, this.hero.y - 60, `ผ่านด่าน ${n}!`, '#ffd24a', 16);
+    });
+  }
+
+  addPortal(x: number, y: number, to: number | 'select', text: string) {
+    const g = this.add.image(x, y - 10, 'td_glow').setTint(to === 0 ? 0x9affc8 : 0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(99985).setScale(1.2);
+    this.tweens.add({ targets: g, alpha: { from: 0.5, to: 1 }, scale: { from: 1.0, to: 1.35 }, duration: 900, yoyo: true, repeat: -1 });
+    const ring = this.add.ellipse(x, y, 30, 12).setStrokeStyle(2, 0xbfeaff, 0.9).setDepth(2);
+    this.tweens.add({ targets: ring, scaleX: 1.25, scaleY: 1.25, alpha: 0.4, duration: 900, yoyo: true, repeat: -1 });
+    const label = this.add.text(x, y - 34, text, { fontFamily: 'sans-serif', fontSize: '8px', color: '#e8f8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99999);
+    this.portals.push({ x, y, to, label });
+  }
+
+  stageSelect() {
+    if (this.selectUi) return;
+    this.makingUi = true;
+    const s = S() as unknown as { tdCleared?: number }, top = Math.min(50, (s.tdCleared ?? 0) + 1);
+    const W = this.scale.width, H = this.scale.height, fs = Math.round(H / 26);
+    const ui: Phaser.GameObjects.GameObject[] = [];
+    ui.push(this.add.rectangle(0, 0, W, H, 0x05080a, 0.82).setOrigin(0).setInteractive());
+    ui.push(this.add.text(W / 2, fs * 1.2, 'เลือกด่าน (ผ่านแล้ว ' + (s.tdCleared ?? 0) + '/50)', { fontFamily: 'sans-serif', fontSize: fs * 1.2 + 'px', color: '#ffe0a0', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5));
+    const cols = 10, bw = W * 0.085, bh = H * 0.13;
+    STAGES.forEach((st, i) => {
+      const x = W / 2 + ((i % cols) - (cols - 1) / 2) * (bw + 6), y = H * 0.2 + Math.floor(i / cols) * (bh + 8) + bh / 2;
+      const open = st.n <= top;
+      const r = this.add.rectangle(x, y, bw, bh, open ? (st.boss ? 0x5a2a1a : 0x1e3a2c) : 0x222222, 0.95).setStrokeStyle(2, open ? (st.boss ? 0xffa060 : 0x9ad8a0) : 0x444444);
+      const t = this.add.text(x, y, `${st.n}${st.boss ? ' 👑' : ''}\nLv${st.level}`, { fontFamily: 'sans-serif', fontSize: fs * 0.75 + 'px', color: open ? '#ffffff' : '#666666', align: 'center' }).setOrigin(0.5);
+      if (open) r.setInteractive().on('pointerdown', () => this.scene.restart({ stage: st.n }));
+      ui.push(r, t);
+    });
+    LANDS_LABEL.forEach((n, i) => ui.push(this.add.text(W * 0.02, H * 0.2 + i * (bh + 8) + bh / 2, n, { fontFamily: 'sans-serif', fontSize: fs * 0.7 + 'px', color: '#c8b88a' }).setOrigin(0, 0.5)));
+    const close = this.add.text(W - fs, fs, '✕', { fontFamily: 'sans-serif', fontSize: fs * 1.6 + 'px', color: '#ffffff' }).setOrigin(1, 0).setInteractive().on('pointerdown', () => { ui.forEach(o => o.destroy()); this.selectUi = null; this.portalCool = this.time.now + 1500; });
+    ui.push(close);
+    this.cameras.main.ignore(ui); this.makingUi = false;
+    this.selectUi = ui;
+  }
+  selectUi: Phaser.GameObjects.GameObject[] | null = null;
+  makingUi = false;
+  uiCam!: Phaser.Cameras.Scene2D.Camera;
+  portalCool = 0;
+
   /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
   obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
     const m = OM[name]; if (!m) return null;
@@ -361,6 +459,7 @@ export class TopDownScene extends Phaser.Scene {
     let seed = 1;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const pick = (k: string, n: number) => `${k}_${Math.floor(rnd() * n)}`;
+    if (this.stageN) { this.placeStage(rnd, pick, free); return; }
     // village buildings (level art from PixelLab Objects)
     const B: [string, number, number][] = [
       ['townhall_1', 345, 322], ['tavern_0', 702, 322], ['house_1', 846, 300], ['lumber_0', 150, 330],
@@ -455,6 +554,7 @@ export class TopDownScene extends Phaser.Scene {
     this.dead = true; this.attacking = false;
     const h = this.hero;
     this.deathFx(h, 0xbfe8ff, () => {
+      if (this.stageN) { this.time.delayedCall(1200, () => { const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); this.scene.restart({ stage: 0 }); }); return; }
       this.time.delayedCall(900, () => {
         h.setPosition(PLAZA.x, PLAZA.y + 40).setAngle(0).setAlpha(0).setVisible(true).clearTint();
         setIdle(h, this.F.key, 0);
@@ -511,6 +611,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero;
     const F = this.F;
     playAnim(h, F.key, 'attack', this.dir, false);
+    if (this.stageN) this.combat.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }
 
@@ -539,6 +640,17 @@ export class TopDownScene extends Phaser.Scene {
       setIdle(h, this.F.key, this.dir);
     }
     h.setDepth(h.y);
+    if (this.stageN) this.combat.update(time, dt);
+    for (const p of this.portals) if (!this.dead && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
+      if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
+      else { this.portalCool = time + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: p.to })); }
+    }
+    if (time - this.hudT > 250) {
+      this.hudT = time; const s0 = S(), d0 = derive(s0);
+      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.stageN ? 0.01 : 0.05))); }
+      const st = this.stageN ? STAGES[this.stageN - 1] : null;
+      this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
+    }
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);
     for (const [i, l] of this.lamps.entries()) l.setAlpha(0.75 + Math.sin(time / 180 + i * 1.7) * 0.12);
     for (const [i, f] of this.fires.entries()) {
