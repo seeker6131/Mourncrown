@@ -12,6 +12,7 @@ import { derive } from '../systems/stats';
 import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
+import { uiOpt } from '../core/uiOptions';
 import { formName, type ClassId } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -856,7 +857,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;
     if (k && !this.ui?.panels.isOpen) { mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0); my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0); }
-    const R = this.scale.height / 9;
+    const R = this.scale.height / 9 * uiOpt(S()).btn;
     if (this.joy.id >= 0) {
       const l = Math.hypot(this.joy.dx, this.joy.dy);
       if (l > 6) { mx = this.joy.dx / l; my = this.joy.dy / l; }

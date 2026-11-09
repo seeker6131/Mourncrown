@@ -9,6 +9,7 @@ import { SKILL_BY_ID } from '../data/skills';
 import { tdQuest, claimTdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
+import { uiOpt } from '../core/uiOptions';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
@@ -23,7 +24,7 @@ export interface TdHost extends Phaser.Scene {
 
 export class TdUIScene extends Phaser.Scene {
   kit!: UIKit;
-  u = 1; VW = 640;
+  u = 1; VW = 640; VH = 400;
   panels!: Panels;
   root!: Phaser.GameObjects.Container;
   hud!: Phaser.GameObjects.Graphics;
@@ -36,7 +37,7 @@ export class TdUIScene extends Phaser.Scene {
   lastKey = ''; refreshT = 0;
   mpText!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
-  skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number }[] = [];
+  skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number; r: number }[] = [];
   skillSet = '';
 
   preload() {
@@ -51,11 +52,11 @@ export class TdUIScene extends Phaser.Scene {
     this.skillBtns.forEach(b => b.c.destroy()); this.skillBtns = [];
     const ids = currentSkills(S()); this.skillSet = ids.join(',');
     if (!this.td.stageN) return;
-    const ax = this.VW - 400 / 9 * 1.3, ay = 400 - 400 / 9 * 1.3;
-    const pos = [[-78, 10], [-64, -50], [-12, -80]];
+    const bs = uiOpt(S()).btn, R9 = this.VH / 9 * bs, ax = this.VW - R9 * 1.3, ay = this.VH - R9 * 1.3;
+    const pos = [[-78, 10], [-64, -50], [-12, -80]].map(([a, b]) => [a * bs * this.VH / 400, b * bs * this.VH / 400]);
     ids.slice(0, 3).forEach((id, i) => {
       const sk = SKILL_BY_ID[id]; if (!sk) return;
-      const x = ax + pos[i][0], y = ay + pos[i][1], R = 17;
+      const x = ax + pos[i][0], y = ay + pos[i][1], R = 17 * bs * this.VH / 400;
       const c = this.add.container(x, y);
       const bg = this.add.circle(0, 0, R + 2, 0x0b0806, 0.8).setStrokeStyle(2, 0x8a6a40, 1);
       const key = this.textures.exists('sk_' + id) ? 'sk_' + id : skillIconKey(this, sk);
@@ -69,14 +70,14 @@ export class TdUIScene extends Phaser.Scene {
       z.on('pointerup', () => c.setScale(1)); z.on('pointerout', () => c.setScale(1));
       c.add([bg, icon, cd, cdText, mp, z]);
       this.root.add(c);
-      this.skillBtns.push({ id, icon, cd, cdText, mp, c, x, y });
+      this.skillBtns.push({ id, icon, cd, cdText, mp, c, x, y, r: R });
     });
   }
   updateSkills(now: number) {
     const s = S();
     if (currentSkills(s).join(',') !== this.skillSet) this.buildSkills();
     for (const b of this.skillBtns) {
-      const sk = SKILL_BY_ID[b.id], left = (this.td.skillReady[b.id] ?? 0) - now, R = 17;
+      const sk = SKILL_BY_ID[b.id], left = (this.td.skillReady[b.id] ?? 0) - now, R = b.r;
       b.cd.clear();
       if (left > 0) {
         const f = left / sk.cooldown;
@@ -106,7 +107,8 @@ export class TdUIScene extends Phaser.Scene {
   }
 
   create() {
-    this.u = this.scale.height / VH;
+    this.VH = VH / uiOpt(S()).scale;
+    this.u = this.scale.height / this.VH;
     this.VW = this.scale.width / this.u;
     this.cameras.main.setOrigin(0, 0).setZoom(this.u);
     this.kit = new UIKit(this, () => Math.max(1, this.u));
@@ -170,6 +172,7 @@ export class TdUIScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
     this.refresh();
     this.buildSkills();
+    if (this.reopen) { const r = this.reopen; this.reopen = null; this.panels.open(r as 'uiopt'); }
 
     const st = S();
     if (!st.introSeen) {
@@ -179,6 +182,9 @@ export class TdUIScene extends Phaser.Scene {
   }
 
   onResize() { this.scene.restart(); }
+  /** settings changed in the 'ปรับ UI' panel */
+  reopen: string | null = null;
+  applyUiOpt() { this.reopen = 'uiopt'; this.time.delayedCall(10, () => this.scene.restart()); }
 
   /** TopDownScene tells us what the action button does (talk / build / collect), or null to hide it. */
   setAction(label: string | null, cb?: () => void) {
@@ -187,7 +193,7 @@ export class TdUIScene extends Phaser.Scene {
     this.actBtn?.destroy();
     if (!label) return;
     const w = Math.max(90, label.length * 7 + 20);
-    this.actBtn = this.kit.button(this.VW - w - 96, VH - 140, w, 30, label, () => this.actCb?.(), { size: 11, color: 0x2a4a2a });
+    this.actBtn = this.kit.button(this.VW - w - 96, this.VH - 140, w, 30, label, () => this.actCb?.(), { size: 11, color: 0x2a4a2a });
     this.root.add(this.actBtn);
   }
 
@@ -234,6 +240,8 @@ export class TdUIScene extends Phaser.Scene {
     } else this.questText.setText('');
   }
 
+  village(names: boolean) { for (const n of (this.td as unknown as { village?: { npcs: { tag: Phaser.GameObjects.Text; hidden: boolean }[] } }).village?.npcs ?? []) n.tag.setVisible(names); }
+
   toast(text: string, color = '#ffe7a0') {
     const t = this.kit.text(this.VW / 2, 92, text, 10, color).setOrigin(0.5).setAlpha(0);
     this.root.add(t);
@@ -246,6 +254,9 @@ export class TdUIScene extends Phaser.Scene {
 
   update(time: number) {
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
+    const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;
+    this.root.setVisible(!sel).setAlpha(uiOpt(S()).alpha);
+    this.village(uiOpt(S()).names);
     this.updateSkills(this.td.time.now);
   }
 }

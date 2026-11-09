@@ -13,17 +13,18 @@ import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
-import { reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
+import { clampVitals, reqLevel, dismantle, equip, unequipUid, isEquipped, useItem, addItem, removeUid, sellPrice, tryUpgrade, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
-import { giveTestKit } from '../systems/testKit';
+import { giveTestKit, testLevelUp } from '../systems/testKit';
+import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -104,6 +105,7 @@ export class Panels {
       case 'dialog': this.buildDialog(c); break;
       case 'shop': this.buildShop(c); break;
       case 'smith': this.buildSmith(c); break;
+      case 'uiopt': this.buildUiOpt(c); break;
     }
   }
 
@@ -539,10 +541,10 @@ export class Panels {
   // ---------------- MENU ----------------
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = 260, H = 352;
+    const W = 280, H = 340;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let yy = y + 34;
-    const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 26, label, cb, { size: 10, color })); yy += 31; };
+    const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 21, label, cb, { size: 9, color })); yy += 25; };
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
       const st = loadGame();
@@ -554,12 +556,34 @@ export class Panels {
     b(`🔊 เสียงเอฟเฟกต์: ${s.sfx ? 'เปิด' : 'ปิด'}`, () => { s.sfx = !s.sfx; audioState.sfx = s.sfx; this.rebuild(); });
     b(`🎵 เพลง: ${s.music ? 'เปิด' : 'ปิด'}`, () => { s.music = !s.music; setMusic(s.music); this.rebuild(); });
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
+    b('🖥 ปรับ UI (ขนาด / ปุ่ม / ความโปร่ง)', () => this.open('uiopt'), 0x2a4a5a);
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
-    b('🧪 ทดสอบ: รับชุด SL + ทรัพยากร', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
+    b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
+    b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { testLevelUp(s); clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
     b(`✏ เส้นขอบตัวละคร/วัตถุ: ${strokeEnabled() ? 'เปิด' : 'ปิด'}`, () => { saveGame(s); setStroke(!strokeEnabled()); location.reload(); });
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
+  }
+
+  // ---------------- UI SETTINGS ----------------
+  buildUiOpt(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, o = uiOpt(s);
+    const W = 300, H = 250;
+    const { x, y } = this.window(c, W, H, 'ปรับ UI');
+    let yy = y + 40;
+    const row = (label: string, val: string, cb: () => void) => {
+      c.add(k.text(x + 22, yy + 5, label, 10, '#ffe7a0'));
+      c.add(k.button(x + W - 130, yy, 108, 24, val, () => { cb(); saveGame(s); bus.emit(EV.STATE_CHANGED); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); this.rebuild(); }, { size: 10 }));
+      yy += 36;
+    };
+    const pct = (v: number) => Math.round(v * 100) + '%';
+    row('ขนาด UI', pct(o.scale), () => setUiOpt(s, { scale: cycle(UI_SCALES, o.scale) }));
+    row('ขนาดปุ่มต่อสู้', pct(o.btn), () => setUiOpt(s, { btn: cycle(BTN_SCALES, o.btn) }));
+    row('ความชัดแถบบน', pct(o.alpha), () => setUiOpt(s, { alpha: cycle(ALPHAS, o.alpha) }));
+    row('ชื่อบนหัวชาวบ้าน', o.names ? 'แสดง' : 'ซ่อน', () => setUiOpt(s, { names: !o.names }));
+    c.add(k.button(x + 22, yy + 4, 120, 24, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 1, btn: 1, alpha: 1, names: true }); saveGame(s); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); this.rebuild(); }, { size: 9.5, color: 0x5a3a1a }));
+    c.add(k.button(x + W - 130, yy + 4, 108, 24, '◀ กลับเมนู', () => this.open('menu'), { size: 9.5 }));
   }
 
   // ---------------- DIALOG ----------------
