@@ -58,7 +58,10 @@ export interface GameState {
 export const SAVE_VERSION = 1;
 export const INV_SIZE = 30;
 /** Bag size grows with the warehouse. */
-export function invSize(s: { buildings: { type: string; level: number }[] }) { return INV_SIZE + 5 * (s.buildings.find(b => b.type === 'warehouse')?.level ?? 0) + 2 * (s.buildings.find(b => b.type === 'home')?.level ?? 0); }
+export function invSize(s: { buildings: { type: string; level: number }[] }) {
+  const p = s as { bagPlus?: number; vipUntil?: number };
+  return INV_SIZE + 5 * (s.buildings.find(b => b.type === 'warehouse')?.level ?? 0) + 2 * (s.buildings.find(b => b.type === 'home')?.level ?? 0) + (p.bagPlus ?? 0) + ((p.vipUntil ?? 0) > Date.now() ? 20 : 0);
+}
 
 export function newGameState(): GameState {
   const s: GameState = {

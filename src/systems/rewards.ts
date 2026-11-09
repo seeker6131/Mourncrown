@@ -22,7 +22,8 @@ const between = (rnd: () => number, a: number, b: number) => a + Math.floor(rnd(
 export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boolean, lastOfStage: boolean, rnd: () => number = Math.random): KillResult {
   const st = STAGES[stageN - 1], base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
   const animal = !!base.animal;
-  const gold = animal ? 0 : between(rnd, sc.gold[0], sc.gold[1]), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1));
+  const vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now();
+  const gold = animal ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1));
   s.gold += gold;
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);

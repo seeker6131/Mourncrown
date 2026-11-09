@@ -53,6 +53,7 @@ export function derive(s: GameState): Derived {
   g.exp += tav * 4;
   const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
   if (buff?.stat === 'exp') g.exp += buff.pct;
+  if (((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now()) g.exp += 50;   // VIP: EXP x1.5
   const cb = CLASSES[s.cls ?? 'novice'].bonus, tf = Math.max(0, activeTier(s));
   g.crit += (cb.crit ?? 0) * tf; g.aspd += (cb.aspd ?? 0) * tf;
   const sb = (s as GameState & { skillBuff?: { atk?: number; def?: number; aspd?: number; until: number } }).skillBuff;

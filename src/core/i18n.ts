@@ -131,6 +131,9 @@ const EN: Record<string, string> = {
   'ม้วนกลับหมู่บ้าน': 'Return Scroll', 'วาร์ปกลับหมู่บ้านทันทีจากทุกแผนที่': 'Teleports you to the village from any map', 'ถุงเสบียง': 'Travel Rations', 'เติมอาหารเข้าคลังหมู่บ้าน +20 (แพงกว่าล่าเอง)': 'Adds 20 food to the village store (dearer than hunting)',
   'ยาเพิ่มพลัง': 'Strength Tonic', 'ยาเกราะเหล็ก': 'Ironhide Tonic', 'ยาปัญญา': 'Wisdom Tonic', 'นาน 30 นาที': 'for 30 min', 'วาร์ปกลับหมู่บ้าน...': 'Returning to the village...', 'ทำงานแล้ว': 'is active',
   'อาหารในคลัง': 'Food in store', 'วันนี้': 'today', 'ได้รับอาวุธเริ่มต้น:': 'Starter weapon received:',
+  'ร้านพรีเมียม': 'Premium Shop', 'บัตร VIP': 'VIP Cards', 'ร้านเพชร': 'Diamond Shop', 'เติมเพชร': 'Top up', 'ร้าน💎': 'Shop💎', 'ตลาดกลาง': 'Market',
+  'สิทธิ์ VIP': 'VIP perks', 'VIP เหลือ': 'VIP left', 'วัน': 'd', 'ชม.': 'h', 'ตกวันละ': 'per day', 'ประหยัด': 'save', 'เติม': 'Top up', 'โบนัส': 'bonus', 'เร็วๆ นี้': 'Soon', 'ใช้อยู่': 'In use',
+  'ลงขาย': 'List', 'ของที่ลงขาย': 'My listings', 'ราคาตั้งขาย': 'Your price', 'ยกเลิก': 'Cancel', 'ทุกระดับ': 'All rarities', 'ของใช้/วัตถุดิบ': 'Supplies',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

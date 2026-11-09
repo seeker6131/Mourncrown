@@ -27,12 +27,14 @@ import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type C
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
 import { STAGES, LANDS } from '../world/stages';
+import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, listItem, cancelListing, sampleListings } from '../systems/market';
+import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady, claimVipGift, buyDiamondItem, grantVip, grantDiamonds } from '../systems/premium';
 import { stageFood } from '../systems/supplies';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -122,6 +124,8 @@ export class Panels {
       case 'smith': this.buildSmith(c); break;
       case 'uiopt': this.buildUiOpt(c); break;
       case 'stages': this.buildStages(c); break;
+      case 'premium': this.buildPremium(c); break;
+      case 'market': this.buildMarket(c); break;
     }
   }
 
@@ -576,7 +580,7 @@ export class Panels {
   // ---------------- MENU ----------------
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = 280, H = 362;
+    const W = 280, H = 384;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let yy = y + 34;
     const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 21, label, cb, { size: 9, color })); yy += 25; };
@@ -595,10 +599,154 @@ export class Panels {
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
     b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
+    b('🧪 ทดสอบ: VIP 3 วัน + 💎1000', () => { grantVip(s, 3); grantDiamonds(s, 1000); sfx.levelUp(); bus.emit(EV.TOAST, 'ได้ VIP 3 วัน + เพชร 1000 (ทดสอบ)', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
     b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { testLevelUp(s); clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
+  }
+
+  // ---------------- 💎 PREMIUM: top-up / VIP / diamond shop ----------------
+  premTab: 'topup' | 'vip' | 'shop' = 'vip';
+  buildPremium(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(620, ui.VW - 16), H = 330;
+    const { x, y, g } = this.window(c, W, H, '💎 ร้านพรีเมียม');
+    const tabs: [typeof this.premTab, string][] = [['vip', '👑 บัตร VIP'], ['shop', '💎 ร้านเพชร'], ['topup', '💳 เติมเพชร']];
+    tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 104, y + 30, 98, 22, label, () => { this.premTab = id; this.rebuild(); }, { size: 9, color: this.premTab === id ? 0x6a4a10 : 0x2a1d12 })));
+    c.add(k.text(x + W - 16, y + 34, `💎 ${diamonds(s).toLocaleString()}`, 11, '#8fe8ff').setOrigin(1, 0));
+    const top = y + 60, notice = '🔒 ซื้อด้วยเงินจริงได้เมื่อระบบออนไลน์ + ชำระเงินเปิด (ตอนนี้แสดงตัวอย่างร้าน)';
+    if (this.premTab === 'vip') {
+      const left = vipLeftMs(s), on = left > 0;
+      g.fillStyle(on ? 0x3a2a08 : 0x1a140e, 0.9).fillRoundedRect(x + 14, top, 236, H - 76, 5).lineStyle(1.5, on ? 0xffd84a : 0x6a5a40, 1).strokeRoundedRect(x + 14, top, 236, H - 76, 5);
+      c.add(k.text(x + 24, top + 8, on ? `👑 VIP เหลือ ${Math.floor(left / 86400000)} วัน ${Math.floor(left / 3600000) % 24} ชม.` : '👑 สิทธิ์ VIP', 10, '#ffd84a'));
+      c.add(k.text(x + 24, top + 28, VIP_PERKS.map(p => '✔ ' + p).join('\n'), 7.8, '#f3e6c4', { lineSpacing: 3, wordWrap: { width: 220 } }));
+      if (on) c.add(k.button(x + 24, top + H - 110, 216, 24, vipGiftReady(s) ? '🎁 รับของขวัญ VIP วันนี้' : '🎁 รับแล้ววันนี้', () => { if (claimVipGift(s)) { sfx.levelUp(); bus.emit(EV.TOAST, 'ได้รับ ม้วนกลับหมู่บ้าน x3 + ยาฟื้นพลังใหญ่ x5', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); } }, { size: 9, color: 0x6a4a10, disabled: !vipGiftReady(s) }));
+      const cx0 = x + 262, cw = (W - 276 - 12) / 3;
+      VIP_CARDS.forEach((v, i) => {
+        const cx = cx0 + i * (cw + 6), per = (v.thb / v.days).toFixed(1);
+        g.fillStyle(0x2a1d12, 0.95).fillRoundedRect(cx, top, cw, 150, 6).lineStyle(2, [0xc0a060, 0xffd84a, 0xff8a3a][i], 1).strokeRoundedRect(cx, top, cw, 150, 6);
+        c.add(k.text(cx + cw / 2, top + 10, `VIP ${v.days} วัน`, 12, '#ffd84a').setOrigin(0.5, 0));
+        c.add(k.text(cx + cw / 2, top + 36, '👑', 26).setOrigin(0.5, 0));
+        c.add(k.text(cx + cw / 2, top + 78, `฿${v.thb}`, 16, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
+        c.add(k.text(cx + cw / 2, top + 100, `ตกวันละ ฿${per}`, 7.5, i ? '#9fffb0' : '#c8b898').setOrigin(0.5, 0));
+        if (i) c.add(k.text(cx + cw / 2, top + 112, `ประหยัด ${Math.round((1 - v.thb / v.days / (VIP_CARDS[0].thb / 3)) * 100)}%`, 7.5, '#ffb070').setOrigin(0.5, 0));
+        c.add(k.button(cx + 6, top + 124, cw - 12, 20, 'ซื้อ', () => bus.emit(EV.TOAST, notice, '#ffd84a'), { size: 9, color: 0x1f4a2a }));
+      });
+      c.add(k.text(cx0, top + 160, 'บัตรใหม่ต่อเวลาจากที่เหลือได้ • ไม่ขายของแรงหรือเพิ่มโอกาสดรอปของแรร์ (ไม่ pay to win)', 7.5, '#c8b898', { wordWrap: { width: W - 276 } }));
+      c.add(k.text(cx0, top + 196, notice, 7.5, '#ff9a6a', { wordWrap: { width: W - 276 } }));
+    } else if (this.premTab === 'topup') {
+      const cw = (W - 28 - 4 * 6) / 5;
+      DIAMOND_PACKS.forEach((p, i) => {
+        const cx = x + 14 + i * (cw + 6);
+        g.fillStyle(0x16222a, 0.95).fillRoundedRect(cx, top, cw, 170, 6).lineStyle(1.5, 0x5ac8e8, 1).strokeRoundedRect(cx, top, cw, 170, 6);
+        c.add(k.text(cx + cw / 2, top + 14, '💎'.repeat(Math.min(3, i + 1)), 14).setOrigin(0.5, 0));
+        c.add(k.text(cx + cw / 2, top + 50, p.diamonds.toLocaleString(), 15, '#8fe8ff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
+        if (p.bonus) c.add(k.text(cx + cw / 2, top + 72, `+${p.bonus} โบนัส`, 8, '#9fffb0').setOrigin(0.5, 0));
+        c.add(k.text(cx + cw / 2, top + 100, `฿${p.thb.toLocaleString()}`, 13, '#ffffff').setOrigin(0.5, 0));
+        c.add(k.button(cx + 6, top + 138, cw - 12, 22, 'เติม', () => bus.emit(EV.TOAST, notice, '#ffd84a'), { size: 9, color: 0x1f4a5a }));
+      });
+      c.add(k.text(x + 14, top + 184, 'เพชรได้จากการเติมเงินจริงเท่านั้น • เติมครั้งแรกได้เพชร x2 • ใช้ซื้อของในร้านเพชร (ความสะดวก / ความสวย)', 8, '#c8b898', { wordWrap: { width: W - 28 } }));
+      c.add(k.text(x + 14, top + 214, notice, 8, '#ff9a6a', { wordWrap: { width: W - 28 } }));
+    } else {
+      const cols = 3, cw = (W - 28 - (cols - 1) * 6) / cols, ch = 56;
+      const pageN = Math.ceil(DIAMOND_SHOP.length / 12); this.premPage = Math.min(this.premPage, pageN - 1);
+      DIAMOND_SHOP.slice(this.premPage * 12, this.premPage * 12 + 12).forEach((it, i) => {
+        const cx = x + 14 + (i % cols) * (cw + 6), cy = top + Math.floor(i / cols) * (ch + 4);
+        const owned = it.id.startsWith('fx_') && ((s as unknown as { fxOwned?: string[] }).fxOwned ?? []).includes(it.id), worn = (s as unknown as { fx?: string }).fx === it.id;
+        g.fillStyle(it.soon ? 0x15120e : 0x22301f, 0.95).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, worn ? 0xffd84a : 0x5a4a3a, 1).strokeRoundedRect(cx, cy, cw, ch, 4);
+        if (it.id.startsWith('fx_')) g.fillStyle(FX_COLOR[it.id], 1).fillCircle(cx + 12, cy + 12, 5);
+        c.add(k.text(cx + (it.id.startsWith('fx_') ? 22 : 8), cy + 5, it.name, 8.5, it.soon ? '#8a7a60' : '#ffe7a0', { wordWrap: { width: cw - 30 } }));
+        c.add(k.text(cx + 8, cy + 24, it.desc, 6.8, '#c8b898', { wordWrap: { width: cw - 84 } }));
+        const label = it.soon ? 'เร็วๆ นี้' : owned ? (worn ? 'ใช้อยู่' : 'ใช้') : `💎 ${it.price}`;
+        c.add(k.button(cx + cw - 72, cy + ch - 26, 66, 20, label, () => {
+          const r = buyDiamondItem(s, it.id);
+          if (r === 'ok' || r === 'owned') { sfx.coin(); bus.emit(EV.TOAST, r === 'ok' ? `ซื้อ ${it.name} แล้ว` : `ใช้ ${it.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); }
+          else bus.emit(EV.TOAST, r === 'diamonds' ? 'เพชรไม่พอ — เติมได้เมื่อระบบชำระเงินเปิด' : r === 'max' ? 'ขยายครบแล้ว' : 'เร็วๆ นี้', '#ff9a6a');
+          this.rebuild();
+        }, { size: 8.5, color: it.soon ? 0x2a2420 : 0x1f4a5a, disabled: it.soon || worn }));
+      });
+    }
+  }
+  premPage = 0;
+
+  // ---------------- 🏪 PLAYER MARKET ----------------
+  mkTab: 'buy' | 'sell' | 'mine' = 'buy'; mkType = 0; mkRar = -1; mkPage = 0; mkPrice = 0; mkSel: string | null = null;
+  buildMarket(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(620, ui.VW - 16), H = 330;
+    const { x, y, g } = this.window(c, W, H, '🏪 ตลาดกลาง');
+    const tabs: [typeof this.mkTab, string][] = [['buy', 'ซื้อ'], ['sell', 'ลงขาย'], ['mine', `ของที่ลงขาย (${myListings(s).length}/${MAX_LISTINGS})`]];
+    tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 90, y + 30, i === 2 ? 130 : 84, 22, label, () => { this.mkTab = id; this.mkPage = 0; this.selUid = null; this.mkSel = null; this.rebuild(); }, { size: 9, color: this.mkTab === id ? 0x6a4a10 : 0x2a1d12 })));
+    c.add(k.text(x + W - 16, y + 34, `💰 ${s.gold.toLocaleString()}`, 10, '#ffd84a').setOrigin(1, 0));
+    const top = y + 60;
+    const rcol = (r: number) => '#' + RARITY_COLORS[r].toString(16).padStart(6, '0');
+    const fakeInv = (it: Omit<InvItem, 'uid'>) => ({ ...it, uid: -1 }) as InvItem;
+    if (this.mkTab === 'buy') {
+      const TYPES: [string, (t: string) => boolean][] = [['ทั้งหมด', () => true], ['อาวุธ', t => t === 'weapon'], ['เกราะ', t => t === 'armor'], ['เครื่องประดับ', t => t === 'accessory'], ['ของใช้/วัตถุดิบ', t => t === 'consumable' || t === 'material']];
+      TYPES.forEach(([n], i) => c.add(k.button(x + 14 + i * 74, top, 70, 18, n, () => { this.mkType = i; this.mkPage = 0; this.rebuild(); }, { size: 7.5, color: this.mkType === i ? 0x4a3a10 : 0x1a140e })));
+      c.add(k.button(x + 14 + 5 * 74 + 6, top, 104, 18, this.mkRar < 0 ? 'ทุกระดับ' : RARITY_NAMES[this.mkRar] + '+', () => { this.mkRar = this.mkRar >= 5 ? -1 : this.mkRar + 1; this.mkPage = 0; this.rebuild(); }, { size: 7.5 }));
+      const list = sampleListings().filter(l => TYPES[this.mkType][1](itemDef(l.item.id).type) && (this.mkRar < 0 || (l.item.rar ?? 0) >= this.mkRar)).sort((a, b) => a.price - b.price);
+      const per = 7, pages = Math.max(1, Math.ceil(list.length / per)); this.mkPage = Math.min(this.mkPage, pages - 1);
+      list.slice(this.mkPage * per, this.mkPage * per + per).forEach((l, i) => {
+        const ry = top + 24 + i * 30, d = itemDef(l.item.id), rr = l.item.rar ?? d.rarity;
+        g.fillStyle(this.mkSel === l.id ? 0x3a2a10 : 0x1a140e, 0.9).fillRoundedRect(x + 14, ry, W - 28, 27, 3).lineStyle(1, RARITY_COLORS[rr], 0.5).strokeRoundedRect(x + 14, ry, W - 28, 27, 3);
+        c.add(this.ico(x + 28, ry + 13, `icon_${d.icon}`, 26));
+        c.add(k.text(x + 44, ry + 3, `${d.name}${l.item.upg ? ' +' + l.item.upg : ''}${l.item.qty > 1 ? ' x' + l.item.qty : ''}`, 8.5, rcol(rr)));
+        c.add(k.text(x + 44, ry + 15, [isGear(d) ? RARITY_NAMES[rr] : '', ...statLines(d, fakeInv(l.item)).slice(0, 2), (l.item.aff?.length ? `✦${l.item.aff.length} ค่าพิเศษ` : '')].filter(Boolean).join('  •  '), 6.8, '#c8b898'));
+        c.add(k.text(x + W - 200, ry + 8, l.seller, 7.5, '#9ad8ff'));
+        c.add(k.text(x + W - 110, ry + 7, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
+        c.add(k.button(x + W - 98, ry + 3, 78, 21, 'ซื้อ', () => bus.emit(EV.TOAST, 'ตัวอย่างตลาด — ซื้อขายกับผู้เล่นจริงได้เมื่อระบบออนไลน์เปิด', '#ffd84a'), { size: 8.5, color: 0x1f4a2a }));
+      });
+      c.add(k.button(x + 14, y + H - 30, 30, 18, '◀', () => { this.mkPage = (this.mkPage + pages - 1) % pages; this.rebuild(); }, { size: 8 }));
+      c.add(k.text(x + 60, y + H - 27, `${this.mkPage + 1}/${pages}  •  ${list.length} รายการ  •  ตัวอย่างจากผู้เล่นจำลอง`, 7.5, '#c8b898'));
+      c.add(k.button(x + 290, y + H - 30, 30, 18, '▶', () => { this.mkPage = (this.mkPage + 1) % pages; this.rebuild(); }, { size: 8 }));
+    } else if (this.mkTab === 'sell') {
+      const cols = 7, cs = 30;
+      const sellable = s.inventory.filter(it => !isEquipped(s, it.uid));
+      sellable.slice(0, 35).forEach((it, i) => {
+        const d = itemDef(it.id), cx = x + 14 + (i % cols) * (cs + 3), cy = top + Math.floor(i / cols) * (cs + 3);
+        k.iconSlot(g, cx, cy, cs, RARITY_COLORS[rarOf(it)], it.uid === this.selUid);
+        c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${d.icon}`, cs));
+        if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
+        const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
+        z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.mkPrice = suggestPrice(it) * it.qty; this.rebuild(); });
+        c.add(z);
+      });
+      const dx = x + 14 + cols * (cs + 3) + 8, dw = x + W - 14 - dx;
+      g.fillStyle(0x0a0705, 0.6).fillRoundedRect(dx, top, dw, H - 76, 4);
+      const it = s.inventory.find(i => i.uid === this.selUid);
+      if (!it) c.add(k.text(dx + dw / 2, top + 100, 'เลือกของที่จะลงขาย\n(ของที่ใส่อยู่ลงขายไม่ได้)', 9, '#8a7a60', { align: 'center' }).setOrigin(0.5));
+      else {
+        const d = itemDef(it.id), rr = rarOf(it);
+        c.add(this.ico(dx + 22, top + 22, `icon_${d.icon}`, 32));
+        c.add(k.text(dx + 44, top + 8, `${d.name}${it.upg ? ' +' + it.upg : ''} x${it.qty}`, 9.5, rcol(rr)));
+        c.add(k.text(dx + 44, top + 24, isGear(d) ? RARITY_NAMES[rr] : d.desc, 7.5, rcol(rr), { wordWrap: { width: dw - 50 } }));
+        const fee = feeOf(this.mkPrice);
+        c.add(k.text(dx + dw / 2, top + 62, `ราคาตั้งขาย`, 8, '#c8b898').setOrigin(0.5, 0));
+        c.add(k.text(dx + dw / 2, top + 76, `💰 ${this.mkPrice.toLocaleString()}`, 16, '#ffd84a', { fontStyle: 'bold' }).setOrigin(0.5, 0));
+        const step = (f: number) => () => { this.mkPrice = Math.max(1, Math.round(this.mkPrice * f)); this.rebuild(); };
+        [['-50%', 0.5], ['-10%', 0.9], ['+10%', 1.1], ['x2', 2]].forEach(([l, f], i) => c.add(k.button(dx + 8 + i * ((dw - 16) / 4), top + 104, (dw - 16) / 4 - 4, 20, l as string, step(f as number), { size: 8.5 })));
+        c.add(k.text(dx + 10, top + 134, `ราคาแนะนำ ${(suggestPrice(it) * it.qty).toLocaleString()}  •  NPC รับซื้อ ${(sellPrice(it) * it.qty).toLocaleString()}\nภาษีตลาด 8%: -${fee.toLocaleString()}  →  ได้รับ ${(this.mkPrice - fee).toLocaleString()} 💰\nขึ้นขาย ${LISTING_HOURS} ชม. ไม่มีคนซื้อ = คืนของ`, 7.5, '#e8dcc0', { lineSpacing: 3 }));
+        c.add(k.button(dx + 8, top + H - 108, dw - 16, 24, `ลงขาย (${myListings(s).length}/${MAX_LISTINGS})`, () => {
+          const r = listItem(s, it.uid, it.qty, this.mkPrice);
+          if (typeof r === 'string') { sfx.error(); bus.emit(EV.TOAST, { equipped: 'ถอดก่อนจึงจะลงขายได้', missing: 'ไม่พบของ', full: 'ลงขายได้สูงสุด 10 รายการ', price: 'ราคาไม่ถูกต้อง' }[r], '#ff8a6a'); return; }
+          sfx.coin(); bus.emit(EV.TOAST, `ลงขาย ${d.name} ราคา ${this.mkPrice.toLocaleString()} 💰 แล้ว`, '#9fffb0'); this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+        }, { size: 9.5, color: 0x1f4a2a }));
+      }
+    } else {
+      const mine = myListings(s);
+      if (!mine.length) c.add(k.text(x + W / 2, top + 100, 'ยังไม่มีของที่ลงขาย', 10, '#8a7a60').setOrigin(0.5));
+      mine.forEach((l, i) => {
+        const ry = top + i * 26, d = itemDef(l.item.id), rr = l.item.rar ?? d.rarity, left = l.until - Date.now();
+        g.fillStyle(0x1a140e, 0.9).fillRoundedRect(x + 14, ry, W - 28, 23, 3);
+        c.add(this.ico(x + 26, ry + 11, `icon_${d.icon}`, 22));
+        c.add(k.text(x + 42, ry + 6, `${d.name}${l.item.upg ? ' +' + l.item.upg : ''}${l.item.qty > 1 ? ' x' + l.item.qty : ''}`, 8.5, rcol(rr)));
+        c.add(k.text(x + W - 260, ry + 6, left > 0 ? `เหลือ ${Math.floor(left / 3600000)} ชม. • รอผู้ซื้อ (เมื่อออนไลน์)` : 'หมดเวลา', 7.5, '#c8b898'));
+        c.add(k.text(x + W - 100, ry + 5, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
+        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { if (cancelListing(s, l.id)) { bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); } else bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a6a'); this.rebuild(); }, { size: 8, color: 0x5a1a1a }));
+      });
+    }
   }
 
   // ---------------- STAGE SELECT ----------------
@@ -625,6 +773,7 @@ export class Panels {
       g.lineStyle(sel ? 2 : 1, sel ? 0xffd84a : 0x5a4a3a, 1).strokeRoundedRect(tx, ty, tw, th, 5);
       c.add(k.text(tx + 8, ty + 6, ld.name, 9.5, open ? '#ffffff' : '#6a6050'));
       c.add(k.text(tx + 8, ty + 24, open ? `มอน Lv${first.level}-${STAGES[i * 10 + 9].level}` : `🔒 Lv${first.req}`, 8, open ? HI[i] : '#6a6050'));
+      c.add(k.text(tx + tw - 6, ty + 6, ['🪵🪵🍖', '🪵🍖', '🪨🪨🍖', '🪵🍖', '🪨🪨🍖'][i], 8).setOrigin(1, 0));
       const z = ui.add.zone(tx, ty, tw, th).setOrigin(0).setInteractive();
       z.on('pointerup', () => { sfx.click(); this.land = i; this.rebuild(); });
       c.add(z);

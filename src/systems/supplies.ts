@@ -7,6 +7,7 @@ import type { GameState } from '../core/state';
 export const stageFood = (n: number) => (n <= 2 ? 0 : 2 + Math.floor(n / 5));
 
 export function payStage(s: GameState, n: number): boolean {
+  if (((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now()) return true;   // VIP: free entry
   const c = stageFood(n);
   if (s.res.food < c) return false;
   s.res.food -= c;

@@ -8,6 +8,9 @@ import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
 import { applyKill } from '../systems/rewards';
 import { Vfx } from './vfx';
+import { vipActive, slashFx } from '../systems/premium';
+import { sellJunk } from '../systems/inventory';
+import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
@@ -257,7 +260,7 @@ export class Combat {
   /** sword swing: big glowing crescent + sparks off the blade */
   slashN = 0;
   slash(x: number, y: number, dir: number, form: string) {
-    const col = form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8;
+    const col = slashFx(S()) ?? (form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8);
     const fx = Math.sin(dir * Math.PI / 4), fy = Math.cos(dir * Math.PI / 4);
     this.vfx.slash(x + fx * 6, y + fy * 4, Math.atan2(fy, fx), col, form === 'hero' ? 0.85 : 1.05, (this.slashN++ & 1) === 1);
   }
@@ -300,6 +303,7 @@ export class Combat {
     // rewards are decided by a pure system function (moves to the server when the game goes online)
     const s = S(), st = this.stage!;
     const r = applyKill(s, st.n, m.m, m.boss, m.boss);
+    if (vipActive(s) && s.inventory.length >= invSize(s) - 2) { const j = sellJunk(s, 1); if (j.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${j.count} ชิ้น +${j.gold}G`, '#ffd84a', 8); }
     this.respawn(m);
     this.float(m.x, m.y - 20, `+${r.exp} EXP  +${r.gold}G`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);

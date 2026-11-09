@@ -13,7 +13,8 @@ import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
 import { SKILL_BY_ID } from '../data/skills';
-import { useItem } from '../systems/inventory';
+import { useItem, addItem } from '../systems/inventory';
+import { vipActive } from '../systems/premium';
 import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, payStage, isHungry } from '../systems/supplies';
@@ -186,7 +187,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
-    this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
+    this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
@@ -588,6 +589,7 @@ export class TopDownScene extends Phaser.Scene {
   obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
     const m = OM[name]; if (!m) return null;
     const im = this.add.image(Math.round(x), Math.round(y), 'o_' + name).setOrigin(0.5, m.foot / m.h).setDepth(y).setScale(sc);
+    if ((m.foot - m.top) * sc > 36) this.tall.push(im);   // tall things fade when the hero walks behind them
     const w = (m.x1 - m.x0) * fw * sc;
     if (shadow) {
       // soft contact shadow as wide as the object, and (village) a cast shadow that follows the sun / moon
@@ -759,6 +761,24 @@ export class TopDownScene extends Phaser.Scene {
   }
   heroKeyNow = '';
   lastLevel = 0;
+  // ---------- see-through: trees and buildings in front of the hero turn translucent ----------
+  tall: Phaser.GameObjects.Image[] = [];
+  faded = new Set<Phaser.GameObjects.Image>();
+  fadeT = 0;
+  updateOcclusion(time: number) {
+    if (time - this.fadeT < 90) return; this.fadeT = time;
+    const h = this.hero, hx0 = h.x - 9, hx1 = h.x + 9, hy0 = h.y - 34, hy1 = h.y;
+    const now = new Set<Phaser.GameObjects.Image>();
+    for (const im of this.tall) {
+      if (Math.abs(im.x - h.x) > 160 || im.y - h.y > 260 || im.y <= h.y + 2) continue;   // only things in front (lower on screen) and close
+      const w = im.width * im.scaleX, ht = im.height * im.scaleY;
+      const l = im.x - w * im.originX, r = l + w, t = im.y - ht * im.originY;
+      if (hx1 > l + w * 0.12 && hx0 < r - w * 0.12 && hy1 > t + 4 && hy0 < im.y - 6) now.add(im);
+    }
+    for (const im of now) if (!this.faded.has(im)) this.tweens.add({ targets: im, alpha: 0.42, duration: 160 });
+    for (const im of this.faded) if (!now.has(im) && im.active) this.tweens.add({ targets: im, alpha: 1, duration: 220 });
+    this.faded = now;
+  }
 
   // ---------- auto farm: hunt monsters (hunting outfit) or chop/mine (gathering outfit) ----------
   manualT = 0; potT = 0; autoTipT = 0;
@@ -774,7 +794,8 @@ export class TopDownScene extends Phaser.Scene {
   autoStep(time: number): [number, number] {
     const s = S(), h = this.hero, d = derive(s);
     if (s.hp < d.maxHp * 0.35 && time > this.potT) {
-      const it = s.inventory.find(i => i.id === 'hp_potion_l') ?? s.inventory.find(i => i.id === 'hp_potion');
+      let it = s.inventory.find(i => i.id === 'hp_potion_l') ?? s.inventory.find(i => i.id === 'hp_potion');
+      if (!it && vipActive(s) && s.gold >= 25 && addItem(s, 'hp_potion', 1)) { s.gold -= 25; it = s.inventory.find(i => i.id === 'hp_potion'); }   // VIP: auto-buy
       if (it) { const r = useItem(s, it.uid); this.potT = time + 2500; if (r) this.combat.float(h.x, h.y - 44, `+${r.heal}`, '#7aff8a', 11); }
     }
     const bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
@@ -1039,7 +1060,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
-    this.updatePlots(time); this.updateAction(time); this.updateGuide(time);
+    this.updatePlots(time); this.updateAction(time); this.updateGuide(time); this.updateOcclusion(time);
     if (!this.stageN) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ออกล่าสัตว์ป่าหาเนื้อ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;

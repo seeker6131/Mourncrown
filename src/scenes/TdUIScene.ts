@@ -11,6 +11,7 @@ import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
+import { vipActive } from '../systems/premium';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
@@ -165,7 +166,14 @@ export class TdUIScene extends Phaser.Scene {
     this.root.add([this.questG, this.questText, this.questZone]);
 
     // top-right menu: icon buttons
-    const menu: [string, string, () => void][] = [['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    if (!this.textures.exists('ui_diamond')) {   // 💎 icon drawn once
+      const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40; const q = cv.getContext('2d')!;
+      const gr = q.createLinearGradient(0, 4, 0, 36); gr.addColorStop(0, '#d8fbff'); gr.addColorStop(0.5, '#5ad2f0'); gr.addColorStop(1, '#1a6aa8');
+      q.fillStyle = gr; q.beginPath(); q.moveTo(8, 14); q.lineTo(14, 5); q.lineTo(26, 5); q.lineTo(32, 14); q.lineTo(20, 36); q.closePath(); q.fill();
+      q.strokeStyle = '#0b2a40'; q.lineWidth = 2; q.stroke(); q.strokeStyle = 'rgba(255,255,255,0.6)'; q.lineWidth = 1; q.beginPath(); q.moveTo(8, 14); q.lineTo(32, 14); q.moveTo(14, 5); q.lineTo(18, 14); q.lineTo(20, 36); q.moveTo(26, 5); q.lineTo(22, 14); q.stroke();
+      this.textures.addCanvas('ui_diamond', cv);
+    }
+    const menu: [string, string, () => void][] = [['ui_diamond', 'ร้าน💎', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
       const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
       const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
@@ -239,7 +247,7 @@ export class TdUIScene extends Phaser.Scene {
     this.hpText.setText(`HP ${Math.round(s.hp)}/${d.maxHp}`);
     this.expText.setText(`EXP ${Math.floor(s.exp)}/${need}`);
     this.mpText.setText(`MP ${Math.round(s.mp ?? 0)}/${d.maxMp}`);
-    this.lvText.setText(`Lv${s.level}`);
+    this.lvText.setText(`Lv${s.level}${vipActive(s) ? ' 👑' : ''}`).setColor(vipActive(s) ? '#ffd84a' : '#ffe7a0');
     [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
     this.resTexts[3]?.setColor((s as unknown as { hungry?: boolean }).hungry ? '#ff6a5a' : '#ffe7a0');
     const key = this.td.heroKey();
