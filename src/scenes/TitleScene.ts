@@ -49,9 +49,9 @@ export class TitleScene extends Phaser.Scene {
       this.tweens.add({ targets: m, y: m.y - 40 - Math.random() * 40, x: m.x + Math.random() * 40 - 20, alpha: { from: 0.9, to: 0 }, duration: 3000 + Math.random() * 3000, repeat: -1, delay: Math.random() * 3000 });
     }
     // logo
-    const title = k.text(VW / 2, 68, 'ป่าต้องสาป', 40, '#ffe7a0', { fontFamily: 'sans-serif', fontStyle: 'bold', strokeThickness: 7, stroke: '#2a1408' }).setOrigin(0.5);
+    const title = k.text(VW / 2, 68, 'MOURNCROWN', 38, '#ffe7a0', { fontFamily: 'Georgia, serif', fontStyle: 'bold', strokeThickness: 7, stroke: '#2a1408' }).setOrigin(0.5);
     title.setShadow(0, 3, '#000000', 6, true, true);
-    k.text(VW / 2, 104, 'CURSED GROVE • ชำระคำสาป ปกป้องหมู่บ้านสุดท้าย', 12, '#f3e6c4').setOrigin(0.5);
+    k.text(VW / 2, 104, lang() === 'en' ? 'Lift the curse • defend the last village' : 'ป่าต้องสาป • ชำระคำสาป ปกป้องหมู่บ้านสุดท้าย', 12, '#f3e6c4').setOrigin(0.5);
     const lg = this.add.graphics();
     k.diamond(lg, VW / 2 - 150, 70, 6); k.diamond(lg, VW / 2 + 150, 70, 6);
     lg.lineStyle(1, 0xd9b45a, 1).lineBetween(VW / 2 - 120, 120, VW / 2 + 120, 120);
