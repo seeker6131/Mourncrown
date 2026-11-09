@@ -10,6 +10,12 @@ import { saveGame, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
 import { derive } from '../systems/stats';
 import { Village, populateVillage } from '../world/npcs';
+import { activeTier, nextForm } from '../systems/stats';
+import { formName, type ClassId } from '../data/classes';
+import { bus, EV } from '../core/events';
+import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction } from '../systems/settlement';
+import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
+import type { TdUIScene } from './TdUIScene';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -26,14 +32,29 @@ import ft3Wang from '../assets/td/ft3_wang.png';
 
 // hero forms (PixelLab characters listed in chars.json)
 const LANDS_LABEL = ['ป่า', 'ผีสิง', 'ลาวา', 'หิมะ', 'คุก'];
-const FORMS: { key: string; name: string }[] = [
-  { key: 'hero', name: 'ชาวบ้าน' }, { key: 'hr1', name: 'นักดาบ' }, { key: 'hr2', name: 'อัศวิน' }, { key: 'hr3', name: 'ลอร์ดอัศวิน' },
-  { key: 'hr4', name: 'นักธนู' }, { key: 'hr5', name: 'พรานป่า' }, { key: 'hr6', name: 'เรนเจอร์ราชันย์' }, { key: 'hr7', name: 'จอมเวท' },
-  { key: 'hr8', name: 'ปราชญ์เวท' }, { key: 'hr9', name: 'อาร์คเมจทมิฬ' }, { key: 'hr10', name: 'ผู้พิทักษ์' }, { key: 'hr11', name: 'อัศวินเหล็กกล้า' },
-  { key: 'hr12', name: 'ป้อมปราการมนุษย์' },
-].filter(f => CH[f.key]);
+/** PixelLab character per class line and form tier (0 = villager) */
+const FORM_KEYS: Record<ClassId, string[]> = {
+  novice: ['hero'], sword: ['hero', 'hr1', 'hr2', 'hr3'], archer: ['hero', 'hr4', 'hr5', 'hr6'],
+  mage: ['hero', 'hr7', 'hr8', 'hr9'], cleric: ['hero', 'hr10', 'hr11', 'hr12'],
+};
+export function formKeyOf(cls: ClassId, tier: number) {
+  const k = FORM_KEYS[cls]?.[tier] ?? 'hero';
+  return CH[k] ? k : 'hero';
+}
 
-const MW = 1280, MH = 800;           // map size in game px (1 texel = 1 px)
+/** Building plots in the village (index = save plot number). Plots unlock as stages are cleared. */
+const PLOTS: { x: number; y: number }[] = [
+  { x: 722, y: 650 }, { x: 300, y: 660 }, { x: 150, y: 330 },      // open from the start
+  { x: 702, y: 322 }, { x: 1100, y: 600 }, { x: 120, y: 650 },    // after the stage-10 boss
+  { x: 440, y: 880 }, { x: 790, y: 880 }, { x: 1130, y: 900 },    // after the stage-30 boss (new south district)
+];
+const plotsOpen = (cleared: number) => 3 + (cleared >= 10 ? 3 : 0) + (cleared >= 30 ? 3 : 0);
+const plotNeed = (i: number) => i < 3 ? 0 : i < 6 ? 10 : 30;
+/** building art level: 3 art stages over 5 building levels */
+const artLv = (lv: number) => lv >= 5 ? 2 : lv >= 3 ? 1 : 0;
+
+const MW = 1280;                      // map size in game px (1 texel = 1 px)
+let MH = 800;                         // village is taller (south district), stages 800
 const CELL = 4;                       // collision grid
 const DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'];
 
@@ -65,7 +86,7 @@ const pick = (p: RGB[], r: number) => p[Math.min(p.length - 1, Math.floor(r * p.
 const riverX = (y: number) => 930 + Math.sin(y / 130) * 46 + Math.sin(y / 47) * 10;
 const roadY = (x: number) => 420 + Math.sin(x / 160) * 18;
 const PLAZA = { x: 520, y: 410, r: 92 };
-const POND = { x: 250, y: 650, r: 56 };
+const POND = { x: 200, y: 840, r: 56 };
 const BRIDGE = { y0: roadY(930) - 20, y1: roadY(930) + 20 };
 function surface(x: number, y: number) {
   const n = (fbm(x / 22, y / 22) - 0.5) * 10;
@@ -78,7 +99,7 @@ function surface(x: number, y: number) {
   if (Math.hypot(x - PLAZA.x, (y - PLAZA.y) * 1.15) < PLAZA.r + (fbm(x / 38, y / 38) - 0.5) * 46 + n * 0.5) return 'cobble';
   const road = Math.abs(y - roadY(x)) < 15 + n;
   const north = x > PLAZA.x - 16 - n && x < PLAZA.x + 16 + n && y < PLAZA.y;
-  const south = Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < 13 + n && y > PLAZA.y && y < 760;
+  const south = Math.abs(x - (PLAZA.x - 40 + (y - PLAZA.y) * 0.35)) < 13 + n && y > PLAZA.y && y < MH - 40;
   if (road || north || south) return 'dirt';
   return 'grass';
 }
@@ -158,7 +179,7 @@ export class TopDownScene extends Phaser.Scene {
   combat!: Combat;
   village?: Village;
   portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
-  init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; }
+  init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; MH = this.stageN ? 800 : 1024; }
 
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
@@ -176,6 +197,10 @@ export class TopDownScene extends Phaser.Scene {
     this.placeProps();
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
     if (this.village) populateVillage(this.village, roadY);
+    this.plotViews = []; this.heroKeyNow = this.F.key;
+    if (!this.stageN) this.renderPlots();
+    if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
+    this.scene.bringToTop('TdUI');
     if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูด่าน ▲');
 
     const cam = this.cameras.main;
@@ -194,7 +219,7 @@ export class TopDownScene extends Phaser.Scene {
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
     if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); }
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (p.x > this.scale.width * 0.7 && p.y < this.scale.height * 0.25) { this.nextForm(); return; } if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.ui?.blocks(p) || this.selectUi) return; if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
@@ -504,15 +529,14 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN) { this.placeStage(rnd, pick, free); return; }
     // village buildings (level art from PixelLab Objects)
     const B: [string, number, number][] = [
-      ['townhall_1', 345, 322], ['tavern_0', 702, 322], ['house_1', 846, 300], ['lumber_0', 150, 330],
-      ['forge_1', 722, 650], ['barn_2', 300, 660], ['market_1', 120, 650],
-      ['house_0', 1090, 330], ['kitchen_0', 1100, 600], ['house_2', 1180, 760],
+      ['townhall_1', 345, 322], ['house_1', 846, 300], ['house_0', 1090, 330], ['house_2', 1180, 760],
     ];
     for (const [n, x, y] of B) {
       const m = OM[n]; this.obj(n, x, y, 0.82, Math.round((m.foot - m.top) * 0.42));
       // keep the trees away from the building
       for (let j = -(m.foot - m.top) - 60; j <= 40; j += 4) for (let i = -(m.x1 - m.x0) * 0.75; i <= (m.x1 - m.x0) * 0.75; i += 4) if (!this.isBlocked(x + i, y + j)) this.reserved.add(Math.round((x + i) / 4) + ',' + Math.round((y + j) / 4));
     }
+    for (const P of PLOTS) for (let j = -200; j <= 150; j += 4) for (let i = -96; i <= 96; i += 4) this.reserved.add(Math.round((P.x + i) / 4) + ',' + Math.round((P.y + j) / 4));
     const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
     // market stalls and village clutter around the plaza
     for (const [x, y] of [[600, 520], [652, 500], [436, 522]]) this.obj(pick('stall', 5), x, y, 0.8, 10);
@@ -523,7 +547,7 @@ export class TopDownScene extends Phaser.Scene {
       const x = 16 + rnd() * (MW - 32), y = 50 + rnd() * (MH - 60);
       const edge = Math.min(x, MW - x, y, MH - y);
       const dense = edge < 80 || fbm(x / 140, y / 140) > 0.62;
-      const inVillage = x > 60 && x < 1240 && y > 230 && y < 740 && edge > 70;
+      const inVillage = x > 60 && x < 1240 && y > 230 && y < MH - 60 && edge > 70;
       if (!dense || inVillage || !free(x, y, 48) || near(x, y)) continue;   // roots stay off roads
       const r = rnd();
       this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true);
@@ -581,13 +605,123 @@ export class TopDownScene extends Phaser.Scene {
       .setDepth(100002);
   }
 
-  form = 0;
-  get F() { return FORMS[this.form]; }
-  nextForm() {
-    if (this.attacking) return;
-    this.form = (this.form + 1) % FORMS.length;
-    setIdle(this.hero, this.F.key, this.dir);
-    this.label.setText(`ทดลอง: มองจากบน • ร่าง ${this.F.name} (แตะมุมขวาบน = เปลี่ยนร่าง • แตะข้อความนี้ = ทดสอบท่าตาย)`);
+  get F() { const s = S(); const t = activeTier(s); return { key: formKeyOf(s.cls, t), name: formName(s.cls, t) }; }
+  get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
+  heroKey() { return this.F.key; }
+  resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
+  stageTitle() { const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `ด่าน ${st.n} ${st.land.name} (มอน Lv${st.level})` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
+  /** golden burst when the hero levels up or changes form */
+  levelUpFx() {
+    const h = this.hero;
+    const ring = this.add.ellipse(h.x, h.y, 20, 8).setStrokeStyle(2, 0xffd24a, 1).setDepth(h.y + 1);
+    this.tweens.add({ targets: ring, scaleX: 3, scaleY: 3, alpha: 0, duration: 700, onComplete: () => ring.destroy() });
+    const g = this.add.image(h.x, h.y - 20, 'td_glow').setTint(0xffd24a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99991).setScale(0.3);
+    this.tweens.add({ targets: g, scale: 1.2, alpha: 0, duration: 900, onComplete: () => g.destroy() });
+    for (let i = 0; i < 14; i++) {
+      const sp = this.add.rectangle(h.x + (Math.random() - 0.5) * 24, h.y - Math.random() * 30, 2, 2, 0xffe08a).setDepth(99992);
+      this.tweens.add({ targets: sp, y: sp.y - 30 - Math.random() * 20, alpha: 0, duration: 800 + Math.random() * 500, onComplete: () => sp.destroy() });
+    }
+  }
+  heroKeyNow = '';
+  lastLevel = 0;
+
+  // ---------- building plots ----------
+  plotViews: { key: string; objs: Phaser.GameObjects.GameObject[]; bubble?: Phaser.GameObjects.Container }[] = [];
+  settleT = 0; actT = 0;
+  plotKey(i: number) {
+    const s = S(), cleared = (s as unknown as { tdCleared?: number }).tdCleared ?? 0;
+    if (i >= plotsOpen(cleared)) return 'locked';
+    const b = buildingAt(s, i);
+    return b ? `${b.type}_${underConstruction(b) ? 'site' : artLv(b.level)}` : 'empty';
+  }
+  renderPlots() { PLOTS.forEach((_, i) => this.renderPlot(i)); }
+  renderPlot(i: number) {
+    const P = PLOTS[i], key = this.plotKey(i), old = this.plotViews[i];
+    old?.objs.forEach(o => o.destroy()); old?.bubble?.destroy();
+    const objs: Phaser.GameObjects.GameObject[] = [];
+    const txt = (y: number, t: string, col = '#ffe7a0') => { const o = this.add.text(P.x, y, t, { fontFamily: 'sans-serif', fontSize: '7px', color: col, stroke: '#0b0f0c', strokeThickness: 3, resolution: 8, align: 'center' }).setOrigin(0.5, 1).setDepth(99980); objs.push(o); return o; };
+    if (key === 'locked' || key === 'empty') {
+      // a staked-out lot: dark soil patch, corner stakes, a sign
+      const g = this.add.graphics().setDepth(1.1);
+      g.fillStyle(0x2a2016, 0.35).fillRoundedRect(P.x - 62, P.y - 46, 124, 52, 10);
+      g.lineStyle(1, 0xc8a878, 0.5).strokeRoundedRect(P.x - 62, P.y - 46, 124, 52, 10);
+      objs.push(g);
+      for (const [dx, dy] of [[-62, -46], [62, -46], [-62, 6], [62, 6]]) objs.push(this.add.rectangle(P.x + dx, P.y + dy, 2, 7, 0x6a4a2a).setOrigin(0.5, 1).setDepth(P.y + dy));
+      const sg = this.add.image(P.x, P.y - 14, 'o_sign_0').setOrigin(0.5, OM.sign_0.foot / OM.sign_0.h).setDepth(P.y - 14); objs.push(sg);
+      txt(P.y - 58, key === 'locked' ? `🔒 ที่ดิน (ผ่านด่าน ${plotNeed(i)})` : '🔨 ที่ดินว่าง — สร้างได้', key === 'locked' ? '#a89878' : '#9fffb0');
+    } else {
+      const [type, lvl] = key.split('_');
+      const art = lvl === 'site' ? 'site_0' : `${type}_${lvl}`;
+      const m = OM[art];
+      if (m) {
+        const im = this.obj(art, P.x, P.y, 0.82, Math.round((m.foot - m.top) * 0.42));
+        if (im) objs.push(im);
+        // the new walls must not trap the hero
+        const h = this.hero;
+        if (h && this.isBlocked(h.x, h.y)) h.setPosition(P.x, P.y + 14);
+      }
+      const b = buildingAt(S(), i)!;
+      const t = txt(P.y - (m ? m.foot - m.top : 120) - 2, `${BUILDINGS[type as BuildingId].name} Lv${b.level}`);
+      if (lvl === 'site') t.setData('timer', true);
+    }
+    this.plotViews[i] = { key, objs };
+  }
+  saveT = 0;
+  updatePlots(time: number) {
+    if (time - this.saveT > 10000) { this.saveT = time; const s0 = S(); s0.playTime = (s0.playTime ?? 0) + 10; saveGame(s0); }
+    if (this.stageN || time - this.settleT < 1000) return;
+    this.settleT = time;
+    const s = S();
+    settleTick(s);
+    PLOTS.forEach((P, i) => {
+      const v = this.plotViews[i]; if (!v) return;
+      if (this.plotKey(i) !== v.key) { this.renderPlot(i); bus.emit(EV.STATE_CHANGED); return; }
+      const b = buildingAt(s, i);
+      if (b && underConstruction(b)) (v.objs.find(o => o.getData?.('timer')) as Phaser.GameObjects.Text | undefined)?.setText(`🔨 ${BUILDINGS[b.type as BuildingId].name} Lv${b.level} • ${Math.ceil((b.done! - Date.now()) / 1000)} วิ`);
+      const res = b && !underConstruction(b) ? BUILDINGS[b.type as BuildingId].produces : undefined;
+      const show = !!res && b!.stored >= 1;
+      if (show && !v.bubble) {
+        const m = OM[`${b!.type}_${artLv(b!.level)}`], top = P.y - (m ? m.foot - m.top : 120) - 14;
+        const bub = this.add.container(P.x, top).setDepth(99990);
+        bub.add([this.add.circle(0, 0, 8, 0xffffff, 0.95).setStrokeStyle(1.5, 0x3a8a3a), this.add.text(0, 0, res === 'gold' ? '💰' : res === 'wood' ? '🪵' : res === 'stone' ? '🪨' : '🍖', { fontSize: '9px', resolution: 8 }).setOrigin(0.5)]);
+        this.tweens.add({ targets: bub, y: top - 4, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        v.bubble = bub;
+      } else if (!show && v.bubble) { v.bubble.destroy(); v.bubble = undefined; }
+      // walk up to a building to collect what it made
+      if (show && Math.hypot(P.x - this.hero.x, P.y + 10 - this.hero.y) < 46) {
+        const r = settleCollect(s, i);
+        if (r) { this.combat.float(P.x, P.y - 60, `+${r.amount} ${RES_NAMES[r.res]}`, '#9fffb0', 10); saveGame(s); bus.emit(EV.STATE_CHANGED); }
+      }
+    });
+  }
+  /** what the action button offers: talk to the elder / merchant / blacksmith, or open a plot */
+  updateAction(time: number) {
+    if (time - this.actT < 200) return;
+    this.actT = time;
+    const ui = this.ui; if (!ui) return;
+    if (this.stageN || this.dead || ui.panels.isOpen) { ui.setAction(null); return; }
+    const h = this.hero;
+    let best: { d: number; label: string; cb: () => void } | null = null;
+    const offer = (d: number, label: string, cb: () => void) => { if (!best || d < best.d) best = { d, label, cb }; };
+    for (const n of this.village?.npcs ?? []) {
+      if (n.hidden) continue;
+      const d = Math.hypot(n.sp.x - h.x, n.sp.y - h.y); if (d > 34) continue;
+      if (n.key === 'np1') offer(d, '💬 ผู้เฒ่า', () => {
+        const s = S();
+        if (nextForm(s) !== null) ui.panels.open('job');
+        else ui.panels.openDialog('elder', s.tier === 0 ? `เจ้าเลเวล ${s.level} แล้ว ถึงเลเวล 10 กลับมาหาข้า จะได้เลือกสายอาชีพ — ดาบ ธนู เวท หรือแทงค์` : `เจ้าแกร่งขึ้นมากแล้ว ร่างต่อไปจะปลดล็อกที่เลเวล ${[0, 10, 40, 80][Math.min(3, s.tier + 1)]}`);
+      });
+      else if (n.key === 'np2') offer(d, '💬 ร้านค้า', () => ui.panels.open('shop'));
+      else if (n.key === 'np3') offer(d, '💬 ช่างตีเหล็ก', () => ui.panels.open('smith'));
+    }
+    PLOTS.forEach((P, i) => {
+      const d = Math.hypot(P.x - h.x, (P.y + 12 - h.y) * 1.4); if (d > 60) return;
+      const k = this.plotViews[i]?.key;
+      if (k === 'locked') offer(d + 20, '🔒 ที่ดิน', () => bus.emit(EV.TOAST, `ปลดล็อกเมื่อผ่านด่าน ${plotNeed(i)}`, '#ffd84a'));
+      else offer(d + 20, k === 'empty' ? '🔨 สร้างอาคาร' : '🏠 อาคาร', () => ui.panels.openPlot(i));
+    });
+    const b = best as { d: number; label: string; cb: () => void } | null;
+    ui.setAction(b?.label ?? null, b?.cb);
   }
   dead = false;
   /** Demo: the hero dies with the code-made death effect, then respawns. */
@@ -648,7 +782,7 @@ export class TopDownScene extends Phaser.Scene {
 
   attacking = false;
   attack() {
-    if (this.dead || this.attacking || !hasAnim(this.F.key, 'attack')) return;
+    if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi || !hasAnim(this.F.key, 'attack')) return;
     this.attacking = true;
     const h = this.hero;
     const F = this.F;
@@ -659,8 +793,15 @@ export class TopDownScene extends Phaser.Scene {
 
   update(time: number, dt: number) {
     let mx = 0, my = 0;
+    this.label.setVisible(false);
+    const s1 = S();
+    if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
+    if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
+    this.lastLevel = s1.level;
+    this.updatePlots(time); this.updateAction(time);
+    if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;
-    if (k) { mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0); my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0); }
+    if (k && !this.ui?.panels.isOpen) { mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0); my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0); }
     const R = this.scale.height / 9;
     if (this.joy.id >= 0) {
       const l = Math.hypot(this.joy.dx, this.joy.dy);

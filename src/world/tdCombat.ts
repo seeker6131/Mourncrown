@@ -2,11 +2,11 @@
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
-import { S } from '../core/events';
+import { S, bus, EV } from '../core/events';
 import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
-import { pickBase, rollRarity, makeGear } from '../systems/loot';
+import { pickBase, rollRarity, makeGear, isGear } from '../systems/loot';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
 import { STAGES, scaleStats, type Stage, type StageMon } from './stages';
 
@@ -159,11 +159,21 @@ export class Combat {
       playAnim(m.sp, m.m.key, 'die', m.dir, false); this.s.cameras.main.shake(400, 0.008);
       m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
-    const s = S(), st = this.stage!, d = derive(s);
+    const s = S(), st = this.stage!, d = derive(s), base0 = MONSTERS[m.m.kind];
     const g = Phaser.Math.Between(m.gold[0], m.gold[1]); s.gold += g;
     const lv = gainExp(s, m.exp * d.expBonus);
     this.float(m.x, m.y - 20, `+${Math.round(m.exp * d.expBonus)} EXP  +${g}G`, '#bfffb0', 8);
     if (lv > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
+    // village materials: wood and stone from every kill, food by size; crafting drops from the monster's table
+    const tierK = 1 + st.n / 12, wood = Math.round(Phaser.Math.Between(1, 3) * tierK * (m.boss ? 15 : 1)), stone = Math.round(Phaser.Math.Between(0, 2) * tierK * (m.boss ? 15 : 1));
+    const food = Math.max(1, Math.round((m.m.size / 24) * tierK * (m.boss ? 10 : 1)));
+    s.res.wood += wood; s.res.stone += stone; s.res.food += food;
+    this.float(m.x + 14, m.y - 8, `🪵${wood} 🪨${stone} 🍖${food}`, '#ffd8a0', 7);
+    for (const dr of base0.drops) {
+      if (isGear(itemDef(dr.id))) continue;
+      if (Math.random() < dr.chance) { const q = dr.min ? Phaser.Math.Between(dr.min, dr.max ?? dr.min) : 1; if (addItem(s, dr.id, q)) this.float(m.x - 14, m.y - 46, `+${q} ${itemDef(dr.id).name}`, '#c8e8ff', 8); }
+    }
+    if (m.boss) { s.bossDefeated = (s.bossDefeated ?? 0) + 1; bus.emit(EV.TOAST, `ปราบบอสสำเร็จ!`, '#ffd040'); }
     // loot: rarity floor and magic find grow with the stage
     const drops = m.boss ? 3 : Math.random() < 0.16 + st.n * 0.002 ? 1 : 0;
     for (let i = 0; i < drops; i++) {

@@ -55,6 +55,7 @@ export class Panels {
   }
 
   close() {
+    if (this.cur) saveGame(S());
     this.cur = null;
     this.c?.destroy(); this.c = null;
   }
@@ -544,8 +545,7 @@ export class Panels {
       if (!st) { bus.emit(EV.TOAST, 'ไม่พบเซฟ', '#ff8a8a'); return; }
       runtime.state = st;
       this.close();
-      ui.scene.stop('UI');
-      ui.scene.get('World').scene.restart();
+      ui.reloadWorld();
     });
     b(`🔊 เสียงเอฟเฟกต์: ${s.sfx ? 'เปิด' : 'ปิด'}`, () => { s.sfx = !s.sfx; audioState.sfx = s.sfx; this.rebuild(); });
     b(`🎵 เพลง: ${s.music ? 'เปิด' : 'ปิด'}`, () => { s.music = !s.music; setMusic(s.music); this.rebuild(); });

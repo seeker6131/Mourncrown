@@ -27,7 +27,7 @@ export class BootScene extends Phaser.Scene {
       applyUi(this);
       this.children.removeAll(true);
       const q = new URLSearchParams(location.search);
-      this.scene.start(q.has('td') ? 'TopDown' : q.has('preview') ? 'Preview' : 'Title');
+      this.scene.start(q.has('td') || q.has('play') ? 'TopDown' : q.has('preview') ? 'Preview' : 'Title');
     });
   }
 }

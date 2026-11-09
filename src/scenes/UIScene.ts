@@ -218,6 +218,8 @@ export class UIScene extends Phaser.Scene {
     this.root.add(fs.c);
   }
 
+  reloadWorld() { this.scene.stop('UI'); this.scene.get('World').scene.restart(); }
+
   toggleFullscreen() {
     sfx.click();
     if (this.scale.isFullscreen) { this.scale.stopFullscreen(); return; }
