@@ -519,12 +519,14 @@ export class TopDownScene extends Phaser.Scene {
       { const x = p.x, y = p.y + 4; const o = this.obj(has('vein_2') ? 'vein_2' : pick('ore', 7), x, y, 0.6, 4); if (!has('vein_2')) o?.setTint(0xffd84a); this.addNode(o, x, y, 'stone', { ...vein, gold: true }); }
     }
     // jungle: big trees everywhere off the trails, ferns and flowers underneath
-    for (let k = 0; k < 470 * area; k++) {
+    for (let k = 0; k < 340 * area; k++) {
       const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
       const key = jungle.length && rnd() < 0.7 ? jungle[Math.floor(rnd() * jungle.length)] : rnd() < 0.6 ? pick('oak', 3) : pick('pine', 3);
       const hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
-      if (this.trailOff(x, y) < 60 || this.trailOff(x, y - hgt * 0.5) < 44 || open(x, y, 40) || !free(x, y, 44)) continue;
-      this.addNode(this.obj(key, x, y, 0.16, 4, true), x, y, 'wood');
+      if (this.trailOff(x, y) < 60 || this.trailOff(x, y - hgt * 0.5) < 44 || open(x, y, 40) || !free(x, y, 56)) continue;
+      // solid trunk + roots: jungle trees spread wide buttress roots, so their footprint is wider and deeper
+      const jt = key.startsWith('jtree');
+      this.addNode(this.obj(key, x, y, jt ? 0.28 : key.startsWith('palm') ? 0.18 : 0.22, jt ? 40 : 16, true), x, y, 'wood');
     }
     const ferns = ['fern_0', 'fern_1'].filter(has);
     for (let k = 0; k < 260 * area; k++) {
@@ -569,7 +571,7 @@ export class TopDownScene extends Phaser.Scene {
       const hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
       // never hide a trail behind the crown, roots stay off it, clearings stay open
       if (this.trailOff(x, y) < 70 || this.trailOff(x, y - hgt * 0.5) < 50 || this.trailOff(x, y - hgt) < 30 || inClear(x, y) || !free(x, y, 48)) continue;
-      const t = this.obj(key, x, y, 0.16, 4, true);
+      const t = this.obj(key, x, y, 0.22, 16, true);
       if (t && g !== 'forest') t.setTint(tint[g]);
       void t;
     }
@@ -756,7 +758,7 @@ export class TopDownScene extends Phaser.Scene {
       const inVillage = x > 60 && x < 1240 && y > 230 && y < MH - 60 && edge > 70;
       if (!dense || inVillage || !free(x, y, 48) || near(x, y)) continue;   // roots stay off roads
       const r = rnd();
-      this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true);
+      this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.22, 16, true);
     }
     for (let k = 0; k < 170; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
