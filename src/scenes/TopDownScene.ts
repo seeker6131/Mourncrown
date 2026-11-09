@@ -990,7 +990,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero;
     if (this.dead) { /* dying */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
-      const sp = 72 * dt / 1000;
+      const sp = 92 * dt / 1000;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
       const ok = (x: number, y: number) => !this.isBlocked(x - 5, y) && !this.isBlocked(x + 5, y) && !this.isBlocked(x, y - 2) && !this.isBlocked(x, y + 1);
       if (ok(nx, h.y)) h.x = nx;

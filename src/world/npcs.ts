@@ -98,7 +98,7 @@ export class Village {
         const p = n.path[0];
         if (!p) { n.sp.off('animationcomplete'); setIdle(n.sp, n.key, n.dir); this.next(n, now); }
         else {
-          const dx = p.x - n.sp.x, dy = p.y - n.sp.y, d = Math.hypot(dx, dy), sp = n.speed * dt / 1000;
+          const dx = p.x - n.sp.x, dy = p.y - n.sp.y, d = Math.hypot(dx, dy), sp = n.speed * 1.3 * dt / 1000;
           if (d <= sp) { n.sp.setPosition(p.x, p.y); n.path.shift(); }
           else { n.sp.x += dx / d * sp; n.sp.y += dy / d * sp; n.dir = dirOf(dx, dy); playAnim(n.sp, n.key, 'walk', n.dir); }
         }

@@ -332,31 +332,36 @@ export class Combat {
       if (!m.alive) continue;
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);
       const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
-      const angry = !m.animal || (!base.flee && m.hitT > 0);
+      // every creature is peaceful until the hero hits it (fleeing game never fights); it calms down when the hero gets far away
+      if (m.hitT > 0 && dist > 320) m.hitT = 0;
+      const angry = m.hitT > 0 && !(m.animal && base.flee);
       const aggro = !angry ? 0 : m.boss ? 260 : 130;
       let moving = false;
-      if (m.animal && !angry) {
+      if (!angry) {
         let tx = 0, ty = 0;
-        if (base.flee && dist < 120) { tx = -dx / dist; ty = -dy / dist; }      // run from the hunter
+        if (m.animal && base.flee && dist < 120) { tx = -dx / dist; ty = -dy / dist; }      // game runs from the hunter
         else { if (!m.wanderT || time > m.wanderT) { m.wanderT = time + 1500 + Math.random() * 2500; m.dir = Math.floor(Math.random() * 8); (m as Mon & { idle?: boolean }).idle = Math.random() < 0.5; }
           if (!(m as Mon & { idle?: boolean }).idle) { tx = Math.sin(m.dir * Math.PI / 4) * 0.35; ty = Math.cos(m.dir * Math.PI / 4) * 0.35; } }
         if (tx || ty) {
-          const sp = base.speed * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
-          if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < 260) m.x = nx;
-          if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < 200) m.y = ny;
+          const sp = base.speed * 1.25 * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
+          // wander around their own spawn point (game that flees may go further)
+          const lim = m.animal && base.flee && dist < 120 ? 260 : m.boss ? 60 : 110;
+          if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < lim) m.x = nx; else if (!(m.animal && base.flee)) m.wanderT = 0;
+          if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < lim * 0.75) m.y = ny; else if (!(m.animal && base.flee)) m.wanderT = 0;
           m.dir = dirOf(tx, ty); moving = true;
         }
       }
       if (!this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 180) {
-        const sp = (base.speed + 8) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
+        // chasing is always a bit slower than the hero (hero 92 px/s) so the player can get away
+        const sp = Math.min((base.speed + 8) * 1.25, 78) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
         if (!this.s.isBlocked(nx, m.y)) m.x = nx;
         if (!this.s.isBlocked(m.x, ny)) m.y = ny;
         m.dir = dirOf(dx, dy); moving = true;
       } else if (dist >= aggro && angry) {
         const bx = m.hx - m.x, by = m.hy - m.y, bd = Math.hypot(bx, by);
-        if (bd > 6) { const sp = base.speed * 0.5 * dt / 1000; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); moving = true; }
+        if (bd > 6) { const sp = base.speed * 0.6 * dt / 1000; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); moving = true; }
       }
-      if (m.boss && !this.s.dead && dist < 200 && time - (m.spT ?? 0) > 6500 && hasAnim(m.m.key, 'special')) {
+      if (angry && m.boss && !this.s.dead && dist < 200 && time - (m.spT ?? 0) > 6500 && hasAnim(m.m.key, 'special')) {
         m.spT = time; m.atkT = time + 600; m.dir = dirOf(dx, dy);
         playAnim(m.sp, m.m.key, 'special', m.dir, false);
         const cx = h.x, cy = h.y, R = 46;
