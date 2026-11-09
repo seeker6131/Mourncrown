@@ -26,20 +26,24 @@ export interface ItemDef {
   /** visual tier for hero sprite (weapon/armor look) */
   look?: number;
   stack?: boolean;
+  /** class line this gear is made for (sword / archer / mage / cleric); unset = any class */
+  cls?: 'sword' | 'archer' | 'mage' | 'cleric';
 }
 
-// Rarity drives power: Common, Uncommon, Rare, Epic, Legendary
-export const RARITY_COLORS = [0xe8e2d0, 0x7ee08a, 0x6fb6ff, 0xd48cff, 0xffa53a];
-export const RARITY_NAMES = ['ธรรมดา', 'ดี', 'หายาก', 'มหากาพย์', 'ตำนาน'];
-export const RARITY_MULT = [1, 1.35, 1.8, 2.5, 3.6];
+// Rarity drives power: Common, Uncommon, Rare, Super Rare, Legend, SL (Supreme Legend)
+export const RARITY_COLORS = [0xd8d4c8, 0x6fe07a, 0x5aa8ff, 0xc77dff, 0xffa53a, 0xff4a5a];
+export const RARITY_NAMES = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legend', 'SL'];
+export const RARITY_MULT = [1, 1.35, 1.8, 2.5, 3.6, 5.2];
+/** Gear made for one class line; other classes can wear it at reduced power. */
+export const OFF_CLASS_MULT = 0.6;
 
 export const ITEMS: Record<string, ItemDef> = {
   // Weapons
-  wood_sword: { id: 'wood_sword', name: 'ดาบไม้ฝึกหัด', type: 'weapon', icon: 'sword0', desc: 'ดาบไม้สำหรับนักผจญภัยมือใหม่', price: 20, rarity: 0, atk: 4, look: 0 },
-  iron_sword: { id: 'iron_sword', name: 'ดาบเหล็กกล้า', type: 'weapon', icon: 'sword1', desc: 'ดาบเหล็กคมกริบจากช่างตีเหล็ก', price: 180, rarity: 1, atk: 12, look: 1 },
-  knight_blade: { id: 'knight_blade', name: 'ดาบอัศวินเงิน', type: 'weapon', icon: 'sword2', desc: 'ดาบเงินของอัศวินแห่งเอลเดอร์โกรฟ', price: 650, rarity: 2, atk: 24, crit: 3, look: 2 },
-  flame_saber: { id: 'flame_saber', name: 'ดาบเพลิงอัคคี', type: 'weapon', icon: 'sword3', desc: 'ดาบที่ลุกโชนด้วยไฟนิรันดร์ เพิ่มพลังเวท', price: 2400, rarity: 3, atk: 40, matk: 20, crit: 5, look: 3 },
-  oak_staff: { id: 'oak_staff', name: 'คทาไม้โอ๊ค', type: 'weapon', icon: 'staff0', desc: 'คทาเวทที่ขยายพลังเวทมนตร์', price: 220, rarity: 1, atk: 5, matk: 18, look: 4 },
+  wood_sword: { id: 'wood_sword', cls: 'sword', name: 'ดาบไม้ฝึกหัด', type: 'weapon', icon: 'sword0', desc: 'ดาบไม้สำหรับนักผจญภัยมือใหม่', price: 20, rarity: 0, atk: 4, look: 0 },
+  iron_sword: { id: 'iron_sword', cls: 'sword', name: 'ดาบเหล็กกล้า', type: 'weapon', icon: 'sword1', desc: 'ดาบเหล็กคมกริบจากช่างตีเหล็ก', price: 180, rarity: 1, atk: 12, look: 1 },
+  knight_blade: { id: 'knight_blade', cls: 'sword', name: 'ดาบอัศวินเงิน', type: 'weapon', icon: 'sword2', desc: 'ดาบเงินของอัศวินแห่งเอลเดอร์โกรฟ', price: 650, rarity: 2, atk: 24, crit: 3, look: 2 },
+  flame_saber: { id: 'flame_saber', cls: 'sword', name: 'ดาบเพลิงอัคคี', type: 'weapon', icon: 'sword3', desc: 'ดาบที่ลุกโชนด้วยไฟนิรันดร์ เพิ่มพลังเวท', price: 2400, rarity: 3, atk: 40, matk: 20, crit: 5, look: 3 },
+  oak_staff: { id: 'oak_staff', cls: 'mage', name: 'คทาไม้โอ๊ค', type: 'weapon', icon: 'staff0', desc: 'คทาเวทที่ขยายพลังเวทมนตร์', price: 220, rarity: 1, atk: 5, matk: 18, look: 4 },
   // Armors
   cloth_tunic: { id: 'cloth_tunic', name: 'เสื้อผ้าป่าน', type: 'armor', icon: 'armor0', desc: 'เสื้อผ้าธรรมดา', price: 20, rarity: 0, def: 2, hp: 10, look: 0 },
   leather_armor: { id: 'leather_armor', name: 'เกราะหนังพราน', type: 'armor', icon: 'armor1', desc: 'เกราะหนังเบา คล่องตัว', price: 200, rarity: 1, def: 7, hp: 40, aspd: 4, look: 1 },

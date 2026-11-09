@@ -1,6 +1,6 @@
 // Character / Stats / Progression — pure functions over GameState.
 import type { GameState, InvItem } from '../core/state';
-import { itemDef, upgradeMult } from '../data/items';
+import { itemDef, upgradeMult, OFF_CLASS_MULT } from '../data/items';
 import { rarMult } from './loot';
 import { CLASSES, FORM_LEVEL, classSkills, type ClassId } from '../data/classes';
 
@@ -42,7 +42,8 @@ export function derive(s: GameState): Derived {
   const g = { atk: 0, matk: 0, def: 0, hp: 0, mp: 0, crit: 0, aspd: 0, move: 0, leech: 0, mf: 0, exp: 0 } as Record<string, number>;
   for (const it of equippedItems(s)) {
     const d = itemDef(it.id);
-    const m = upgradeMult(it.upg) * rarMult(it);
+    const off = d.cls && s.cls && s.cls !== 'novice' && d.cls !== s.cls ? OFF_CLASS_MULT : 1;   // wrong class line: wearable, weaker
+    const m = upgradeMult(it.upg) * rarMult(it) * off;
     g.atk += (d.atk ?? 0) * m; g.matk += (d.matk ?? 0) * m; g.def += (d.def ?? 0) * m; g.hp += (d.hp ?? 0) * m;
     g.mp += d.mp ?? 0; g.crit += d.crit ?? 0; g.aspd += d.aspd ?? 0; g.mf += d.mf ?? 0;
     for (const a of it.aff ?? []) g[a.k] = (g[a.k] ?? 0) + a.v;

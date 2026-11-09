@@ -22,10 +22,10 @@ export function isGear(d: ItemDef) { return d.type === 'weapon' || d.type === 'a
 
 export const GEAR_BASES = Object.values(ITEMS).filter(isGear);
 
-/** Roll a rarity 0..4; `mf` = magic find %, `min` = floor. */
+/** Roll a rarity 0..5 (SL); `mf` = magic find %, `min` = floor. */
 export function rollRarity(rnd: () => number, mf = 0, min = 0): number {
   const boost = 1 + mf / 100;
-  const w = [100, 30 * boost, 10 * boost, 3 * boost, 0.6 * boost];
+  const w = [100, 30 * boost, 10 * boost, 3 * boost, 0.6 * boost, 0.08 * boost];
   for (let i = 0; i < min; i++) w[i] = 0;
   const tot = w.reduce((a, b) => a + b, 0);
   let r = rnd() * tot;

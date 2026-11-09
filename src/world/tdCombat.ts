@@ -22,6 +22,14 @@ export interface Host extends Phaser.Scene {
 
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
 const RANGED = new Set(['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9']);
+const MAGIC = new Set(['hr7', 'hr8', 'hr9']);
+/** damage number styles: physical / physical crit / magic / magic crit */
+const DMG = {
+  phys: { col: '#ffffff', stroke: '#2a1a10', size: 10 },
+  physCrit: { col: '#ffcf3a', stroke: '#5a1a00', size: 16 },
+  magic: { col: '#8fe8ff', stroke: '#06203a', size: 10 },
+  magicCrit: { col: '#ff7aff', stroke: '#2a0640', size: 16 },
+};
 
 export class Combat {
   mons: Mon[] = [];
@@ -60,25 +68,83 @@ export class Combat {
       return dist < reach && (dx * fx + dy * fy) > -6;
     }).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y));
     const hits = ranged ? targets.slice(0, 1) : targets.slice(0, 3);
-    this.s.time.delayedCall(ranged ? 260 : 150, () => {
+    const magic = MAGIC.has(formKey);
+    this.s.time.delayedCall(ranged ? 260 : 120, () => {
+      if (!ranged) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
       for (const m of hits) {
         if (!m.alive) continue;
-        if (ranged) this.bolt(h.x, h.y - 18, m, formKey.startsWith('hr4') || formKey === 'hr5' || formKey === 'hr6' ? 0xe8d8a0 : 0x9ad8ff);
-        const r = calcDamage(ranged ? Math.max(d.atk, d.matk) : d.atk, m.def, 1, d.crit);
-        this.s.time.delayedCall(ranged ? 160 : 0, () => this.hurtMon(m, r.dmg, r.crit));
+        if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff); else this.arrow(h.x, h.y - 18, m); }
+        const r = calcDamage(magic ? d.matk : d.atk, m.def, 1, d.crit);
+        this.s.time.delayedCall(ranged ? 170 : 0, () => this.hurtMon(m, r.dmg, r.crit, magic));
       }
     });
   }
 
-  bolt(x: number, y: number, m: Mon, col: number) {
-    const b = this.s.add.circle(x, y, 2.5, col).setDepth(99950).setBlendMode(Phaser.BlendModes.ADD);
-    this.s.tweens.add({ targets: b, x: m.x, y: m.y - m.m.size * 0.35, duration: 160, onComplete: () => b.destroy() });
+  tex(key: string, draw: (k: CanvasRenderingContext2D) => void, w = 32, h = 32) {
+    if (this.s.textures.exists(key)) return;
+    const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); this.s.textures.addCanvas(key, c);
+  }
+  glowTex() { this.tex('fx_dot', k => { const g = k.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); k.fillStyle = g; k.fillRect(0, 0, 32, 32); }); }
+
+  /** sword swing: bright crescent arc + spark streaks */
+  slash(x: number, y: number, dir: number, form: string) {
+    const col = form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : 0xfff2c8;
+    const g = this.s.add.graphics().setDepth(99955).setBlendMode(Phaser.BlendModes.ADD);
+    const a0 = Math.PI / 2 - dir * Math.PI / 4;   // facing angle in screen space
+    let t = 0;
+    const ev = this.s.time.addEvent({ delay: 16, repeat: 9, callback: () => {
+      t++; g.clear();
+      const sweep = Math.min(1, t / 5), fade = t <= 5 ? 1 : 1 - (t - 5) / 5;
+      for (let i = 0; i < 3; i++) {
+        g.lineStyle(4 - i, i ? col : 0xffffff, (0.9 - i * 0.25) * fade);
+        g.beginPath(); g.arc(x, y, 18 + i * 3, a0 - 1.1, a0 - 1.1 + 2.2 * sweep, false); g.strokePath();
+      }
+      if (t >= 10) { ev.remove(); g.destroy(); }
+    } });
   }
 
-  hurtMon(m: Mon, dmg: number, crit: boolean) {
+  sparks(x: number, y: number, col: number, n: number) {
+    this.glowTex();
+    for (let i = 0; i < n; i++) {
+      const p = this.s.add.image(x, y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99956).setScale(0.18 + Math.random() * 0.12);
+      const a = Math.random() * Math.PI * 2, d = 8 + Math.random() * 16;
+      this.s.tweens.add({ targets: p, x: x + Math.cos(a) * d, y: y + Math.sin(a) * d * 0.7, alpha: 0, scale: 0.05, duration: 260 + Math.random() * 200, onComplete: () => p.destroy() });
+    }
+  }
+
+  arrow(x: number, y: number, m: Mon) {
+    const tx = m.x, ty = m.y - m.m.size * 0.35, a = Math.atan2(ty - y, tx - x);
+    const ar = this.s.add.rectangle(x, y, 12, 2, 0xf0e2b8).setRotation(a).setDepth(99950);
+    const tr = this.s.add.rectangle(x, y, 18, 1, 0xffffff, 0.35).setRotation(a).setDepth(99949).setBlendMode(Phaser.BlendModes.ADD);
+    this.s.tweens.add({ targets: [ar, tr], x: tx, y: ty, duration: 150, onComplete: () => { ar.destroy(); tr.destroy(); this.sparks(tx, ty, 0xffe8a0, 5); } });
+  }
+
+  magicBolt(x: number, y: number, m: Mon, col: number) {
+    this.glowTex();
+    const tx = m.x, ty = m.y - m.m.size * 0.35;
+    const orb = this.s.add.image(x, y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99951).setScale(0.55);
+    const core = this.s.add.image(x, y, 'fx_dot').setBlendMode(Phaser.BlendModes.ADD).setDepth(99952).setScale(0.22);
+    const trail = this.s.time.addEvent({ delay: 20, repeat: 8, callback: () => {
+      const t = this.s.add.image(orb.x, orb.y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99950).setScale(0.4).setAlpha(0.7);
+      this.s.tweens.add({ targets: t, scale: 0.05, alpha: 0, duration: 260, onComplete: () => t.destroy() });
+    } });
+    this.s.tweens.add({ targets: [orb, core], x: tx, y: ty, duration: 170, ease: 'Quad.easeIn', onComplete: () => {
+      orb.destroy(); core.destroy(); trail.remove();
+      const boom = this.s.add.image(tx, ty, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99953).setScale(0.3);
+      this.s.tweens.add({ targets: boom, scale: 1.6, alpha: 0, duration: 320, onComplete: () => boom.destroy() });
+      const ring = this.s.add.circle(tx, ty, 4).setStrokeStyle(2, col, 1).setDepth(99953);
+      this.s.tweens.add({ targets: ring, radius: 20, alpha: 0, duration: 340, onComplete: () => ring.destroy() });
+      this.sparks(tx, ty, col, 8);
+    } });
+  }
+
+  hurtMon(m: Mon, dmg: number, crit: boolean, magic = false) {
     if (!m.alive) return;
     m.hp -= dmg; m.hitT = this.s.time.now;
-    this.float(m.x, m.y - m.m.size * 0.7, `${dmg}`, crit ? '#ffd24a' : '#ffffff', crit ? 12 : 9);
+    const st = magic ? (crit ? DMG.magicCrit : DMG.magic) : (crit ? DMG.physCrit : DMG.phys);
+    this.dmgText(m.x + (Math.random() - 0.5) * 10, m.y - m.m.size * 0.75, dmg, st, crit, magic);
+    if (!magic) this.sparks(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xffffff, crit ? 9 : 4);
+    if (crit) this.s.cameras.main.shake(110, 0.005);
     m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
     const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), kb = m.boss ? 1 : 6;
     m.x += Math.cos(a) * kb; m.y += Math.sin(a) * kb;
@@ -109,6 +175,20 @@ export class Combat {
       const sv = s as unknown as { tdCleared?: number };
       sv.tdCleared = Math.max(sv.tdCleared ?? 0, st.n); saveGame(s);
       this.s.events.emit('stageCleared', st.n);
+    }
+  }
+
+  /** big readable damage numbers: pop in, hang, drift up; crits get a label and a bigger punch */
+  dmgText(x: number, y: number, dmg: number, st: { col: string; stroke: string; size: number }, crit: boolean, magic: boolean) {
+    const z = this.s.cameras.main.zoom, res = Math.max(3, z * 3);
+    const txt = (crit ? (magic ? '✦' : '') : '') + dmg.toLocaleString();
+    const t = this.s.add.text(x, y, txt, { fontFamily: 'Arial Black, Impact, sans-serif', fontSize: st.size + 'px', fontStyle: 'bold', color: st.col, stroke: st.stroke, strokeThickness: crit ? 4 : 3, resolution: res })
+      .setOrigin(0.5).setDepth(99999).setScale(crit ? 1.9 : 1.3);
+    this.s.tweens.add({ targets: t, scale: 1, duration: crit ? 180 : 120, ease: 'Back.easeOut' });
+    this.s.tweens.add({ targets: t, y: y - (crit ? 26 : 18), alpha: 0, delay: crit ? 520 : 380, duration: 600, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
+    if (crit) {
+      const lb = this.s.add.text(x, y - st.size * 0.9, magic ? 'MAGIC CRIT!' : 'CRITICAL!', { fontFamily: 'sans-serif', fontSize: '7px', fontStyle: 'bold', color: st.col, stroke: '#000000', strokeThickness: 2, resolution: res }).setOrigin(0.5).setDepth(99999);
+      this.s.tweens.add({ targets: lb, y: lb.y - 24, alpha: 0, delay: 420, duration: 600, onComplete: () => lb.destroy() });
     }
   }
 

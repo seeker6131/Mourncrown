@@ -17,6 +17,10 @@ import tl1Wang from '../assets/td/tl1_wang.png';
 import tl2Wang from '../assets/td/tl2_wang.png';
 import tl3Wang from '../assets/td/tl3_wang.png';
 import ft2Wang from '../assets/td/ft2_wang.png';
+import tl5Wang from '../assets/td/tl5_wang.png';
+import tl6Wang from '../assets/td/tl6_wang.png';
+import tl7Wang from '../assets/td/tl7_wang.png';
+import tl8Wang from '../assets/td/tl8_wang.png';
 import ft3Wang from '../assets/td/ft3_wang.png';
 
 // hero forms (PixelLab characters listed in chars.json)
@@ -143,7 +147,7 @@ export class TopDownScene extends Phaser.Scene {
 
   preload() {
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
-    this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang);
+    this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
     preloadChars(this);
   }
 
@@ -207,7 +211,11 @@ export class TopDownScene extends Phaser.Scene {
       if (this.stageN) {   // wild stage: one winding trail from the west gate to the east gate, clearings along it, a pond
         const py = MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
         const clear = [0.2, 0.42, 0.64, 0.86].some(f => Math.hypot(x - MW * f, (y - (MH / 2 + Math.sin(MW * f / 170 + this.stageN) * 120)) * 1.2) < 70);
+        const g0 = STAGES[this.stageN - 1].land.ground;
+        const off = Math.abs(y - py);
         if (Math.hypot(x - MW * 0.53, y - (this.stageN % 2 ? 150 : MH - 150)) < 48) t = 'w';
+        else if (g0 === 'lava' && off > 70 && Math.abs(Math.sin(x / 95 + y / 140 + this.stageN) * 60 + (y - py) * 0.5 - 90) < 16) t = 'w';     // lava rivers beside the trail
+        else if (g0 === 'dung' && off > 60 && (Math.abs(((x + this.stageN * 37) % 260) - 130) < 14 || Math.abs((y % 220) - 110) < 12)) t = 'w'; // sewer channels
         else if (Math.abs(y - py) < 20) t = 'd';
         else if (clear && this.stageN % 10 === 0 && x > MW * 0.75) t = 'c';
         V[j * VW + i] = t; continue;
@@ -242,7 +250,30 @@ export class TopDownScene extends Phaser.Scene {
       } else ctx.drawImage(img, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
     };
     const tl1 = src('td_ft3'), tl2 = src('td_ft2'), tl3 = src('td_ft3');
-    for (let cy = 0; cy < NY; cy++) for (let cx = 0; cx < NX; cx++) {
+    const land = this.stageN ? STAGES[this.stageN - 1].land.ground : 'forest';
+    // other lands: 32px PixelLab sets — haunt TL5 (forest floor / leaf trail), snow TL6 (snow / ice path), lava TL7 (basalt / lava pools), dungeon TL8 (flagstones / water channel)
+    const LAND: Record<string, { k: string; up: Ter[] } | undefined> = { haunt: { k: 'td_tl5', up: ['d', 'c'] }, snow: { k: 'td_tl6', up: ['g', 'w'] }, lava: { k: 'td_tl7', up: ['w'] }, dung: { k: 'td_tl8', up: ['g', 'd', 'c'] } };
+    const LS = LAND[land];
+    if (LS) {
+      const img = src(LS.k), T2 = 32;
+      const drawT = (key: string, cx: number, cy: number) => {
+        const t = at[key]; if (!t) return;
+        if (key === 'UUUU' || key === 'LLLL') {
+          const r = Math.floor(hash(cx * 7 + 3, cy * 13 + 1) * 8);
+          ctx.save(); ctx.translate(cx * T2 + T2 / 2, cy * T2 + T2 / 2); ctx.rotate((r & 3) * Math.PI / 2); if (r & 4) ctx.scale(-1, 1);
+          ctx.drawImage(img, t[0] * T2, t[1] * T2, T2, T2, -T2 / 2, -T2 / 2, T2, T2); ctx.restore();
+        } else ctx.drawImage(img, t[0] * T2, t[1] * T2, T2, T2, cx * T2, cy * T2, T2, T2);
+      };
+      for (let cy = 0; cy < MH / T2; cy++) for (let cx = 0; cx < MW / T2; cx++) {
+        const c = [vAt(cx * 2, cy * 2), vAt(cx * 2 + 2, cy * 2), vAt(cx * 2, cy * 2 + 2), vAt(cx * 2 + 2, cy * 2 + 2)];
+        drawT(c.map(t => LS.up.includes(t) ? 'U' : 'L').join(''), cx, cy);
+      }
+      // collision/surface on the same 32px vertices
+      for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) if (i % 2 || j % 2) {
+        const a = vAt(i - (i % 2), j - (j % 2)), b = vAt(i + (i % 2), j + (j % 2)); V[j * VW + i] = a === b ? a : a;
+      }
+    }
+    for (let cy = 0; cy < NY && !LS; cy++) for (let cx = 0; cx < NX; cx++) {
       const c = [vAt(cx, cy), vAt(cx + 1, cy), vAt(cx, cy + 1), vAt(cx + 1, cy + 1)];
       const key = (f: (t: Ter) => boolean) => c.map(t => f(t) ? 'U' : 'L').join('');
       draw(tl2, 'LLLL', cx, cy);                                            // grass everywhere first
@@ -264,6 +295,7 @@ export class TopDownScene extends Phaser.Scene {
       if (x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1) v = 'bridge';
       else if (sum(t => t === 'w') > 0.5) v = 'water';
       else if (sum(t => t === 'c' || t === 'd') > 0.5) v = 'cobble';
+      if (LS && (land === 'haunt' || land === 'snow') && v === 'water') v = 'grass';
       S[y * MW + x] = v;
       if (v === 'water') this.block(x, y);
     }
@@ -362,17 +394,23 @@ export class TopDownScene extends Phaser.Scene {
   /** Wild stage: dense forest off the trail, rocks and decals, monsters in the clearings, gates at both ends. */
   placeStage(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
     const st = STAGES[this.stageN - 1];
-    const tint: Record<string, number> = { forest: 0xffffff, haunt: 0xb8a8d8, lava: 0xffb090, snow: 0xe8f4ff, dung: 0x9aa8b8 };
-    (this.children.list.find(o => (o as Phaser.GameObjects.Image).texture?.key === 'td_ground') as Phaser.GameObjects.Image | undefined)?.setTint(tint[st.land.ground]);
-    const trees = st.land.ground === 'haunt' || st.land.ground === 'dung' ? ['dead', 2] as const : st.land.ground === 'snow' ? ['pine', 3] as const : null;
+    const tint: Record<string, number> = { forest: 0xffffff, haunt: 0xb8a8d8, lava: 0x8a5a50, snow: 0xe8f4ff, dung: 0x9aa8b8 };
+
     const tY = (x: number) => MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
-    for (let k = 0; k < 520; k++) {
+    const g = st.land.ground;
+    const trees = g === 'haunt' || g === 'lava' ? ['dead', 2] as const : g === 'snow' ? ['pine', 3] as const : null;
+    for (let k = 0; k < (g === 'dung' ? 0 : g === 'lava' ? 160 : 520); k++) {
       const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
       const r = rnd(), key = trees ? pick(trees[0], trees[1]) : r < 0.45 ? pick('pine', 3) : r < 0.88 ? pick('oak', 3) : pick('dead', 2);
       const below = y - tY(x), hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
       if ((below > 0 && below < hgt + 30) || (below <= 0 && -below < 60) || !free(x, y, 30)) continue;   // never hide the trail
       const t = this.obj(key, x, y, 0.16, 4, true);
-      if (t && st.land.ground !== 'forest') t.setTint(tint[st.land.ground]);
+      if (t && g !== 'forest') t.setTint(tint[g]);
+    }
+    if (g === 'dung' || g === 'lava') for (let k = 0; k < 260; k++) {   // boulders and ore instead of a forest
+      const x = 10 + rnd() * (MW - 20), y = 40 + rnd() * (MH - 50);
+      if (Math.abs(y - (MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22)) < 50 || !free(x, y, 12)) continue;
+      const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
     }
     for (let k = 0; k < 220; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);

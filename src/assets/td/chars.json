@@ -183,6 +183,75 @@
 }
 }
 },
+"bs1": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 128,
+"idleFoot": 128,
+"anims": {
+"walk": {
+"fs": 168,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 155
+},
+"special": {
+"fs": 168,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 161
+},
+"attack": {
+"fs": 168,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 154
+},
+"die": {
+"fs": 168,
+"n": 9,
+"dirs": [
+"south",
+"east"
+],
+"foot": 158
+},
+"die_ef4c0b8a": {
+"fs": 168,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 159
+}
+}
+},
 "hr1": {
 "dirs": [
 "south",
@@ -228,6 +297,52 @@
 }
 }
 },
+"hr5": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 48,
+"anims": {
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 58
+},
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 63
+}
+}
+},
 "mo1": {
 "dirs": [
 "south",
@@ -263,6 +378,193 @@
 "west"
 ],
 "foot": 33
+}
+}
+},
+"mo10": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 45,
+"anims": {
+"walk": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south"
+],
+"foot": 53
+},
+"attack": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 52
+}
+}
+},
+"mo11": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 32,
+"idleFoot": 31,
+"anims": {
+"walk": {
+"fs": 44,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 38
+},
+"attack": {
+"fs": 44,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 44
+}
+}
+},
+"mo12": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 64,
+"idleFoot": 64,
+"anims": {
+"attack": {
+"fs": 88,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 79
+},
+"walk": {
+"fs": 88,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 76
+}
+}
+},
+"mo13": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"attack": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 61
+},
+"walk": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 54
+}
+}
+},
+"mo14": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 47,
+"anims": {
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 57
+},
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 65
 }
 }
 },
@@ -488,6 +790,157 @@
 "west"
 ],
 "foot": 58
+}
+}
+},
+"mo6": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 32,
+"idleFoot": 31,
+"anims": {
+"walk": {
+"fs": 44,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 39
+},
+"attack": {
+"fs": 44,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 39
+}
+}
+},
+"mo7": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"walk": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 55
+},
+"attack": {
+"fs": 64,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north"
+],
+"foot": 56
+}
+}
+},
+"mo8": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 48,
+"anims": {
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 58
+},
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 60
+}
+}
+},
+"mo9": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 46,
+"anims": {
+"attack": {
+"fs": 68,
+"n": 18,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 56
+},
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 57
 }
 }
 }

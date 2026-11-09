@@ -186,9 +186,12 @@ export class Panels {
     if (rr >= 2) g.fillStyle(RARITY_COLORS[rr], 0.18).fillRoundedRect(x + 7, y + 7, 28, 28, 3);
     c.add(ui.add.image(x + 21, y + 21, `icon_${def.icon}`).setScale(0.8));
     c.add(k.text(x + 42, y + 6, def.name + (it.upg ? ` +${it.upg}` : ''), 9.5, rcol, { wordWrap: { width: w - 46 } }));
-    c.add(k.text(x + 42, y + 24, isGear(def) ? `★ ${RARITY_NAMES[rr]}` : RARITY_NAMES[def.rarity], 7.5, rcol));
+    const CLS_TH: Record<string, string> = { sword: '⚔ สายดาบ', archer: '🏹 สายธนู', mage: '✦ สายเวท', cleric: '✚ สายนักบวช' };
+    const offCls = !!def.cls && !!s.cls && s.cls !== 'novice' && def.cls !== s.cls;
+    c.add(k.text(x + 42, y + 24, (isGear(def) ? `★ ${RARITY_NAMES[rr]}` : RARITY_NAMES[def.rarity]) + (def.cls ? `  ${CLS_TH[def.cls]}` : isGear(def) ? '  ทุกสาย' : ''), 7.5, rcol));
     const lines = statLines(def, it);
     let info = lines.join('\n');
+    if (offCls) info += '\n⚠ ไม่ตรงสาย: ค่าพลังเหลือ 60%';
     const aff = (it.aff ?? []).map(a => '✦ ' + affixText(a as never)).join('\n');
     if (aff) info += '\n' + aff;
     if (isGear(def) && mode === 'bag' && !isEquipped(s, it.uid)) {
