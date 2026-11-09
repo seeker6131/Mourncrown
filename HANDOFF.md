@@ -298,3 +298,4 @@
 - **ท่าโจมตี 8 ทิศ:** `tools/gen_attack8.py` เติมทิศที่ขาดในกลุ่ม 'attack' เดิม (pixminimax, action เดิมจาก gen_chars SPECS) หยุดเมื่อโควต้า < 40; ลำดับ ฮีโร่ → มอน → บอส; รันต่อได้ (state attack8)
 - บอส bs4: ขอ 8 ทิศพร้อมกันโดน 409 เพราะงานก่อนหน้ายังเจนอยู่ — อย่าส่งซ้ำ ให้เช็ค `GET /characters/{id}` (animation_type 'walking-8-frames') ก่อน
 - วัดความเร็ว: headless ไม่มี GPU → '(program)' กินเวลาวาด ไม่ใช่โค้ด; ฉากสร้างเสร็จ ~0.4 วิ
+- **ครบแล้ว (2026-11-09 ดึก):** ทุกตัวละครเดิน 8 ทิศ; ฮีโร่/มอน/บอสโจมตี 8 ทิศ (ท่าพิเศษ/ตายของบอสยัง 4 ทิศ); ผู้เล่นร่างชาวบ้านมีท่า chop/mine 8 ทิศ (`tools/gen_gather.py`, zip `chars/hero_gather.zip` รวมใน OLD['hero']), np4 chop / np5 mine 4 ทิศ. ระบบเก็บทรัพยากร: TopDownScene.nodes (ต้นไม้/หิน) + gather() เมื่อ outfit='gather'. โควต้าเหลือ ~80/2000
