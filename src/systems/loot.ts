@@ -37,14 +37,15 @@ export function rollAffixes(rnd: () => number, d: ItemDef, rarity: number): Affi
   const pool: AffixKey[] = d.type === 'weapon' ? ['atk', 'matk', 'crit', 'aspd', 'leech', 'mf', 'exp']
     : d.type === 'armor' ? ['def', 'hp', 'move', 'aspd', 'mf', 'exp', 'crit']
       : ['atk', 'matk', 'hp', 'crit', 'leech', 'mf', 'exp', 'move'];
-  const n = rarity; // common 0, uncommon 1 ... legendary 4
+  const n = rarity >= 5 ? 6 : rarity; // common 0 ... legend 4, SL 6
   const tier = baseTier(d);
   const out: Affix[] = [];
   const left = [...pool];
   for (let i = 0; i < n && left.length; i++) {
     const k = left.splice(Math.floor(rnd() * left.length), 1)[0];
     const base = AFFIX_BASE[k] * (AFFIX_PCT[k] ? 1 + tier * 0.35 : tier);
-    const v = Math.max(1, Math.round(base * (0.7 + rnd() * 0.6) * (1 + rarity * 0.15)));
+    const roll = rarity >= 5 ? 1.1 + rnd() * 0.2 : 0.7 + rnd() * 0.6;      // SL always rolls high
+    const v = Math.max(1, Math.round(base * roll * (rarity >= 5 ? 2.2 : 1 + rarity * 0.15)));
     out.push({ k, v });
   }
   return out;

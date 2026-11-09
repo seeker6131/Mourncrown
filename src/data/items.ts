@@ -33,7 +33,8 @@ export interface ItemDef {
 // Rarity drives power: Common, Uncommon, Rare, Super Rare, Legend, SL (Supreme Legend)
 export const RARITY_COLORS = [0xd8d4c8, 0x6fe07a, 0x5aa8ff, 0xc77dff, 0xffa53a, 0xff4a5a];
 export const RARITY_NAMES = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legend', 'SL'];
-export const RARITY_MULT = [1, 1.35, 1.8, 2.5, 3.6, 5.2];
+/** SL (index 5) is by far the strongest: ~2x Legend, 6 affixes rolled at the top of their range */
+export const RARITY_MULT = [1, 1.35, 1.8, 2.5, 3.6, 7.0];
 /** Gear made for one class line; other classes can wear it at reduced power. */
 export const OFF_CLASS_MULT = 0.6;
 

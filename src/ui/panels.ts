@@ -19,6 +19,7 @@ import { activeQuest, nextAvailable, acceptQuest, completeQuest, refreshCollect 
 import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
+import { giveTestKit } from '../systems/testKit';
 import { strokeEnabled, setStroke } from '../art/stroke';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
@@ -538,7 +539,7 @@ export class Panels {
   // ---------------- MENU ----------------
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = 260, H = 330;
+    const W = 260, H = 352;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let yy = y + 34;
     const b = (label: string, cb: () => void, color?: number) => { c.add(k.button(x + 20, yy, W - 40, 26, label, cb, { size: 10, color })); yy += 31; };
@@ -554,6 +555,7 @@ export class Panels {
     b(`🎵 เพลง: ${s.music ? 'เปิด' : 'ปิด'}`, () => { s.music = !s.music; setMusic(s.music); this.rebuild(); });
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
+    b('🧪 ทดสอบ: รับชุด SL + ทรัพยากร', () => { const got = giveTestKit(s); sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
     b(`✏ เส้นขอบตัวละคร/วัตถุ: ${strokeEnabled() ? 'เปิด' : 'ปิด'}`, () => { saveGame(s); setStroke(!strokeEnabled()); location.reload(); });
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);

@@ -133,3 +133,20 @@ describe('top-down quest chain', () => {
     expect(tdQuest(s)!.q.id).toBe('q2');
   });
 });
+
+import { giveTestKit } from '../src/systems/testKit';
+describe('SL is the strongest rarity', () => {
+  it('an SL weapon beats a Legend one of the same base by far', () => {
+    let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const atkWith = (rar: number) => { const s = startNewGame(); s.cls = 'sword'; s.tier = 1; s.level = 20; addItem(s, 'flame_saber', 1, 0, makeGear(rnd, 'flame_saber', rar)); equip(s, s.inventory[s.inventory.length - 1].uid); return derive(s).atk; };
+    const base = atkWith(0), legend = atkWith(4), sl = atkWith(5);
+    expect(sl - base).toBeGreaterThan((legend - base) * 1.8);
+  });
+  it('the test kit equips a full SL set for the class', () => {
+    const s = startNewGame(); s.cls = 'archer'; s.tier = 1;
+    const got = giveTestKit(s);
+    expect(got.length).toBe(3);
+    expect(s.inventory.filter(i => i.rar === 5).length).toBe(3);
+    expect(derive(s).atk).toBeGreaterThan(200);
+  });
+});
