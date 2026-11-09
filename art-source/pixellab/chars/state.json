@@ -187,7 +187,9 @@
   "zip": 1
  },
  "np6": {
-  "cid": "8841c9fc-a8fb-4f62-8e7a-c28ecf0eae0a"
+  "cid": "8841c9fc-a8fb-4f62-8e7a-c28ecf0eae0a",
+  "walk": "done",
+  "zip": 1
  },
  "np7": {
   "cid": "e5f4d228-c69e-4c5d-ba3d-f783f0c84608"
@@ -197,5 +199,8 @@
  },
  "np9": {
   "cid": "bc06cf86-8c78-4a89-b2e6-bae85c2caef4"
+ },
+ "np10": {
+  "cid": "dffc5338-cc73-403c-90dc-0efe82ad5064"
  }
 }
