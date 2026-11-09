@@ -16,6 +16,8 @@ MAXDUR = {   # seconds kept from the start (short = snappy combat)
  'lightning/lightning-strike': 1.0, 'lightning/charge-up': 1.2, 'arcane/mana-burst': 1.2, 'arcane/magic-circle-cast': 1.3,
  'shadow/dark-explosion': 1.6, 'shadow/shadow-tendrils': 1.3, 'impacts/hit-spark': .5, 'impacts/crit-hit': .7, 'impacts/blunt-hit': .6,
  'impacts/ground-slam': 1.0, 'impacts/heavy-landing': .9,
+ # monsters / bosses attacking the hero
+ 'melee/claw-swipe': .5, 'nature/earth-spike': 1.1, 'shadow/grasping-hands': 1.3, 'fire/flame-pillar': 1.3, 'ice/ice-spikes': 1.2, 'shadow/necro-skulls': 1.3,
 }
 START = {'lightning/lightning-strike': .62, 'arcane/magic-circle-cast': 1.25, 'fire/meteor': .42, 'holy/smite': .0}   # skip a slow wind-up
 def main(raw):

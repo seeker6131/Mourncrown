@@ -41,7 +41,7 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 | `src/ui/minimap.ts` `lootPopup.ts` `kit.ts` `skin.ts` | มินิแมพ, ป๊อปอัพแรร์ + ticker, ปุ่ม/ข้อความ, กรอบ UI |
 | `src/world/tdCombat.ts` | มอน, การต่อสู้, สกิล (`castSkill`), ของตกพื้น (`dropLoot/pickLoot`), มอนทอง, ดันเจี้ยนเป็นคลื่น |
 | `src/world/vfx.ts` | เอฟเฟกต์โค้ด + ภาพ PixelLab (`art()`) |
-| `src/world/pfx.ts` | **เอฟเฟกต์สกิล pixelfx** — `SKILL_PFX` (สกิล→เอฟเฟกต์), `ensurePfx` โหลดเฉพาะสกิลปัจจุบัน, `playPfx` |
+| `src/world/pfx.ts` | **เอฟเฟกต์สกิล pixelfx** — `SKILL_PFX` (สกิล→เอฟเฟกต์), `ensurePfx` โหลดเฉพาะสกิลปัจจุบัน, `playPfx` · มอนตีเรา: `tdCombat.ts` `BOSS_FX` (ท่าพิเศษบอสตามดินแดน), `MONSTER_PFX`, `HEAVY`, `RANGED_COL` (มอนยิงไกลยิงกระสุนจริง) · มอน/บอสหยุดเดินตอนโจมตี (`busy`) |
 | `src/world/stages.ts` | 50 แผนที่/5 ดินแดน, WILD, DUNGEON, PITS (เหมือง), `scaleStats` (บาลานซ์มอน) |
 | `src/world/chars.ts` `npcs.ts` `crowd.ts` | ตัวละคร PixelLab (manifest `src/assets/td/chars.json`), ชาวบ้าน, ผู้เล่นจำลองในป่า |
 | `src/systems/*` | กติกาเกม pure (ไม่มี Phaser) — rewards loot stats inventory settlement alchemy economy progress premium market daily quests tdQuests supplies skillCast testKit |

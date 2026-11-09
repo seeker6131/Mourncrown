@@ -3,7 +3,7 @@
 // placeholders until the PixelLab/ChatGPT art arrives. The hero is the PixelLab villager (8 directions).
 // Open with ?td in the URL.
 import Phaser from 'phaser';
-import { Combat } from '../world/tdCombat';
+import { Combat, MONSTER_PFX } from '../world/tdCombat';
 import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES } from '../world/stages';
 import { itemDef as idef } from '../data/items';
 import { SETS } from '../data/sets';
@@ -239,6 +239,7 @@ export class TopDownScene extends Phaser.Scene {
     // register the map with the server BEFORE anything spawns (entering clears the server's spawn list)
     if (refused(act('enterMap', { n: this.stageN }))) { bus.emit(EV.TOAST, 'เซิร์ฟปฏิเสธการเข้าแผนที่', '#ff8a6a'); this.time.delayedCall(50, () => this.scene.restart({ stage: 0 })); }
     ensurePfx(this, pfxFor(currentSkills(S())));   // skill effects for the current form (loaded in the background)
+    if (this.stageN && !this.wild) ensurePfx(this, MONSTER_PFX(this.st.land.id));   // monsters / boss attacking the hero
     this.placeProps();
     // return scroll: back to the village from any map
     const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };

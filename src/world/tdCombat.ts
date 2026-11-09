@@ -34,6 +34,11 @@ export interface Host extends Phaser.Scene {
   others?(): { x: number; y: number; name: string; grab(x: number, y: number): void }[];
 }
 
+/** boss special per land, monsters that hit heavily, projectile colours */
+const BOSS_FX: Record<string, string> = { forest: 'earth-spike', haunt: 'grasping-hands', lava: 'flame-pillar', snow: 'ice-spikes', dung: 'necro-skulls' };
+export const MONSTER_PFX = (land: string) => ['claw-swipe', 'blunt-hit', 'crit-hit', 'hit-spark', BOSS_FX[land] ?? 'earth-spike'];
+const HEAVY = new Set(['golem', 'yeti', 'treant', 'stag', 'dragon', 'frostgiant', 'skking', 'skeleton']);
+const RANGED_COL: Record<string, number> = { wisp: 0x9affd8, ghost: 0x9ad8ff, skarcher: 0xe8dcc0, goblin: 0xe8dcc0, imp: 0xff8a3a };
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
 /** wild game that wanders every map (meat and hides) */
 const GAME: StageMon[] = [{ key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, { key: 'mo17', kind: 'boar', name: 'หมูป่า', size: 48 }];
@@ -511,7 +516,9 @@ export class Combat {
       const angry = (m.hitT > 0 || dg) && !m.animal;
       const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;
       let moving = false;
-      if (!angry) {
+      // stand still while swinging / casting (no sliding across the ground with an attack pose)
+      const busy = time - m.atkT < (m.boss ? 750 : 500) || time - (m.spT ?? -1e9) < 1300;
+      if (!angry && !busy) {
         let tx = 0, ty = 0;
         const fleeing = m.animal && (m.fleeT ?? 0) > time;
         if (fleeing) { tx = -dx / dist; ty = -dy / dist; }      // hit game bolts away for a moment (a bit slower than the hero)
@@ -526,13 +533,13 @@ export class Combat {
           m.dir = dirOf(tx, ty); moving = true;
         }
       }
-      if (!this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 180) {
+      if (!busy && !this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 180) {
         // chasing is always a bit slower than the hero (hero 92 px/s) so the player can get away
         const sp = Math.min((base.speed + 8) * 1.25, 78) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
         if (!this.s.isBlocked(nx, m.y)) m.x = nx;
         if (!this.s.isBlocked(m.x, ny)) m.y = ny;
         m.dir = dirOf(dx, dy); moving = true;
-      } else if (dist >= aggro && angry) {
+      } else if (!busy && dist >= aggro && angry) {
         const bx = m.hx - m.x, by = m.hy - m.y, bd = Math.hypot(bx, by);
         if (bd > 6) { const sp = base.speed * 0.6 * dt / 1000; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); moving = true; }
       }
@@ -545,6 +552,7 @@ export class Combat {
         this.s.time.delayedCall(1100, () => {
           warn.destroy(); if (!m.alive) return;
           this.glowTex();
+          playPfx(this.s, BOSS_FX[this.stage?.land.id ?? 'forest'], cx, cy + 6, { scale: 0.95, depth: 99953 });
           const boom = this.s.add.image(cx, cy - 6, 'fx_dot').setTint(0xff6a3a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99954).setScale(1);
           this.s.tweens.add({ targets: boom, scale: 4, alpha: 0, duration: 450, onComplete: () => boom.destroy() });
           this.sparks(cx, cy - 6, 0xffa050, 14);
@@ -557,15 +565,24 @@ export class Combat {
       if (angry && !this.s.dead && dist <= reach && time - m.last > base.attackCooldown) {
         m.last = time; m.atkT = time; m.dir = dirOf(dx, dy);
         if (CH[m.m.key] && hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
-        this.s.time.delayedCall(220, () => {
-          if (!m.alive || this.s.dead || Math.hypot(h.x - m.x, h.y - m.y) > reach + 8) return;
+        const land = () => {
+          if (!m.alive || this.s.dead || Math.hypot(h.x - m.x, h.y - m.y) > reach + 30) return;
           const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
           s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
-          if (!r.miss) sfx.hurt();
+          if (!r.miss) {
+            sfx.hurt();
+            const heavy = m.boss || HEAVY.has(m.m.kind), left = h.x < m.x;
+            playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : base.ranged ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss ? 0.6 : heavy ? 0.6 : 0.7, flip: left });
+            if (m.boss) this.vfx.impact(h.x, h.y - 16, 0xff6a3a, true);
+          }
           this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
           if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
           if (s.hp <= 0) this.s.heroDie();
-        });
+        };
+        if (base.ranged) {   // archers and spirits fire a projectile; the hit lands when it arrives
+          const col = RANGED_COL[m.m.kind] ?? 0xc8a0ff;
+          this.s.time.delayedCall(260, () => { if (m.alive && !this.s.dead) this.vfx.bolt(m.x, m.y - m.m.size * 0.45, h.x, h.y - 16, col, 0.8, 300, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin'); });
+        } else this.s.time.delayedCall(220, land);
       }
       if (CH[m.m.key]) {
         const attacking = time - m.atkT < 600;
