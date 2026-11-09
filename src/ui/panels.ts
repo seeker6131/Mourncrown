@@ -18,7 +18,7 @@ import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
-import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeChance, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
+import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
 import { clampVitals, reqLevel, isEquipped, sellPrice, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, refreshCollect } from '../systems/quests';
@@ -285,8 +285,8 @@ export class Panels {
         if (it.upg >= MAX_UPGRADE) btn('ระดับสูงสุดแล้ว', () => undefined, undefined, true);
         else {
           const cost = upgradeCost(it.upg, def);
-          const chance = Math.round(upgradeChance(it.upg) * 100);
-          c.add(k.text(x + 6, y + h - 74, `ค่าใช้จ่าย: ${cost.gold} G\nผลึกมานา: ${cost.shards} (มี ${countItem(s, 'mana_shard')})\nโอกาสสำเร็จ: ${chance}%`, 8, '#ffe7a0', { lineSpacing: 2 }));
+          // success chances are never shown to players (director: rates stay behind the scenes)
+          c.add(k.text(x + 6, y + h - 74, `ค่าใช้จ่าย: ${cost.gold} G\nผลึกมานา: ${cost.shards} (มี ${countItem(s, 'mana_shard')})\n${it.upg >= 6 ? '⚠ ยิ่งบวกสูงยิ่งเสี่ยง' : ''}`, 8, '#ffe7a0', { lineSpacing: 2 }));
           btn(`ตีบวก → +${it.upg + 1}`, () => this.doUpgrade(it.uid), 0x6a3a10);
         }
       }
@@ -327,7 +327,7 @@ export class Panels {
       ['HP', String(d.maxHp)], ['MP', String(d.maxMp)], ['ATK', String(d.atk)], ['MATK', String(d.matk)], ['DEF', String(d.def)],
       ['คริติคอล', (d.crit * 100).toFixed(1) + '%'], ['ความเร็วโจมตี', (1000 / d.attackInterval).toFixed(2) + '/วิ'],
       ['ความเร็วเดิน', String(Math.round(d.moveSpeed))], ['ดูดเลือด', (d.leech * 100).toFixed(0) + '%'],
-      ['โอกาสดรอปของแรร์', '+' + Math.round(d.mf) + '%'], ['EXP', '+' + Math.round((d.expBonus - 1) * 100) + '%'],
+      ['🍀 โชค', '+' + Math.round(d.mf)], ['EXP', '+' + Math.round((d.expBonus - 1) * 100) + '%'],
     ];
     rows.forEach(([a, v], i) => {
       const col = i % 2, row = Math.floor(i / 2);
@@ -1152,7 +1152,7 @@ function statLines(def: ItemDef, it?: InvItem): string[] {
   if (def.mp) out.push(`MP +${def.mp}`);
   if (def.crit) out.push(`คริ +${def.crit}%`);
   if (def.aspd) out.push(`ความเร็วโจมตี +${def.aspd}%`);
-  if (def.mf) out.push(`โอกาสดรอปของแรร์ +${def.mf}%`);
+  if (def.mf) out.push(`🍀 โชค +${def.mf}`);
   if (def.heal) out.push(`ฟื้น HP ${def.heal}`);
   if (def.mana) out.push(`ฟื้น MP ${def.mana}`);
   return out;

@@ -27,6 +27,8 @@ export interface Host extends Phaser.Scene {
   burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean; stageN: number;
   /** an animal kicks back: push the hero away and stun for ms */
   stunHero(ms: number, fromX: number, fromY: number): void;
+  /** other players nearby who may grab loot left on the ground (Deepwild simulation; online: real players) */
+  others?(): { x: number; y: number; name: string; grab(x: number, y: number): void }[];
 }
 
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
@@ -41,6 +43,9 @@ const DMG = {
   magic: { col: '#8fe8ff', stroke: '#06203a', size: 10 },
   magicCrit: { col: '#ff7aff', stroke: '#2a0640', size: 16 },
 };
+
+const AURA = [0.32, 0.42, 0.55, 0.75, 0.95, 1.25];
+interface Loot { did: number; id: string; qty: number; rar: number; set?: string; x: number; y: number; im: Phaser.GameObjects.Image; aura: Phaser.GameObjects.Image; beam?: Phaser.GameObjects.Image; born: number; landed: boolean; busy: boolean; retryT: number; lured?: boolean }
 
 export class Combat {
   mons: Mon[] = [];
@@ -62,6 +67,75 @@ export class Combat {
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
   }
+  // ---------- loot on the ground: the item itself with a rarity aura; flies into the hero when close ----------
+  ground: Loot[] = [];
+  bagWarnT = 0;
+  dropLoot(x: number, y: number, drops: { did: number; id: string; qty: number; rar: number; set?: string }[]) {
+    const sc = this.s;
+    drops.forEach((d, i) => {
+      const def = itemDef(d.id), key = sc.textures.exists(`icon_${def.icon}`) ? `icon_${def.icon}` : 'td_glow', col = RARITY_COLORS[d.rar];
+      const tx = x + (Math.random() - 0.5) * 50, ty = y + 4 + (Math.random() - 0.5) * 26;
+      const aura = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(ty - 1).setScale(AURA[d.rar]);
+      sc.tweens.add({ targets: aura, alpha: { from: 0.55, to: 1 }, scale: { from: AURA[d.rar] * 0.85, to: AURA[d.rar] * 1.15 }, duration: 600 - d.rar * 40, yoyo: true, repeat: -1 });
+      let beam: Phaser.GameObjects.Image | undefined;
+      if (d.rar >= 3) {   // a pillar of light for Super Rare and better
+        beam = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setOrigin(0.5, 0.92).setDepth(ty - 1).setDisplaySize(6 + d.rar * 3, 40 + d.rar * 18).setAlpha(0.7);
+        sc.tweens.add({ targets: beam, alpha: { from: 0.35, to: 0.85 }, duration: 500, yoyo: true, repeat: -1 });
+      }
+      const im = sc.add.image(x, y - 8, key).setDepth(ty + 1); im.setScale(13 / Math.max(im.width, im.height, 1));
+      const g: Loot = { ...d, x: tx, y: ty, im, aura, beam, born: sc.time.now, landed: false, busy: false, retryT: 0 };
+      this.ground.push(g);
+      // pop out of the monster in a little arc, then land
+      sc.tweens.addCounter({ from: 0, to: 1, duration: 380, delay: i * 70, ease: 'Linear',
+        onUpdate: tw => { const t = tw.getValue() ?? 0, px = x + (tx - x) * t, py = y + (ty - y) * t - Math.sin(Math.PI * t) * 22; im.setPosition(px, py - 6); aura.setPosition(px, py); beam?.setPosition(px, py); },
+        onComplete: () => { g.landed = true; im.setPosition(tx, ty - 6); sc.tweens.add({ targets: im, y: ty - 9, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }); } });
+    });
+  }
+  removeLoot(g: Loot, fade = false) {
+    this.ground = this.ground.filter(q => q !== g);
+    const objs = [g.im, g.aura, g.beam].filter(Boolean) as Phaser.GameObjects.Image[];
+    if (fade) this.s.tweens.add({ targets: objs, alpha: 0, duration: 400, onComplete: () => objs.forEach(o => o.destroy()) }); else objs.forEach(o => { this.s.tweens.killTweensOf(o); o.destroy(); });
+  }
+  flyLoot(g: Loot) {
+    g.busy = true; const sc = this.s, h = sc.hero, x0 = g.im.x, y0 = g.im.y;
+    sc.tweens.killTweensOf(g.im);
+    sc.tweens.addCounter({ from: 0, to: 1, duration: 230, ease: 'Quad.easeIn',
+      onUpdate: tw => { const t = tw.getValue() ?? 0, px = x0 + (h.x - x0) * t, py = y0 + (h.y - 14 - y0) * t; g.im.setPosition(px, py).setDepth(h.y + 2); g.aura.setPosition(px, py + 6); g.beam?.setPosition(px, py + 6); },
+      onComplete: () => this.pickLoot(g) });
+  }
+  pickLoot(g: Loot) {
+    const r = act('pickup', { did: g.did }), sc = this.s;
+    if (refused(r)) {
+      if (r.refused === 'bag') {   // bag full: the item drops back and waits
+        g.busy = false; g.retryT = sc.time.now + 4000; g.im.setPosition(g.x, g.y - 6); g.aura.setPosition(g.x, g.y); g.beam?.setPosition(g.x, g.y);
+        if (sc.time.now > this.bagWarnT) { this.bagWarnT = sc.time.now + 5000; bus.emit(EV.TOAST, 'กระเป๋าเต็ม! ของยังตกอยู่บนพื้น', '#ff8a6a'); }
+        return;
+      }
+      this.removeLoot(g); return;
+    }
+    this.removeLoot(g);
+    const def = itemDef(r.id), col = '#' + RARITY_COLORS[r.rar].toString(16).padStart(6, '0');
+    this.float(sc.hero.x, sc.hero.y - 52, `+${def.name}${r.qty > 1 ? ' x' + r.qty : ''}`, col, 8);
+    const gear = ['weapon', 'armor', 'accessory'].includes(def.type);
+    if ((gear && r.rar >= 2) || (!gear && r.rar >= 3)) bus.emit('loot:popup', { id: r.id, rar: r.rar, set: r.set });
+    bus.emit(EV.STATE_CHANGED);
+  }
+  updateLoot(time: number) {
+    const h = this.s.hero, others = this.s.others?.() ?? [];
+    for (const g of [...this.ground]) {
+      if (time - g.born > 60000) { this.removeLoot(g, true); continue; }
+      if (!g.landed || g.busy) continue;
+      const d = Math.hypot(g.x - h.x, g.y - h.y);
+      if (!this.s.dead && time > g.retryT && (d < 60 || (d < 120 && time - g.born < 1500))) { this.flyLoot(g); continue; }
+      // left on the ground: someone else may take it
+      if (time - g.born > 3500 && d > 110 && others.length) {
+        const o = others.find(q => Math.hypot(q.x - g.x, q.y - g.y) < 16);
+        if (o) { act('dropLost', { did: g.did }); this.float(g.x, g.y - 20, `${o.name} เก็บไปแล้ว!`, '#ff9a7a', 8); this.removeLoot(g, true); continue; }
+        if (!g.lured) { const n = others.filter(q => Math.hypot(q.x - g.x, q.y - g.y) < 260).sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0]; if (n) { n.grab(g.x, g.y); g.lured = true; } }
+      }
+    }
+  }
+
   /** Daily dungeon: waves of the land's monsters, then its boss. They fight back (challenge mode) and never respawn. */
   dungeon: { wave: number; left: number; onWave: (w: number) => void; onClear: () => void } | null = null;
   startDungeon(li: number, level: number, pick: () => { x: number; y: number }, onWave: (w: number) => void, onClear: () => void) {
@@ -344,13 +418,12 @@ export class Combat {
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
+    if (r.drops?.length) this.dropLoot(m.x, m.y, r.drops);
     if (r.junk?.count) this.float(this.s.hero.x, this.s.hero.y - 70, `VIP ขายของอัตโนมัติ ${r.junk.count} ชิ้น +${r.junk.gold}G`, '#ffd84a', 8);
     this.float(m.x, m.y - 20, r.gold ? `+${r.exp} EXP  +${r.gold}G` : `+${r.exp} EXP`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
     if (r.food) this.float(m.x + 14, m.y - 8, `🍖${r.food}`, '#ffd8a0', 8);
-    r.mats.forEach((q, i) => this.float(m.x - 14, m.y - 46 - i * 10, `+${q.qty} ${itemDef(q.id).name}`, '#c8e8ff', 8));
-    r.gear.forEach((q, i) => this.float(m.x, m.y - 34 - i * 12, `${q.set ? '◆ ' + SETS[q.set].name + ' ' : ''}${RARITY_NAMES[q.rar]} ${itemDef(q.id).name}`, '#' + RARITY_COLORS[q.rar].toString(16).padStart(6, '0'), 9));
-    for (const q of r.gear) if (q.set) bus.emit(EV.TOAST, `◆ ได้ชิ้นส่วน ${SETS[q.set].name}: ${itemDef(q.id).name}`, '#' + SETS[q.set].col.toString(16).padStart(6, '0'));
+
     if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที', '#ffd040');
     saveGame(s);
   }
@@ -377,6 +450,7 @@ export class Combat {
 
   update(time: number, dt: number) {
     const h = this.s.hero, s = S(), d = derive(s);
+    this.updateLoot(time);
     for (const m of this.mons) {
       if (!m.alive) continue;
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);

@@ -18,11 +18,15 @@ export interface KillResult {
   cleared: boolean;
 }
 
+/** guaranteed SL after this many gear drops without one */
+export const SL_PITY = 15000;
 const between = (rnd: () => number, a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
 
 /** Apply the rewards for killing `mon` in stage `stageN`. `lastOfStage` = it was the last monster alive. */
 /** elite = a golden monster (5x HP): 5x gold, 3x EXP, a sure gear drop one rarity higher, 15% chance it is a set piece */
-export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boolean, lastOfStage: boolean, rnd: () => number = Math.random, elite = false): KillResult {
+/** give = where loot goes (default: straight into the bag; the server drops it on the ground instead) */
+export type Give = (id: string, qty: number, gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }) => boolean;
+export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boolean, lastOfStage: boolean, rnd: () => number = Math.random, elite = false, give: Give = (id, q, g) => addItem(s, id, q, 0, g)): KillResult {
   const st = stageOf(stageN, s.level), base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
   const animal = !!base.animal;
   const vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now();
@@ -38,20 +42,24 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   s.res.wood += wood; s.res.stone += stone; s.res.food += food;
   // crafting materials from the monster's drop table
   const mats: KillResult['mats'] = [];
-  if (animal && rnd() < 0.35 && addItem(s, 'wolf_pelt', 1)) mats.push({ id: 'wolf_pelt', qty: 1 });   // hides for building upgrades
+  if (animal && rnd() < 0.35 && give('wolf_pelt', 1)) mats.push({ id: 'wolf_pelt', qty: 1 });   // hides for building upgrades
   for (const dr of base.drops) {
     if (isGear(itemDef(dr.id)) || rnd() >= dr.chance) continue;
     const qty = dr.min ? between(rnd, dr.min, dr.max ?? dr.min) : 1;
-    if (addItem(s, dr.id, qty)) mats.push({ id: dr.id, qty });
+    if (give(dr.id, qty)) mats.push({ id: dr.id, qty });
   }
   // gear: rarity floor and magic find grow with the stage
   const gear: KillResult['gear'] = [];
   const n = animal ? 0 : boss ? 3 : elite ? 1 : rnd() < 0.04 + effN * 0.0006 ? 1 : 0;
   const setId = LAND_SET[st.land.id];
   for (let i = 0; i < n; i++) {
-    const b = pickBase(rnd, st.level, s.cls), rar = Math.min(5, rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : elite ? st.minRar + 1 : st.minRar));
+    let rar = Math.min(5, rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : elite ? st.minRar + 1 : st.minRar));
+    // SL pity: no SL in SL_PITY gear drops -> the next one is SL
+    const pv = s as GameState & { slPity?: number }; pv.slPity = rar === 5 ? 0 : (pv.slPity ?? 0) + 1;
+    if (pv.slPity >= SL_PITY) { rar = 5; pv.slPity = 0; }
+    const b = pickBase(rnd, st.level, s.cls);
     const set = (boss && i === 0) || (elite && rnd() < 0.15) ? setId : undefined;
-    if (addItem(s, b.id, 1, 0, { ...makeGear(rnd, b.id, rar), ...(set ? { set } : {}) })) gear.push({ id: b.id, rar, set });
+    if (give(b.id, 1, { ...makeGear(rnd, b.id, rar), ...(set ? { set } : {}) })) gear.push({ id: b.id, rar, set });
   }
   if (boss) s.bossDefeated = (s.bossDefeated ?? 0) + 1;
   let cleared = false;

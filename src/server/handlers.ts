@@ -35,7 +35,10 @@ export type Refused = { refused: string };
 const no = (why: string): Refused => ({ refused: why });
 
 // ---- per-player anti-cheat memory (on the server this lives in the player's session) ----
-const mem = { dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+interface Drop { id: string; qty: number; gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }; until: number }
+/** server-wide news (SL drops) — on the real server this goes to every connected player */
+const news: { t: number; name: string; item: string; rar: number }[] = [];
+const mem = { drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -52,7 +55,7 @@ function dungeonRuns(s: GameState, now: number) {
 export const handlers = {
   /** entering a map (server remembers where the player is) */
   enterMap(s: GameState, a: { n: number }, c: Ctx) {
-    mem.spawns.clear();
+    mem.spawns.clear(); mem.drops.clear();
     if (a.n === 0) { mem.map = 0; return { ok: true }; }
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
     if (isDungeon(a.n)) {   // daily dungeon: 2 runs a day (VIP 3), land by level
@@ -87,12 +90,29 @@ export const handlers = {
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     if (!DEV_TOOLS && mem.dmg < hp) return no('dps');
     mem.dmg = Math.max(0, mem.dmg - hp); mem.spawns.delete(a.sid);
-    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss && !isDungeon(n), c.rnd, sp.elite);
+    // loot falls on the ground (server keeps it): the first player to reach it picks it up
+    const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
+    const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
+    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
     if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
     const ps = pstats(s); if (base.animal) ps.animals++; else { ps.kills++; ps.kinds[a.kind] = (ps.kinds[a.kind] ?? 0) + 1; if (sp.elite) ps.golden++; }
     const junk = vipActive(s, c.now) && s.inventory.length >= invSize(s) - 2 ? sellJunk(s, 1) : null;   // VIP auto-sell
-    return { ...r, junk };
+    return { ...r, junk, drops };
   },
+  /** pick up a drop from the ground (first come, first served) */
+  pickup(s: GameState, a: { did: number }, c: Ctx) {
+    const d = mem.drops.get(a.did); if (!d || d.until < c.now) { mem.drops.delete(a.did); return no('gone'); }
+    if (!rateOk('pickup', 30, c.now)) return no('rate');
+    if (!addItem(s, d.id, d.qty, 0, d.gear)) return no('bag');
+    mem.drops.delete(a.did);
+    const rar = d.gear?.rar ?? itemDef(d.id).rarity;
+    if (rar >= 5) { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: d.id, rar }); if (news.length > 50) news.shift(); }
+    return { id: d.id, qty: d.qty, rar, set: d.gear?.set };
+  },
+  /** (offline simulation only) another player took a drop — online this is just their own pickup */
+  dropLost(_s: GameState, a: { did: number }) { return { ok: mem.drops.delete(a.did) }; },
+  /** server-wide announcements newer than `since` */
+  news: (_s: GameState, a: { since: number }) => news.filter(q => q.t > a.since),
   /** one hit on a tree / rock in the Deepwild: the client sends only the node id and which pit; the ore is decided here */
   gather(s: GameState, a: { node: number; kind: 'wood' | 'stone'; pit: number; rare?: boolean; gold?: boolean }, c: Ctx) {
     if (mem.map !== WILD) return no('map');
@@ -173,7 +193,7 @@ export const handlers = {
     const st = stageOf(DUNGEON + d.li, s.level), set = LAND_SET[LANDS[d.li].id], gear: { id: string; rar: number; set?: string }[] = [];
     for (let i = 0; i < (c.rnd() < 0.3 ? 2 : 1); i++) {   // set pieces: Rare or better
       const b = pickBase(c.rnd, st.level, s.cls), rar = Math.max(2, Math.min(5, rollRarity(c.rnd, st.mf, 2)));
-      if (addItem(s, b.id, 1, 0, { ...makeGear(c.rnd, b.id, rar), set })) gear.push({ id: b.id, rar, set });
+      if (addItem(s, b.id, 1, 0, { ...makeGear(c.rnd, b.id, rar), set })) { gear.push({ id: b.id, rar, set }); if (rar >= 5) news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: b.id, rar }); }
     }
     const gold = Math.round(200 + st.level * 40), shards = 3 + Math.floor(c.rnd() * 3);
     s.gold += gold; addItem(s, 'mana_shard', shards);

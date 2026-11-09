@@ -35,9 +35,18 @@ describe('progression', () => {
   });
   it('rarity roll respects floor and magic find', () => {
     expect(rollRarity(() => 0, 0, 3)).toBeGreaterThanOrEqual(3);
-    let hi = 0; let r = 1; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
-    for (let i = 0; i < 2000; i++) if (rollRarity(rnd, 200) >= 2) hi++;
-    expect(hi).toBeGreaterThan(100);
+    let r = 1; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
+    // magic find helps
+    const rare = (mf: number) => { let n = 0; for (let i = 0; i < 20000; i++) if (rollRarity(rnd, mf) >= 2) n++; return n; };
+    expect(rare(200)).toBeGreaterThan(rare(0));
+    // director: hard but not hopeless — last maps (floor Rare, MF 150): Legend ~1 in 150, SL ~1 in 12,000
+    const N = 400000, cnt = [0, 0, 0, 0, 0, 0];
+    for (let i = 0; i < N; i++) cnt[rollRarity(rnd, 150, 2)]++;
+    expect(cnt[4] / N).toBeGreaterThan(0.004); expect(cnt[4] / N).toBeLessThan(0.01);
+    expect(cnt[5] / N).toBeGreaterThan(0.00002); expect(cnt[5] / N).toBeLessThan(0.00025);
+    // map 1: Rare or better ~1.5%
+    let m1 = 0; for (let i = 0; i < 100000; i++) if (rollRarity(rnd, 3) >= 2) m1++;
+    expect(m1 / 100000).toBeLessThan(0.025);
   });
   it('damage respects defence and crit', () => {
     const fixed = () => 0.5;

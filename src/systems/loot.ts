@@ -7,7 +7,7 @@ export interface Affix { k: AffixKey; v: number }
 
 export const AFFIX_NAMES: Record<AffixKey, string> = {
   atk: 'ATK', matk: 'MATK', def: 'DEF', hp: 'HP', crit: 'คริติคอล %', aspd: 'ความเร็วโจมตี %',
-  move: 'ความเร็วเดิน %', leech: 'ดูดเลือด %', mf: 'โอกาสดรอปของแรร์ %', exp: 'EXP %',
+  move: 'ความเร็วเดิน %', leech: 'ดูดเลือด %', mf: '🍀 โชค', exp: 'EXP %',
 };
 const AFFIX_PCT: Record<AffixKey, boolean> = { atk: false, matk: false, def: false, hp: false, crit: true, aspd: true, move: true, leech: true, mf: true, exp: true };
 
@@ -25,8 +25,9 @@ export const GEAR_BASES = Object.values(ITEMS).filter(isGear);
 /** Roll a rarity 0..5 (SL); `mf` = magic find %, `min` = floor. */
 export function rollRarity(rnd: () => number, mf = 0, min = 0): number {
   const boost = 1 + mf / 100;
-  // magic find helps the rare tiers more than the common ones (so it still matters when the floor is raised); SL is very rare
-  const w = [100, 30 * boost, 10 * boost ** 1.25, 3 * boost ** 1.5, 0.5 * boost ** 1.75, 0.012 * boost ** 2];
+  // director: rare gear must be hard, but never hopeless. Per gear drop on the last maps (floor Rare): Super Rare ~7%,
+  // Legend ~1 in 150, SL ~1 in 12,000 (~5-6 days of 24 h auto). A pity counter (rewards.ts) guarantees SL at 15,000.
+  const w = [100, 12 * boost, 1.5 * boost ** 1.3, 0.08 * boost ** 1.6, 0.0055 * boost ** 1.9, 0.00005 * boost ** 2.2];
   for (let i = 0; i < min; i++) w[i] = 0;
   const tot = w.reduce((a, b) => a + b, 0);
   let r = rnd() * tot;

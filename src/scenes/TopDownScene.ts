@@ -496,7 +496,7 @@ export class TopDownScene extends Phaser.Scene {
     if (refused(r)) { bus.emit(EV.TOAST, 'เซิร์ฟไม่รับผลดันเจี้ยน', '#ff8a6a'); return; }
     this.dDone = true; this.levelUpFx(); this.combat.vfx.star(this.hero.x, this.hero.y - 30, 0xffd84a, 2.4);
     bus.emit(EV.TOAST, `🎁 ผ่านดันเจี้ยน! 💰${r.gold.toLocaleString()} + ผลึกมานา ${r.shards}`, '#ffd84a');
-    for (const g of r.gear) bus.emit(EV.TOAST, `◆ ${SETS[g.set!].name}: ${idef(g.id).name}`, '#' + SETS[g.set!].col.toString(16).padStart(6, '0'));
+    for (const g of r.gear) { bus.emit(EV.TOAST, `◆ ${SETS[g.set!].name}: ${idef(g.id).name}`, '#' + SETS[g.set!].col.toString(16).padStart(6, '0')); bus.emit('loot:popup', { id: g.id, rar: g.rar, set: g.set }); }
     this.addPortal(this.hero.x + 40, this.hero.y, 0, 'กลับหมู่บ้าน'); saveGame(S()); bus.emit(EV.STATE_CHANGED);
   }
 
@@ -973,6 +973,9 @@ export class TopDownScene extends Phaser.Scene {
       tx = n.x; ty = n.y + 14; reach = 16; target = n;
     } else {
       if (!this.stageN) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ตีมอนทำงานในแผนที่มอน — ออโต้เก็บทรัพยากรทำงานในป่าดงดิบ', '#e8c872'); } return [0, 0]; }
+      // pick up loot lying close by before the next fight
+      const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));
+      if (lt) { const dx = lt.x - h.x, dy = lt.y - h.y, dl = Math.hypot(dx, dy) || 1; if (lt !== this.autoTarget) { this.autoTarget = lt; this.autoStuck = { x: h.x, y: h.y, t: time }; } if (Math.hypot(h.x - this.autoStuck.x, h.y - this.autoStuck.y) > 8) this.autoStuck = { x: h.x, y: h.y, t: time }; else if (time - this.autoStuck.t > 1500) { this.autoBad.set(lt, time + 8000); return [0, 0]; } return [dx / dl, dy / dl]; }
       const alive = this.combat.alive().filter(m => !bad(m));
       const foes = alive.filter(m => !m.animal);
       const m = near(foes.length ? foes : alive);
@@ -1200,7 +1203,7 @@ export class TopDownScene extends Phaser.Scene {
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
       if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
       if (r.gold) this.combat.float(n.x - 10, n.y - 52, `💰 +${r.gold}G`, '#ffd84a', 10);
-      if (r.gem) { this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); saveGame(s); }
+      if (r.gem) { this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); bus.emit('loot:popup', { id: r.gem, rar: itemDef(r.gem).rarity }); saveGame(s); }
       this.tweens.add({ targets: n.im, x: n.im.x + 2, duration: 40, yoyo: true, repeat: 2 });
       n.hp--;
       if (n.hp <= 0) { const t = n.vein?.rare ? 240000 : this.wild ? 45000 : 90000; n.until = this.time.now + t; n.hp = n.vein?.rare ? 6 : 4; n.im.setAlpha(0.45); this.time.delayedCall(t, () => n.im.active && n.im.setAlpha(1)); }
@@ -1238,6 +1241,8 @@ export class TopDownScene extends Phaser.Scene {
   }
   tutText() { const s = S(); return tutActive(s) ? `🎓 ${tutStep(s) + 1}/${TUT_STEPS.length}  ${TUT_STEPS[tutStep(s)]}` : ''; }
   titleTx!: Phaser.GameObjects.Text;
+  /** other players who may grab loot (simulated crowd in the Deepwild) */
+  others() { const c = this.crowd; return c ? c.list.map(p => ({ x: p.x, y: p.y, name: p.name, grab: (x: number, y: number) => c.grab(p, x, y, this.time.now) })) : []; }
   stunUntil = 0;
   /** animal kick: pushed back a little and dazed (can't move or swing) */
   stunHero(ms: number, fx: number, fy: number) {

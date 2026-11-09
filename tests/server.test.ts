@@ -71,3 +71,24 @@ describe('daily dungeon', () => {
     expect(handlers.dungeonClear(s, {}, c())).toEqual({ refused: 'map' });   // only once
   });
 });
+
+describe('loot on the ground', () => {
+  it('drops wait on the ground, first pickup wins, SL is announced', () => {
+    handlers.enterMap(s, { n: 1 }, c());
+    const bs = STAGES[0].land.mobs[0];
+    let drops: { did: number; id: string }[] = [];
+    for (let i = 0; i < 300 && !drops.length; i++) { const r = handlers.kill(s, sp({ kind: bs.kind, key: bs.key, name: bs.name, size: bs.size, boss: false }), { now: (t += 1000), rnd: Math.random }); if ('drops' in r) drops = r.drops; }
+    expect(drops.length).toBeGreaterThan(0);
+    const before = s.inventory.length, d = drops[0];
+    expect(s.inventory.length).toBe(before);                            // nothing in the bag yet
+    const p = handlers.pickup(s, { did: d.did }, c());
+    expect('id' in p && p.id).toBe(d.id);
+    expect(handlers.pickup(s, { did: d.did }, c())).toEqual({ refused: 'gone' });   // already taken
+  });
+  it('drops vanish after 60 s', () => {
+    handlers.enterMap(s, { n: 1 }, c());
+    const bs = STAGES[0].land.mobs[0]; let did = 0;
+    for (let i = 0; i < 300 && !did; i++) { const r = handlers.kill(s, sp({ kind: bs.kind, key: bs.key, name: bs.name, size: bs.size, boss: false }), { now: (t += 1000), rnd: Math.random }); if ('drops' in r && r.drops.length) did = r.drops[0].did; }
+    t += 61000; expect(handlers.pickup(s, { did }, c())).toEqual({ refused: 'gone' });
+  });
+});

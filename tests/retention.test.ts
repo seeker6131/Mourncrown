@@ -52,3 +52,11 @@ describe('login + tutorial', () => {
   });
   it('tutorial reward only once', () => { expect(tutPay(s)).toBe(true); expect(tutPay(s)).toBe(false); });
 });
+describe('SL pity', () => {
+  it('the drop after 15,000 without SL is SL', async () => {
+    const { SL_PITY } = await import('../src/systems/rewards');
+    (s as GameState & { slPity?: number }).slPity = SL_PITY - 1;
+    const r = applyKill(s, 1, STAGES[0].land.mobs[0], false, false, () => 0.01, true);   // golden: sure gear drop
+    expect(r.gear[0].rar).toBe(5);
+  });
+});

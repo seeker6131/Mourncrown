@@ -5,6 +5,8 @@ import { activeElixir } from '../systems/alchemy';
 import { act } from '../net/client';
 import { tutActive, loginInfo } from '../systems/progress';
 import { Minimap, type MapInfo } from '../ui/minimap';
+import { LootPopup, NewsTicker } from '../ui/lootPopup';
+import { itemDef as idef, RARITY_NAMES as RN } from '../data/items';
 import { UIKit } from '../ui/kit';
 import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
@@ -194,6 +196,9 @@ export class TdUIScene extends Phaser.Scene {
       this.root.add([sl, im, t, z]);
     });
     // class change ready
+    this.loot = new LootPopup(this as never); this.news = new NewsTicker(this as never);
+    const onLoot = (p: { id: string; rar: number; set?: string }) => this.loot?.push(p);
+    bus.on('loot:popup', onLoot); this.events.once('shutdown', () => bus.off('loot:popup', onLoot));
     this.minimap = new Minimap(this as never, () => (this.td as unknown as { mapInfo(): MapInfo | null }).mapInfo());
     this.formBtn = k.button(this.VW - 350, 46, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
     this.formBtn.setVisible(false);
@@ -299,8 +304,9 @@ export class TdUIScene extends Phaser.Scene {
     if (this.toasts.length > 4) this.toasts.shift()?.destroy();
   }
 
-  minimap?: Minimap;
+  minimap?: Minimap; loot?: LootPopup; news?: NewsTicker; newsT = 0;
   update(time: number) {
+    if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ [${RN[n.rar]}] ${idef(n.item).name}!!`); } }
     this.minimap?.update(time);
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;

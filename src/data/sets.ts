@@ -10,7 +10,7 @@ export const SETS: Record<string, GearSet> = {
   crown: { id: 'crown', name: 'เซ็ตมงกุฎกลวง', land: 'dung', b2: { atk: 8, def: 8 }, b3: { atk: 12, def: 12, hp: 12, exp: 10 }, col: 0xffd84a },
 };
 export const LAND_SET: Record<string, string> = { forest: 'root', haunt: 'soul', lava: 'glass', snow: 'frost', dung: 'crown' };
-const FX_TH: Record<keyof SetFx, string> = { atk: 'ATK/MATK', def: 'DEF', hp: 'HP', crit: 'คริ', aspd: 'ตีเร็ว', exp: 'EXP', mf: 'ดรอปแรร์' };
+const FX_TH: Record<keyof SetFx, string> = { atk: 'ATK/MATK', def: 'DEF', hp: 'HP', crit: 'คริ', aspd: 'ตีเร็ว', exp: 'EXP', mf: 'โชค' };
 export const fxText = (f: SetFx) => (Object.entries(f) as [keyof SetFx, number][]).map(([k, v]) => `${FX_TH[k]} +${v}%`).join(' ');
 /** total bonus from the sets the hero wears */
 export function setBonus(sets: (string | undefined)[]): SetFx {
