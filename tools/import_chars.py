@@ -6,7 +6,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'assets', 'td'); PL = os.path.join(ROOT, 'art-source', 'pixellab')
 DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']
-OLD = {'hero': ['hero_villager.zip', 'hero_villager_guard.zip'], 'hr3': ['hr3_lordknight.zip', 'hr3_attack.zip'],
+OLD = {'hero': ['hero_villager.zip', 'hero_villager_guard.zip', 'chars/hero_gather.zip'], 'hr3': ['hr3_lordknight.zip', 'hr3_attack.zip'],
        'hr4': ['hr4_walk.zip', 'hr4_attack.zip'], 'hr9': ['hr9_walk.zip', 'hr9_attack.zip']}
 ALIAS = {'walking': 'walk'}
 def norm(a):
@@ -58,6 +58,6 @@ if __name__ == '__main__':
     for k, zs in OLD.items(): build(k, [os.path.join(PL, z) for z in zs], man)
     cd = os.path.join(PL, 'chars')
     for f in sorted(os.listdir(cd)) if os.path.isdir(cd) else []:
-        if f.endswith('.zip'): build(f[:-4], [os.path.join(cd, f)], man)
+        if f.endswith('.zip') and not f.startswith('hero_'): build(f[:-4], [os.path.join(cd, f)], man)
     json.dump(man, open(os.path.join(OUT, 'chars.json'), 'w'), indent=0)
     for k, v in man.items(): print(k, v['idleFs'], {a: (x['fs'], x['n'], len(x['dirs'])) for a, x in v['anims'].items()})

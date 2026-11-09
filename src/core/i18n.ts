@@ -117,6 +117,8 @@ const EN: Record<string, string> = {
   'มี': 'have', 'ขั้น': 'tier', 'เพิ่มขึ้น': 'more', 'แล้ว': '', 'ครั้ง': 'times', 'ลูก': '', 'ดอก': '', 'ทดลอง: มองจากบน • ร่าง ชาวบ้าน (แตะมุมขวาบน': 'Preview', 'เปลี่ยนร่าง • แตะข้อความนี้': '', 'ทดสอบท่าตาย)': '',
   'ฟาดดาบ': 'Slash', 'โล่': 'Shield', 'ได้รับ SL': 'Got SL', 'กำลังโหลดหมู่บ้าน': 'Loading village', 'ปลดล็อกครบ 50 ด่าน': 'all 50 stages unlocked', 'ปลดล็อก': 'Unlock', 'ใช้สกิล': 'Use skill', 'MP ไม่พอ': 'Not enough MP',
   'ป่า': 'Forest', 'ผีสิง': 'Haunted', 'ลาวา': 'Lava', 'หิมะ': 'Snow', 'คุก': 'Dungeon',
+  'อยากตัดไม้/ขุดหิน? สวมชุดหาทรัพยากรที่ปุ่ม 👕 ชุด ด้านบน': 'Want to chop wood or mine stone? Wear the gathering outfit (👕 Outfit, top right)',
+  'ตัดไม้': 'Chop wood', 'ขุดหิน': 'Mine stone', 'ชุด': 'Outfit',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

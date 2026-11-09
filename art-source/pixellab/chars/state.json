@@ -335,7 +335,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo12": {
   "cid": "d7bc8522-c7d6-4258-ad8b-2c3b1695a52a",
@@ -353,7 +354,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo13": {
   "cid": "b6466faa-8cf6-492f-904b-a4ec4f2c9f96",

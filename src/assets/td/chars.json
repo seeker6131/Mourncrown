@@ -42,6 +42,14 @@
 "south-west"
 ],
 "foot": 58
+},
+"chop": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south"
+],
+"foot": 64
 }
 }
 },
@@ -1191,9 +1199,13 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 44
 },

@@ -183,7 +183,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
-    this.lamps = []; this.fires = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
+    this.lamps = []; this.fires = []; this.nodes = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
@@ -435,16 +435,19 @@ export class TopDownScene extends Phaser.Scene {
       if ((below > 0 && below < hgt + 30) || (below <= 0 && -below < 70) || !free(x, y, 48)) continue;   // never hide the trail, roots stay off it   // never hide the trail
       const t = this.obj(key, x, y, 0.16, 4, true);
       if (t && g !== 'forest') t.setTint(tint[g]);
+      this.addNode(t, x, y, 'wood');
     }
     if (g === 'dung' || g === 'lava') for (let k = 0; k < 260; k++) {   // boulders and ore instead of a forest
       const x = 10 + rnd() * (MW - 20), y = 40 + rnd() * (MH - 50);
       if (Math.abs(y - (MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22)) < 50 || !free(x, y, 12)) continue;
       const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
+      this.addNode(o, x, y, 'stone');
     }
     for (let k = 0; k < 220; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 8)) continue;
-      const r = rnd(); this.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.5 ? pick('rock', 8) : r < 0.75 ? pick('tuft', 2) : pick('pebble', 6))).setOrigin(0.5, 0.85).setDepth(y);
+      const r = rnd(), im = this.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.5 ? pick('rock', 8) : r < 0.75 ? pick('tuft', 2) : pick('pebble', 6))).setOrigin(0.5, 0.85).setDepth(y);
+      if (r < 0.5) this.addNode(im, x, y, 'stone');
     }
     const trailY = (x: number) => MH / 2 + Math.sin(x / 170 + this.stageN) * 120 + Math.sin(x / 61) * 22;
     this.addPortal(24, trailY(24), 0, 'กลับหมู่บ้าน');
@@ -561,14 +564,14 @@ export class TopDownScene extends Phaser.Scene {
       const inVillage = x > 60 && x < 1240 && y > 230 && y < MH - 60 && edge > 70;
       if (!dense || inVillage || !free(x, y, 48) || near(x, y)) continue;   // roots stay off roads
       const r = rnd();
-      this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true);
+      this.addNode(this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true), x, y, 'wood');
     }
     for (let k = 0; k < 170; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 10) || near(x, y)) continue;
       const r = rnd();
       if (r < 0.5) this.add.image(Math.round(x), Math.round(y), 'o_' + pick('bush', 5)).setOrigin(0.5, 0.85).setDepth(y);
-      else if (r < 0.85) this.obj(pick('rock', 8), x, y, 0.6, 4);
+      else if (r < 0.85) this.addNode(this.obj(pick('rock', 8), x, y, 0.6, 4), x, y, 'stone');
       else this.obj(pick('stump', 5), x, y, 0.5, 3);
     }
     // campfires: flickering warm light + rising embers
@@ -763,10 +766,12 @@ export class TopDownScene extends Phaser.Scene {
     if (time - this.actT < 200) return;
     this.actT = time;
     const ui = this.ui; if (!ui) return;
-    if (this.stageN || this.dead || ui.panels.isOpen) { ui.setAction(null); return; }
+    if (this.dead || ui.panels.isOpen) { ui.setAction(null); return; }
     const h = this.hero;
     let best: { d: number; label: string; cb: () => void } | null = null;
     const offer = (d: number, label: string, cb: () => void) => { if (!best || d < best.d) best = { d, label, cb }; };
+    if (this.gathering()) { const nd = this.nearNode(); if (nd) offer(30, nd.kind === 'wood' ? '🪓 ตัดไม้' : '⛏ ขุดหิน', () => this.attack()); }
+    if (this.stageN) { const b0 = best as { label: string; cb: () => void } | null; ui.setAction(b0?.label ?? null, b0?.cb); return; }
     for (const n of this.village?.npcs ?? []) {
       if (n.hidden) continue;
       const d = Math.hypot(n.sp.x - h.x, n.sp.y - h.y); if (d > 34) continue;
@@ -844,8 +849,41 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   attacking = false;
+  // ---------- gathering (gathering outfit + axe / pickaxe) ----------
+  nodes: { x: number; y: number; kind: 'wood' | 'stone'; im: Phaser.GameObjects.Image; hp: number; until: number }[] = [];
+  gatherTipT = 0;
+  addNode(im: Phaser.GameObjects.Image | null, x: number, y: number, kind: 'wood' | 'stone') { if (im) this.nodes.push({ x, y, kind, im, hp: 4, until: 0 }); }
+  nearNode(r = 34) {
+    const h = this.hero, now = this.time.now;
+    let best: (typeof this.nodes)[number] | null = null, bd = r;
+    for (const n of this.nodes) { if (n.until > now) continue; const d = Math.hypot(n.x - h.x, (n.y - h.y) * 1.3); if (d < bd) { bd = d; best = n; } }
+    return best;
+  }
+  gathering() { return S().outfit === 'gather'; }
+  gather(n: (typeof this.nodes)[number]) {
+    const h = this.hero, anim = n.kind === 'wood' ? 'chop' : 'mine', key = this.F.key;
+    this.dir = (Math.round((Math.PI / 2 - Math.atan2(n.y - h.y, n.x - h.x)) / (Math.PI / 4)) % 8 + 8) % 8;
+    this.attacking = true;
+    const done = () => {
+      this.attacking = false; setIdle(h, key, this.dir);
+      const s = S(), k = 1 + this.stageN / 12, amt = Math.round(Phaser.Math.Between(2, 4) * k);
+      if (n.kind === 'wood') s.res.wood += amt; else s.res.stone += amt;
+      this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${amt}`, '#ffd8a0', 10);
+      this.tweens.add({ targets: n.im, x: n.im.x + 2, duration: 40, yoyo: true, repeat: 2 });
+      n.hp--;
+      if (n.hp <= 0) { n.until = this.time.now + 90000; n.hp = 4; n.im.setAlpha(0.45); this.time.delayedCall(90000, () => n.im.active && n.im.setAlpha(1)); }
+      bus.emit(EV.STATE_CHANGED);
+    };
+    if (playAnim(h, key, anim, this.dir, false) || playAnim(h, key, 'attack', this.dir, false)) h.once('animationcomplete', done);
+    else this.time.delayedCall(500, done);
+  }
+
   attack() {
-    if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi || !hasAnim(this.F.key, 'attack')) return;
+    if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi) return;
+    const node = this.nearNode();
+    if (node && this.gathering()) { this.gather(node); return; }
+    if (node && this.time.now > this.gatherTipT && !this.combat.nearest(90).length) { this.gatherTipT = this.time.now + 20000; bus.emit(EV.TOAST, 'อยากตัดไม้/ขุดหิน? สวมชุดหาทรัพยากรที่ปุ่ม 👕 ชุด ด้านบน', '#ffd8a0'); }
+    if (!hasAnim(this.F.key, 'attack')) return;
     this.attacking = true;
     const h = this.hero;
     const F = this.F;

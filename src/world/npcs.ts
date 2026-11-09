@@ -61,7 +61,7 @@ export class Village {
     const sp = sc.add.sprite(home.x, home.y, `c_${key}_idle`).setAlpha(a0).setDepth(home.y); setIdle(sp, key, 0);
     const shadow = sc.add.ellipse(home.x, home.y, 14, 5, 0x0a1008, 0.4).setDepth(1).setAlpha(a0);
     const tag = sc.add.text(home.x, home.y, name, { fontFamily: 'sans-serif', fontSize: '6px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990).setAlpha(a0 * 0.85);
-    this.npcs.push({ key, name, sp, shadow, tag, plan, i: -1, path: [], until: sc.time.now + Math.random() * 3000, dir: 0, speed, home, back: home, hidden: !visible, anim: hasAnim(key, 'attack') ? 'attack' : 'walk' });
+    this.npcs.push({ key, name, sp, shadow, tag, plan, i: -1, path: [], until: sc.time.now + Math.random() * 3000, dir: 0, speed, home, back: home, hidden: !visible, anim: hasAnim(key, 'chop') ? 'chop' : hasAnim(key, 'mine') ? 'mine' : hasAnim(key, 'attack') ? 'attack' : 'walk' });
   }
 
   next(n: Npc, now: number) {
@@ -71,7 +71,7 @@ export class Village {
     else if (st.kind === 'work') {
       n.until = now + (st.ms ?? 5000);
       if (st.face !== undefined) n.dir = st.face;
-      if (n.anim === 'attack') { playAnim(n.sp, n.key, 'attack', n.dir, false); n.sp.on('animationcomplete', () => { if (n.plan[n.i]?.kind === 'work') n.sp.play(n.sp.anims.currentAnim!.key); }); }
+      if (n.anim !== 'walk') { playAnim(n.sp, n.key, n.anim, n.dir, false); n.sp.on('animationcomplete', () => { if (n.plan[n.i]?.kind === 'work') n.sp.play(n.sp.anims.currentAnim!.key); }); }
       else {   // no work animation: stand facing the job and bob as if busy, glancing around now and then
         setIdle(n.sp, n.key, n.dir);
         n.bob = this.s.tweens.add({ targets: n.sp, scaleY: 0.94, duration: 260, yoyo: true, repeat: -1, repeatDelay: 500 + Math.random() * 900,
