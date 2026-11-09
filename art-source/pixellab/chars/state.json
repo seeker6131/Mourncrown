@@ -184,7 +184,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo17": {
   "cid": "289f8d6f-7d9b-4a01-8444-380ceff4dae1",
@@ -373,7 +374,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo14": {
   "cid": "a6a253d9-4a1e-4c81-9000-17f3bff1ea54",
@@ -391,7 +393,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "mo15": {
   "cid": "bb61a8a1-f094-4665-90d9-a3291444f0a8",
@@ -409,7 +412,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "hr7": {
   "cid": "ffb301c7-a8ea-46ab-8133-715945c6088f",
