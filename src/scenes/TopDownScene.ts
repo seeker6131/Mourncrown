@@ -4,7 +4,10 @@
 // Open with ?td in the URL.
 import Phaser from 'phaser';
 import { Combat } from '../world/tdCombat';
-import { STAGES } from '../world/stages';
+import { STAGES, WILD, PITS } from '../world/stages';
+import { Crowd } from '../world/crowd';
+import { gatherReward, type Vein } from '../systems/alchemy';
+import { itemDef } from '../data/items';
 import { S } from '../core/events';
 import { saveGame, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
@@ -169,8 +172,8 @@ export class TopDownScene extends Phaser.Scene {
     // only the characters this scene shows: hero forms always; villagers + animals in the village;
     // the land's monsters, its boss (boss stages) and the wild game in a stage
     const heroes = ['hero', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
-    const st = this.stageN ? STAGES[this.stageN - 1] : null;
-    const keys = st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : []), 'mo16', 'mo17']
+    const st = this.stageN && this.stageN !== WILD ? STAGES[this.stageN - 1] : null;
+    const keys = this.stageN === WILD ? [...heroes, 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : []), 'mo16', 'mo17']
       : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
     preloadChars(this, keys);
   }
@@ -181,13 +184,17 @@ export class TopDownScene extends Phaser.Scene {
   combat!: Combat;
   village?: Village;
   portals: { x: number; y: number; to: number | 'select'; label: Phaser.GameObjects.Text }[] = [];
-  init(data: { stage?: number }) { this.stageN = data?.stage ?? 0; MW = this.stageN ? 2048 : 1280; MH = this.stageN ? 1408 : 1024; if (this.stageN) this.makeTrails(this.stageN); }
+  get wild() { return this.stageN === WILD; }
+  init(data: { stage?: number }) {
+    this.stageN = data?.stage ?? 0; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
+    if (this.wild) this.makeWild(); else if (this.stageN) this.makeTrails(this.stageN);
+  }
 
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
-    this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
+    this.crowd = undefined; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
@@ -208,7 +215,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
-    if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲');
+    if (!this.stageN) { this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲'); this.addPortal(70, roadY(70), WILD, '◀ ป่าดงดิบ'); }
 
     const cam = this.cameras.main;
     cam.postFX?.clear(); this.dayFx = !this.stageN && this.renderer.type === Phaser.WEBGL ? cam.postFX.addColorMatrix() : null;
@@ -246,6 +253,13 @@ export class TopDownScene extends Phaser.Scene {
     for (let j = 0; j < VH; j++) for (let i = 0; i < VW; i++) {
       const x = i * T, y = j * T;
       let t: Ter = 'g';
+      if (this.wild) {   // the Deepwild: trails, open-pit mines (rock floor), ponds; everything else jungle floor
+        const off = this.trailOff(x, y);
+        if (this.ponds.some(c => Math.hypot(x - c.x, (y - c.y) * 1.3) < c.r)) t = 'w';
+        else if (this.pits.some(c => Math.hypot(x - c.x, (y - c.y) * 1.25) < c.r)) t = 'c';
+        else if (off < 18) t = 'd';
+        V[j * VW + i] = t; continue;
+      }
       if (this.stageN) {   // wild stage: one winding trail from the west gate to the east gate, clearings along it, a pond
         const off = this.trailOff(x, y), n = this.stageN;
         const g0 = STAGES[n - 1].land.ground;
@@ -287,7 +301,7 @@ export class TopDownScene extends Phaser.Scene {
       } else ctx.drawImage(img, t[0] * T, t[1] * T, T, T, cx * T, cy * T, T, T);
     };
     const tl1 = src('td_ft3'), tl2 = src('td_ft2'), tl3 = src('td_ft3');
-    const land = this.stageN ? STAGES[this.stageN - 1].land.ground : 'forest';
+    const land = this.stageN && !this.wild ? STAGES[this.stageN - 1].land.ground : 'forest';
     // other lands: 32px PixelLab sets — haunt TL5 (forest floor / leaf trail), snow TL6 (snow / ice path), lava TL7 (basalt / lava pools), dungeon TL8 (flagstones / water channel)
     const LAND: Record<string, { k: string; up: Ter[] } | undefined> = { haunt: { k: 'td_tl5', up: ['d', 'c'] }, snow: { k: 'td_tl6', up: ['g', 'w'] }, lava: { k: 'td_tl7', up: ['w'] }, dung: { k: 'td_tl8', up: ['g', 'd', 'c'] } };
     const LS = LAND[land];
@@ -451,6 +465,91 @@ export class TopDownScene extends Phaser.Scene {
     this.ponds = [{ x: W * (0.2 + r() * 0.6), y: (y1(W * 0.5) + y2(W * 0.5)) / 2, r: 50 + r() * 20 }, { x: W * (0.2 + r() * 0.6), y: (y2(W * 0.5) + y3(W * 0.5)) / 2, r: 45 + r() * 20 }];
   }
 
+  // ---------- the Deepwild: one big shared jungle for gathering (no monsters) ----------
+  pits: { x: number; y: number; r: number; i: number }[] = [];
+  crowd?: Crowd;
+  online = 0; onlineT = 0;
+  makeWild() {
+    const W = MW, H = MH;
+    const main = (x: number) => H * 0.5 + Math.sin(x / 230) * 140 + Math.sin(x / 71) * 16;
+    this.trailMain = main;
+    this.pits = [{ x: 620, y: 470 }, { x: 1080, y: 1360 }, { x: 1560, y: 400 }, { x: 2020, y: 1280 }, { x: 2280, y: 560 }].map((p, i) => ({ ...p, r: 150 + (i === 4 ? 20 : 0), i }));
+    this.ponds = [{ x: 330, y: 1350, r: 90 }, { x: 1300, y: 860, r: 70 }, { x: 1800, y: 820, r: 60 }, { x: 2380, y: 1580, r: 80 }];
+    this.clearings = [{ x: 420, y: 1050, r: 140 }, { x: 900, y: 760, r: 120 }, { x: 1420, y: 1200, r: 130 }, { x: 1750, y: 1550, r: 120 }, { x: 2150, y: 900, r: 120 }, { x: 1150, y: 300, r: 120 }];
+    // a trail along the middle, plus a branch to every pit and meadow
+    const segs: [number, number, number, number][] = [];
+    for (const p of [...this.pits, ...this.clearings]) { const y0 = main(p.x); segs.push([p.x, y0, p.x, p.y]); }
+    const seg = (x: number, y: number, [x0, y0, x1, y1]: [number, number, number, number]) => {
+      const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / l2));
+      const wob = Math.sin((y + x) / 60) * 8; return Math.hypot(x - (x0 + dx * t) - wob, y - (y0 + dy * t));
+    };
+    this.trailOff = (x, y) => Math.min(Math.abs(y - main(x)), ...segs.map(q => seg(x, y, q)));
+  }
+  placeWild(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
+    const has = (k: string) => !!OM[k];
+    const jungle = ['jtree_0', 'jtree_1', 'jtree_2', 'palm_0'].filter(has);
+    const area = (MW * MH) / (1280 * 800);
+    const open = (x: number, y: number, pad: number) => this.pits.some(c => Math.hypot(x - c.x, (y - c.y) * 1.25) < c.r + pad) || this.clearings.some(c => Math.hypot(x - c.x, y - c.y) < c.r);
+    // mine pits: quarry art at the rim, ore rocks across the floor, glowing rare veins and a gold vein in the middle
+    const COL = [0xffffff, 0xf0f4ff, 0x9a7aaa, 0xb8e8ff, 0xa8ffe8];
+    for (const p of this.pits) {
+      const P = PITS[p.i];
+      if (has('pit_' + (p.i % 2))) { const im = this.add.image(p.x, p.y, 'o_pit_' + (p.i % 2)).setDepth(1).setAlpha(0.95); im.setScale((p.r * 2.1) / Math.max(im.width, 1)); }
+      if (has('mine_0')) this.obj('mine_0', p.x - p.r * 0.2, p.y - p.r * 0.78, 0.8, 10, true, 0.9);
+      this.add.text(p.x, p.y - p.r * 0.78 - 96, `⛏ ${P.name} • Lv${P.req}`, { fontFamily: 'sans-serif', fontSize: '9px', color: '#ffe8a0', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99990);
+      const vein = { ore: P.ore, gem: P.gem, req: P.req };
+      for (let k = 0; k < 40; k++) {
+        const a = rnd() * Math.PI * 2, rr = p.r * (0.32 + rnd() * 0.5), x = p.x + Math.cos(a) * rr, y = p.y + Math.sin(a) * rr / 1.25;
+        if (this.isBlocked(x, y) || this.nodes.some(n => Math.hypot(n.x - x, n.y - y) < 34)) continue;
+        const o = this.obj(pick('ore', 7), x, y, 0.4, 3, true, 0.62); o?.setTint(COL[p.i]); this.addNode(o, x, y, 'stone', vein);
+      }
+      const veins = ['vein_0', 'vein_1', 'vein_3'].filter(has);
+      for (let k = 0; k < 3; k++) {
+        const a = k * 2.1 + 0.4, x = p.x + Math.cos(a) * 34, y = p.y + Math.sin(a) * 26;
+        const key = veins.length ? veins[(p.i + k) % veins.length] : pick('ore', 7);
+        const o = this.obj(key, x, y, 0.6, 4); if (!veins.length) o?.setTint(0xff9cff);
+        const gl = this.add.image(x, y - 10, 'td_glow').setTint(0xd89cff).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(0.8);
+        this.tweens.add({ targets: gl, alpha: { from: 0.35, to: 0.9 }, duration: 1100 + k * 200, yoyo: true, repeat: -1 });
+        this.addNode(o, x, y, 'stone', { ...vein, rare: true });
+      }
+      { const x = p.x, y = p.y + 4; const o = this.obj(has('vein_2') ? 'vein_2' : pick('ore', 7), x, y, 0.6, 4); if (!has('vein_2')) o?.setTint(0xffd84a); this.addNode(o, x, y, 'stone', { ...vein, gold: true }); }
+    }
+    // jungle: big trees everywhere off the trails, ferns and flowers underneath
+    for (let k = 0; k < 470 * area; k++) {
+      const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
+      const key = jungle.length && rnd() < 0.7 ? jungle[Math.floor(rnd() * jungle.length)] : rnd() < 0.6 ? pick('oak', 3) : pick('pine', 3);
+      const hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
+      if (this.trailOff(x, y) < 60 || this.trailOff(x, y - hgt * 0.5) < 44 || open(x, y, 40) || !free(x, y, 44)) continue;
+      this.addNode(this.obj(key, x, y, 0.16, 4, true), x, y, 'wood');
+    }
+    const ferns = ['fern_0', 'fern_1'].filter(has);
+    for (let k = 0; k < 260 * area; k++) {
+      const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
+      if (this.trailOff(x, y) < 24 || !free(x, y, 6)) continue;
+      const r = rnd(), key = ferns.length && r < 0.4 ? ferns[Math.floor(rnd() * ferns.length)] : r < 0.6 ? pick('bush', 5) : r < 0.8 ? pick('flower', 5) : pick('tuft', 2);
+      this.add.image(Math.round(x), Math.round(y), 'o_' + key).setOrigin(0.5, 0.85).setDepth(y).setScale(key.startsWith('fern') ? 0.55 : 1);
+    }
+    for (const c of this.ponds) for (let k = 0; k < 10; k++) { const a = rnd() * 6.28, x = c.x + Math.cos(a) * (c.r + 6), y = c.y + Math.sin(a) * (c.r / 1.3 + 4); if (free(x, y, 4)) this.add.image(x, y, 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y); }
+    const gy = this.trailMain(30);
+    this.addPortal(30, gy, 0, 'กลับหมู่บ้าน');
+    this.hero.setPosition(64, this.trailMain(64));
+    // herds of deer and boar graze the meadows and the jungle edges
+    const spot = () => {
+      for (let i = 0; i < 80; i++) {
+        const c = rnd() < 0.7 ? this.clearings[Math.floor(rnd() * this.clearings.length)] : null;
+        const x = c ? c.x + (rnd() - 0.5) * c.r * 1.6 : 60 + rnd() * (MW - 120), y = c ? c.y + (rnd() - 0.5) * c.r * 1.3 : 60 + rnd() * (MH - 120);
+        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || Math.hypot(x - 30, y - gy) < 200) continue;
+        if (Math.hypot(x - this.hero.x, y - this.hero.y) < 220 && i < 60) continue;
+        return { x, y };
+      }
+      return { x: MW * 0.5, y: this.trailMain(MW * 0.5) };
+    };
+    this.combat.spawnMap(WILD, spot, null);
+    // other players gathering here (simulated until the server exists)
+    const work = this.nodes.filter(n => !n.vein || n.vein.req <= 20);
+    this.crowd = new Crowd(this as never, () => work.map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
+  }
+
   /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
   placeStage(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
     const st = STAGES[this.stageN - 1];
@@ -513,6 +612,10 @@ export class TopDownScene extends Phaser.Scene {
   /** going out costs supplies (food); stages 1-2 are free */
   enterStage(n: number) {
     const s = S();
+    if (n === WILD) {   // free, any level; everyone goes in villager clothes
+      if (s.outfit !== 'gather') { s.outfit = 'gather'; bus.emit(EV.TOAST, 'สวมชุดชาวบ้าน (ชุดหาทรัพยากร) แล้ว', '#ffd8a0'); }
+      saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: WILD })); return;
+    }
     const st = STAGES[n - 1], sv = s as unknown as { tdUnlockAll?: boolean };
     if (s.level < st.req && !sv.tdUnlockAll) { bus.emit(EV.TOAST, `ต้องเลเวล ${st.req} ถึงจะเข้าแผนที่ ${n} ได้`, '#ff8a6a'); return; }
     if (!payStage(s, n)) { bus.emit(EV.TOAST, `อาหารไม่พอ! แผนที่ ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ป่าหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
@@ -622,6 +725,7 @@ export class TopDownScene extends Phaser.Scene {
     let seed = 1;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const pick = (k: string, n: number) => `${k}_${Math.floor(rnd() * n)}`;
+    if (this.wild) { this.placeWild(rnd, pick, free); return; }
     if (this.stageN) { this.placeStage(rnd, pick, free); return; }
     // village buildings (level art from PixelLab Objects)
     const B: [string, number, number][] = [
@@ -705,7 +809,7 @@ export class TopDownScene extends Phaser.Scene {
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
+  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ (แมพรวมทั้งเซิร์ฟ) • 👥 ออนไลน์ ${this.online}`; const st = this.stageN ? STAGES[this.stageN - 1] : null; return st ? `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})` : `${this.clock()}  ` + 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
   levelUpFx() {
     const h = this.hero;
@@ -802,7 +906,7 @@ export class TopDownScene extends Phaser.Scene {
     const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
     let tx: number, ty: number, reach: number, target: object;
     if (this.gathering()) {
-      const n = near(this.nodes.filter(q => q.until <= this.time.now && !bad(q)));
+      const n = near(this.nodes.filter(q => q.until <= this.time.now && !bad(q) && (!q.vein || q.vein.req <= s.level)));
       if (!n) return [0, 0];
       tx = n.x; ty = n.y + 14; reach = 16; target = n;
     } else {
@@ -1011,9 +1115,9 @@ export class TopDownScene extends Phaser.Scene {
 
   attacking = false;
   // ---------- gathering (gathering outfit + axe / pickaxe) ----------
-  nodes: { x: number; y: number; kind: 'wood' | 'stone'; im: Phaser.GameObjects.Image; hp: number; until: number }[] = [];
+  nodes: { x: number; y: number; kind: 'wood' | 'stone'; im: Phaser.GameObjects.Image; hp: number; until: number; vein?: Vein }[] = [];
   gatherTipT = 0;
-  addNode(im: Phaser.GameObjects.Image | null, x: number, y: number, kind: 'wood' | 'stone') { if (im) this.nodes.push({ x, y, kind, im, hp: 4, until: 0 }); }
+  addNode(im: Phaser.GameObjects.Image | null, x: number, y: number, kind: 'wood' | 'stone', vein?: Vein) { if (im) this.nodes.push({ x, y, kind, im, hp: vein?.rare ? 6 : 4, until: 0, vein }); }
   nearNode(r = 34) {
     const h = this.hero, now = this.time.now;
     let best: (typeof this.nodes)[number] | null = null, bd = r;
@@ -1022,24 +1126,38 @@ export class TopDownScene extends Phaser.Scene {
   }
   gathering() { return S().outfit === 'gather'; }
   gather(n: (typeof this.nodes)[number]) {
+    if (n.vein && S().level < n.vein.req) { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 3000; bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); } return; }
     const h = this.hero, anim = n.kind === 'wood' ? 'chop' : 'mine', key = this.F.key;
     this.dir = (Math.round((Math.PI / 2 - Math.atan2(n.y - h.y, n.x - h.x)) / (Math.PI / 4)) % 8 + 8) % 8;
     this.attacking = true;
     const done = () => {
       this.attacking = false; setIdle(h, key, this.dir);
-      const s = S(), k = 1 + this.stageN / 12, amt = Math.round(Phaser.Math.Between(2, 4) * k);
-      if (n.kind === 'wood') s.res.wood += amt; else s.res.stone += amt;
-      this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${amt}`, '#ffd8a0', 10);
+      const s = S(), r = gatherReward(s, n.kind, this.stageN, n.vein ?? null);
+      if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
+      if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
+      if (r.gold) this.combat.float(n.x - 10, n.y - 52, `💰 +${r.gold}G`, '#ffd84a', 10);
+      if (r.gem) { this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); saveGame(s); }
       this.tweens.add({ targets: n.im, x: n.im.x + 2, duration: 40, yoyo: true, repeat: 2 });
       n.hp--;
-      if (n.hp <= 0) { n.until = this.time.now + 90000; n.hp = 4; n.im.setAlpha(0.45); this.time.delayedCall(90000, () => n.im.active && n.im.setAlpha(1)); }
+      if (n.hp <= 0) { const t = n.vein?.rare ? 240000 : this.wild ? 45000 : 90000; n.until = this.time.now + t; n.hp = n.vein?.rare ? 6 : 4; n.im.setAlpha(0.45); this.time.delayedCall(t, () => n.im.active && n.im.setAlpha(1)); }
       bus.emit(EV.STATE_CHANGED);
     };
     if (playAnim(h, key, anim, this.dir, false) || playAnim(h, key, 'attack', this.dir, false)) h.once('animationcomplete', done);
     else this.time.delayedCall(500, done);
   }
 
+  stunUntil = 0;
+  /** animal kick: pushed back a little and dazed (can't move or swing) */
+  stunHero(ms: number, fx: number, fy: number) {
+    const h = this.hero, a = Math.atan2(h.y - fy, h.x - fx);
+    for (let i = 0; i < 18; i += 2) { const nx = h.x + Math.cos(a) * 2, ny = h.y + Math.sin(a) * 2; if (this.isBlocked(nx, ny)) break; h.x = nx; h.y = ny; }
+    this.stunUntil = this.time.now + ms; this.attacking = false; setIdle(h, this.F.key, this.dir);
+    h.setTintFill(0xfff0a0); this.time.delayedCall(90, () => h.clearTint());
+    this.combat.float(h.x, h.y - 46, '💫 มึน!', '#ffe080', 10);
+    this.combat.vfx.dust?.(h.x, h.y);
+  }
   attack() {
+    if (this.time.now < this.stunUntil) return;
     if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi) return;
     const node = this.nearNode();
     if (node && this.gathering()) { this.gather(node); return; }
@@ -1074,7 +1192,7 @@ export class TopDownScene extends Phaser.Scene {
     if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.ui?.panels.isOpen && !this.selectUi) [mx, my] = this.autoStep(time);
     const len = Math.hypot(mx, my);
     const h = this.hero;
-    if (this.dead) { /* dying */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
+    if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
       const sp = 92 * dt / 1000;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
@@ -1089,6 +1207,8 @@ export class TopDownScene extends Phaser.Scene {
     }
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
+    this.crowd?.update(time, dt);
+    if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; this.online = 30 + Math.floor(Math.random() * 40) + (this.crowd?.list.length ?? 0); }
     else this.village?.update(time, dt);
     // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
     if (!this.portalArmed && this.portals.every(p => Math.hypot(p.x - h.x, p.y - h.y) > 30)) this.portalArmed = true;
@@ -1100,8 +1220,8 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
-      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
-      const st = this.stageN ? STAGES[this.stageN - 1] : null;
+      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
+      const st = this.stageN && !this.wild ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);

@@ -311,3 +311,12 @@
 - **พรีเมียม (ผู้ใช้กำหนด 2026-11-09):** เพชรได้จากเติมเงินจริงเท่านั้น, บัตร VIP 3/7/15 วัน (฿39/79/149) ซื้อด้วยเงินจริง — `systems/premium.ts` (DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, grantVip/grantDiamonds ต้องเรียกจากเซิร์ฟเวอร์หลังตรวจการจ่ายเงิน). VIP = EXP x1.5, ทอง +30%, เข้าแมพฟรี, กระเป๋า +20, ออโต้ซื้อยา, ออโต้ขาย Common/Uncommon, ของขวัญรายวัน, ป้าย 👑. ร้านเพชร = ความสะดวก/ความสวย (กระเป๋า, เอฟเฟกต์ดาบ 4 สี, ม้วนวาร์ป, สร้างเสร็จทันที; ชุดแฟชั่น/สัตว์เลี้ยง/สกินบ้าน/ฉายา = เร็วๆ นี้). ปุ่มซื้อเงินจริงยังปิด (แสดงข้อความ). **ห้าม pay-to-win**
 - **ตลาดกลาง:** `systems/market.ts` (ทองเท่านั้น, ภาษี 8%, 48 ชม., สูงสุด 10 รายการ). แท็บซื้อ = รายการตัวอย่างจากผู้เล่นจำลอง (ซื้อไม่ได้จนออนไลน์), ลงขายได้จริง (ย้ายของเข้า myListings) ยกเลิกได้
 - ร้าน NPC ขายของใช้ (ยา ม้วนกลับหมู่บ้าน ถุงเสบียง ยาบัฟ ATK/DEF/EXP ผลึกมานา 5/วัน); เปลี่ยนสายได้อาวุธเริ่มต้นฟรี; จังหวะเลเวล Lv100 ≈ 29 วันออโต้ (VIP 20 วัน); วัตถุหลังที่บังตัวละครโปร่งใส (`updateOcclusion`)
+
+## รอบ 2026-11-09 (ดึก) — ป่าดงดิบ + แร่ + ปรุงยา
+- **ป่าดงดิบ (WILD = 100)**: `src/world/stages.ts` (WILD, wildStage, stageOf, PITS) • ฉากใน `TopDownScene` (`makeWild`, `placeWild`, `get wild`) • พอร์ทัลซ้ายของหมู่บ้าน + แท็บ 🌿 ใน `buildStages`
+- สัตว์: `tdCombat.ts` — ไม่ตีก่อน (`angry` ไม่รวมสัตว์), โดนตีหนี 1.1 วิ (`fleeT`), ถีบกลับ `Host.stunHero` (มึน 0.7 วิ)
+- ผู้เล่นจำลอง: `src/world/crowd.ts` (16 คน) — ตอนออนไลน์เปลี่ยนเป็นตำแหน่งจริงจากเซิร์ฟ
+- กติกาแร่/ปรุงยา (pure, ย้ายเซิร์ฟได้): `src/systems/alchemy.ts` (gatherReward, canBrew, brew, activeElixir) • สูตร `src/data/alchemy.ts` • ไอเทม ore_*/gem_*/elix_* ใน `items.ts` (field `elixir`) • ผลยาใน `derive` (stats.ts)
+- หน้าต่าง ⚗ ปรุงยา: `buildAlchemy` (เปิดจากครัว) • HUD โชว์ยาที่ออกฤทธิ์ + เวลา
+- รูปใหม่ PixelLab: `tools/gen_jungle.py` → jtree_0-2, palm_0, fern_0-1, pit_0-1 (ตัดขอบวงกลมแล้ว ต้นฉบับ _*_raw.png), mine_0, vein_0-3 → `python3 -I tools/import_td_objs.py` • ไอคอนแร่/ยา 20 ชิ้น `tools/gen_item_icons.py`
+- เทส: `tests/alchemy.test.ts`

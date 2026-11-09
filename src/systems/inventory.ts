@@ -82,8 +82,9 @@ export function useItem(s: GameState, uid: number, now = Date.now()): { heal: nu
   s.hp += heal; s.mp += mana;
   if (d.food) s.res.food += d.food;
   if (d.buff) s.buff = { stat: d.buff.stat, pct: d.buff.pct, until: now + d.buff.mins * 60000 };
+  if (d.elixir) { const { mins, ...fx } = d.elixir; (s as GameState & { elixir?: unknown }).elixir = { ...fx, until: now + mins * 60000, name: d.name }; }
   removeUid(s, uid, 1);
-  return { heal, mana, food: d.food, buff: d.buff ? d.name : undefined, recall: d.recall };
+  return { heal, mana, food: d.food, buff: d.buff || d.elixir ? d.name : undefined, recall: d.recall };
 }
 
 export function equippedLook(s: GameState, slot: EquipSlot): number {

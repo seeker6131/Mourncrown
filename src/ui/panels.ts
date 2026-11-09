@@ -26,7 +26,9 @@ import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
-import { STAGES, LANDS } from '../world/stages';
+import { STAGES, LANDS, WILD } from '../world/stages';
+import { RECIPES } from '../data/alchemy';
+import { canBrew, brew, activeElixir } from '../systems/alchemy';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, listItem, cancelListing, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady, claimVipGift, buyDiamondItem, grantVip, grantDiamonds } from '../systems/premium';
 import { stageFood } from '../systems/supplies';
@@ -34,7 +36,7 @@ import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -126,6 +128,7 @@ export class Panels {
       case 'stages': this.buildStages(c); break;
       case 'premium': this.buildPremium(c); break;
       case 'market': this.buildMarket(c); break;
+      case 'alchemy': this.buildAlchemy(c); break;
     }
   }
 
@@ -425,6 +428,7 @@ export class Panels {
     } else if (b.type === 'kitchen') {
       const p = mealPower(b.level);
       c.add(k.text(rx + 8, top + 6, `ทำอาหาร (ใช้อาหาร ${p.food} • มี ${s.res.food})`, 9, '#ffe7a0'));
+      c.add(k.button(rx + rw - 96, top + 2, 88, 20, '⚗ ปรุงยาจากแร่', () => this.open('alchemy'), { size: 8.5, color: 0x4a1a6a }));
       (Object.keys(MEALS) as MealId[]).forEach((m, i) => {
         const md = MEALS[m], yy = top + 26 + i * 72, lockd = b.level < md.minLv;
         g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(rx + 6, yy, rw - 12, 66, 3);
@@ -759,7 +763,7 @@ export class Panels {
     const best = [...STAGES].reverse().find(canEnter)?.n ?? 1;
     const bossDone = (s as unknown as { tdCleared?: number }).tdCleared ?? 0;
     if (this.land < 0) this.land = Math.floor((best - 1) / 10);
-    const W = Math.min(620, ui.VW - 16), H = 330;
+    const W = Math.min(620, ui.VW - 16), H = 336;
     const { x, y, g } = this.window(c, W, H, 'เลือกแผนที่');
     const COL = [0x2e5a3a, 0x4a3a6a, 0x7a3a1a, 0x3a5a7a, 0x3a3a40], HI = ['#9fe0a0', '#c8a8ff', '#ffb080', '#a8d8ff', '#c8c8d0'];
     // previews of this land's monsters and boss (idle sheets load on demand)
@@ -778,6 +782,16 @@ export class Panels {
       z.on('pointerup', () => { sfx.click(); this.land = i; this.rebuild(); });
       c.add(z);
     });
+    // the Deepwild: one big shared gathering map (no monsters)
+    {
+      const wy = ty0 + LANDS.length * (th + 6), wh = y + H - 10 - wy;
+      g.fillStyle(0x1f5a2a, 1).fillRoundedRect(tx, wy, tw, wh, 5).lineStyle(2, 0x9fe0a0, 1).strokeRoundedRect(tx, wy, tw, wh, 5);
+      c.add(k.text(tx + 6, wy + 3, '🌿 ป่าดงดิบ', 9.5, '#ffffff'));
+      c.add(k.text(tx + tw - 5, wy + 4, '⛏🍖💰', 8).setOrigin(1, 0));
+      const z = ui.add.zone(tx, wy, tw, wh).setOrigin(0).setInteractive();
+      z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(WILD); });
+      c.add(z);
+    }
     // stage cards
     const gx = tx + tw + 12, gw = x + W - 14 - gx, cols = 5, cw = (gw - (cols - 1) * 6) / cols, ch = 92;
     STAGES.slice(this.land * 10, this.land * 10 + 10).forEach((st, i) => {
@@ -805,9 +819,44 @@ export class Panels {
     const my = y + 34 + 2 * (ch + 6) + 4;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(gx, my, gw, y + H - 12 - my, 4);
     c.add(k.text(gx + 8, my + 6, 'มอนในดินแดนนี้', 8.5, HI[this.land]));
+    c.add(k.text(gx + gw - 8, my + 6, '🌿 ป่าดงดิบ = แมพรวมทั้งเซิร์ฟ ไม่มีมอน ขุดแร่/ล่าสัตว์/ตัดไม้', 7.5, '#9fe0a0').setOrigin(1, 0));
     L.mobs.forEach((m, i) => {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
+    });
+  }
+
+  // ---------------- ALCHEMY (kitchen) ----------------
+  buildAlchemy(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const W = Math.min(640, ui.VW - 12), H = 340;
+    const { x, y, g } = this.window(c, W, H, '⚗ ปรุงยาจากแร่');
+    const kl = levelOf(s, 'kitchen'), el = activeElixir(s);
+    c.add(k.text(x + 14, y + 30, `ครัว Lv${kl} • 💰${s.gold.toLocaleString()} • 🍖${s.res.food}` + (el ? `   ✨ ${el.name} เหลือ ${Math.ceil((el.until - Date.now()) / 60000)} นาที` : '   แร่หาได้จาก 🌿 ป่าดงดิบ (เหมือง)'), 8.5, el ? '#ff9cff' : '#ffe7a0'));
+    c.add(k.text(x + W - 14, y + 30, 'ยาใหม่จะแทนที่ยาเก่า', 7.5, '#a89878').setOrigin(1, 0));
+    const cols = 2, top = y + 46, cw = (W - 28 - 6) / cols, ch = (H - 56 - 4 * 4) / 5;
+    RECIPES.forEach((r, i) => {
+      const d = itemDef(r.out), cx = x + 14 + (i % cols) * (cw + 6), cy = top + Math.floor(i / cols) * (ch + 4);
+      const f = canBrew(s, r), rc = '#' + RARITY_COLORS[d.rarity].toString(16).padStart(6, '0');
+      g.fillStyle(d.rarity >= 3 ? 0x2a1236 : 0x22180f, 0.95).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, RARITY_COLORS[d.rarity], d.rarity >= 3 ? 1 : 0.5).strokeRoundedRect(cx, cy, cw, ch, 4);
+      k.iconSlot(g, cx + 4, cy + (ch - 34) / 2, 34, RARITY_COLORS[d.rarity], false);
+      if (ui.textures.exists(`icon_${d.icon}`)) c.add(this.ico(cx + 21, cy + ch / 2, `icon_${d.icon}`, 34));
+      const have = countItem(s, r.out);
+      c.add(k.text(cx + 44, cy + 3, d.name + (have ? ` (มี ${have})` : ''), 9, rc));
+      c.add(k.text(cx + 44, cy + 15, d.desc, 7, '#e8dcc0', { wordWrap: { width: cw - 100 } }));
+      let nx = cx + 44; const ny = cy + ch - 15;
+      for (const [id, n] of Object.entries(r.need)) {
+        const ok = countItem(s, id) >= n, dd = itemDef(id);
+        if (ui.textures.exists(`icon_${dd.icon}`)) { const im = ui.add.image(nx + 6, ny + 5, `icon_${dd.icon}`); im.setScale(13 / Math.max(im.width, im.height)); c.add(im); }
+        const t = k.text(nx + 13, ny, `${countItem(s, id)}/${n}`, 7, ok ? '#9fffb0' : '#ff8a6a'); c.add(t); nx += 16 + t.width;
+      }
+      c.add(k.text(nx + 2, ny, `💰${r.gold} 🍖${r.food}`, 7, s.gold >= r.gold && s.res.food >= r.food ? '#ffe7a0' : '#ff8a6a'));
+      const lock = kl < r.kitchen;
+      c.add(k.button(cx + cw - 52, cy + 6, 46, 22, lock ? `🔒ครัว${r.kitchen}` : 'ปรุง', () => {
+        const res = brew(s, r.out);
+        if (res === 'ok') { sfx.upgradeOk(); bus.emit(EV.TOAST, `ปรุงสำเร็จ! ${d.name} — ดื่มได้ในกระเป๋า`, rc); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }
+        else { sfx.error(); bus.emit(EV.TOAST, { kitchen: `ต้องอัปเกรดครัวเป็น Lv${r.kitchen}`, items: 'แร่ไม่พอ — ไปขุดที่เหมืองใน 🌿 ป่าดงดิบ', gold: 'ทองไม่พอ', food: 'อาหารไม่พอ — ล่าสัตว์ใน 🌿 ป่าดงดิบ', bag: 'กระเป๋าเต็ม' }[res], '#ff8a8a'); }
+      }, { size: lock ? 7 : 9.5, color: d.rarity >= 3 ? 0x6a1a8a : 0x5a3a10, disabled: lock || !!f }));
     });
   }
 

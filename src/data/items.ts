@@ -30,6 +30,8 @@ export interface ItemDef {
   buff?: { stat: 'atk' | 'def' | 'exp'; pct: number; mins: number };
   food?: number;
   recall?: boolean;
+  /** alchemy elixir: strong timed bonuses in % (one elixir active at a time, separate from food/tonic buffs) */
+  elixir?: { atk?: number; def?: number; hp?: number; crit?: number; aspd?: number; exp?: number; mins: number };
   /** class line this gear is made for (sword / archer / mage / cleric); unset = any class */
   cls?: 'sword' | 'archer' | 'mage' | 'cleric';
 }
@@ -78,6 +80,28 @@ export const ITEMS: Record<string, ItemDef> = {
   tonic_atk: { id: 'tonic_atk', name: 'ยาเพิ่มพลัง', type: 'consumable', icon: 'tonic_atk', desc: 'ATK +10% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'atk', pct: 10, mins: 30 }, stack: true },
   tonic_def: { id: 'tonic_def', name: 'ยาเกราะเหล็ก', type: 'consumable', icon: 'tonic_def', desc: 'DEF +15% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'def', pct: 15, mins: 30 }, stack: true },
   tonic_exp: { id: 'tonic_exp', name: 'ยาปัญญา', type: 'consumable', icon: 'tonic_exp', desc: 'EXP +10% นาน 30 นาที', price: 250, rarity: 1, buff: { stat: 'exp', pct: 10, mins: 30 }, stack: true },
+  // ---- ores (mining) — common ore per land + a rare gem; used by alchemy ----
+  ore_iron: { id: 'ore_iron', name: 'แร่เหล็ก', type: 'material', icon: 'ore_iron', desc: 'แร่จากเหมืองเหล็กในป่าดงดิบ ใช้ปรุงยาเหล็กกล้า', price: 8, rarity: 0, stack: true },
+  ore_silver: { id: 'ore_silver', name: 'แร่เงิน', type: 'material', icon: 'ore_silver', desc: 'แร่จากเหมืองเงินในป่าดงดิบ ใช้ปรุงยาเงินบริสุทธิ์', price: 14, rarity: 0, stack: true },
+  ore_obsidian: { id: 'ore_obsidian', name: 'ออบซิเดียน', type: 'material', icon: 'ore_obsidian', desc: 'แก้วภูเขาไฟจากเหมืองออบซิเดียนในป่าดงดิบ ใช้ปรุงยาหินดำ', price: 22, rarity: 0, stack: true },
+  ore_frost: { id: 'ore_frost', name: 'คริสตัลน้ำแข็ง', type: 'material', icon: 'ore_frost', desc: 'ผลึกจากเหมืองคริสตัลในป่าดงดิบ ใช้ปรุงยาลมหนาว', price: 30, rarity: 0, stack: true },
+  ore_mithril: { id: 'ore_mithril', name: 'แร่มิธริล', type: 'material', icon: 'ore_mithril', desc: 'แร่เรืองแสงจากเหมืองมิธริลในป่าดงดิบ ใช้ปรุงยามิธริล', price: 40, rarity: 1, stack: true },
+  gem_emerald: { id: 'gem_emerald', name: 'มรกตพงไพร', type: 'material', icon: 'gem_emerald', desc: 'แร่หายากจากผลึกเรืองแสงในเหมืองเหล็ก (โอกาสต่ำ) ปรุงยาเทพได้', price: 400, rarity: 3, stack: true },
+  gem_soul: { id: 'gem_soul', name: 'ผลึกวิญญาณ', type: 'material', icon: 'gem_soul', desc: 'แร่หายากจากผลึกเรืองแสงในเหมืองเงิน (โอกาสต่ำ) ปรุงยาเทพได้', price: 600, rarity: 3, stack: true },
+  gem_magma: { id: 'gem_magma', name: 'หัวใจลาวา', type: 'material', icon: 'gem_magma', desc: 'แร่หายากจากผลึกเรืองแสงในเหมืองออบซิเดียน (โอกาสต่ำ) ปรุงยาเทพได้', price: 800, rarity: 3, stack: true },
+  gem_frosttear: { id: 'gem_frosttear', name: 'น้ำตาเหมันต์', type: 'material', icon: 'gem_frosttear', desc: 'แร่หายากจากผลึกเรืองแสงในเหมืองคริสตัล (โอกาสต่ำ) ปรุงยาเทพได้', price: 1000, rarity: 3, stack: true },
+  gem_crown: { id: 'gem_crown', name: 'เศษมงกุฎกลวง', type: 'material', icon: 'gem_crown', desc: 'แร่หายากที่สุดจากผลึกเรืองแสงในเหมืองมิธริล ปรุงยาสุดยอดได้', price: 1500, rarity: 4, stack: true },
+  // ---- elixirs (alchemy at the kitchen) ----
+  elix_iron: { id: 'elix_iron', name: 'ยาเหล็กกล้า', type: 'consumable', icon: 'elix_iron', desc: 'ATK/MATK +15% นาน 20 นาที', price: 60, rarity: 1, elixir: { atk: 15, mins: 20 }, stack: true },
+  elix_silver: { id: 'elix_silver', name: 'ยาเงินบริสุทธิ์', type: 'consumable', icon: 'elix_silver', desc: 'คริติคอล +10% นาน 20 นาที', price: 90, rarity: 1, elixir: { crit: 10, mins: 20 }, stack: true },
+  elix_obsidian: { id: 'elix_obsidian', name: 'ยาหินดำ', type: 'consumable', icon: 'elix_obsidian', desc: 'DEF +30% นาน 20 นาที', price: 120, rarity: 1, elixir: { def: 30, mins: 20 }, stack: true },
+  elix_frost: { id: 'elix_frost', name: 'ยาลมหนาว', type: 'consumable', icon: 'elix_frost', desc: 'ความเร็วโจมตี +20% นาน 20 นาที', price: 150, rarity: 2, elixir: { aspd: 20, mins: 20 }, stack: true },
+  elix_mithril: { id: 'elix_mithril', name: 'ยามิธริล', type: 'consumable', icon: 'elix_mithril', desc: 'HP +30% DEF +15% นาน 20 นาที', price: 200, rarity: 2, elixir: { hp: 30, def: 15, mins: 20 }, stack: true },
+  elix_emerald: { id: 'elix_emerald', name: 'ยาเทพพงไพร', type: 'consumable', icon: 'elix_emerald', desc: 'ATK/MATK +45% นาน 10 นาที', price: 900, rarity: 3, elixir: { atk: 45, mins: 10 }, stack: true },
+  elix_soul: { id: 'elix_soul', name: 'ยาเทพวิญญาณ', type: 'consumable', icon: 'elix_soul', desc: 'คริติคอล +30% ATK +20% นาน 10 นาที', price: 1200, rarity: 3, elixir: { crit: 30, atk: 20, mins: 10 }, stack: true },
+  elix_magma: { id: 'elix_magma', name: 'ยาเทพเพลิงลาวา', type: 'consumable', icon: 'elix_magma', desc: 'ATK/MATK +35% ความเร็วโจมตี +35% นาน 10 นาที', price: 1600, rarity: 3, elixir: { atk: 35, aspd: 35, mins: 10 }, stack: true },
+  elix_frosttear: { id: 'elix_frosttear', name: 'ยาเทพเหมันต์', type: 'consumable', icon: 'elix_frosttear', desc: 'DEF +70% HP +40% นาน 10 นาที', price: 2000, rarity: 3, elixir: { def: 70, hp: 40, mins: 10 }, stack: true },
+  elix_god: { id: 'elix_god', name: 'ยาสุดยอดมงกุฎกลวง', type: 'consumable', icon: 'elix_god', desc: 'ทุกค่าพลัง +40% คริ +20% ตีเร็ว +25% EXP +100% นาน 15 นาที', price: 6000, rarity: 4, elixir: { atk: 40, def: 40, hp: 40, crit: 20, aspd: 25, exp: 100, mins: 15 }, stack: true },
   mp_potion: { id: 'mp_potion', name: 'ยามานา', type: 'consumable', icon: 'potion_mp', desc: 'ฟื้นฟู MP 60', price: 30, rarity: 0, mana: 60, stack: true },
   // Materials
   slime_gel: { id: 'slime_gel', name: 'เจลสไลม์', type: 'material', icon: 'gel', desc: 'เจลเหนียวหนืด ขายได้', price: 8, rarity: 0, stack: true },

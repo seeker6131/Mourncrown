@@ -4,7 +4,7 @@
 import type { GameState } from '../core/state';
 import { MONSTERS } from '../data/monsters';
 import { itemDef } from '../data/items';
-import { STAGES, scaleStats, type StageMon } from '../world/stages';
+import { stageOf, scaleStats, WILD, type StageMon } from '../world/stages';
 import { derive, gainExp } from './stats';
 import { addItem } from './inventory';
 import { pickBase, rollRarity, makeGear, isGear } from './loot';
@@ -20,7 +20,7 @@ const between = (rnd: () => number, a: number, b: number) => a + Math.floor(rnd(
 
 /** Apply the rewards for killing `mon` in stage `stageN`. `lastOfStage` = it was the last monster alive. */
 export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boolean, lastOfStage: boolean, rnd: () => number = Math.random): KillResult {
-  const st = STAGES[stageN - 1], base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
+  const st = stageOf(stageN, s.level), base = MONSTERS[mon.kind], sc = scaleStats(base, st.level, boss), d = derive(s);
   const animal = !!base.animal;
   const vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > Date.now();
   const gold = animal ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1));
@@ -28,7 +28,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
   const levels = gainExp(s, exp);
   // village materials: wood and stone from every kill, food by size
-  const k = 1 + stageN / 12;
+  const k = stageN === WILD ? 1 + s.level / 25 : 1 + stageN / 12;
   const wood = animal ? 0 : Math.round(between(rnd, 1, 3) * k * (boss ? 15 : 1)), stone = animal ? 0 : Math.round(between(rnd, 0, 2) * k * (boss ? 15 : 1));
   const food = animal ? Math.round(between(rnd, base.meat?.[0] ?? 2, base.meat?.[1] ?? 6) * k * 1.5) : boss ? Math.round(10 * k) : rnd() < 0.35 ? 1 : 0;
   s.res.wood += wood; s.res.stone += stone; s.res.food += food;

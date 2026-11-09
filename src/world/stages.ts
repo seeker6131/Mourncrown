@@ -26,6 +26,19 @@ export const STAGES: Stage[] = Array.from({ length: 50 }, (_, i) => {
   return { n, land, level, req: Math.max(1, level - 2), count: 26 + Math.floor(n / 2), boss,
            minRar: n >= 41 ? 2 : n >= 21 ? 1 : 0, mf: n * 3 + (boss ? 60 : 0) };
 });
+/** The Deepwild (ป่าดงดิบ): one big shared jungle for the whole server — no monsters, only game animals, trees,
+ *  mine pits and rare ore veins. Animals scale to the hero's level. Entered from the map select (free, any level). */
+export const WILD = 100;
+export const wildStage = (level: number): Stage => ({ n: WILD, land: LANDS[0], level: Math.max(1, level), req: 1, count: 0, boss: false, minRar: 0, mf: 0 });
+export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : STAGES[n - 1];
+/** mine pits of the Deepwild: each pit has its own ore, rare gem and the level needed to dig there */
+export const PITS = [
+  { ore: 'ore_iron', gem: 'gem_emerald', req: 1, name: 'เหมืองเหล็ก' },
+  { ore: 'ore_silver', gem: 'gem_soul', req: 20, name: 'เหมืองเงิน' },
+  { ore: 'ore_obsidian', gem: 'gem_magma', req: 40, name: 'เหมืองออบซิเดียน' },
+  { ore: 'ore_frost', gem: 'gem_frosttear', req: 60, name: 'เหมืองคริสตัล' },
+  { ore: 'ore_mithril', gem: 'gem_crown', req: 80, name: 'เหมืองมิธริล' },
+];
 /** Monster stats for a stage level, tuned against a reference hero of the same level (typical gear):
  *  ATK ≈ 10+5L, HP ≈ 150+43L, DEF ≈ 1.7L (checked with tests/sim). Targets: a normal monster dies in ~3 hits and
  *  alone would kill the hero in ~55 s; a boss takes ~120 hits (about a minute with skills) and kills in ~28 s.

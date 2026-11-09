@@ -14,16 +14,18 @@ import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
-import { STAGES, scaleStats, type Stage, type StageMon } from './stages';
+import { STAGES, WILD, wildStage, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number;
 }
 
 export interface Host extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; dir: number; isBlocked(x: number, y: number): boolean; surfAt(x: number, y: number): string;
   burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean; stageN: number;
+  /** an animal kicks back: push the hero away and stun for ms */
+  stunHero(ms: number, fromX: number, fromY: number): void;
 }
 
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
@@ -50,6 +52,11 @@ export class Combat {
   bossSpot: { x: number; y: number } | null = null;
   /** Farming map: lots of monsters spread over the map; every kill respawns after a while, the boss every 5 minutes. */
   spawnMap(n: number, pick: () => { x: number; y: number }, bossSpot: { x: number; y: number } | null) {
+    if (n === WILD) {   // the Deepwild: herds of game only, at the hero's level
+      this.stage = wildStage(S().level); this.pickSpot = pick; this.bossSpot = null;
+      for (let i = 0; i < 40; i++) { const p = pick(); this.spawn(GAME[i % 3 === 0 ? 1 : 0], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
+      return;
+    }
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot;
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
@@ -57,7 +64,7 @@ export class Combat {
   }
   /** bring a dead monster back somewhere else on the map */
   respawn(m: Mon) {
-    const delay = m.boss ? 300000 : m.animal ? 20000 : 8000 + Math.random() * 6000;
+    const delay = m.boss ? 300000 : m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000;
     this.s.time.delayedCall(delay, () => {
       if (!this.s.sys.isActive() || this.s.stageN !== this.stage?.n) return;
       const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
@@ -288,7 +295,16 @@ export class Combat {
     m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
     const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), kb = m.boss ? 1 : 6;
     m.x += Math.cos(a) * kb; m.y += Math.sin(a) * kb;
-    if (m.hp <= 0) this.kill(m);
+    if (m.hp <= 0) { this.kill(m); return; }
+    if (m.animal) {   // game never fights: it bolts a short way, and now and then kicks the hunter back (short stun)
+      m.fleeT = this.s.time.now + 1100;
+      const base = MONSTERS[m.m.kind];
+      if (Math.random() < (base.stun ?? 0.25) && Math.hypot(m.x - h.x, m.y - h.y) < 48 && this.s.time.now - m.last > 2500) {
+        m.last = this.s.time.now; m.dir = dirOf(h.x - m.x, h.y - m.y); m.atkT = this.s.time.now;
+        if (hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
+        this.s.time.delayedCall(160, () => { if (m.alive && !this.s.dead) this.s.stunHero(700, m.x, m.y); });
+      }
+    }
   }
 
   kill(m: Mon) {
@@ -342,20 +358,21 @@ export class Combat {
       const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
       // every creature is peaceful until the hero hits it (fleeing game never fights); it calms down when the hero gets far away
       if (m.hitT > 0 && dist > 320) m.hitT = 0;
-      const angry = m.hitT > 0 && !(m.animal && base.flee);
+      const angry = m.hitT > 0 && !m.animal;
       const aggro = !angry ? 0 : m.boss ? 260 : 130;
       let moving = false;
       if (!angry) {
         let tx = 0, ty = 0;
-        if (m.animal && base.flee && dist < 120) { tx = -dx / dist; ty = -dy / dist; }      // game runs from the hunter
+        const fleeing = m.animal && (m.fleeT ?? 0) > time;
+        if (fleeing) { tx = -dx / dist; ty = -dy / dist; }      // hit game bolts away for a moment (a bit slower than the hero)
         else { if (!m.wanderT || time > m.wanderT) { m.wanderT = time + 1500 + Math.random() * 2500; m.dir = Math.floor(Math.random() * 8); (m as Mon & { idle?: boolean }).idle = Math.random() < 0.5; }
           if (!(m as Mon & { idle?: boolean }).idle) { tx = Math.sin(m.dir * Math.PI / 4) * 0.35; ty = Math.cos(m.dir * Math.PI / 4) * 0.35; } }
         if (tx || ty) {
-          const sp = base.speed * 1.25 * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
-          // wander around their own spawn point (game that flees may go further)
-          const lim = m.animal && base.flee && dist < 120 ? 260 : m.boss ? 60 : 110;
-          if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < lim) m.x = nx; else if (!(m.animal && base.flee)) m.wanderT = 0;
-          if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < lim * 0.75) m.y = ny; else if (!(m.animal && base.flee)) m.wanderT = 0;
+          const sp = (fleeing ? Math.min(base.speed * 1.4, 84) : base.speed * 1.25) * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
+          // wander around their own spawn point (fleeing game may go a bit further)
+          const lim = fleeing ? 220 : m.boss ? 60 : 110;
+          if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < lim) m.x = nx; else if (!fleeing) m.wanderT = 0;
+          if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < lim * 0.75) m.y = ny; else if (!fleeing) m.wanderT = 0;
           m.dir = dirOf(tx, ty); moving = true;
         }
       }

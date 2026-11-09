@@ -29,7 +29,18 @@ ICONS = {
  'fang': 'a single sharp goblin fang',
  'scroll_return': 'a rolled parchment scroll glowing with a blue teleport rune', 'ration': 'a small burlap sack of travel rations with bread and dried meat',
  'tonic_atk': 'a small round flask of glowing red-orange strength tonic with a sword emblem', 'tonic_def': 'a small square flask of steel-blue defence tonic with a shield emblem',
- 'tonic_exp': 'a small star-shaped flask of shimmering golden experience tonic', 'essence': 'a floating pale blue spirit wisp essence', 'shard': 'a glowing purple mana crystal shard',
+ 'tonic_exp': 'a small star-shaped flask of shimmering golden experience tonic',
+
+ 'ore_iron': 'a chunk of raw grey iron ore with rusty streaks', 'ore_silver': 'a chunk of raw silver ore with pale shiny veins', 'ore_obsidian': 'a sharp shard of glossy black obsidian with an orange glow inside',
+ 'ore_frost': 'a cluster of pale blue frost crystals', 'ore_mithril': 'a chunk of glowing teal mithril ore',
+ 'gem_emerald': 'a brilliant faceted forest emerald glowing green with a leaf inside', 'gem_soul': 'a ghostly violet soul crystal with a faint wailing face inside',
+ 'gem_magma': 'a pulsing magma heart stone, black crust cracked with molten orange', 'gem_frosttear': 'a teardrop shaped diamond of frozen ice glowing icy white-blue',
+ 'gem_crown': 'a jagged shard of a rusted iron crown glowing with purple curse light',
+ 'elix_iron': 'a sturdy iron-capped vial of grey-red strength potion', 'elix_silver': 'a slender silver vial of glittering white crit potion', 'elix_obsidian': 'a heavy black glass flask of dark orange defence potion',
+ 'elix_frost': 'a frosty pale blue vial of swift potion with snowflakes', 'elix_mithril': 'a teal glowing mithril-capped vial of vitality potion',
+ 'elix_emerald': 'a glowing emerald green ornate potion flask with leaf engraving and golden cap', 'elix_soul': 'a ghostly violet soul potion bottle with a skull stopper and swirling spirits',
+ 'elix_magma': 'a blazing red-orange magma potion flask with molten glow and obsidian cap', 'elix_frosttear': 'an icy crystal teardrop shaped potion bottle glowing pale cyan',
+ 'elix_god': 'a radiant ornate crystal elixir bottle with a golden crown stopper and swirling rainbow light', 'essence': 'a floating pale blue spirit wisp essence', 'shard': 'a glowing purple mana crystal shard',
 }
 def run(k):
     out = os.path.join(RAW, k + '.png')

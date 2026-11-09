@@ -1,6 +1,7 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import Phaser from 'phaser';
+import { activeElixir } from '../systems/alchemy';
 import { UIKit } from '../ui/kit';
 import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
@@ -257,7 +258,7 @@ export class TdUIScene extends Phaser.Scene {
       const f = this.portrait.frame, ch = Math.round(f.height * 0.55);
       this.portrait.setCrop(0, Math.round(f.height * 0.12), f.width, ch).setScale(32 / ch).setOrigin(0.5, 0.36);
     }
-    this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}`);
+    { const el = activeElixir(s); this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}` + (el ? `  ✨${el.name} ${Math.ceil((el.until - Date.now()) / 60000)} นาที` : '')); }
     this.formBtn.setVisible(nextForm(s) !== null && !this.panels.isOpen);
     if (this.autoBg) {
       const on = !!s.auto, w = 54, h2 = 22;
