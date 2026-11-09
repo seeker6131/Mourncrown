@@ -1497,11 +1497,15 @@
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 57
+"foot": 58
 },
 "walk": {
 "fs": 48,

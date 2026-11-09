@@ -203,7 +203,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "bs1": {
   "cid": "8a209fd4-3eea-41bb-bcdd-56d83be85f18",
