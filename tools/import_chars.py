@@ -19,8 +19,11 @@ def frames_of(z):
     names = z.namelist(); load = lambda n: Image.open(io.BytesIO(z.read(n))).convert('RGBA')
     rot = {d: load(n) for d in DIRS for n in names if n.endswith(f'rotations/{d}.png')}
     anims = {}
+    folders = {m.group(1) for n in names for m in [re.search(r'animations/([^/]+)/', n)] if m}
     for n in names:
         m = re.search(r'animations/([^/]+)/([a-z-]+)/frame_(\d+)\.png$', n)
+        # the skeleton-template 'walking' (8 directions, real leg motion) replaces the old text-made 'walk'
+        if m and m.group(1) == 'walk' and 'walking' in folders: continue
         if m: anims.setdefault(norm(m.group(1)), {}).setdefault(m.group(2), []).append((int(m.group(3)), n))
     return rot, {a: {d: [load(n) for _, n in sorted(v)] for d, v in dd.items()} for a, dd in anims.items()}, load
 

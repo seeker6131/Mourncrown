@@ -210,7 +210,8 @@ export class TopDownScene extends Phaser.Scene {
 
     this.addOverlay();
     // UI lives on its own unzoomed camera
-    const ui = [this.vignette, this.label, this.joyG = this.add.graphics()];
+    const ui = [this.vignette, this.label, this.joyG = this.add.graphics(), this.arrowG = this.add.graphics().setDepth(100003),
+      this.arrowT = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: Math.round(this.scale.height / 34) + 'px', color: '#fff4c8', stroke: '#0b0f0c', strokeThickness: 4 }).setOrigin(0.5).setDepth(100003)];
     const uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     uiCam.ignore(this.children.list.filter(o => !ui.includes(o as never)));
     this.uiCam = uiCam;
@@ -622,6 +623,46 @@ export class TopDownScene extends Phaser.Scene {
       this.tweens.add({ targets: sp, y: sp.y - 30 - Math.random() * 20, alpha: 0, duration: 800 + Math.random() * 500, onComplete: () => sp.destroy() });
     }
   }
+  arrowG!: Phaser.GameObjects.Graphics; arrowT!: Phaser.GameObjects.Text;
+  /** Guide arrow to the portal you should take: the stage gate in the village, the next-stage gate in a stage
+   *  (before the stage is cleared it points to where that gate will open). On screen it bobs above the gate,
+   *  off screen it sits on the screen edge pointing the way. */
+  updateGuide(time: number) {
+    const g = this.arrowG, t = this.arrowT; g.clear(); t.setVisible(false);
+    if (this.dead || this.selectUi || this.ui?.panels.isOpen) return;
+    let tx: number, ty: number, label: string;
+    const next = this.portals.find(p => p.to !== 0);
+    if (next) { tx = next.x; ty = next.y; label = typeof next.to === 'number' ? `ด่าน ${next.to}` : 'ประตูด่าน'; }
+    else if (this.stageN) { tx = MW - 30; ty = MH / 2 + Math.sin((MW - 30) / 170 + this.stageN) * 120 + Math.sin((MW - 30) / 61) * 22; label = '🔒 ประตูถัดไป'; }
+    else return;
+    const cam = this.cameras.main, z = cam.zoom, W = this.scale.width, H = this.scale.height;
+    const sx = (tx - cam.worldView.x) * z, sy = (ty - cam.worldView.y) * z;
+    const dist = Math.round(Math.hypot(tx - this.hero.x, ty - this.hero.y) / 16);
+    const sz = H / 22, bob = Math.sin(time / 180) * sz * 0.25;
+    const col = 0xffd24a;
+    const m = sz * 2.2;
+    if (sx > m && sx < W - m && sy > m && sy < H - m) {
+      // on screen: a bouncing arrow pointing down at the gate
+      const ax = sx, ay = sy - sz * 3.2 + bob;
+      g.fillStyle(0x0b0f0c, 0.6).fillTriangle(ax - sz * 0.75, ay - sz * 0.5 + 2, ax + sz * 0.75, ay - sz * 0.5 + 2, ax, ay + sz * 0.7 + 2);
+      g.fillStyle(col, 1).fillTriangle(ax - sz * 0.7, ay - sz * 0.5, ax + sz * 0.7, ay - sz * 0.5, ax, ay + sz * 0.6);
+      t.setText(label).setPosition(ax, ay - sz * 1.3).setVisible(true);
+      return;
+    }
+    // off screen: arrow on the screen edge in the direction of the gate
+    const cx = W / 2, cy = H / 2, a = Math.atan2(sy - cy, sx - cx);
+    const top = H * 0.2;   // stay clear of the HUD strip
+    const k = Math.min((W / 2 - m) / Math.max(1e-6, Math.abs(Math.cos(a))), ((Math.sin(a) < 0 ? H / 2 - top : H / 2 - m)) / Math.max(1e-6, Math.abs(Math.sin(a))));
+    const ax = cx + Math.cos(a) * (k + bob * 0.6), ay = cy + Math.sin(a) * (k + bob * 0.6);
+    const pt = (r: number, da: number) => [ax + Math.cos(a + da) * r, ay + Math.sin(a + da) * r] as const;
+    const [x1, y1] = pt(sz, 0), [x2, y2] = pt(sz * 0.8, 2.4), [x3, y3] = pt(sz * 0.8, -2.4);
+    g.fillStyle(0x0b0f0c, 0.6).fillCircle(ax, ay, sz * 1.05);
+    g.fillStyle(col, 1).fillTriangle(x1, y1, x2, y2, x3, y3);
+    t.setText(`${label} ${dist} ก้าว`);
+    const hw = t.width / 2 + 8;
+    const lx = Phaser.Math.Clamp(ax - Math.cos(a) * (sz * 1.6 + hw * Math.abs(Math.cos(a))), hw, W - hw), ly = Phaser.Math.Clamp(ay - Math.sin(a) * sz * 1.9, top, H - sz * 1.5);
+    t.setPosition(lx, ly).setVisible(true);
+  }
   heroKeyNow = '';
   lastLevel = 0;
 
@@ -798,7 +839,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
-    this.updatePlots(time); this.updateAction(time);
+    this.updatePlots(time); this.updateAction(time); this.updateGuide(time);
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;
     if (k && !this.ui?.panels.isOpen) { mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0); my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0); }
