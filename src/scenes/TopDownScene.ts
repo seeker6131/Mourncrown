@@ -719,12 +719,13 @@ export class TopDownScene extends Phaser.Scene {
   contact(x: number, y: number, w: number, h: number, alpha = 0.45) {
     return this.add.image(x, y, 'td_shadow').setDisplaySize(w, h).setAlpha(alpha).setDepth(1);
   }
-  casts: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; live: boolean }[] = [];
+  casts: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; live: boolean; cut?: number }[] = [];
   /** dark silhouette of the object laid on the ground, pointing away from the sun (updated by updateDayNight) */
   /** dark silhouette of the object laid on the ground to the south (fixed light, see placeShadow) */
-  castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live = false) {
+  /** cut = source pixels above the foot left out of the shadow (trees: roots + trunk, so only the canopy throws a shadow) */
+  castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live = false, cut = 0) {
     const sh = this.add.image(src.x, src.y, src.texture.key, src.frame.name).setOrigin(src.originX, src.originY).setTintFill(0x050a08).setAlpha(0).setDepth(1.3);
-    this.casts.push({ src, sh, live });
+    this.casts.push({ src, sh, live, cut });
     return sh;
   }
 
@@ -738,14 +739,33 @@ export class TopDownScene extends Phaser.Scene {
     if (time - this.dayT > 400) { this.dayT = time; for (const c of this.casts) if (!c.live) this.placeShadow(c); }
     for (const c of this.casts) if (c.live) this.placeShadow(c);
   }
-  placeShadow(c: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image }) {
-    const { src, sh } = c;
+  /** black canopy silhouette of a tree with its cut edge faded out (made once per tree picture) */
+  canopyShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, cut: number) {
+    const f = src.frame, key = `shd_${src.texture.key}_${cut}`;
+    if (this.textures.exists(key)) return key;
+    const h = Math.max(1, Math.round(src.originY * f.height - cut)), cv = document.createElement('canvas'); cv.width = f.width; cv.height = h;
+    const k = cv.getContext('2d')!, img = f.source.image as CanvasImageSource;
+    k.drawImage(img, f.cutX, f.cutY, f.width, h, 0, 0, f.width, h);
+    k.globalCompositeOperation = 'source-in'; k.fillStyle = '#050a08'; k.fillRect(0, 0, f.width, h);
+    const g = k.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.6, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    k.globalCompositeOperation = 'destination-in'; k.fillStyle = g; k.fillRect(0, 0, f.width, h);
+    this.textures.addCanvas(key, cv);
+    return key;
+  }
+  placeShadow(c: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; cut?: number }) {
+    const { src, sh } = c, cut = c.cut ?? 0;
     if (!src.active) { sh.setVisible(false); return; }
-    if (sh.texture.key !== src.texture.key || sh.frame.name !== src.frame.name) sh.setTexture(src.texture.key, src.frame.name);
+    if (!cut && (sh.texture.key !== src.texture.key || sh.frame.name !== src.frame.name)) sh.setTexture(src.texture.key, src.frame.name);
     // a short shadow lying flat to the south that starts a little UNDER the base, so it is glued to the object (no gap)
     sh.setPosition(src.x, src.y - 4 * src.scaleY).setOrigin(src.originX, src.originY).setFlipX(!src.flipX)
       .setRotation(this.sunAng + Math.PI / 2).setScale(src.scaleX, src.scaleY * this.sunLen * 0.4)
       .setAlpha(this.shAlpha * src.alpha).setVisible(src.visible && this.shAlpha > 0.01);
+    if (cut) {
+      // trees: the canopy silhouette only (no roots / trunk), fading in from the tree's foot, lying close to the south
+      const tk = this.canopyShadow(src, cut);
+      sh.setTexture(tk).setRotation(0).setFlipY(true).setFlipX(src.flipX).setOrigin(src.originX, 0).setScale(src.scaleX, src.scaleY * 0.34);
+      sh.y = src.y - 3 * src.scaleY;
+    }
   }
 
   /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
@@ -758,7 +778,8 @@ export class TopDownScene extends Phaser.Scene {
       // soft contact shadow as wide as the object, and (village) a cast shadow that follows the sun / moon
       const ow = (m.x1 - m.x0) * sc;
       this.contact(x, y - 1, Math.max(10, ow * 0.95), Math.max(6, Math.min(ow * 0.32, (fd + 6) * 1.6)), 0.45);
-      if ((m.foot - m.top) * sc > 24) this.castShadow(im);
+      const tree = /^(oak|pine|dead|jtree|palm)_/.test(name);
+      if ((m.foot - m.top) * sc > 24) this.castShadow(im, false, tree ? Math.round((m.foot - m.top) * 0.38) : 0);
     }
     for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
     if (m.chim) this.smoke(Math.round(x) - m.w / 2 * sc + m.chim[0] * sc, Math.round(y) - m.foot * sc + m.chim[1] * sc);
