@@ -697,7 +697,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "bs3": {
   "cid": "0ceec01e-5ac4-41de-aded-58071611c0e0",
@@ -717,7 +718,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "attack8": 8
  },
  "bs4": {
   "cid": "c16fbed6-6a62-4353-aab6-fc1ac7ad821b",
