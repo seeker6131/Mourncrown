@@ -151,8 +151,24 @@ export class Vfx {
     this.s.time.delayedCall(ms + 800, () => em.destroy());
   }
   /** glowing projectile flying to (tx,ty) with a particle trail; calls hit() on arrival */
-  bolt(x: number, y: number, tx: number, ty: number, col: number, size = 1, speed = 520, hit?: () => void, arrow = false) {
+  /** PixelLab effect sprite (px_fx_*): pops / grows and fades. Returns null when the art isn't loaded (procedural fx still play). */
+  art(key: string, x: number, y: number, o: { rot?: number; s0?: number; s1?: number; sy?: number; a0?: number; a1?: number; dur?: number; tint?: number; add?: boolean; ox?: number; oy?: number; depth?: number; spin?: number; delay?: number } = {}) {
+    if (!this.s.textures.exists(key)) return null;
+    const im = this.s.add.image(x, y, key).setOrigin(o.ox ?? 0.5, o.oy ?? 0.5).setRotation(o.rot ?? 0).setScale(o.s0 ?? 0.5, (o.s0 ?? 0.5) * (o.sy ?? 1)).setAlpha(o.a0 ?? 1).setDepth(o.depth ?? D + 1);
+    if (o.add !== false) im.setBlendMode(Phaser.BlendModes.ADD);
+    if (o.tint !== undefined) im.setTint(o.tint);
+    const s1 = o.s1 ?? (o.s0 ?? 0.5) * 1.4;
+    // grows fast (ease out) but stays bright and fades late (ease in) so the art reads on screen
+    this.s.tweens.add({ targets: im, scaleX: s1, scaleY: s1 * (o.sy ?? 1), angle: im.angle + (o.spin ?? 0), duration: o.dur ?? 380, delay: o.delay ?? 0, ease: 'Cubic.easeOut' });
+    this.s.tweens.add({ targets: im, alpha: o.a1 ?? 0, duration: o.dur ?? 380, delay: o.delay ?? 0, ease: 'Quad.easeIn', onComplete: () => im.destroy() });
+    return im;
+  }
+  bolt(x: number, y: number, tx: number, ty: number, col: number, size = 1, speed = 520, hit?: () => void, arrow = false, artKey?: string) {
     const ang = Math.atan2(ty - y, tx - x), dist = Math.hypot(tx - x, ty - y), dur = Math.max(80, dist / speed * 1000);
+    // projectile art (fireball / ice spike) flies with the bolt, pointing along its path
+    const AROT: Record<string, number> = { px_fx_fireball: -2.6, px_fx_icespike: 0.79 };
+    const pic = artKey && this.s.textures.exists(artKey) ? this.s.add.image(x, y, artKey).setRotation(ang + (AROT[artKey] ?? 0)).setScale(0.5 * size).setDepth(D + 4) : null;
+    if (pic) this.s.tweens.add({ targets: pic, x: tx, y: ty, duration: dur, ease: 'Quad.easeIn', onComplete: () => pic.destroy() });
     const head = arrow
       ? this.s.add.rectangle(x, y, 14 * size, 2.5 * size, lighten(col, 0.7)).setRotation(ang)
       : this.s.add.image(x, y, 'vfx_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(0.5 * size);

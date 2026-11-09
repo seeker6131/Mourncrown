@@ -62,7 +62,7 @@ function roar(ch: Ch, at: number, dur: number, vol = 0.45) {
 }
 
 /** colour of the skill -> element */
-function element(sk: SkillDef): 'fire' | 'ice' | 'holy' | 'storm' | 'dark' | 'steel' {
+export function element(sk: SkillDef): 'fire' | 'ice' | 'holy' | 'storm' | 'dark' | 'steel' {
   const c = sk.color ?? 0xffffff, r = c >> 16, g = (c >> 8) & 255, b = c & 255;
   if (sk.proj === 'dark') return 'dark';
   if (sk.fall === 'bolt' || /thunder|bolt|storm/.test(sk.id)) return 'storm';

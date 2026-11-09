@@ -37,6 +37,7 @@ import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, formKeyOf } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
+const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OM = objMeta as unknown as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number; chim?: [number, number] }>;
 import tl1Wang from '../assets/td/tl1_wang.png';
@@ -176,6 +177,7 @@ export class TopDownScene extends Phaser.Scene {
   constructor() { super('TopDown'); }
 
   preload() {
+    for (const [p, u] of Object.entries(VFX_FILES)) this.load.image('px_' + p.split('/').pop()!.replace('.png', ''), u);   // PixelLab skill effects
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
     // only the characters this scene shows: hero forms always; villagers + animals in the village;

@@ -8,6 +8,7 @@ import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
 import { act, refused } from '../net/client';
 import { sfx } from '../audio/sfx';
+import { element } from '../audio/skillSfx';
 import { SETS } from '../data/sets';
 import { Vfx } from './vfx';
 import { slashFx } from '../systems/premium';
@@ -220,19 +221,26 @@ export class Combat {
     if (near) this.s.dir = dirOf(fx, fy);
     this.float(h.x, h.y - 56, sk.name, '#' + col.toString(16).padStart(6, '0'), 10);
     const times = (n: number, gap: number, f: (i: number) => void) => { for (let i = 0; i < n; i++) this.s.time.delayedCall(i * gap, () => f(i)); };
+    // PixelLab effect art layered over the procedural effects
+    const el = element(sk), V = this.vfx;
+    const blastKey = el === 'fire' ? 'px_fx_blast_fire' : el === 'dark' ? 'px_fx_blast_arcane' : 'px_fx_blast_w';
+    const blastTint = el === 'fire' || el === 'dark' ? undefined : col;
+    const circle = (x: number, y: number, size: number, dur = 600) => V.art('px_fx_circle_w', x, y, { s0: size * 0.35, s1: size, sy: 0.55, a0: 0.95, tint: col, dur, depth: y - 2, spin: 60 });
+    const blast = (x: number, y: number, size: number, delay = 0) => V.art(blastKey, x, y, { s0: size * 0.3, s1: size, a0: 1, dur: 420, tint: blastTint, delay });
+    const slashArt = (x: number, y: number, a: number, size: number, flip = false) => V.art('px_fx_slash', x, y, { rot: a - Math.PI / 2 + (flip ? Math.PI : 0), s0: size * 0.7, s1: size * 1.1, a0: 1, dur: 360, tint: col });
     switch (sk.kind) {
       case 'strike': {
         const n = sk.count ?? 1;
         times(n, 170, i => {
           const cx = h.x + fx * 20, cy = h.y - 10 + fy * 14;
-          this.vfx.slash(cx, cy, aim, col, 1.5, i % 2 === 1); this.vfx.impact(cx + fx * 10, cy + fy * 6, col, true);
+          this.vfx.slash(cx, cy, aim, col, 1.5, i % 2 === 1); this.vfx.impact(cx + fx * 10, cy + fy * 6, col, true); slashArt(cx, cy, aim, 0.55, i % 2 === 1);
           if (sk.id === 't2_slam' || sk.id === 's2_cleave') { this.vfx.debris(cx, cy + 10, col, 10); this.vfx.dust(cx, cy + 10, 6); }
           for (const m of this.alive()) if (Math.hypot(m.x - cx, m.y - (cy + 10)) < 34 + m.m.size * 0.25) this.hitSk(m, sk, sk.id === 't2_slam' ? 22 : 6);
         }); break;
       }
       case 'spin': {
         const n = sk.count ?? 2, r = sk.radius ?? 48;
-        times(n, 220, i => { this.ring(h.x, h.y, r, col, 300); for (let k = 0; k < 4; k++) this.vfx.slash(h.x, h.y - 10, k * Math.PI / 2 + i * 0.8, col, 1.25); this.vfx.burst(h.x, h.y - 10, col, 16, 160, 420); this.vfx.dust(h.x, h.y, 6, 40); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
+        times(n, 220, i => { this.ring(h.x, h.y, r, col, 300); circle(h.x, h.y, r / 70, 380); for (let k = 0; k < 2; k++) V.art('px_fx_slash', h.x, h.y - 10, { rot: k * Math.PI + i, s0: r / 90, s1: r / 70, a0: 1, dur: 300, tint: col, spin: 200 }); for (let k = 0; k < 4; k++) this.vfx.slash(h.x, h.y - 10, k * Math.PI / 2 + i * 0.8, col, 1.25); this.vfx.burst(h.x, h.y - 10, col, 16, 160, 420); this.vfx.dust(h.x, h.y, 6, 40); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
         break;
       }
       case 'dash': {
@@ -244,7 +252,8 @@ export class Combat {
           for (const m of this.alive()) if (!hitSet.has(m) && Math.hypot(m.x - h.x, m.y - h.y) < 22 + m.m.size * 0.25) { hitSet.add(m); this.hitSk(m, sk, 18); }
         } });
         this.vfx.dust(x0, y0, 10, 40); this.vfx.glow(x0, y0 - 10, col, 1.2, 300);
-        this.s.time.delayedCall(200, () => { this.vfx.impact(h.x, h.y - 10, col, true); this.vfx.dust(h.x, h.y, 8, 30); });
+        this.s.time.delayedCall(200, () => { this.vfx.impact(h.x, h.y - 10, col, true); this.vfx.dust(h.x, h.y, 8, 30); blast(h.x, h.y - 8, 0.55); });
+        slashArt(x0 + fx * 50, y0 - 10 + fy * 30, aim, 0.8);
         break;
       }
       case 'leap': {
@@ -253,7 +262,7 @@ export class Combat {
         this.s.tweens.add({ targets: h, x: tgt.x, y: tgt.y, duration: 320, ease: 'Sine.easeInOut' });
         this.s.tweens.add({ targets: h, scale: 1.25, duration: 160, yoyo: true });
         this.vfx.glow(h.x, h.y - 10, col, 1, 300);
-        this.s.time.delayedCall(330, () => { this.vfx.pillar(h.x, h.y, col, 170, 650); this.vfx.wave(h.x, h.y, r * 1.2, col, 520); this.vfx.wave(h.x, h.y, r * 0.7, 0xffffff, 380); this.vfx.glow(h.x, h.y - 8, col, 2.4, 420); this.vfx.debris(h.x, h.y, col, 18); this.vfx.dust(h.x, h.y, 12, 50); this.vfx.burst(h.x, h.y - 8, col, 24, 200, 520);
+        this.s.time.delayedCall(330, () => { circle(h.x, h.y, r / 55, 700); blast(h.x, h.y - 6, r / 60); this.vfx.pillar(h.x, h.y, col, 170, 650); this.vfx.wave(h.x, h.y, r * 1.2, col, 520); this.vfx.wave(h.x, h.y, r * 0.7, 0xffffff, 380); this.vfx.glow(h.x, h.y - 8, col, 2.4, 420); this.vfx.debris(h.x, h.y, col, 18); this.vfx.dust(h.x, h.y, 12, 50); this.vfx.burst(h.x, h.y - 8, col, 24, 200, 520);
           for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 16); });
         break;
       }
@@ -271,7 +280,10 @@ export class Combat {
           const tx = sx + Math.cos(a) * stopT, ty = sy + Math.sin(a) * stopT;
           const big = sk.proj === 'fire' || sk.id === 'm2_fire';
           if (i === 0) this.vfx.glow(sx, sy, col, magic ? 1 : 0.6, 220);
+          const proj = el === 'fire' ? 'px_fx_fireball' : el === 'ice' ? 'px_fx_icespike' : undefined;
+          if (magic && i === 0) circle(h.x, h.y, 0.5, 450);
           this.vfx.bolt(sx, sy, tx, ty, col, big ? 1.8 : pierce ? 1.3 : magic ? 1.1 : 1, pierce ? 700 : 560, () => {
+            if (magic || big) blast(tx, ty, big ? 0.9 : 0.4);
             if (big) {
               this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, sk.radius ?? 40, col, 420); this.vfx.burst(tx, ty, 0xffb040, 26, 200, 600, 0.22, 120);
               for (const m of this.alive()) if (Math.hypot(m.x - tx, m.y - m.m.size * 0.35 - ty) < (sk.radius ?? 40)) this.hitSk(m, sk, 10);
@@ -279,7 +291,7 @@ export class Combat {
               this.vfx.impact(tx, ty, col, pierce);
               for (const o of hits) { this.hitSk(o.m, sk, pierce ? 4 : 6); if (pierce) this.vfx.impact(o.m.x, o.m.y - o.m.m.size * 0.35, col); }
             }
-          }, !magic && sk.proj !== 'orb' && sk.proj !== 'dark' && !big);
+          }, !magic && sk.proj !== 'orb' && sk.proj !== 'dark' && !big, magic || big ? proj : undefined);
           if (pierce) { const ln = this.s.add.image(sx, sy, 'vfx_beam').setOrigin(0.5, 1).setRotation(a + Math.PI / 2).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99950).setScale(0.6, stopT / 128).setAlpha(0.8); this.s.tweens.add({ targets: ln, alpha: 0, scaleX: 0.1, duration: 380, onComplete: () => ln.destroy() }); }
         });
         break;
@@ -294,20 +306,23 @@ export class Combat {
             const g = this.s.add.graphics().setDepth(99951).setBlendMode(Phaser.BlendModes.ADD);
             for (const [w, a2] of [[5, 0.35], [2, 1]] as const) { g.lineStyle(w, w > 2 ? col : 0xffffff, a2).beginPath().moveTo(tx, ty - 160); let px = tx; for (let k = 1; k <= 8; k++) { px = tx + (Math.random() - 0.5) * 22; g.lineTo(px, ty - 160 + k * 20); } g.strokePath(); }
             this.s.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() });
-            this.vfx.impact(tx, ty, col, true); this.vfx.glow(tx, ty - 40, col, 1.6, 260); this.hitSk(m, sk, 4); return;
+            this.vfx.impact(tx, ty, col, true); this.vfx.glow(tx, ty - 40, col, 1.6, 260); V.art('px_fx_lightning', tx, ty + 10, { oy: 1, s0: 1.2, s1: 1.4, a0: 1, dur: 480 }); this.hitSk(m, sk, 4); return;
           }
           const meteor = fall === 'meteor';
           this.vfx.bolt(tx - 40, ty - 160, tx, ty, col, meteor ? 2.2 : fall === 'blade' ? 1.3 : 1, meteor ? 520 : 800, () => {
+            if (meteor) V.art('px_fx_blast_fire', tx, ty, { s0: 0.4, s1: 1.1, dur: 460 });
+            if (fall === 'blade') slashArt(tx, ty, Math.PI / 2, 0.45);
             if (meteor) { this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, 42, col, 460); this.vfx.debris(tx, ty + 6, col, 14); this.vfx.burst(tx, ty, 0xffa040, 22, 190, 560, 0.22, 140); }
             else { this.vfx.impact(tx, ty, col, fall === 'blade'); this.vfx.wave(tx, ty + 6, 16, col, 280); }
             this.hitSk(m, sk, 4);
-          }, fall === 'arrow');
+          }, fall === 'arrow', meteor ? 'px_fx_fireball' : undefined);
         }));
         if (!tg.length) this.float(h.x, h.y - 40, 'ไม่มีเป้าหมาย', '#cfcfcf', 8);
         break;
       }
       case 'nova': {
         const r = sk.radius ?? 64;
+        circle(h.x, h.y, r / 45, 650); blast(h.x, h.y - 8, r / 55);
         this.vfx.wave(h.x, h.y, r * 1.15, col, 520); this.vfx.wave(h.x, h.y, r * 0.75, 0xffffff, 380); this.vfx.glow(h.x, h.y - 10, col, r / 22, 460); this.vfx.burst(h.x, h.y - 10, col, 34, r * 3.2, 600, 0.2);
         if (sk.id === 't3_quake') { this.vfx.debris(h.x, h.y, col, 20); this.vfx.dust(h.x, h.y, 14, 60); }
         if (sk.id === 'a3_trap') this.vfx.burst(h.x, h.y, 0x6ad86a, 20, 120, 700, 0.16, -60);
@@ -319,6 +334,7 @@ export class Combat {
       case 'buff': case 'heal': case 'shield': {
         const r = selfEffect(s, sk);
         this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
+        circle(h.x, h.y, 0.75, 900); V.art('px_fx_pillar', h.x, h.y + 4, { oy: 1, s0: 0.6, s1: 1.1, sy: 1.4, a0: 1, dur: 800, tint: sk.kind === 'shield' ? undefined : col });
         this.vfx.pillar(h.x, h.y, col, sk.kind === 'buff' ? 150 : 110, 600); this.vfx.glow(h.x, h.y - 16, col, 1.4, 400); this.vfx.wave(h.x, h.y, 36, col, 500);
         if (r.heal !== undefined) this.float(h.x, h.y - 40, `+${r.heal}`, '#7aff8a', 12);
         if (r.shield) {
