@@ -320,18 +320,20 @@ export class Panels {
   buildPlot(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const b = buildingAt(s, this.plot);
-    const W = Math.min(560, ui.VW - 20), H = 300;
-    const { x, y, g } = this.window(c, W, H, b ? `${BUILDINGS[b.type as BuildingId].name}  Lv ${b.level}` : `ที่ดินแปลง ${this.plot + 1} — เลือกสิ่งก่อสร้าง`);
+    const only = (ui as unknown as { plotChoices?: (p: number) => string[] }).plotChoices?.(this.plot) ?? [];
+    const single = !b && only.length === 1;
+    const W = single ? 240 : Math.min(560, ui.VW - 20), H = single ? 230 : 300;
+    const { x, y, g } = this.window(c, W, H, b ? `${BUILDINGS[b.type as BuildingId].name}  Lv ${b.level}` : single ? `สร้าง${BUILDINGS[only[0] as BuildingId].name}` : `ที่ดินแปลง ${this.plot + 1} — เลือกสิ่งก่อสร้าง`);
     const top = y + 34;
     if (!b) {
-      const ids = Object.keys(BUILDINGS) as BuildingId[];
-      const cols = 5, rows = Math.ceil(ids.length / cols);
+      const ids = (only.length ? only : Object.keys(BUILDINGS).filter(i => i !== 'home')) as BuildingId[];
+      const cols = single ? 1 : 5, rows = Math.ceil(ids.length / cols);
       const cw = (W - 28 - (cols - 1) * 5) / cols, ch = (H - 44 - (rows - 1) * 5) / rows;
       ids.forEach((id, i) => {
         const d = BUILDINGS[id], cx = x + 14 + (i % cols) * (cw + 5), cy = top + Math.floor(i / cols) * (ch + 5);
         const have = s.buildings.some(q => q.type === id);
         g.fillStyle(have ? 0x1a140e : 0x2a1d12, 0.92).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(cx, cy, cw, ch, 4);
-        const art = ui.textures.exists(`o_${id}_0`) ? `o_${id}_0` : `ai_bld_${id}_1`;   // top-down art when available
+        const tk = `o_${id === 'home' ? 'house' : id}_0`, art = ui.textures.exists(tk) ? tk : `ai_bld_${id}_1`;   // top-down art when available
         if (ui.textures.exists(art)) { const im = ui.add.image(cx + cw - 4, cy + 4, art).setOrigin(1, 0); const sc = Math.min(40 / im.width, 34 / im.height); im.setScale(sc).setAlpha(have ? 0.4 : 1); c.add(im); }
         c.add(k.text(cx + 5, cy + 4, `${d.icon} ${d.name}`, 9.5, have ? '#8a7a60' : '#ffd84a'));
         c.add(k.text(cx + 5, cy + 20, d.effect(1), 7, '#9ad8ff', { wordWrap: { width: cw - 50 } }));

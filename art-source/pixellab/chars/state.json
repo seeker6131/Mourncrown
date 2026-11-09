@@ -216,20 +216,54 @@
   "walk": "done",
   "attack": "done",
   "zip": 1,
-  "walk8group": "5eb8f23b-c1ad-4fff-9f0e-5fbfb32562d2"
+  "walk8group": "5eb8f23b-c1ad-4fff-9f0e-5fbfb32562d2",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo8": {
   "cid": "a344310e-af25-48f4-9525-4f91e5f2a050",
   "walk": "done",
   "attack": "done",
   "zip": 1,
-  "walk8group": "138137c9-dbce-4a90-9084-a6e02e275c6d"
+  "walk8group": "138137c9-dbce-4a90-9084-a6e02e275c6d",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo9": {
   "cid": "2682448a-1d9a-48a5-bc48-c442fffb2249",
   "walk": "done",
   "attack": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "b810c4f0-a6d9-4b7c-9835-c32766c221a8",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "mo10": {
   "cid": "1d20def0-85f2-4fb5-ab2f-460897b3ee16",
@@ -607,26 +641,75 @@
  "an1": {
   "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e",
   "walk": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "be0af87d-8056-48cb-842b-8d291b4a0f79",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "an2": {
   "cid": "3abddde1-e74d-4bdb-a862-5600d76ac240",
   "walk": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "9f71e92e-40c1-4dc1-be90-469c25d938bc",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "an3": {
   "cid": "4f9e285e-4480-4b50-82e4-daccc419a5cf",
   "walk": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "96130533-b586-4a35-bcc2-e0c0888f7747",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "an4": {
   "cid": "e3ce156c-0dd1-4d8c-bacf-02f8a29ee939",
   "walk": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "c7f1c956-aae4-4362-82a3-40f167dd5ddc",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "an5": {
   "cid": "155d3783-4d98-4930-a821-dc8bec2b1cde",
   "walk": "done",
-  "zip": 1
+  "zip": 1,
+  "walk8group": "e76e9da2-75f0-4c5b-b994-c294559214a1"
  }
 }

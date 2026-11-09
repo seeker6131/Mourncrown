@@ -13,7 +13,7 @@ import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm } from '../systems/stats';
 import { formName, type ClassId } from '../data/classes';
 import { bus, EV } from '../core/events';
-import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction } from '../systems/settlement';
+import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim } from '../world/chars';
@@ -42,14 +42,14 @@ export function formKeyOf(cls: ClassId, tier: number) {
   return CH[k] ? k : 'hero';
 }
 
-/** Building plots in the village (index = save plot number). Plots unlock as stages are cleared. */
+/** Village plots (index = save plot number). 0-8 are the NPCs' buildings, standing from the start; 9 is the player's home. */
 const PLOTS: { x: number; y: number }[] = [
-  { x: 722, y: 650 }, { x: 300, y: 660 }, { x: 150, y: 330 },      // open from the start
-  { x: 702, y: 322 }, { x: 1100, y: 600 }, { x: 120, y: 650 },    // after the stage-10 boss
-  { x: 440, y: 880 }, { x: 790, y: 880 }, { x: 1130, y: 900 },    // after the stage-30 boss (new south district)
+  { x: 722, y: 650 }, { x: 300, y: 660 }, { x: 150, y: 330 }, { x: 702, y: 322 }, { x: 1100, y: 600 }, { x: 120, y: 650 },
+  { x: 440, y: 880 }, { x: 790, y: 880 }, { x: 1000, y: 800 },
+  { x: 1150, y: 935 },
 ];
-const plotsOpen = (cleared: number) => 3 + (cleared >= 10 ? 3 : 0) + (cleared >= 30 ? 3 : 0);
-const plotNeed = (i: number) => i < 3 ? 0 : i < 6 ? 10 : 30;
+const PLOT_OF: Record<string, number> = { forge: 0, barn: 1, lumber: 2, tavern: 3, kitchen: 4, market: 5, warehouse: 6, quarry: 7, tower: 8 };
+export const HOME_PLOT = 9;
 /** building art level: 3 art stages over 5 building levels */
 const artLv = (lv: number) => lv >= 5 ? 2 : lv >= 3 ? 1 : 0;
 
@@ -198,7 +198,7 @@ export class TopDownScene extends Phaser.Scene {
     this.village = this.stageN ? undefined : new Village(this, MW, MH);
     if (this.village) populateVillage(this.village, roadY);
     this.plotViews = []; this.heroKeyNow = this.F.key;
-    if (!this.stageN) this.renderPlots();
+    if (!this.stageN) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
     if (!this.stageN) this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูด่าน ▲');
@@ -670,8 +670,7 @@ export class TopDownScene extends Phaser.Scene {
   plotViews: { key: string; objs: Phaser.GameObjects.GameObject[]; bubble?: Phaser.GameObjects.Container }[] = [];
   settleT = 0; actT = 0;
   plotKey(i: number) {
-    const s = S(), cleared = (s as unknown as { tdCleared?: number }).tdCleared ?? 0;
-    if (i >= plotsOpen(cleared)) return 'locked';
+    const s = S();
     const b = buildingAt(s, i);
     return b ? `${b.type}_${underConstruction(b) ? 'site' : artLv(b.level)}` : 'empty';
   }
@@ -689,10 +688,10 @@ export class TopDownScene extends Phaser.Scene {
       objs.push(g);
       for (const [dx, dy] of [[-62, -46], [62, -46], [-62, 6], [62, 6]]) objs.push(this.add.rectangle(P.x + dx, P.y + dy, 2, 7, 0x6a4a2a).setOrigin(0.5, 1).setDepth(P.y + dy));
       const sg = this.add.image(P.x, P.y - 14, 'o_sign_0').setOrigin(0.5, OM.sign_0.foot / OM.sign_0.h).setDepth(P.y - 14); objs.push(sg);
-      txt(P.y - 58, key === 'locked' ? `🔒 ที่ดิน (ผ่านด่าน ${plotNeed(i)})` : '🔨 ที่ดินว่าง — สร้างได้', key === 'locked' ? '#a89878' : '#9fffb0');
+      txt(P.y - 58, i === HOME_PLOT ? '🏠 ที่ดินของคุณ — สร้างบ้าน' : '🔨 ที่ดินว่าง', '#9fffb0');
     } else {
       const [type, lvl] = key.split('_');
-      const art = lvl === 'site' ? 'site_0' : `${type}_${lvl}`;
+      const art = lvl === 'site' ? 'site_0' : `${type === 'home' ? 'house' : type}_${lvl}`;
       const m = OM[art];
       if (m) {
         const im = this.obj(art, P.x, P.y, 0.82, Math.round((m.foot - m.top) * 0.42));
@@ -702,7 +701,7 @@ export class TopDownScene extends Phaser.Scene {
         if (h && this.isBlocked(h.x, h.y)) h.setPosition(P.x, P.y + 14);
       }
       const b = buildingAt(S(), i)!;
-      const t = txt(P.y - (m ? m.foot - m.top : 120) - 2, `${BUILDINGS[type as BuildingId].name} Lv${b.level}`);
+      const t = txt(P.y - (m ? m.foot - m.top : 120) - 2, `${type === 'home' ? '🏠 ' : ''}${BUILDINGS[type as BuildingId].name} Lv${b.level}`, type === 'home' ? '#9fffb0' : '#ffe7a0');
       if (lvl === 'site') t.setData('timer', true);
     }
     this.plotViews[i] = { key, objs };
@@ -722,7 +721,7 @@ export class TopDownScene extends Phaser.Scene {
       const res = b && !underConstruction(b) ? BUILDINGS[b.type as BuildingId].produces : undefined;
       const show = !!res && b!.stored >= 1;
       if (show && !v.bubble) {
-        const m = OM[`${b!.type}_${artLv(b!.level)}`], top = P.y - (m ? m.foot - m.top : 120) - 14;
+        const m = OM[`${b!.type === 'home' ? 'house' : b!.type}_${artLv(b!.level)}`], top = P.y - (m ? m.foot - m.top : 120) - 14;
         const bub = this.add.container(P.x, top).setDepth(99990);
         bub.add([this.add.circle(0, 0, 8, 0xffffff, 0.95).setStrokeStyle(1.5, 0x3a8a3a), this.add.text(0, 0, res === 'gold' ? '💰' : res === 'wood' ? '🪵' : res === 'stone' ? '🪨' : '🍖', { fontSize: '9px', resolution: 8 }).setOrigin(0.5)]);
         this.tweens.add({ targets: bub, y: top - 4, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -758,8 +757,7 @@ export class TopDownScene extends Phaser.Scene {
     PLOTS.forEach((P, i) => {
       const d = Math.hypot(P.x - h.x, (P.y + 12 - h.y) * 1.4); if (d > 60) return;
       const k = this.plotViews[i]?.key;
-      if (k === 'locked') offer(d + 20, '🔒 ที่ดิน', () => bus.emit(EV.TOAST, `ปลดล็อกเมื่อผ่านด่าน ${plotNeed(i)}`, '#ffd84a'));
-      else offer(d + 20, k === 'empty' ? '🔨 สร้างอาคาร' : '🏠 อาคาร', () => ui.panels.openPlot(i));
+      offer(d + 20, k === 'empty' ? '🔨 สร้างบ้าน' : i === HOME_PLOT ? '🏠 บ้านของฉัน' : '🏛 อาคาร', () => ui.panels.openPlot(i));
     });
     const b = best as { d: number; label: string; cb: () => void } | null;
     ui.setAction(b?.label ?? null, b?.cb);
@@ -872,7 +870,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
-      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.stageN ? 0.01 : 0.05))); }
+      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); }
       const st = this.stageN ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }

@@ -1,7 +1,9 @@
 // Village buildings — built and upgraded with materials earned by hunting. Each one makes the hero stronger.
 export type ResKey = 'wood' | 'stone' | 'food';
 export interface Cost { gold?: number; wood?: number; stone?: number; food?: number; items?: Record<string, number> }
-export type BuildingId = 'forge' | 'kitchen' | 'warehouse' | 'lumber' | 'quarry' | 'barn' | 'tavern' | 'market' | 'tower';
+export type BuildingId = 'forge' | 'kitchen' | 'warehouse' | 'lumber' | 'quarry' | 'barn' | 'tavern' | 'market' | 'tower' | 'home';
+/** village buildings run by NPCs (already standing in a new game); the player only builds their own 'home' */
+export const NPC_BUILDINGS: BuildingId[] = ['forge', 'barn', 'lumber', 'tavern', 'kitchen', 'market', 'warehouse', 'quarry', 'tower'];
 
 export interface BuildingDef {
   id: BuildingId;
@@ -117,6 +119,17 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       { gold: 5400, wood: 440, stone: 660, items: { ancient_core: 1 } },
     ],
     effect: lv => `DEF +${lv * 3}%  HP +${lv * 2}%`,
+  },
+  home: {
+    id: 'home', icon: '🏠', name: 'บ้านของฉัน', desc: 'บ้านของคุณเองในหมู่บ้าน — พักฟื้นเร็วขึ้น เก็บของได้มากขึ้น (ออนไลน์: เพื่อนมาเยี่ยมได้)', rate: 0, maxLevel: 5,
+    costs: [
+      { gold: 80, wood: 30, stone: 15 },
+      { gold: 300, wood: 80, stone: 50 },
+      { gold: 800, wood: 160, stone: 110, items: { wolf_pelt: 4 } },
+      { gold: 1800, wood: 260, stone: 200, items: { goblin_fang: 5 } },
+      { gold: 3600, wood: 420, stone: 340, items: { ancient_core: 1 } },
+    ],
+    effect: lv => `ฟื้น HP ในหมู่บ้าน x${(1 + lv * 0.5).toFixed(1)} • กระเป๋า +${lv * 2} ช่อง`,
   },
 };
 

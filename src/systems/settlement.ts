@@ -1,6 +1,6 @@
 // Settlement: resources, building, upgrading, production and forge crafting — pure logic.
 import type { GameState } from '../core/state';
-import { BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type ResKey, type MealId } from '../data/buildings';
+import { BUILDINGS, NPC_BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type ResKey, type MealId } from '../data/buildings';
 import { addItem, countItem, removeItem } from './inventory';
 import { GEAR_BASES, baseTier, rollRarity, makeGear } from './loot';
 import { itemDef } from '../data/items';
@@ -26,9 +26,25 @@ export function underConstruction(b: { done?: number }, now = Date.now()) { retu
 
 export function buildingAt(s: GameState, plot: number) { return s.buildings.find(b => b.plot === plot) ?? null; }
 
+/** Top-down village: every NPC building stands from the start (level 1) at its own plot; only the home plot is the player's.
+ *  Also repairs older saves (missing types are added, the first free plot is used if theirs is taken). */
+export function ensureNpcVillage(s: GameState, plotOf: Record<string, number>, homePlot: number, now = Date.now()) {
+  const taken = new Set(s.buildings.map(b => b.plot));
+  for (const t of NPC_BUILDINGS) {
+    if (s.buildings.some(b => b.type === t)) continue;
+    let p = plotOf[t];
+    if (taken.has(p)) p = Object.values(plotOf).find(q => !taken.has(q)) ?? -1;
+    if (p < 0) continue;
+    s.buildings.push({ plot: p, type: t, level: 1, stored: 0, last: now }); taken.add(p);
+  }
+  // a home that ended up on an NPC plot moves to the home plot
+  const h = s.buildings.find(b => b.type === 'home');
+  if (h && h.plot !== homePlot && !taken.has(homePlot)) h.plot = homePlot;
+}
+
 export function build(s: GameState, plot: number, type: BuildingId, now = Date.now()): boolean {
   if (buildingAt(s, plot)) return false;
-  if (plot >= unlockedPlots(s.bossDefeated)) return false;
+  if (type !== 'home' && plot >= unlockedPlots(s.bossDefeated)) return false;
   if (s.buildings.some(b => b.type === type)) return false; // one of each
   if (!pay(s, levelCost(BUILDINGS[type], 1))) return false;
   s.buildings.push({ plot, type, level: 1, stored: 0, last: now, done: now + buildTime(1) });
