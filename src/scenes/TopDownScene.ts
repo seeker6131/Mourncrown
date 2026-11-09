@@ -13,6 +13,7 @@ import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
 import { uiOpt } from '../core/uiOptions';
+import { stageFood, payStage, isHungry } from '../systems/supplies';
 import { formName, type ClassId } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, collect as settleCollect, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -470,6 +471,16 @@ export class TopDownScene extends Phaser.Scene {
     this.portals.push({ x, y, to, label });
   }
 
+  /** going out costs supplies (food); stages 1-2 are free */
+  enterStage(n: number) {
+    const s = S();
+    if (!payStage(s, n)) { bus.emit(EV.TOAST, `อาหารไม่พอ! ด่าน ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ป่าหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
+    if (stageFood(n)) bus.emit(EV.TOAST, `ใช้เสบียง 🍖${stageFood(n)}`, '#ffd8a0');
+    saveGame(s);
+    this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: n }));
+  }
+  hungryWarned = false;
+
   stageSelect() {
     if (this.selectUi) return;
     this.makingUi = true;
@@ -483,8 +494,9 @@ export class TopDownScene extends Phaser.Scene {
       const x = W / 2 + ((i % cols) - (cols - 1) / 2) * (bw + 6), y = H * 0.2 + Math.floor(i / cols) * (bh + 8) + bh / 2;
       const open = st.n <= top;
       const r = this.add.rectangle(x, y, bw, bh, open ? (st.boss ? 0x5a2a1a : 0x1e3a2c) : 0x222222, 0.95).setStrokeStyle(2, open ? (st.boss ? 0xffa060 : 0x9ad8a0) : 0x444444);
-      const t = this.add.text(x, y, `${st.n}${st.boss ? ' 👑' : ''}\nLv${st.level}`, { fontFamily: 'sans-serif', fontSize: fs * 0.75 + 'px', color: open ? '#ffffff' : '#666666', align: 'center' }).setOrigin(0.5);
-      if (open) r.setInteractive().on('pointerdown', () => this.scene.restart({ stage: st.n }));
+      const fc = stageFood(st.n);
+      const t = this.add.text(x, y, `${st.n}${st.boss ? ' 👑' : ''}\nLv${st.level}${fc ? `\n🍖${fc}` : ''}`, { fontFamily: 'sans-serif', fontSize: fs * 0.75 + 'px', color: open ? '#ffffff' : '#666666', align: 'center' }).setOrigin(0.5);
+      if (open) r.setInteractive().on('pointerdown', () => this.enterStage(st.n));
       ui.push(r, t);
     });
     LANDS_LABEL.forEach((n, i) => ui.push(this.add.text(W * 0.02, H * 0.2 + i * (bh + 8) + bh / 2, n, { fontFamily: 'sans-serif', fontSize: fs * 0.7 + 'px', color: '#c8b88a' }).setOrigin(0, 0.5)));
@@ -854,6 +866,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
     this.updatePlots(time); this.updateAction(time); this.updateGuide(time);
+    if (!this.stageN) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ออกล่าสัตว์ป่าหาเนื้อ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;
     if (k && !this.ui?.panels.isOpen) { mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0); my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0); }
@@ -882,7 +895,8 @@ export class TopDownScene extends Phaser.Scene {
     else this.village?.update(time, dt);
     for (const p of this.portals) if (!this.dead && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
       if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
-      else { this.portalCool = time + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: p.to })); }
+      else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: 0 })); }
+      else { this.portalCool = time + 2500; this.enterStage(p.to as number); }
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);

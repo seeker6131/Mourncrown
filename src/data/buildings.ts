@@ -77,7 +77,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     effect: lv => `ผลิตหิน ${(0.8 * (1 + (lv - 1) * 0.6)).toFixed(1)}/นาที`,
   },
   barn: {
-    id: 'barn', icon: '🐄', name: 'คอกสัตว์', desc: 'เลี้ยงวัว แกะ ไก่ หมู — แหล่งอาหารของหมู่บ้าน (หรือล่าสัตว์ที่ป่าพรานไพร)', produces: 'food', rate: 1.8, maxLevel: 5,
+    id: 'barn', icon: '🐄', name: 'คอกสัตว์', desc: 'เลี้ยงวัว แกะ ไก่ หมู — อาหารส่วนหนึ่งของหมู่บ้าน (แต่ไม่พอเลี้ยงทั้งหมู่บ้าน ต้องออกล่าสัตว์ด้วย)', produces: 'food', rate: 0.35, maxLevel: 5,
     costs: [
       { gold: 120, wood: 50, stone: 20, food: 30 },
       { gold: 360, wood: 100, stone: 40, food: 60 },

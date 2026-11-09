@@ -150,3 +150,25 @@ describe('SL is the strongest rarity', () => {
     expect(derive(s).atk).toBeGreaterThan(200);
   });
 });
+
+import { stageFood, payStage, villageUpkeep, upkeepPerHour } from '../src/systems/supplies';
+describe('food: supplies and village upkeep', () => {
+  it('stages 1-2 are free, later ones cost more food', () => {
+    expect(stageFood(1)).toBe(0); expect(stageFood(10)).toBe(4); expect(stageFood(50)).toBe(12);
+    const s = startNewGame(); s.res.food = 3;
+    expect(payStage(s, 10)).toBe(false); expect(payStage(s, 2)).toBe(true);
+  });
+  it('villagers eat every hour and go hungry when the larder is empty', () => {
+    const s = startNewGame(); s.res.food = 10; const t0 = 1_000_000;
+    villageUpkeep(s, t0);
+    expect(villageUpkeep(s, t0 + 3600000)).toBe(false);
+    expect(s.res.food).toBe(10 - Math.floor(upkeepPerHour(s)));
+    expect(villageUpkeep(s, t0 + 3600000 * 5)).toBe(true);
+    expect(s.res.food).toBe(0);
+  });
+  it('wild animals give meat and no gold', () => {
+    const s = startNewGame(); const g = s.gold;
+    const r = applyKill(s, 5, { key: 'mo16', kind: 'deer', name: 'กวาง', size: 48 }, false, false);
+    expect(r.food).toBeGreaterThan(2); expect(s.gold).toBe(g); expect(r.wood).toBe(0);
+  });
+});

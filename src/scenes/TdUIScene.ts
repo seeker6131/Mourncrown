@@ -222,6 +222,7 @@ export class TdUIScene extends Phaser.Scene {
     this.mpText.setText(`MP ${Math.round(s.mp ?? 0)}/${d.maxMp}`);
     this.lvText.setText(`Lv${s.level}`);
     [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
+    this.resTexts[3]?.setColor((s as unknown as { hungry?: boolean }).hungry ? '#ff6a5a' : '#ffe7a0');
     const key = this.td.heroKey();
     if (key !== this.lastKey && this.textures.exists(`c_${key}_idle`)) {
       this.lastKey = key;

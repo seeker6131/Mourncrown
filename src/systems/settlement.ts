@@ -2,6 +2,7 @@
 import type { GameState } from '../core/state';
 import { BUILDINGS, NPC_BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type ResKey, type MealId } from '../data/buildings';
 import { addItem, countItem, removeItem } from './inventory';
+import { villageUpkeep } from './supplies';
 import { GEAR_BASES, baseTier, rollRarity, makeGear } from './loot';
 import { itemDef } from '../data/items';
 
@@ -64,11 +65,12 @@ export function upgrade(s: GameState, plot: number): boolean {
 
 /** Accumulate production up to now (works offline too). */
 export function tick(s: GameState, now = Date.now()) {
+  const half = villageUpkeep(s, now) ? 0.5 : 1;   // hungry villagers work at half speed
   for (const b of s.buildings) {
     const d = BUILDINGS[b.type as BuildingId];
     if (!d.produces || underConstruction(b, now)) { b.last = now; continue; }
     const mins = Math.max(0, (now - b.last) / 60000);
-    b.stored = Math.min(storageCap(d, b.level), b.stored + ratePerMin(d, b.level) * mins);
+    b.stored = Math.min(storageCap(d, b.level), b.stored + ratePerMin(d, b.level) * mins * (d.produces === 'food' ? 1 : half));
     b.last = now;
   }
 }

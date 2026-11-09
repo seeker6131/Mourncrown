@@ -14,7 +14,7 @@ import { STAGES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -45,6 +45,13 @@ export class Combat {
     for (let i = 0; i < st.count; i++) list.push(st.land.mobs[(i + n) % st.land.mobs.length]);
     if (st.boss) list.push(st.land.boss);
     list.forEach((m, i) => { const p = spots[i % spots.length]; this.spawn(m, p[0] + (i % 3) * 14, p[1] + Math.floor(i / spots.length) * 18, m === st.land.boss); });
+    // wild game to hunt for meat and hides (not needed to clear the stage)
+    const game: StageMon[] = [{ key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, { key: 'mo17', kind: 'boar', name: 'หมูป่า', size: 48 }];
+    for (let i = 0; i < 2 + (n % 2); i++) {
+      const p = spots[(i * 2 + 1) % spots.length], g = game[i % 2], ox = (i % 2 ? 1 : -1) * (50 + i * 12), oy = (i % 2 ? -1 : 1) * 70;
+      const x = this.s.isBlocked(p[0] + ox, p[1] + oy) ? p[0] + ox : p[0] + ox, y = this.s.isBlocked(p[0] + ox, p[1] + oy) ? p[1] : p[1] + oy;
+      this.spawn(g, x, y, false); const a = this.mons[this.mons.length - 1]; a.animal = true;
+    }
   }
 
   spawn(m: StageMon, x: number, y: number, boss: boolean) {
@@ -296,7 +303,7 @@ export class Combat {
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
     const s = S(), st = this.stage!;
-    const last = this.mons.every(q => !q.alive) && !this.cleared;
+    const last = !m.animal && this.mons.every(q => !q.alive || q.animal) && !this.cleared;
     const r = applyKill(s, st.n, m.m, m.boss, last);
     this.float(m.x, m.y - 20, `+${r.exp} EXP  +${r.gold}G`, '#bfffb0', 8);
     if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
@@ -334,14 +341,28 @@ export class Combat {
     for (const m of this.mons) {
       if (!m.alive) continue;
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);
-      const base = MONSTERS[m.m.kind], aggro = m.boss ? 260 : 130, reach = base.attackRange + m.m.size * 0.2;
+      const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
+      const angry = !m.animal || (!base.flee && m.hitT > 0);
+      const aggro = !angry ? 0 : m.boss ? 260 : 130;
       let moving = false;
+      if (m.animal && !angry) {
+        let tx = 0, ty = 0;
+        if (base.flee && dist < 120) { tx = -dx / dist; ty = -dy / dist; }      // run from the hunter
+        else { if (!m.wanderT || time > m.wanderT) { m.wanderT = time + 1500 + Math.random() * 2500; m.dir = Math.floor(Math.random() * 8); (m as Mon & { idle?: boolean }).idle = Math.random() < 0.5; }
+          if (!(m as Mon & { idle?: boolean }).idle) { tx = Math.sin(m.dir * Math.PI / 4) * 0.35; ty = Math.cos(m.dir * Math.PI / 4) * 0.35; } }
+        if (tx || ty) {
+          const sp = base.speed * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
+          if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < 260) m.x = nx;
+          if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < 200) m.y = ny;
+          m.dir = dirOf(tx, ty); moving = true;
+        }
+      }
       if (!this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 180) {
         const sp = (base.speed + 8) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
         if (!this.s.isBlocked(nx, m.y)) m.x = nx;
         if (!this.s.isBlocked(m.x, ny)) m.y = ny;
         m.dir = dirOf(dx, dy); moving = true;
-      } else if (dist >= aggro) {
+      } else if (dist >= aggro && angry) {
         const bx = m.hx - m.x, by = m.hy - m.y, bd = Math.hypot(bx, by);
         if (bd > 6) { const sp = base.speed * 0.5 * dt / 1000; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); moving = true; }
       }
@@ -363,7 +384,7 @@ export class Combat {
           }
         });
       }
-      if (!this.s.dead && dist <= reach && time - m.last > base.attackCooldown) {
+      if (angry && !this.s.dead && dist <= reach && time - m.last > base.attackCooldown) {
         m.last = time; m.atkT = time; m.dir = dirOf(dx, dy);
         if (CH[m.m.key] && hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
         this.s.time.delayedCall(220, () => {
