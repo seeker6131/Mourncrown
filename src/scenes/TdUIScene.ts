@@ -103,6 +103,7 @@ export class TdUIScene extends Phaser.Scene {
     return { hero: { ai: true, portrait: () => ({ key: `c_${key}_idle`, frame: 0 }) }, levelUpFx: () => this.td.levelUpFx() };
   }
   controlsReset() { this.td.resetJoy(); }
+  enterStage(n: number) { (this.td as unknown as { enterStage(n: number): void }).enterStage(n); }
   /** which buildings a plot may hold: the home plot only takes the player's home */
   plotChoices(plot: number): string[] { return plot === 9 ? ['home'] : []; }
   reloadWorld() { this.scene.get('TopDown').scene.restart({ stage: 0 }); }

@@ -37,7 +37,6 @@ import tl8Wang from '../assets/td/tl8_wang.png';
 import ft3Wang from '../assets/td/ft3_wang.png';
 
 // hero forms (PixelLab characters listed in chars.json)
-const LANDS_LABEL = ['ป่า', 'ผีสิง', 'ลาวา', 'หิมะ', 'คุก'];
 /** Village plots (index = save plot number). 0-8 are the NPCs' buildings, standing from the start; 9 is the player's home. */
 const PLOTS: { x: number; y: number }[] = [
   { x: 722, y: 650 }, { x: 300, y: 660 }, { x: 150, y: 330 }, { x: 702, y: 322 }, { x: 1100, y: 600 }, { x: 120, y: 650 },
@@ -484,31 +483,8 @@ export class TopDownScene extends Phaser.Scene {
   }
   hungryWarned = false;
 
-  stageSelect() {
-    if (this.selectUi) return;
-    this.makingUi = true;
-    const s = S() as unknown as { tdCleared?: number }, top = Math.min(50, (s.tdCleared ?? 0) + 1);
-    const W = this.scale.width, H = this.scale.height, fs = Math.round(H / 26);
-    const ui: Phaser.GameObjects.GameObject[] = [];
-    ui.push(this.add.rectangle(0, 0, W, H, 0x05080a, 0.82).setOrigin(0).setInteractive());
-    ui.push(this.add.text(W / 2, fs * 1.2, 'เลือกด่าน (ผ่านแล้ว ' + (s.tdCleared ?? 0) + '/50)', { fontFamily: 'sans-serif', fontSize: fs * 1.2 + 'px', color: '#ffe0a0', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5));
-    const cols = 10, bw = W * 0.085, bh = H * 0.13;
-    STAGES.forEach((st, i) => {
-      const x = W / 2 + ((i % cols) - (cols - 1) / 2) * (bw + 6), y = H * 0.2 + Math.floor(i / cols) * (bh + 8) + bh / 2;
-      const open = st.n <= top;
-      const r = this.add.rectangle(x, y, bw, bh, open ? (st.boss ? 0x5a2a1a : 0x1e3a2c) : 0x222222, 0.95).setStrokeStyle(2, open ? (st.boss ? 0xffa060 : 0x9ad8a0) : 0x444444);
-      const fc = stageFood(st.n);
-      const t = this.add.text(x, y, `${st.n}${st.boss ? ' 👑' : ''}\nLv${st.level}${fc ? `\n🍖${fc}` : ''}`, { fontFamily: 'sans-serif', fontSize: fs * 0.75 + 'px', color: open ? '#ffffff' : '#666666', align: 'center' }).setOrigin(0.5);
-      if (open) r.setInteractive().on('pointerdown', () => this.enterStage(st.n));
-      ui.push(r, t);
-    });
-    LANDS_LABEL.forEach((n, i) => ui.push(this.add.text(W * 0.02, H * 0.2 + i * (bh + 8) + bh / 2, n, { fontFamily: 'sans-serif', fontSize: fs * 0.7 + 'px', color: '#c8b88a' }).setOrigin(0, 0.5)));
-    const close = this.add.text(W - fs, fs, '✕', { fontFamily: 'sans-serif', fontSize: fs * 1.6 + 'px', color: '#ffffff' }).setOrigin(1, 0).setInteractive().on('pointerdown', () => { ui.forEach(o => o.destroy()); this.selectUi = null; this.portalCool = this.time.now + 300;
-      const h = this.hero; if (!this.isBlocked(h.x, h.y + 26)) h.y += 26; this.joy.id = -1; });
-    ui.push(close);
-    this.cameras.main.ignore(ui); this.makingUi = false;
-    this.selectUi = ui;
-  }
+  /** the stage select is a TdUI panel (same skin as the other windows) */
+  stageSelect() { const u = this.ui; if (u) { u.panels.land = -1; u.panels.open('stages'); } this.portalCool = this.time.now + 600; }
   selectUi: Phaser.GameObjects.GameObject[] | null = null;
   makingUi = false;
   uiCam!: Phaser.Cameras.Scene2D.Camera;
@@ -999,7 +975,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.portalArmed && this.portals.every(p => Math.hypot(p.x - h.x, p.y - h.y) > 30)) this.portalArmed = true;
     for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
       this.portalArmed = false;
-      if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
+      if (p.to === 'select') this.stageSelect();
       else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }
       else { this.portalCool = time + 2500; this.enterStage(p.to as number); }
     }

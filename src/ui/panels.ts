@@ -14,7 +14,7 @@ import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { build, upgrade, buildingAt, canAfford, craft, cook, levelOf, underConstruction } from '../systems/settlement';
 import { upSkill, SKILL_MAX, currentSkills, nextForm, advanceClass, activeTier } from '../systems/stats';
-import { formKeyOf } from '../world/chars';
+import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
@@ -26,11 +26,13 @@ import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
+import { STAGES, LANDS } from '../world/stages';
+import { stageFood } from '../systems/supplies';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, setMusic, audioState } from '../audio/sfx';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -112,6 +114,7 @@ export class Panels {
       case 'shop': this.buildShop(c); break;
       case 'smith': this.buildSmith(c); break;
       case 'uiopt': this.buildUiOpt(c); break;
+      case 'stages': this.buildStages(c); break;
     }
   }
 
@@ -570,6 +573,62 @@ export class Panels {
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
+  }
+
+  // ---------------- STAGE SELECT ----------------
+  land = -1;
+  buildStages(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k;
+    const cleared = (s as unknown as { tdCleared?: number }).tdCleared ?? 0, top = Math.min(50, cleared + 1);
+    if (this.land < 0) this.land = Math.floor((top - 1) / 10);
+    const W = Math.min(620, ui.VW - 16), H = 330;
+    const { x, y, g } = this.window(c, W, H, 'เลือกด่าน');
+    const COL = [0x2e5a3a, 0x4a3a6a, 0x7a3a1a, 0x3a5a7a, 0x3a3a40], HI = ['#9fe0a0', '#c8a8ff', '#ffb080', '#a8d8ff', '#c8c8d0'];
+    // previews of this land's monsters and boss (idle sheets load on demand)
+    const L = LANDS[this.land];
+    if (loadIdle(ui, [...L.mobs.map(m => m.key), L.boss.key], () => { if (this.cur === 'stages') this.rebuild(); })) { /* rebuilt when loaded */ }
+    // land tabs
+    const tx = x + 12, tw = 118, th = 46, ty0 = y + 34;
+    LANDS.forEach((ld, i) => {
+      const first = i * 10 + 1, open = first <= top, ty = ty0 + i * (th + 6), sel = i === this.land;
+      const done = Math.max(0, Math.min(10, cleared - i * 10));
+      g.fillStyle(open ? COL[i] : 0x1a1612, sel ? 1 : 0.55).fillRoundedRect(tx, ty, tw, th, 5);
+      g.lineStyle(sel ? 2 : 1, sel ? 0xffd84a : 0x5a4a3a, 1).strokeRoundedRect(tx, ty, tw, th, 5);
+      c.add(k.text(tx + 8, ty + 6, ld.name, 9.5, open ? '#ffffff' : '#6a6050'));
+      c.add(k.text(tx + 8, ty + 24, open ? `${done}/10 ✔` : `🔒 ${first}`, 8, open ? HI[i] : '#6a6050'));
+      const z = ui.add.zone(tx, ty, tw, th).setOrigin(0).setInteractive();
+      z.on('pointerup', () => { sfx.click(); this.land = i; this.rebuild(); });
+      c.add(z);
+    });
+    // stage cards
+    const gx = tx + tw + 12, gw = x + W - 14 - gx, cols = 5, cw = (gw - (cols - 1) * 6) / cols, ch = 92;
+    STAGES.slice(this.land * 10, this.land * 10 + 10).forEach((st, i) => {
+      const cx = gx + (i % cols) * (cw + 6), cy = y + 34 + Math.floor(i / cols) * (ch + 6);
+      const open = st.n <= top, done = st.n <= cleared, food = stageFood(st.n);
+      g.fillStyle(open ? (st.boss ? 0x4a1a14 : 0x22301f) : 0x15120e, 0.95).fillRoundedRect(cx, cy, cw, ch, 5);
+      g.lineStyle(st.boss ? 2 : 1, !open ? 0x3a3228 : st.boss ? 0xff6a3a : st.n === top ? 0xffd84a : COL[this.land] + 0x303030, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
+      if (st.boss && ui.textures.exists(`c_${L.boss.key}_idle`)) {
+        const im = ui.add.image(cx + cw / 2, cy + ch - 18, `c_${L.boss.key}_idle`, 0).setOrigin(0.5, 1); im.setScale(52 / im.height); if (!open) im.setTint(0x202020); c.add(im);
+      }
+      c.add(k.text(cx + 6, cy + 4, String(st.n), st.boss ? 16 : 18, open ? '#ffffff' : '#5a5040', { fontStyle: 'bold' }));
+      if (st.boss) c.add(k.text(cx + cw - 6, cy + 6, '👑', 11).setOrigin(1, 0));
+      if (!st.boss) c.add(k.text(cx + cw / 2, cy + 40, open ? (done ? '✔' : st.n === top ? '▶' : '') : '🔒', 18, done ? '#9fffb0' : '#ffd84a').setOrigin(0.5));
+      c.add(k.text(cx + 6, cy + ch - 28, `Lv${st.level}`, 8.5, open ? '#e8dcc0' : '#5a5040'));
+      c.add(k.text(cx + 6, cy + ch - 15, food ? `🍖${food}` : 'ฟรี', 8, open ? (s.res.food >= food ? '#ffd8a0' : '#ff8a6a') : '#5a5040'));
+      if (open) {
+        const z = ui.add.zone(cx, cy, cw, ch).setOrigin(0).setInteractive();
+        z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(st.n); });
+        c.add(z);
+      }
+    });
+    // who lives here
+    const my = y + 34 + 2 * (ch + 6) + 4;
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(gx, my, gw, y + H - 12 - my, 4);
+    c.add(k.text(gx + 8, my + 6, 'มอนในดินแดนนี้', 8.5, HI[this.land]));
+    L.mobs.forEach((m, i) => {
+      const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
+      const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
+    });
   }
 
   // ---------------- UI SETTINGS ----------------

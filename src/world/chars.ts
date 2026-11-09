@@ -15,9 +15,8 @@ const url = (name: string) => FILES[`../assets/td/${name}.webp`];
 export function preloadChars(scene: Phaser.Scene, keys?: string[]) {
   for (const [k, c] of Object.entries(CH)) {
     if (keys && !keys.includes(k)) continue;
-    if (scene.textures.exists(`c_${k}_idle`)) continue;
-    scene.load.spritesheet(`c_${k}_idle`, url(`${k}_idle`), { frameWidth: c.idleFs, frameHeight: c.idleFs });
-    for (const [a, i] of Object.entries(c.anims)) if (url(`${k}_${a}`)) scene.load.spritesheet(`c_${k}_${a}`, url(`${k}_${a}`), { frameWidth: i.fs, frameHeight: i.fs });
+    if (!scene.textures.exists(`c_${k}_idle`)) scene.load.spritesheet(`c_${k}_idle`, url(`${k}_idle`), { frameWidth: c.idleFs, frameHeight: c.idleFs });
+    for (const [a, i] of Object.entries(c.anims)) if (url(`${k}_${a}`) && !scene.textures.exists(`c_${k}_${a}`)) scene.load.spritesheet(`c_${k}_${a}`, url(`${k}_${a}`), { frameWidth: i.fs, frameHeight: i.fs });
   }
 }
 
@@ -58,4 +57,12 @@ const FORM_KEYS: Record<string, string[]> = {
 export function formKeyOf(cls: string, tier: number) {
   const k = FORM_KEYS[cls]?.[tier] ?? 'hero';
   return CH[k] ? k : 'hero';
+}
+
+/** idle sheets only (for portraits / previews); returns true when something had to be loaded */
+export function loadIdle(scene: Phaser.Scene, keys: string[], done: () => void) {
+  let n = 0;
+  for (const k of keys) { const c = CH[k]; if (!c || scene.textures.exists(`c_${k}_idle`)) continue; scene.load.spritesheet(`c_${k}_idle`, url(`${k}_idle`), { frameWidth: c.idleFs, frameHeight: c.idleFs }); n++; }
+  if (n) { scene.load.once('complete', done); scene.load.start(); }
+  return n > 0;
 }
