@@ -486,8 +486,11 @@
    "north-east",
    "north-west",
    "south",
-   "south-east"
-  ]
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
  },
  "np2": {
   "cid": "c8530558-4e56-420b-8676-5d153c438530",

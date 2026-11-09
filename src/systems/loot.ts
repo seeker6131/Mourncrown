@@ -51,10 +51,16 @@ export function rollAffixes(rnd: () => number, d: ItemDef, rarity: number): Affi
 }
 
 /** Pick an equipment base appropriate for a monster level. */
-export function pickBase(rnd: () => number, monLevel: number): ItemDef {
+export function pickBase(rnd: () => number, monLevel: number, cls?: string): ItemDef {
   const maxTier = Math.min(4, 1 + Math.floor(monLevel / 4));
   const pool = GEAR_BASES.filter(d => baseTier(d) <= maxTier && baseTier(d) >= maxTier - 1);
-  return pool[Math.floor(rnd() * pool.length)] ?? GEAR_BASES[0];
+  let d = pool[Math.floor(rnd() * pool.length)] ?? GEAR_BASES[0];
+  // weapons for another class line are re-rolled most of the time (each class mostly finds its own weapons)
+  if (cls && cls !== 'novice' && d.cls && d.cls !== cls && rnd() < 0.7) {
+    const own = pool.filter(q => q.type === 'weapon' && q.cls === cls);
+    if (own.length) d = own[Math.floor(rnd() * own.length)];
+  }
+  return d;
 }
 
 export function makeGear(rnd: () => number, id: string, rarity: number): Pick<InvItem, 'id' | 'rar' | 'aff'> {

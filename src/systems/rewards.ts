@@ -40,7 +40,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   const gear: KillResult['gear'] = [];
   const n = boss ? 3 : rnd() < 0.16 + stageN * 0.002 ? 1 : 0;
   for (let i = 0; i < n; i++) {
-    const b = pickBase(rnd, st.level), rar = rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : st.minRar);
+    const b = pickBase(rnd, st.level, s.cls), rar = rollRarity(rnd, st.mf + d.mf, boss ? Math.max(st.minRar, 2) : st.minRar);
     if (addItem(s, b.id, 1, 0, makeGear(rnd, b.id, rar))) gear.push({ id: b.id, rar });
   }
   if (boss) s.bossDefeated = (s.bossDefeated ?? 0) + 1;
