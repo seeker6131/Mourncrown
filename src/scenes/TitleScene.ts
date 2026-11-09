@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { lang, setLang } from '../core/i18n';
+import { showWait } from '../core/wait';
 import { UIKit } from '../ui/kit';
 import { hasSave, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
@@ -39,8 +40,8 @@ export class TitleScene extends Phaser.Scene {
       const st = fresh ? startNewGame() : (loadGame() ?? startNewGame());
       runtime.state = st;
       audioState.sfx = st.sfx; setMusic(st.music);
-      this.cameras.main.fadeOut(300, 0, 0, 0);
-      this.time.delayedCall(320, () => this.scene.start('TopDown'));
+      this.cameras.main.fadeOut(250, 0, 0, 0);
+      this.time.delayedCall(260, () => { showWait(); this.time.delayedCall(30, () => this.scene.start('TopDown')); });
     };
     let by = 150;
     if (hasSave()) { this.add.existing(k.button(VW / 2 - 80, by, 160, 30, '▶ เล่นต่อ', () => start(false), { size: 12, color: 0x1f4a2a })); by += 38; }

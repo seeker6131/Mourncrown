@@ -13,6 +13,7 @@ import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
 import { uiOpt } from '../core/uiOptions';
+import { showWait, hideWait } from '../core/wait';
 import { stageFood, payStage, isHungry } from '../systems/supplies';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
@@ -477,7 +478,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!payStage(s, n)) { bus.emit(EV.TOAST, `อาหารไม่พอ! ด่าน ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ป่าหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
     if (stageFood(n)) bus.emit(EV.TOAST, `ใช้เสบียง 🍖${stageFood(n)}`, '#ffd8a0');
     saveGame(s);
-    this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: n }));
+    this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n }));
   }
   hungryWarned = false;
 
@@ -799,7 +800,7 @@ export class TopDownScene extends Phaser.Scene {
     this.dead = true; this.attacking = false;
     const h = this.hero;
     this.deathFx(h, 0xbfe8ff, () => {
-      if (this.stageN) { this.time.delayedCall(1200, () => { const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); this.scene.restart({ stage: 0 }); }); return; }
+      if (this.stageN) { this.time.delayedCall(1200, () => { const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); showWait(); this.time.delayedCall(30, () => this.scene.restart({ stage: 0 })); }); return; }
       this.time.delayedCall(900, () => {
         h.setPosition(PLAZA.x, PLAZA.y + 40).setAngle(0).setAlpha(0).setVisible(true).clearTint();
         setIdle(h, this.F.key, 0);
@@ -930,7 +931,7 @@ export class TopDownScene extends Phaser.Scene {
     else this.village?.update(time, dt);
     for (const p of this.portals) if (!this.dead && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
       if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
-      else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: 0 })); }
+      else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }
       else { this.portalCool = time + 2500; this.enterStage(p.to as number); }
     }
     if (time - this.hudT > 250) {

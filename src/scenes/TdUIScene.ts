@@ -10,6 +10,7 @@ import { tdQuest, claimTdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { uiOpt } from '../core/uiOptions';
+import { hideWait } from '../core/wait';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
@@ -176,6 +177,7 @@ export class TdUIScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
     this.refresh();
     this.buildSkills();
+    this.time.delayedCall(60, hideWait);   // the game is on screen: drop the 'please wait' overlay
     if (this.reopen) { const r = this.reopen; this.reopen = null; this.panels.open(r as 'uiopt'); }
 
     const st = S();
