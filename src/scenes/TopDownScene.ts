@@ -184,7 +184,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
-    this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false;
+    this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
     this.lamps = []; this.fires = []; this.nodes = []; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
@@ -501,7 +501,8 @@ export class TopDownScene extends Phaser.Scene {
       ui.push(r, t);
     });
     LANDS_LABEL.forEach((n, i) => ui.push(this.add.text(W * 0.02, H * 0.2 + i * (bh + 8) + bh / 2, n, { fontFamily: 'sans-serif', fontSize: fs * 0.7 + 'px', color: '#c8b88a' }).setOrigin(0, 0.5)));
-    const close = this.add.text(W - fs, fs, '✕', { fontFamily: 'sans-serif', fontSize: fs * 1.6 + 'px', color: '#ffffff' }).setOrigin(1, 0).setInteractive().on('pointerdown', () => { ui.forEach(o => o.destroy()); this.selectUi = null; this.portalCool = this.time.now + 1500; });
+    const close = this.add.text(W - fs, fs, '✕', { fontFamily: 'sans-serif', fontSize: fs * 1.6 + 'px', color: '#ffffff' }).setOrigin(1, 0).setInteractive().on('pointerdown', () => { ui.forEach(o => o.destroy()); this.selectUi = null; this.portalCool = this.time.now + 300;
+      const h = this.hero; if (!this.isBlocked(h.x, h.y + 26)) h.y += 26; this.joy.id = -1; });
     ui.push(close);
     this.cameras.main.ignore(ui); this.makingUi = false;
     this.selectUi = ui;
@@ -510,6 +511,7 @@ export class TopDownScene extends Phaser.Scene {
   makingUi = false;
   uiCam!: Phaser.Cameras.Scene2D.Camera;
   portalCool = 0;
+  portalArmed = false;
 
   /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
   obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
@@ -929,7 +931,10 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
     else this.village?.update(time, dt);
-    for (const p of this.portals) if (!this.dead && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
+    // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
+    if (!this.portalArmed && this.portals.every(p => Math.hypot(p.x - h.x, p.y - h.y) > 30)) this.portalArmed = true;
+    for (const p of this.portals) if (!this.dead && this.portalArmed && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
+      this.portalArmed = false;
       if (p.to === 'select') { this.portalCool = time + 99999; this.stageSelect(); }
       else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }
       else { this.portalCool = time + 2500; this.enterStage(p.to as number); }
