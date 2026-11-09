@@ -2,6 +2,7 @@
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import Phaser from 'phaser';
 import { UIKit } from '../ui/kit';
+import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
 import { derive, expToNext, nextForm, activeTier } from '../systems/stats';
 import { formName } from '../data/classes';
@@ -22,7 +23,7 @@ export class TdUIScene extends Phaser.Scene {
   hud!: Phaser.GameObjects.Graphics;
   portrait!: Phaser.GameObjects.Image;
   lvText!: Phaser.GameObjects.Text; hpText!: Phaser.GameObjects.Text; expText!: Phaser.GameObjects.Text;
-  resText!: Phaser.GameObjects.Text; stageText!: Phaser.GameObjects.Text;
+  resText!: Phaser.GameObjects.Text; stageText!: Phaser.GameObjects.Text; resTexts: Phaser.GameObjects.Text[] = [];
   formBtn!: Phaser.GameObjects.Container;
   actBtn!: Phaser.GameObjects.Container; actLabel = ''; actCb: (() => void) | null = null;
   toasts: Phaser.GameObjects.Text[] = [];
@@ -55,20 +56,38 @@ export class TdUIScene extends Phaser.Scene {
     const k = this.kit;
 
     // top-left: portrait, level, HP / EXP bars, gold + materials
+    // top-left: wooden frame, portrait in the carved ring, HP/EXP bars, resources with icons
+    this.root.add(panelFrame(this, 6, 6, 206, 50));
     this.hud = this.add.graphics();
-    this.portrait = this.add.image(24, 26, '__DEFAULT');
-    this.lvText = k.text(24, 50, 'Lv1', 9, '#ffe7a0').setOrigin(0.5);
-    this.hpText = k.text(122, 10, '', 8, '#ffffff').setOrigin(0.5, 0);
-    this.expText = k.text(122, 26, '', 7, '#e0d0ff').setOrigin(0.5, 0);
-    this.resText = k.text(50, 40, '', 8, '#ffe7a0');
+    this.portrait = this.add.image(28, 30, '__DEFAULT');
+    const ring = this.add.image(28, 30, 'ui_ring0'); ring.setScale(44 / ring.width);
+    this.lvText = k.text(28, 52, 'Lv1', 8, '#ffe7a0').setOrigin(0.5);
+    this.hpText = k.text(128, 11, '', 7.5, '#ffffff').setOrigin(0.5, 0);
+    this.expText = k.text(128, 25, '', 6.5, '#e0d0ff').setOrigin(0.5, 0);
     this.stageText = k.text(this.VW / 2, 8, '', 10, '#ffe7a0').setOrigin(0.5, 0);
-    this.root.add([this.hud, this.portrait, this.lvText, this.hpText, this.expText, this.resText, this.stageText]);
+    this.root.add([this.hud, this.portrait, ring, this.lvText, this.hpText, this.expText, this.stageText]);
+    this.resTexts = (['res0', 'res1', 'res2', 'res3'] as const).map((ic, i) => {
+      const x = 56 + i * 38, im = this.add.image(x, 44, 'ui_' + ic); im.setScale(11 / im.height);
+      const t = k.text(x + 7, 44, '0', 7.5, '#ffe7a0').setOrigin(0, 0.5);
+      this.root.add([im, t]); return t;
+    });
+    this.resText = this.resTexts[0];
 
-    // top-right menu buttons
-    const menu: [string, () => void][] = [['🎒 กระเป๋า', () => this.panels.open('bag')], ['👤 ตัวละคร', () => this.panels.open('stats')], ['⚙ เมนู', () => this.panels.open('menu')]];
-    menu.forEach(([label, cb], i) => this.root.add(k.button(this.VW - 8 - (menu.length - i) * 66, 8, 62, 22, label, cb, { size: 9 })));
+    // top-right menu: icon buttons
+    const menu: [string, string, () => void][] = [['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    menu.forEach(([ic, label, cb], i) => {
+      const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
+      const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
+      const im = this.add.image(x, y - 1, ic); im.setScale(20 / Math.max(im.width, im.height));
+      const t = k.text(x, y + 17, label, 6.5, '#ffe7a0').setOrigin(0.5, 0);
+      const z = this.add.zone(x, y + 4, 34, 40).setInteractive();
+      z.on('pointerdown', () => im.setScale(18 / Math.max(im.width, im.height)));
+      z.on('pointerout', () => im.setScale(20 / Math.max(im.width, im.height)));
+      z.on('pointerup', () => { im.setScale(20 / Math.max(im.width, im.height)); cb(); });
+      this.root.add([sl, im, t, z]);
+    });
     // class change ready
-    this.formBtn = k.button(this.VW - 206, 36, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
+    this.formBtn = k.button(this.VW - 206, 64, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
     this.formBtn.setVisible(false);
     this.root.add(this.formBtn);
     this.tweens.add({ targets: this.formBtn, alpha: 0.6, duration: 600, yoyo: true, repeat: -1 });
@@ -109,21 +128,26 @@ export class TdUIScene extends Phaser.Scene {
     if (!this.hud) return;
     const s = S(), d = derive(s), k = this.kit, g = this.hud;
     g.clear();
-    k.frame(g, 4, 4, 196, 52, 0.85);
-    g.fillStyle(0x140d08, 1).fillCircle(24, 26, 19).lineStyle(2, 0xc8a050, 1).strokeCircle(24, 26, 19);
-    k.bar(g, 48, 10, 148, 12, s.hp / d.maxHp, 0xd8443a);
+    g.fillStyle(0x140d08, 1).fillCircle(28, 30, 17);
     const need = expToNext(s.level);
-    k.bar(g, 48, 26, 148, 9, need > 0 ? s.exp / need : 1, 0x8a5ae0);
+    const bar = (x: number, y: number, w: number, h: number, f: number, col: number, hi: number) => {
+      g.fillStyle(0x0b0806, 1).fillRect(x - 1, y - 1, w + 2, h + 2).fillStyle(0x2a1d14, 1).fillRect(x, y, w, h);
+      const fw = Math.round(w * Phaser.Math.Clamp(f, 0, 1));
+      g.fillStyle(col, 1).fillRect(x, y, fw, h).fillStyle(hi, 1).fillRect(x, y, fw, Math.max(1, Math.floor(h / 3)));
+      g.lineStyle(1, 0x5a4a3a, 1).strokeRect(x - 1.5, y - 1.5, w + 3, h + 3);
+    };
+    bar(52, 11, 152, 10, s.hp / d.maxHp, 0xb8332c, 0xe0645a);
+    bar(52, 25, 152, 7, need > 0 ? s.exp / need : 1, 0x6a4ab8, 0x9a7ae0);
     this.hpText.setText(`HP ${Math.round(s.hp)}/${d.maxHp}`);
     this.expText.setText(`EXP ${Math.floor(s.exp)}/${need}`);
     this.lvText.setText(`Lv${s.level}`);
-    this.resText.setText(`💰${s.gold}  🪵${s.res.wood}  🪨${s.res.stone}  🍖${s.res.food}`);
+    [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
     const key = this.td.heroKey();
     if (key !== this.lastKey && this.textures.exists(`c_${key}_idle`)) {
       this.lastKey = key;
       this.portrait.setTexture(`c_${key}_idle`, 0);
       const f = this.portrait.frame, ch = Math.round(f.height * 0.55);
-      this.portrait.setCrop(0, Math.round(f.height * 0.12), f.width, ch).setScale(34 / ch).setOrigin(0.5, 0.36);
+      this.portrait.setCrop(0, Math.round(f.height * 0.12), f.width, ch).setScale(32 / ch).setOrigin(0.5, 0.36);
     }
     this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}`);
     this.formBtn.setVisible(nextForm(s) !== null && !this.panels.isOpen);

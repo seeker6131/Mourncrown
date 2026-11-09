@@ -331,7 +331,7 @@ export class Panels {
         const d = BUILDINGS[id], cx = x + 14 + (i % cols) * (cw + 5), cy = top + Math.floor(i / cols) * (ch + 5);
         const have = s.buildings.some(q => q.type === id);
         g.fillStyle(have ? 0x1a140e : 0x2a1d12, 0.92).fillRoundedRect(cx, cy, cw, ch, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(cx, cy, cw, ch, 4);
-        const art = `ai_bld_${id}_1`;
+        const art = ui.textures.exists(`o_${id}_0`) ? `o_${id}_0` : `ai_bld_${id}_1`;   // top-down art when available
         if (ui.textures.exists(art)) { const im = ui.add.image(cx + cw - 4, cy + 4, art).setOrigin(1, 0); const sc = Math.min(40 / im.width, 34 / im.height); im.setScale(sc).setAlpha(have ? 0.4 : 1); c.add(im); }
         c.add(k.text(cx + 5, cy + 4, `${d.icon} ${d.name}`, 9.5, have ? '#8a7a60' : '#ffd84a'));
         c.add(k.text(cx + 5, cy + 20, d.effect(1), 7, '#9ad8ff', { wordWrap: { width: cw - 50 } }));
