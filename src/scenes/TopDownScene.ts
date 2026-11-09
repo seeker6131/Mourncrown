@@ -3,34 +3,23 @@
 // placeholders until the PixelLab/ChatGPT art arrives. The hero is the PixelLab villager (8 directions).
 // Open with ?td in the URL.
 import Phaser from 'phaser';
-import heroIdle from '../assets/td/hero_idle.webp';
-import heroWalk from '../assets/td/hero_walking.webp';
-import heroAttack from '../assets/td/hero_attack.webp';
+import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const OM = objMeta as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number }>;
+const OM = objMeta as unknown as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number; chim?: [number, number] }>;
 import tl1Wang from '../assets/td/tl1_wang.png';
 import tl2Wang from '../assets/td/tl2_wang.png';
 import tl3Wang from '../assets/td/tl3_wang.png';
 import ft2Wang from '../assets/td/ft2_wang.png';
 import ft3Wang from '../assets/td/ft3_wang.png';
-import hr3Idle from '../assets/td/hr3_idle.webp';
-import hr3Walk from '../assets/td/hr3_walking.webp';
-import hr3Attack from '../assets/td/hr3_attack.webp';
-import hr4Idle from '../assets/td/hr4_idle.webp';
-import hr4Walk from '../assets/td/hr4_walking.webp';
-import hr4Attack from '../assets/td/hr4_attack.webp';
-import hr9Idle from '../assets/td/hr9_idle.webp';
-import hr9Walk from '../assets/td/hr9_walking.webp';
-import hr9Attack from '../assets/td/hr9_attack.webp';
 
-// hero forms from PixelLab: idle sheet (8 dirs, 48px), walk sheet (8 rows x 8 frames, 68px), optional attack (8 rows x 9)
-const FORMS: { key: string; name: string; idle: string; walk: string; attack?: string; idleFoot: number; walkFoot: number; fs?: number }[] = [
-  { key: 'hero', name: 'ชาวบ้าน', idle: heroIdle, walk: heroWalk, attack: heroAttack, idleFoot: 46, walkFoot: 56 },
-  { key: 'hr3', name: 'ลอร์ดอัศวิน', idle: hr3Idle, walk: hr3Walk, attack: hr3Attack, idleFoot: 44, walkFoot: 54 },
-  { key: 'hr4', name: 'นักธนู', idle: hr4Idle, walk: hr4Walk, attack: hr4Attack, idleFoot: 46, walkFoot: 54, fs: 64 },
-  { key: 'hr9', name: 'อาร์คเมจทมิฬ', idle: hr9Idle, walk: hr9Walk, attack: hr9Attack, idleFoot: 44, walkFoot: 51, fs: 56 },
-];
+// hero forms (PixelLab characters listed in chars.json)
+const FORMS: { key: string; name: string }[] = [
+  { key: 'hero', name: 'ชาวบ้าน' }, { key: 'hr1', name: 'นักดาบ' }, { key: 'hr2', name: 'อัศวิน' }, { key: 'hr3', name: 'ลอร์ดอัศวิน' },
+  { key: 'hr4', name: 'นักธนู' }, { key: 'hr5', name: 'พรานป่า' }, { key: 'hr6', name: 'เรนเจอร์ราชันย์' }, { key: 'hr7', name: 'จอมเวท' },
+  { key: 'hr8', name: 'ปราชญ์เวท' }, { key: 'hr9', name: 'อาร์คเมจทมิฬ' }, { key: 'hr10', name: 'ผู้พิทักษ์' }, { key: 'hr11', name: 'อัศวินเหล็กกล้า' },
+  { key: 'hr12', name: 'ป้อมปราการมนุษย์' },
+].filter(f => CH[f.key]);
 
 const MW = 1280, MH = 800;           // map size in game px (1 texel = 1 px)
 const CELL = 4;                       // collision grid
@@ -148,12 +137,7 @@ export class TopDownScene extends Phaser.Scene {
   preload() {
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang);
-    for (const f of FORMS) {
-      this.load.spritesheet(`td_${f.key}_idle`, f.idle, { frameWidth: 48, frameHeight: 48 });
-      const fs = f.fs ?? 68;
-      this.load.spritesheet(`td_${f.key}_walk`, f.walk, { frameWidth: fs, frameHeight: fs });
-      if (f.attack) this.load.spritesheet(`td_${f.key}_attack`, f.attack, { frameWidth: fs, frameHeight: fs });
-    }
+    preloadChars(this);
   }
 
   create() {
@@ -163,12 +147,9 @@ export class TopDownScene extends Phaser.Scene {
     this.makePropTextures();
     this.placeProps();
 
-    for (const f of FORMS) {
-      if (f.attack) DIRS.forEach((d, i) => this.anims.create({ key: `${f.key}_a_${d}`, frames: this.anims.generateFrameNumbers(`td_${f.key}_attack`, { start: i * 9, end: i * 9 + 8 }), frameRate: 18, repeat: 0 }));
-      DIRS.forEach((d, i) => this.anims.create({ key: `${f.key}_w_${d}`, frames: this.anims.generateFrameNumbers(`td_${f.key}_walk`, { start: i * 8, end: i * 8 + 7 }), frameRate: 10, repeat: -1 }));
-    }
+    createCharAnims(this);
     this.shadow = this.add.ellipse(PLAZA.x, PLAZA.y + 40, 18, 7, 0x10180f, 0.45).setDepth(1);
-    this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'td_hero_idle', 0).setOrigin(0.5, 46 / 48);
+    this.hero = this.add.sprite(PLAZA.x, PLAZA.y + 40, 'c_hero_idle', 0); setIdle(this.hero, 'hero', 0);
     this.form = 0;
 
     const cam = this.cameras.main;
@@ -356,7 +337,19 @@ export class TopDownScene extends Phaser.Scene {
     const w = (m.x1 - m.x0) * fw * sc;
     if (shadow) this.add.ellipse(x, y - 1, Math.max(8, (m.x1 - m.x0) * 0.7 * sc), Math.max(4, fd * 0.9), 0x0a1008, 0.4).setDepth(1);
     for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
+    if (m.chim) this.smoke(Math.round(x) - m.w / 2 * sc + m.chim[0] * sc, Math.round(y) - m.foot * sc + m.chim[1] * sc);
     return im;
+  }
+
+  /** Soft chimney smoke: puffs grow, drift with the wind and fade. */
+  smoke(x: number, y: number) {
+    if (!this.textures.exists('td_puff')) {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 24; const k = c.getContext('2d')!;
+      const g = k.createRadialGradient(12, 12, 1, 12, 12, 12); g.addColorStop(0, 'rgba(200,204,198,0.9)'); g.addColorStop(0.6, 'rgba(170,176,172,0.45)'); g.addColorStop(1, 'rgba(160,166,162,0)');
+      k.fillStyle = g; k.fillRect(0, 0, 24, 24); this.textures.addCanvas('td_puff', c);
+    }
+    this.add.particles(x, y, 'td_puff', { lifespan: { min: 2800, max: 4200 }, speedY: { min: -14, max: -8 }, speedX: { min: 2, max: 6 }, accelerationX: 1.5,
+      scale: { start: 0.22, end: 1.15 }, alpha: { start: 0.55, end: 0 }, rotate: { min: 0, max: 360 }, frequency: 240, quantity: 1 }).setDepth(99980);
   }
 
   placeProps() {
@@ -370,27 +363,29 @@ export class TopDownScene extends Phaser.Scene {
     const pick = (k: string, n: number) => `${k}_${Math.floor(rnd() * n)}`;
     // village buildings (level art from PixelLab Objects)
     const B: [string, number, number][] = [
-      ['townhall_1', 400, 318], ['house_1', 668, 318], ['house_0', 760, 300], ['forge_1', 712, 600], ['lumber_0', 190, 330],
-      ['quarry_0', 130, 590], ['barn_1', 390, 610], ['house_2', 640, 690],
+      ['townhall_1', 345, 322], ['tavern_0', 702, 322], ['house_1', 846, 300], ['lumber_0', 150, 330],
+      ['forge_1', 722, 650], ['barn_1', 300, 660], ['market_1', 120, 650],
+      ['house_0', 1090, 330], ['kitchen_0', 1100, 600], ['house_2', 1180, 760],
     ];
     for (const [n, x, y] of B) {
       const m = OM[n]; this.obj(n, x, y, 0.82, Math.round((m.foot - m.top) * 0.42));
       // keep the trees away from the building
-      for (let j = -(m.foot - m.top); j <= 14; j += 4) for (let i = -(m.x1 - m.x0) * 0.55; i <= (m.x1 - m.x0) * 0.55; i += 4) if (!this.isBlocked(x + i, y + j)) this.reserved.add(Math.round((x + i) / 4) + ',' + Math.round((y + j) / 4));
+      for (let j = -(m.foot - m.top) - 60; j <= 40; j += 4) for (let i = -(m.x1 - m.x0) * 0.75; i <= (m.x1 - m.x0) * 0.75; i += 4) if (!this.isBlocked(x + i, y + j)) this.reserved.add(Math.round((x + i) / 4) + ',' + Math.round((y + j) / 4));
     }
     const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
     // market stalls and village clutter around the plaza
     for (const [x, y] of [[600, 520], [652, 500], [436, 522]]) this.obj(pick('stall', 5), x, y, 0.8, 10);
-    for (const [k, x, y] of [['well_0', 580, 330], ['cart_0', 286, 470], ['barrel_0', 742, 612], ['barrel_1', 752, 618], ['crate_0', 680, 612], ['logs_0', 236, 344], ['logs_3', 150, 350],
-      ['hay_0', 430, 628], ['hay_1', 440, 636], ['ore_2', 92, 600], ['ore_4', 164, 604], ['sign_0', 860, 452], ['stump_0', 222, 362]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
+    for (const [k, x, y] of [['well_0', 590, 318], ['cart_0', 256, 470], ['barrel_0', 812, 660], ['barrel_1', 822, 668], ['crate_0', 628, 664], ['logs_0', 252, 350], ['logs_3', 252, 372],
+      ['hay_0', 400, 668], ['hay_1', 410, 676], ['sign_0', 880, 456], ['stump_0', 232, 392]] as [string, number, number][]) this.obj(k, x, y, 0.7, 4);
     // forest edge and clusters
     for (let k = 0; k < 900; k++) {
       const x = 16 + rnd() * (MW - 32), y = 50 + rnd() * (MH - 60);
       const edge = Math.min(x, MW - x, y, MH - y);
       const dense = edge < 80 || fbm(x / 140, y / 140) > 0.62;
-      if (!dense || !free(x, y, 30) || near(x, y)) continue;
+      const inVillage = x > 60 && x < 1240 && y > 230 && y < 740 && edge > 70;
+      if (!dense || inVillage || !free(x, y, 30) || near(x, y)) continue;
       const r = rnd();
-      this.obj(r < 0.45 ? pick('pine', 4) : r < 0.9 ? pick('oak', 3) : pick('dead', 6), x, y, 0.16, 4, true, 2);   // trees ~2x a cottage's height
+      this.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.16, 4, true);
     }
     for (let k = 0; k < 170; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
@@ -450,7 +445,7 @@ export class TopDownScene extends Phaser.Scene {
   nextForm() {
     if (this.attacking) return;
     this.form = (this.form + 1) % FORMS.length;
-    this.hero.stop(); this.hero.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
+    setIdle(this.hero, this.F.key, this.dir);
     this.label.setText(`ทดลอง: มองจากบน • ร่าง ${this.F.name} (แตะมุมขวาบน = เปลี่ยนร่าง • แตะข้อความนี้ = ทดสอบท่าตาย)`);
   }
   dead = false;
@@ -462,7 +457,7 @@ export class TopDownScene extends Phaser.Scene {
     this.deathFx(h, 0xbfe8ff, () => {
       this.time.delayedCall(900, () => {
         h.setPosition(PLAZA.x, PLAZA.y + 40).setAngle(0).setAlpha(0).setVisible(true).clearTint();
-        h.setTexture(`td_${this.F.key}_idle`, 0).setOrigin(0.5, this.F.idleFoot / 48);
+        setIdle(h, this.F.key, 0);
         this.tweens.add({ targets: h, alpha: 1, duration: 500, onComplete: () => { this.dead = false; } });
         this.shadow.setAlpha(1);
       });
@@ -511,12 +506,12 @@ export class TopDownScene extends Phaser.Scene {
 
   attacking = false;
   attack() {
-    if (this.dead || this.attacking || !this.F.attack) return;
+    if (this.dead || this.attacking || !hasAnim(this.F.key, 'attack')) return;
     this.attacking = true;
     const h = this.hero;
     const F = this.F;
-    h.setTexture(`td_${F.key}_attack`).setOrigin(0.5, F.walkFoot / (F.fs ?? 68)).play(`${F.key}_a_${DIRS[this.dir]}`);
-    h.once('animationcomplete', () => { this.attacking = false; h.setTexture(`td_${F.key}_idle`, this.dir).setOrigin(0.5, F.idleFoot / 48); });
+    playAnim(h, F.key, 'attack', this.dir, false);
+    h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }
 
   update(time: number, dt: number) {
@@ -539,10 +534,9 @@ export class TopDownScene extends Phaser.Scene {
       if (ok(h.x, ny)) h.y = ny;
       const ang = Math.atan2(my, mx);                       // 0 = east
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
-      const key = `${this.F.key}_w_${DIRS[this.dir]}`;
-      if (h.anims.currentAnim?.key !== key || !h.anims.isPlaying) { h.setTexture(`td_${this.F.key}_walk`).setOrigin(0.5, this.F.walkFoot / (this.F.fs ?? 68)); h.play(key, true); }
+      playAnim(h, this.F.key, 'walk', this.dir);
     } else if (h.anims.isPlaying && !this.attacking && !this.dead) {
-      h.stop(); h.setTexture(`td_${this.F.key}_idle`, this.dir).setOrigin(0.5, this.F.idleFoot / 48);
+      setIdle(h, this.F.key, this.dir);
     }
     h.setDepth(h.y);
     if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);

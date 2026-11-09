@@ -1,0 +1,18 @@
+{
+ "hr1": {
+  "cid": "06a3fcdd-0aea-42f4-9d94-03de39bd916b",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
+ },
+ "hr2": {
+  "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793"
+ },
+ "hr5": {
+  "cid": "b2384178-a25a-4a3d-b753-8db5961bbb80",
+  "walk": "done"
+ },
+ "hr6": {
+  "cid": "63b5475c-9848-4b58-b9ed-cf1d16dd853d"
+ }
+}
