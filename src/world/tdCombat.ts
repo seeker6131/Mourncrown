@@ -7,6 +7,7 @@ import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
 import { applyKill } from '../systems/rewards';
+import { Vfx } from './vfx';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim } from './chars';
@@ -38,7 +39,8 @@ const DMG = {
 export class Combat {
   mons: Mon[] = [];
   stage: Stage | null = null;
-  constructor(public s: Host) {}
+  vfx: Vfx;
+  constructor(public s: Host) { this.vfx = new Vfx(s); }
 
   /** where a respawning monster may appear (set by the scene: a free spot away from the hero and the gate) */
   pickSpot: (() => { x: number; y: number }) | null = null;
@@ -78,13 +80,13 @@ export class Combat {
   }
 
   // ---------- skills ----------
-  shieldHp = 0; shieldUntil = 0; shieldFx: Phaser.GameObjects.Ellipse | null = null;
+  shieldHp = 0; shieldUntil = 0; shieldEnd: (() => void) | null = null;
   /** shield soaks damage first */
   absorb(dmg: number) {
-    if (this.shieldHp <= 0 || this.s.time.now > this.shieldUntil) { this.shieldHp = 0; this.shieldFx?.destroy(); this.shieldFx = null; return dmg; }
+    if (this.shieldHp <= 0 || this.s.time.now > this.shieldUntil) { this.shieldHp = 0; return dmg; }
     const a = Math.min(this.shieldHp, dmg); this.shieldHp -= a;
     if (a > 0) this.float(this.s.hero.x, this.s.hero.y - 48, `🛡${a}`, '#ffe080', 8);
-    if (this.shieldHp <= 0) { this.shieldFx?.destroy(); this.shieldFx = null; }
+    if (this.shieldHp <= 0) { this.shieldEnd?.(); this.shieldEnd = null; }
     return dmg - a;
   }
   alive() { return this.mons.filter(m => m.alive); }
@@ -97,11 +99,9 @@ export class Combat {
     return r.dmg;
   }
   ring(x: number, y: number, r: number, col: number, dur = 380) {
-    const c = this.s.add.ellipse(x, y, 8, 4).setStrokeStyle(3, col, 1).setDepth(99953).setBlendMode(Phaser.BlendModes.ADD);
-    this.s.tweens.add({ targets: c, width: r * 2, height: r * 1.2, alpha: 0, duration: dur, ease: 'Quad.easeOut', onComplete: () => c.destroy() });
-    this.glowTex(); const g = this.s.add.image(x, y - 6, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99952).setScale(r / 20);
-    this.s.tweens.add({ targets: g, alpha: 0, scale: r / 12, duration: dur, onComplete: () => g.destroy() });
+    this.vfx.wave(x, y, r, col, dur); this.vfx.glow(x, y - 6, col, r / 30, dur, 0.8);
   }
+
   /** Cast a skill (already paid for by systems/skillCast.beginCast). Returns the text to float over the hero. */
   castSkill(sk: SkillDef) {
     const h = this.s.hero, col = sk.color ?? 0xffe8a0, s = S();
@@ -116,14 +116,14 @@ export class Combat {
         const n = sk.count ?? 1;
         times(n, 170, i => {
           const cx = h.x + fx * 20, cy = h.y - 10 + fy * 14;
-          this.slash(cx, cy, dirOf(fx, fy), i % 2 ? 'hr3' : 'hr12'); this.ring(cx, cy + 8, 26, col, 260);
+          this.vfx.slash(cx, cy, aim, col, 1.5, i % 2 === 1); this.vfx.impact(cx + fx * 10, cy + fy * 6, col, true);
+          if (sk.id === 't2_slam' || sk.id === 's2_cleave') { this.vfx.debris(cx, cy + 10, col, 10); this.vfx.dust(cx, cy + 10, 6); }
           for (const m of this.alive()) if (Math.hypot(m.x - cx, m.y - (cy + 10)) < 34 + m.m.size * 0.25) this.hitSk(m, sk, sk.id === 't2_slam' ? 22 : 6);
-        });
-        this.s.cameras.main.shake(120, 0.004); break;
+        }); break;
       }
       case 'spin': {
         const n = sk.count ?? 2, r = sk.radius ?? 48;
-        times(n, 220, () => { this.ring(h.x, h.y, r, col, 300); for (let k = 0; k < 4; k++) this.slash(h.x, h.y - 10, k * 2, 'hr3'); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
+        times(n, 220, i => { this.ring(h.x, h.y, r, col, 300); for (let k = 0; k < 4; k++) this.vfx.slash(h.x, h.y - 10, k * Math.PI / 2 + i * 0.8, col, 1.25); this.vfx.burst(h.x, h.y - 10, col, 16, 160, 420); this.vfx.dust(h.x, h.y, 6, 40); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
         break;
       }
       case 'dash': {
@@ -134,14 +134,17 @@ export class Combat {
         this.s.tweens.add({ targets: h, x: tx, y: ty, duration: 200, ease: 'Quad.easeOut', onUpdate: () => {
           for (const m of this.alive()) if (!hitSet.has(m) && Math.hypot(m.x - h.x, m.y - h.y) < 22 + m.m.size * 0.25) { hitSet.add(m); this.hitSk(m, sk, 18); }
         } });
-        this.sparks(x0, y0 - 8, col, 10); break;
+        this.vfx.dust(x0, y0, 10, 40); this.vfx.glow(x0, y0 - 10, col, 1.2, 300);
+        this.s.time.delayedCall(200, () => { this.vfx.impact(h.x, h.y - 10, col, true); this.vfx.dust(h.x, h.y, 8, 30); });
+        break;
       }
       case 'leap': {
         const r = sk.radius ?? 60, tgt = near && Math.hypot(near.x - h.x, near.y - h.y) < 170 ? { x: near.x - fx * 16, y: near.y - fy * 10 } : { x: h.x + fx * 60, y: h.y + fy * 60 };
         if (this.s.isBlocked(tgt.x, tgt.y)) { tgt.x = h.x; tgt.y = h.y; }
         this.s.tweens.add({ targets: h, x: tgt.x, y: tgt.y, duration: 320, ease: 'Sine.easeInOut' });
         this.s.tweens.add({ targets: h, scale: 1.25, duration: 160, yoyo: true });
-        this.s.time.delayedCall(330, () => { this.ring(h.x, h.y, r, col, 450); this.ring(h.x, h.y, r * 0.6, 0xffffff, 300); this.sparks(h.x, h.y - 4, col, 18); this.s.cameras.main.shake(260, 0.01);
+        this.vfx.glow(h.x, h.y - 10, col, 1, 300);
+        this.s.time.delayedCall(330, () => { this.vfx.pillar(h.x, h.y, col, 170, 650); this.vfx.wave(h.x, h.y, r * 1.2, col, 520); this.vfx.wave(h.x, h.y, r * 0.7, 0xffffff, 380); this.vfx.glow(h.x, h.y - 8, col, 2.4, 420); this.vfx.debris(h.x, h.y, col, 18); this.vfx.dust(h.x, h.y, 12, 50); this.vfx.burst(h.x, h.y - 8, col, 24, 200, 520);
           for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 16); });
         break;
       }
@@ -157,17 +160,18 @@ export class Combat {
           const hits = pierce ? on : on.slice(0, 1);
           const stopT = !pierce && hits[0] ? hits[0].t : len;
           const tx = sx + Math.cos(a) * stopT, ty = sy + Math.sin(a) * stopT;
-          this.glowTex();
           const big = sk.proj === 'fire' || sk.id === 'm2_fire';
-          const p = magic || sk.proj === 'orb' || sk.proj === 'dark' || big ? this.s.add.image(sx, sy, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(big ? 0.8 : 0.5)
-            : this.s.add.rectangle(sx, sy, pierce ? 22 : 12, pierce ? 3 : 2, col).setRotation(a);
-          p.setDepth(99950);
-          const tr = this.s.time.addEvent({ delay: 20, repeat: 10, callback: () => { const t = this.s.add.image(p.x, p.y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99949).setScale(0.3).setAlpha(0.6); this.s.tweens.add({ targets: t, alpha: 0, scale: 0.05, duration: 240, onComplete: () => t.destroy() }); } });
-          this.s.tweens.add({ targets: p, x: tx, y: ty, duration: stopT * 1.1, onComplete: () => {
-            p.destroy(); tr.remove(); this.sparks(tx, ty, col, 6);
-            if (big) { this.ring(tx, ty, sk.radius ?? 40, col); for (const m of this.alive()) if (Math.hypot(m.x - tx, m.y - m.m.size * 0.35 - ty) < (sk.radius ?? 40)) this.hitSk(m, sk, 10); }
-            else for (const o of hits) this.hitSk(o.m, sk, pierce ? 4 : 6);
-          } });
+          if (i === 0) this.vfx.glow(sx, sy, col, magic ? 1 : 0.6, 220);
+          this.vfx.bolt(sx, sy, tx, ty, col, big ? 1.8 : pierce ? 1.3 : magic ? 1.1 : 1, pierce ? 700 : 560, () => {
+            if (big) {
+              this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, sk.radius ?? 40, col, 420); this.vfx.burst(tx, ty, 0xffb040, 26, 200, 600, 0.22, 120);
+              for (const m of this.alive()) if (Math.hypot(m.x - tx, m.y - m.m.size * 0.35 - ty) < (sk.radius ?? 40)) this.hitSk(m, sk, 10);
+            } else {
+              this.vfx.impact(tx, ty, col, pierce);
+              for (const o of hits) { this.hitSk(o.m, sk, pierce ? 4 : 6); if (pierce) this.vfx.impact(o.m.x, o.m.y - o.m.m.size * 0.35, col); }
+            }
+          }, !magic && sk.proj !== 'orb' && sk.proj !== 'dark' && !big);
+          if (pierce) { const ln = this.s.add.image(sx, sy, 'vfx_beam').setOrigin(0.5, 1).setRotation(a + Math.PI / 2).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99950).setScale(0.6, stopT / 128).setAlpha(0.8); this.s.tweens.add({ targets: ln, alpha: 0, scaleX: 0.1, duration: 380, onComplete: () => ln.destroy() }); }
         });
         break;
       }
@@ -176,20 +180,28 @@ export class Combat {
         tg.forEach((m, i) => this.s.time.delayedCall(i * 90, () => {
           if (!m.alive) return;
           const tx = m.x, ty = m.y - m.m.size * 0.3;
-          this.glowTex();
           const fall = sk.fall ?? 'arrow';
-          const o = fall === 'arrow' || fall === 'blade' ? this.s.add.rectangle(tx - 30, ty - 120, fall === 'blade' ? 4 : 2, fall === 'blade' ? 18 : 14, col).setRotation(-0.25)
-            : this.s.add.image(tx - 30, ty - 120, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(fall === 'meteor' ? 1 : 0.5);
-          o.setDepth(99950);
-          if (fall === 'bolt') { const g = this.s.add.graphics().setDepth(99951).setBlendMode(Phaser.BlendModes.ADD); g.lineStyle(2, col, 1).beginPath().moveTo(tx, ty - 120); for (let k = 1; k <= 6; k++) g.lineTo(tx + (Math.random() - 0.5) * 14, ty - 120 + k * 20); g.strokePath(); this.s.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() }); }
-          this.s.tweens.add({ targets: o, x: tx, y: ty, duration: fall === 'bolt' ? 60 : 220, ease: 'Quad.easeIn', onComplete: () => { o.destroy(); this.ring(tx, ty + 6, fall === 'meteor' ? 30 : 14, col, 300); if (fall === 'meteor') this.s.cameras.main.shake(100, 0.006); this.hitSk(m, sk, 4); } });
+          if (fall === 'bolt') {
+            const g = this.s.add.graphics().setDepth(99951).setBlendMode(Phaser.BlendModes.ADD);
+            for (const [w, a2] of [[5, 0.35], [2, 1]] as const) { g.lineStyle(w, w > 2 ? col : 0xffffff, a2).beginPath().moveTo(tx, ty - 160); let px = tx; for (let k = 1; k <= 8; k++) { px = tx + (Math.random() - 0.5) * 22; g.lineTo(px, ty - 160 + k * 20); } g.strokePath(); }
+            this.s.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() });
+            this.vfx.impact(tx, ty, col, true); this.vfx.glow(tx, ty - 40, col, 1.6, 260); this.hitSk(m, sk, 4); return;
+          }
+          const meteor = fall === 'meteor';
+          this.vfx.bolt(tx - 40, ty - 160, tx, ty, col, meteor ? 2.2 : fall === 'blade' ? 1.3 : 1, meteor ? 520 : 800, () => {
+            if (meteor) { this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, 42, col, 460); this.vfx.debris(tx, ty + 6, col, 14); this.vfx.burst(tx, ty, 0xffa040, 22, 190, 560, 0.22, 140); }
+            else { this.vfx.impact(tx, ty, col, fall === 'blade'); this.vfx.wave(tx, ty + 6, 16, col, 280); }
+            this.hitSk(m, sk, 4);
+          }, fall === 'arrow');
         }));
         if (!tg.length) this.float(h.x, h.y - 40, 'ไม่มีเป้าหมาย', '#cfcfcf', 8);
         break;
       }
       case 'nova': {
         const r = sk.radius ?? 64;
-        this.ring(h.x, h.y, r, col, 450); this.ring(h.x, h.y, r * 0.7, 0xffffff, 320); this.sparks(h.x, h.y - 10, col, 16);
+        this.vfx.wave(h.x, h.y, r * 1.15, col, 520); this.vfx.wave(h.x, h.y, r * 0.75, 0xffffff, 380); this.vfx.glow(h.x, h.y - 10, col, r / 22, 460); this.vfx.burst(h.x, h.y - 10, col, 34, r * 3.2, 600, 0.2);
+        if (sk.id === 't3_quake') { this.vfx.debris(h.x, h.y, col, 20); this.vfx.dust(h.x, h.y, 14, 60); }
+        if (sk.id === 'a3_trap') this.vfx.burst(h.x, h.y, 0x6ad86a, 20, 120, 700, 0.16, -60);
         let total = 0;
         for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) total += this.hitSk(m, sk, 26);
         if (sk.id === 'm4_dread' && total > 0) { const d = derive(s), heal = Math.min(Math.round(total * 0.1), d.maxHp - s.hp); s.hp += heal; if (heal > 0) this.float(h.x, h.y - 40, `+${heal}`, '#7aff8a', 10); }
@@ -197,12 +209,12 @@ export class Combat {
       }
       case 'buff': case 'heal': case 'shield': {
         const r = selfEffect(s, sk);
-        this.ring(h.x, h.y, 30, col, 600); this.ring(h.x, h.y, 20, 0xffffff, 450);
-        for (let k = 0; k < 12; k++) { const p = this.s.add.rectangle(h.x + (Math.random() - 0.5) * 26, h.y - Math.random() * 10, 2, 2, col).setDepth(99952); this.s.tweens.add({ targets: p, y: p.y - 34 - Math.random() * 16, alpha: 0, duration: 700 + Math.random() * 400, onComplete: () => p.destroy() }); }
+        this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
+        this.vfx.pillar(h.x, h.y, col, sk.kind === 'buff' ? 150 : 110, 600); this.vfx.glow(h.x, h.y - 16, col, 1.4, 400); this.vfx.wave(h.x, h.y, 36, col, 500);
         if (r.heal !== undefined) this.float(h.x, h.y - 40, `+${r.heal}`, '#7aff8a', 12);
         if (r.shield) {
           this.shieldHp = r.shield; this.shieldUntil = this.s.time.now + 12000;
-          this.shieldFx?.destroy(); this.shieldFx = this.s.add.ellipse(h.x, h.y - 16, 34, 42).setStrokeStyle(2, col, 0.9).setFillStyle(col, 0.12).setDepth(99948);
+          this.shieldEnd?.(); this.shieldEnd = this.vfx.bubble(h, col, 12000);
           this.float(h.x, h.y - 40, `🛡 ${r.shield}`, '#ffe080', 11);
         }
         break;
@@ -239,56 +251,25 @@ export class Combat {
   }
   glowTex() { this.tex('fx_dot', k => { const g = k.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); k.fillStyle = g; k.fillRect(0, 0, 32, 32); }); }
 
-  /** sword swing: bright crescent arc + spark streaks */
+  /** sword swing: big glowing crescent + sparks off the blade */
+  slashN = 0;
   slash(x: number, y: number, dir: number, form: string) {
-    const col = form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : 0xfff2c8;
-    const g = this.s.add.graphics().setDepth(99955).setBlendMode(Phaser.BlendModes.ADD);
-    const a0 = Math.PI / 2 - dir * Math.PI / 4;   // facing angle in screen space
-    let t = 0;
-    const ev = this.s.time.addEvent({ delay: 16, repeat: 9, callback: () => {
-      t++; g.clear();
-      const sweep = Math.min(1, t / 5), fade = t <= 5 ? 1 : 1 - (t - 5) / 5;
-      for (let i = 0; i < 3; i++) {
-        g.lineStyle(4 - i, i ? col : 0xffffff, (0.9 - i * 0.25) * fade);
-        g.beginPath(); g.arc(x, y, 18 + i * 3, a0 - 1.1, a0 - 1.1 + 2.2 * sweep, false); g.strokePath();
-      }
-      if (t >= 10) { ev.remove(); g.destroy(); }
-    } });
+    const col = form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8;
+    const fx = Math.sin(dir * Math.PI / 4), fy = Math.cos(dir * Math.PI / 4);
+    this.vfx.slash(x + fx * 6, y + fy * 4, Math.atan2(fy, fx), col, form === 'hero' ? 0.85 : 1.05, (this.slashN++ & 1) === 1);
   }
 
-  sparks(x: number, y: number, col: number, n: number) {
-    this.glowTex();
-    for (let i = 0; i < n; i++) {
-      const p = this.s.add.image(x, y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99956).setScale(0.18 + Math.random() * 0.12);
-      const a = Math.random() * Math.PI * 2, d = 8 + Math.random() * 16;
-      this.s.tweens.add({ targets: p, x: x + Math.cos(a) * d, y: y + Math.sin(a) * d * 0.7, alpha: 0, scale: 0.05, duration: 260 + Math.random() * 200, onComplete: () => p.destroy() });
-    }
-  }
+  sparks(x: number, y: number, col: number, n: number) { this.vfx.burst(x, y, col, n, 90 + n * 6, 360, 0.13); }
 
   arrow(x: number, y: number, m: Mon) {
-    const tx = m.x, ty = m.y - m.m.size * 0.35, a = Math.atan2(ty - y, tx - x);
-    const ar = this.s.add.rectangle(x, y, 12, 2, 0xf0e2b8).setRotation(a).setDepth(99950);
-    const tr = this.s.add.rectangle(x, y, 18, 1, 0xffffff, 0.35).setRotation(a).setDepth(99949).setBlendMode(Phaser.BlendModes.ADD);
-    this.s.tweens.add({ targets: [ar, tr], x: tx, y: ty, duration: 150, onComplete: () => { ar.destroy(); tr.destroy(); this.sparks(tx, ty, 0xffe8a0, 5); } });
+    const tx = m.x, ty = m.y - m.m.size * 0.35;
+    this.vfx.bolt(x, y, tx, ty, 0xffe8a0, 1, 900, () => this.vfx.impact(tx, ty, 0xffe0a0), true);
   }
 
   magicBolt(x: number, y: number, m: Mon, col: number) {
-    this.glowTex();
     const tx = m.x, ty = m.y - m.m.size * 0.35;
-    const orb = this.s.add.image(x, y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99951).setScale(0.55);
-    const core = this.s.add.image(x, y, 'fx_dot').setBlendMode(Phaser.BlendModes.ADD).setDepth(99952).setScale(0.22);
-    const trail = this.s.time.addEvent({ delay: 20, repeat: 8, callback: () => {
-      const t = this.s.add.image(orb.x, orb.y, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99950).setScale(0.4).setAlpha(0.7);
-      this.s.tweens.add({ targets: t, scale: 0.05, alpha: 0, duration: 260, onComplete: () => t.destroy() });
-    } });
-    this.s.tweens.add({ targets: [orb, core], x: tx, y: ty, duration: 170, ease: 'Quad.easeIn', onComplete: () => {
-      orb.destroy(); core.destroy(); trail.remove();
-      const boom = this.s.add.image(tx, ty, 'fx_dot').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99953).setScale(0.3);
-      this.s.tweens.add({ targets: boom, scale: 1.6, alpha: 0, duration: 320, onComplete: () => boom.destroy() });
-      const ring = this.s.add.circle(tx, ty, 4).setStrokeStyle(2, col, 1).setDepth(99953);
-      this.s.tweens.add({ targets: ring, radius: 20, alpha: 0, duration: 340, onComplete: () => ring.destroy() });
-      this.sparks(tx, ty, col, 8);
-    } });
+    this.vfx.glow(x, y, col, 0.6, 200);
+    this.vfx.bolt(x, y, tx, ty, col, 1.1, 650, () => { this.vfx.impact(tx, ty, col, true); });
   }
 
   hurtMon(m: Mon, dmg: number, crit: boolean, magic = false) {
@@ -296,8 +277,8 @@ export class Combat {
     m.hp -= dmg; m.hitT = this.s.time.now;
     const st = magic ? (crit ? DMG.magicCrit : DMG.magic) : (crit ? DMG.physCrit : DMG.phys);
     this.dmgText(m.x + (Math.random() - 0.5) * 10, m.y - m.m.size * 0.75, dmg, st, crit, magic);
-    if (!magic) this.sparks(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xffffff, crit ? 9 : 4);
-    if (crit) this.s.cameras.main.shake(110, 0.005);
+    if (!magic) this.vfx.impact(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xfff4dc, crit);
+    else if (crit) this.vfx.star(m.x, m.y - m.m.size * 0.4, 0xff9cff, 1.4);
     m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
     const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), kb = m.boss ? 1 : 6;
     m.x += Math.cos(a) * kb; m.y += Math.sin(a) * kb;
@@ -309,7 +290,7 @@ export class Combat {
     const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
     if (ph) { this.s.tweens.add({ targets: ph, alpha: 0, scale: 1.4, duration: 300, onComplete: () => ph.destroy() }); m.sp.setVisible(false); }
     else if (m.boss && hasAnim(m.m.key, 'die')) {
-      playAnim(m.sp, m.m.key, 'die', m.dir, false); this.s.cameras.main.shake(400, 0.008);
+      playAnim(m.sp, m.m.key, 'die', m.dir, false);
       m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
@@ -347,7 +328,6 @@ export class Combat {
 
   update(time: number, dt: number) {
     const h = this.s.hero, s = S(), d = derive(s);
-    if (this.shieldFx) { if (time > this.shieldUntil) { this.shieldFx.destroy(); this.shieldFx = null; this.shieldHp = 0; } else this.shieldFx.setPosition(h.x, h.y - 16); }
     for (const m of this.mons) {
       if (!m.alive) continue;
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);
@@ -387,7 +367,7 @@ export class Combat {
           this.glowTex();
           const boom = this.s.add.image(cx, cy - 6, 'fx_dot').setTint(0xff6a3a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99954).setScale(1);
           this.s.tweens.add({ targets: boom, scale: 4, alpha: 0, duration: 450, onComplete: () => boom.destroy() });
-          this.sparks(cx, cy - 6, 0xffa050, 14); this.s.cameras.main.shake(250, 0.01);
+          this.sparks(cx, cy - 6, 0xffa050, 14);
           if (!this.s.dead && Math.hypot((h.x - cx) / R, (h.y - cy) / (R * 0.6)) < 1) {
             const r = calcDamage(m.atk * 2.2, d.def, 1, 0, Math.random, 0); s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
             this.float(h.x, h.y - 40, `-${r.dmg}`, '#ff4a3a', 13); if (s.hp <= 0) this.s.heroDie();
@@ -402,7 +382,7 @@ export class Combat {
           const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
           s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
           this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
-          if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); this.s.cameras.main.shake(90, 0.003); }
+          if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
           if (s.hp <= 0) this.s.heroDie();
         });
       }

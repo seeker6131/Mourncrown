@@ -850,7 +850,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN) { const b0 = best as { label: string; cb: () => void } | null; ui.setAction(b0?.label ?? null, b0?.cb); return; }
     for (const n of this.village?.npcs ?? []) {
       if (n.hidden) continue;
-      const d = Math.hypot(n.sp.x - h.x, n.sp.y - h.y); if (d > 34) continue;
+      const d = Math.hypot(n.sp.x - h.x, n.sp.y - h.y); if (d > 48) continue;
       if (n.key === 'np1') offer(d, '💬 ผู้เฒ่า', () => {
         const s = S();
         if (nextForm(s) !== null) ui.panels.open('job');
@@ -890,7 +890,6 @@ export class TopDownScene extends Phaser.Scene {
     const back = this.dir >= 1 && this.dir <= 3 ? -1 : this.dir >= 5 && this.dir <= 7 ? 1 : (Math.random() < 0.5 ? -1 : 1);
     sp.setTintFill(0xffffff);
     this.time.delayedCall(70, () => sp.clearTint());
-    this.cameras.main.shake(120, 0.004);
     this.tweens.add({ targets: sp, x: sp.x + back * 7, duration: 180, ease: 'Quad.easeOut' });
     this.tweens.add({ targets: sp, y: sp.y - 5, duration: 90, yoyo: true, ease: 'Quad.easeOut' });
     this.tweens.add({ targets: sp, angle: back * 82, duration: 260, delay: 60, ease: 'Quad.easeIn', onComplete: () => {

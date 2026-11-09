@@ -117,11 +117,12 @@ export function populateVillage(v: Village, roadY: (x: number) => number) {
   const door = { townhall: { x: 345, y: 336 }, tavern: { x: 702, y: 336 }, house1: { x: 846, y: 314 }, house0: { x: 1090, y: 344 },
     house2: { x: 1180, y: 774 }, kitchen: { x: 1100, y: 614 }, lumber: { x: 150, y: 344 }, barn: { x: 300, y: 674 } };
   // blacksmith: home → forge, hammering → home
-  v.add('np3', 'ช่างเหล็ก', door.house1, [go(722, 668), work(10000, N), go(760, 672), work(5000, W), go(door.house1.x, door.house1.y), inside(7000)]);
+  // shopkeepers stay at their posts so the player never has to chase them (they only turn around now and then)
+  v.add('np3', 'ช่างเหล็ก', { x: 722, y: 690 }, [go(722, 690), work(600000, S)], 26, true);
   // elder: stands before the town hall, strolls to the plaza, back
-  v.add('np1', 'ผู้เฒ่า', door.townhall, [go(372, 356), work(9000, S), go(470, 400), work(7000, E), go(door.townhall.x, door.townhall.y), inside(9000)], 16);
+  v.add('np1', 'ผู้เฒ่า', { x: 372, y: 360 }, [go(372, 360), work(600000, S)], 16, true);
   // merchant: minds the market stalls
-  v.add('np2', 'พ่อค้า', door.house0, [go(600, 538), work(12000, S), go(652, 518), work(6000, S), go(436, 540), work(6000, S), go(door.house0.x, door.house0.y), inside(6000)]);
+  v.add('np2', 'พ่อค้า', { x: 600, y: 540 }, [go(600, 540), work(600000, S)], 26, true);
   // lumberjack: chops at the western woods, carries logs to the lumber yard
   v.add('np4', 'คนตัดไม้', door.lumber, [go(70, 250), work(9000, W), go(250, 366), work(4000, N), go(door.lumber.x, door.lumber.y), inside(6000)]);
   // miner: off to the rocks in the south-east
