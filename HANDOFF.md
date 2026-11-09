@@ -290,3 +290,11 @@
 - บอส bs1-5 ท่าเดิน 8 ทิศ (กำลังเจน: `bash /tmp/claude-0/bossloop.sh` หรือ `python3 -I tools/gen_walk8.py bs1 bs2 bs3 bs4 bs5`) → import_chars → build
 - ร้านเติมเงิน/แผงแอดมิน + ระบบออนไลน์: ต้องมีเซิร์ฟเวอร์ (ดู docs/ONLINE_RISKS.md) — ยังไม่เริ่ม รอผู้ใช้เลือกผู้ให้บริการ/งบ
 - ไอคอนอาวุธเก่า (ดาบ/เกราะ/แหวน) ยังเป็นภาพวาดโค้ด
+
+## รอบ 2026-11-09 (ค่ำ)
+- **ลบเกมเก่า isometric ทั้งหมด** (WorldScene/UIScene/PreviewScene/entities/maps/mapgen/plateTown/art เก่า + assets ai/anim/forms/plates ~30MB). dist 40MB → ~9MB. BootScene โหลดแค่ UI skin + keyart (src/assets/title) + วาดไอคอนสำรอง; panels ใช้ interface `UIScene` ใน ui/panels.ts; formKeyOf ย้ายไป world/chars.ts; บทพูด NPC ใช้รูป c_np1/2/3_idle
+- **โหลดตัวละครตามฉาก:** TopDownScene.preload โหลดฮีโร่ทุกร่าง + ชาวบ้าน/สัตว์ (หมู่บ้าน) หรือมอนของดินแดน + บอส + สัตว์ป่า (ด่าน) — `preloadChars(scene, keys)` ข้ามที่โหลดแล้ว
+- **ไอคอนไอเทม PixelLab 33 ชิ้น** (`tools/gen_item_icons.py` → src/assets/icons) โหลดเป็น pl_icon_* แล้ว rename ทับ icon_* ใน TdUIScene.preload
+- **ท่าโจมตี 8 ทิศ:** `tools/gen_attack8.py` เติมทิศที่ขาดในกลุ่ม 'attack' เดิม (pixminimax, action เดิมจาก gen_chars SPECS) หยุดเมื่อโควต้า < 40; ลำดับ ฮีโร่ → มอน → บอส; รันต่อได้ (state attack8)
+- บอส bs4: ขอ 8 ทิศพร้อมกันโดน 409 เพราะงานก่อนหน้ายังเจนอยู่ — อย่าส่งซ้ำ ให้เช็ค `GET /characters/{id}` (animation_type 'walking-8-frames') ก่อน
+- วัดความเร็ว: headless ไม่มี GPU → '(program)' กินเวลาวาด ไม่ใช่โค้ด; ฉากสร้างเสร็จ ~0.4 วิ

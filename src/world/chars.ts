@@ -11,8 +11,11 @@ export const CH = manifest as unknown as Record<string, CharInfo>;
 const FILES = import.meta.glob('../assets/td/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const url = (name: string) => FILES[`../assets/td/${name}.webp`];
 
-export function preloadChars(scene: Phaser.Scene) {
+/** Load character sheets — only `keys` when given (each scene loads what it shows), skipping ones already loaded. */
+export function preloadChars(scene: Phaser.Scene, keys?: string[]) {
   for (const [k, c] of Object.entries(CH)) {
+    if (keys && !keys.includes(k)) continue;
+    if (scene.textures.exists(`c_${k}_idle`)) continue;
     scene.load.spritesheet(`c_${k}_idle`, url(`${k}_idle`), { frameWidth: c.idleFs, frameHeight: c.idleFs });
     for (const [a, i] of Object.entries(c.anims)) if (url(`${k}_${a}`)) scene.load.spritesheet(`c_${k}_${a}`, url(`${k}_${a}`), { frameWidth: i.fs, frameHeight: i.fs });
   }

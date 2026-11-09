@@ -163,7 +163,13 @@ export class TopDownScene extends Phaser.Scene {
   preload() {
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
-    preloadChars(this);
+    // only the characters this scene shows: hero forms always; villagers + animals in the village;
+    // the land's monsters, its boss (boss stages) and the wild game in a stage
+    const heroes = ['hero', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
+    const st = this.stageN ? STAGES[this.stageN - 1] : null;
+    const keys = st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss ? [st.land.boss.key] : []), 'mo16', 'mo17']
+      : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
+    preloadChars(this, keys);
   }
 
   stageN = 0;
