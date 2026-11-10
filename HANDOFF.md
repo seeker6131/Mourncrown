@@ -1,5 +1,7 @@
 # HANDOFF — Mourncrown (ป่าต้องสาป) · อ่านไฟล์นี้ก่อนเริ่มงาน
 
+> ใช้ได้กับ AI ทุกตัว (Claude / ChatGPT-Codex / อื่นๆ). ผู้ทำต่อต้องมีสิทธิ์ push ที่ repo `seeker6131/RPG-Newgame` และรัน `npm`, `python3`, Playwright ได้
+
 อัปเดต: 2026-11-09 · branch **`ccr-dcfcac78-b3qj60`** (push ที่นี่เท่านั้น) · เว็บ: https://seeker6131.github.io/RPG-Newgame/
 ประวัติงานเก่าทั้งหมด (ละเอียด แต่บางส่วนล้าสมัย): `docs/HANDOFF_HISTORY.md` · ดีไซน์: `docs/GAME_DESIGN.md` · ความเสี่ยงออนไลน์: `docs/ONLINE_RISKS.md`
 
@@ -30,7 +32,7 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 - ทดสอบในเบราว์เซอร์: `window.__game` (Phaser), `window.__tdS()` (state ผู้เล่น), ฉาก `TopDown` (`scene.start('TopDown', { stage: n })`), `TdUI` (HUD, `.panels.open('ชื่อ')`)
   - stage: `0` หมู่บ้าน · `1-50` แผนที่มอน · `100` ป่าดงดิบ (WILD) · `200-204` ดันเจี้ยน (DUNGEON+ดินแดน)
   - หยุดฉากก่อน start ใหม่ (`getScenes(true).forEach(s=>s.scene.stop())` รอ 300ms) ไม่งั้นค้าง
-- ⚠️ อย่าทิ้งภาพทดสอบไว้ที่รากโปรเจกต์ (`/*.png` ถูก ignore แล้ว) — ใช้ scratchpad
+- ⚠️ อย่าทิ้งภาพทดสอบไว้ที่รากโปรเจกต์ (`/*.png` ถูก ignore แล้ว) — ใช้โฟลเดอร์ชั่วคราวนอก repo
 
 ## 3. โครงสร้างโค้ด
 | ที่ | อะไร |
@@ -54,7 +56,7 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 
 ## 4. ชั้นเซิร์ฟ (สำคัญมาก)
 - UI/ฉาก **ห้าม** import ฟังก์ชันที่เปลี่ยนค่าจาก `systems/*` ตรงๆ → เรียก `act()` เท่านั้น → `server/handlers.ts` ตัดสิน (เช็คเลเวล แผนที่ มอนต้อง spawn จริง ดาเมจต่อวินาที อัตราการกด สุ่มของที่เซิร์ฟ)
-- ตอนนี้ handlers รันในเครื่องผู้เล่น (ยังโกงได้) → ขั้นต่อไป: ย้าย `src/server` + `systems` ไปรันบน **Cloudflare Workers + Durable Objects** (1 ห้องป่าดงดิบ = 1 DO), เซฟใน D1, ล็อกอิน Google, ตรวจใบเสร็จ Google Play ที่เซิร์ฟ — ผู้ใช้ต้องสมัคร Cloudflare ก่อน (ให้ใส่ token ผ่าน request_credential ห้ามวางในแชต)
+- ตอนนี้ handlers รันในเครื่องผู้เล่น (ยังโกงได้) → ขั้นต่อไป: ย้าย `src/server` + `systems` ไปรันบน **Cloudflare Workers + Durable Objects** (1 ห้องป่าดงดิบ = 1 DO), เซฟใน D1, ล็อกอิน Google, ตรวจใบเสร็จ Google Play ที่เซิร์ฟ — ผู้ใช้ต้องสมัคร Cloudflare ก่อน (API token ใส่เป็น secret/env ของเครื่องที่รัน ห้ามให้วางในแชตและห้าม commit)
 - ก่อน OBT: `DEV_TOOLS=false`, ตั้ง repo เป็น private (อัตราดรอปอยู่ในโค้ด), ลบ `window.__tdS`/`__game` debug
 
 ## 5. ระบบที่มีแล้ว (ย่อ)
@@ -74,3 +76,19 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 3. เพลงพื้นหลัง: ผู้ใช้สั่งเอาออก (อย่าใส่กลับเองโดยไม่ถาม)
 4. ชื่ออังกฤษบอส "Hollow Crown" ซ้ำกับชื่อเกมอื่นที่ pixelfx อ้างถึง — แจ้งผู้ใช้แล้ว ยังไม่ตัดสินใจ
 5. iPhone เต็มจอยังไม่ได้ทดสอบบนเครื่องจริง
+
+## 8. งานล่าสุด (2026-11-10)
+- ระบบของ: **ของทุกชิ้นมีระดับตายตัว** + ไม่มีเลเวลขั้นต่ำ (ดูข้อ 1) · ของ Legend/SL ใหม่ 12 ชิ้น + สร้อย Common
+- หน้า **Armory** (แกลเลอรีไอเทมสำหรับโปรโมท) อยู่บน claude.ai ของผู้ใช้: https://claude.ai/artifact/N82NxPEDjdAFToMbYYg1nG — แก้ได้เฉพาะผ่าน Claude; AI อื่นให้สร้าง HTML ใหม่จากข้อมูล `src/data/items.ts` + ไอคอน `src/assets/icons/*.webp` (ฝังเป็น data URI) แล้วส่งไฟล์ให้ผู้ใช้
+- เอฟเฟกต์สกิล/มอนตีเรา = pixelfx (ข้อ 6) · บอสใช้ท่าเดินชุดเก่า + มังกรใหม่ · เงาต้นไม้ = เงาพุ่มใบชิดโคน
+
+## 9. Prompt เริ่มงาน (ก๊อปวางให้ AI ตัวใหม่)
+```
+คุณคือผู้พัฒนาเกม Mourncrown (Phaser 3 + TypeScript + Vite) ใน repo seeker6131/RPG-Newgame
+branch ccr-dcfcac78-b3qj60 (ทำงานและ push ที่ branch นี้เท่านั้น)
+1) อ่าน HANDOFF.md ให้ครบก่อนแก้อะไร แล้วทำตามกฎในข้อ 1 ทุกข้อ
+2) ผู้ใช้คือ Game Director ไม่เขียนโค้ด คุยภาษาไทย สั้น ตรง — คุณแก้โค้ด รันเทส commit push เองทั้งหมด
+3) ก่อน push ทุกครั้ง: npx tsc --noEmit -p . && npm test && npm run build ต้องผ่าน
+4) ข้อความไทยใหม่ต้องเพิ่มคำแปลใน src/core/i18n.ts · ตรรกะที่ให้ของมีค่าต้องผ่าน act() → src/server/handlers.ts
+5) หลังทำเสร็จสรุปให้ผู้ใช้เป็นภาษาไทยแบบคนไม่เขียนโค้ดอ่านรู้เรื่อง และอัปเดต HANDOFF.md ข้อ 7–8
+```
