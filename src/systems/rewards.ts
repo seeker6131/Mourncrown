@@ -57,7 +57,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
     // SL pity: no SL in SL_PITY gear drops -> the next one is SL
     const pv = s as GameState & { slPity?: number }; pv.slPity = rar === 5 ? 0 : (pv.slPity ?? 0) + 1;
     if (pv.slPity >= SL_PITY) { rar = 5; pv.slPity = 0; }
-    const b = pickBase(rnd, st.level, s.cls);
+    const b = pickBase(rnd, rar, s.cls);
     const set = (boss && i === 0) || (elite && rnd() < 0.15) ? setId : undefined;
     if (give(b.id, 1, { ...makeGear(rnd, b.id, rar), ...(set ? { set } : {}) })) gear.push({ id: b.id, rar, set });
   }

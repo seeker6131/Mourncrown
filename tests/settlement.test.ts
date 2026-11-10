@@ -62,13 +62,10 @@ describe('village production', () => {
 });
 
 describe('levels matter', () => {
-  it('high tier gear needs level', () => {
+  it('no level requirement: a level 1 hero can wear SL gear', () => {
     const s = startNewGame();
-    addItem(s, 'knight_blade', 1, 0, makeGear(Math.random, 'knight_blade', 0));
-    const uid = s.inventory[s.inventory.length - 1].uid;
-    expect(equip(s, uid)).toBe(false);
-    s.level = 8;
-    expect(equip(s, uid)).toBe(true);
+    addItem(s, 'oblivion_blade', 1, 0, makeGear(Math.random, 'oblivion_blade'));
+    expect(equip(s, s.inventory[s.inventory.length - 1].uid)).toBe(true);
   });
   it('level up gives skill points that power up skills', () => {
     const s = startNewGame();
@@ -79,7 +76,7 @@ describe('levels matter', () => {
   });
   it('dismantle gives shards and cores for rare gear', () => {
     const s = startNewGame();
-    addItem(s, 'iron_sword', 1, 0, makeGear(Math.random, 'iron_sword', 3));
+    addItem(s, 'flame_saber', 1, 0, makeGear(Math.random, 'flame_saber'));
     const r = dismantle(s, s.inventory[s.inventory.length - 1].uid)!;
     expect(r.cores).toBe(1);
     expect(countItem(s, 'ancient_core')).toBe(1);

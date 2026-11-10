@@ -19,7 +19,7 @@ import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
-import { clampVitals, reqLevel, isEquipped, sellPrice, countItem } from '../systems/inventory';
+import { clampVitals, isEquipped, sellPrice, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
@@ -261,9 +261,7 @@ export class Panels {
       if (def.type === 'weapon' || def.type === 'armor' || def.type === 'accessory') {
         if (isEquipped(s, it.uid)) btn('ถอดออก', () => { act('unequip', { uid: it.uid }); bus.emit(EV.STATE_CHANGED); });
         else {
-          const rq = reqLevel(it.id);
-          if (s.level < rq) btn(`ต้อง Lv ${rq} ถึงจะใส่ได้`, () => undefined, undefined, true);
-          else btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.equip(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
+          btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.equip(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
           btn('ย่อยเป็นวัตถุดิบ', () => { const r = act('dismantle', { uid: it.uid }); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; bus.emit(EV.STATE_CHANGED); } }, 0x4a2a5a);
         }
       }

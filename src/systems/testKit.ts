@@ -3,14 +3,14 @@
 import type { GameState } from '../core/state';
 import { ITEMS } from '../data/items';
 import { addItem } from './inventory';
-import { makeGear, baseTier } from './loot';
+import { makeGear } from './loot';
 
 /** TESTING ONLY: +n levels (stats refilled) */
 export function testLevelUp(s: GameState, n = 10) { s.level = Math.min(100, s.level + n); s.exp = 0; s.skillPts = (s.skillPts ?? 0) + n; s.hp = 1e9; s.mp = 1e9; }
 
 export function giveTestKit(s: GameState, rarity = 5, rnd: () => number = Math.random) {
   const cls = s.cls === 'novice' ? 'sword' : s.cls;
-  const best = (pred: (d: typeof ITEMS[string]) => boolean) => Object.values(ITEMS).filter(pred).sort((a, b) => baseTier(b) - baseTier(a) || b.price - a.price)[0];
+  const best = (pred: (d: typeof ITEMS[string]) => boolean) => Object.values(ITEMS).filter(pred).sort((a, b) => b.rarity - a.rarity || b.price - a.price)[0];
   const picks = [best(d => d.type === 'weapon' && d.cls === cls), best(d => d.type === 'armor'), best(d => d.type === 'accessory')];
   const got: string[] = [];
   for (const d of picks) {

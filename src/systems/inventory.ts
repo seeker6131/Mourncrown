@@ -54,7 +54,6 @@ export function equip(s: GameState, uid: number): boolean {
   if (!it) return false;
   const d = itemDef(it.id);
   if (d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') return false;
-  if (s.level < reqLevel(it.id)) return false;
   s.equip[d.type as EquipSlot] = uid;
   clampVitals(s);
   return true;
@@ -114,22 +113,19 @@ export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.r
 export function sellPrice(it: InvItem): number {
   const d = itemDef(it.id);
   // NPCs pay little (director: no inflation) — good items are worth more on the player market
-  return Math.max(1, Math.floor(d.price * 0.06 * (1 + it.upg * 0.15) * (1 + (it.rar ?? 0) * 0.8)));
+  return Math.max(1, Math.floor(d.price * 0.06 * (1 + it.upg * 0.15) * (1 + d.rarity * 0.8)));
 }
 
 /** Character level needed to equip an item (by base tier). */
-export function reqLevel(id: string): number {
-  const d = itemDef(id);
-  if (!isGear(d)) return 1;
-  return [1, 1, 4, 8, 12][baseTier(d)] ?? 1;
-}
+/** no level requirement on gear any more (anyone can wear anything); kept for old callers */
+export function reqLevel(_id: string): number { return 1; }
 
 /** Break gear into upgrade materials. */
 export function dismantle(s: GameState, uid: number): { shards: number; cores: number } | null {
   const it = s.inventory.find(i => i.uid === uid);
   if (!it || !isGear(itemDef(it.id)) || isEquipped(s, uid)) return null;
-  const r = it.rar ?? 0;
-  const shards = [1, 1, 2, 4, 8][r] + it.upg;
+  const r = itemDef(it.id).rarity;
+  const shards = [1, 1, 2, 4, 8, 20][r] + it.upg;
   const cores = r >= 4 ? 2 : r >= 3 ? 1 : 0;
   removeUid(s, uid, 1);
   addItem(s, 'mana_shard', shards);
@@ -151,7 +147,7 @@ export function sellJunk(s: GameState, maxRar: number) {
   let count = 0, gold = 0;
   for (const it of [...s.inventory]) {
     const d = itemDef(it.id);
-    if ((d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') || isEquipped(s, it.uid) || (it.rar ?? 0) > maxRar) continue;
+    if ((d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') || isEquipped(s, it.uid) || d.rarity > maxRar) continue;
     gold += sellUid(s, it.uid, it.qty); count++;
   }
   return { count, gold };

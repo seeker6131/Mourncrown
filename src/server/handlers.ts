@@ -180,7 +180,7 @@ export const handlers = {
     const wasVillager = (s.tier ?? 0) === 0;
     if (!advanceClass(s, a.cls)) return { ok: false, weapon: null as string | null };
     let weapon: string | null = null;
-    if (wasVillager) { const w = ({ sword: 'iron_sword', archer: 'short_bow', mage: 'apprentice_wand', cleric: 'iron_mace' } as Record<string, string>)[s.cls]; if (w && addItem(s, w, 1)) { equip(s, s.inventory[s.inventory.length - 1].uid); weapon = w; } }
+    if (wasVillager) { const w = ({ sword: 'wood_sword', archer: 'short_bow', mage: 'apprentice_wand', cleric: 'iron_mace' } as Record<string, string>)[s.cls]; if (w && addItem(s, w, 1)) { equip(s, s.inventory[s.inventory.length - 1].uid); weapon = w; } }
     return { ok: true, weapon };
   },
   marketList: (s: GameState, a: { uid: number; qty: number; price: number }, c: Ctx) => listItem(s, a.uid, a.qty, a.price, c.now),
@@ -200,7 +200,7 @@ export const handlers = {
     mem.dungeon = null; pstats(s).dungeons++;
     const st = stageOf(DUNGEON + d.li, s.level), set = LAND_SET[LANDS[d.li].id], gear: { id: string; rar: number; set?: string }[] = [];
     for (let i = 0; i < (c.rnd() < 0.3 ? 2 : 1); i++) {   // set pieces: Rare or better
-      const b = pickBase(c.rnd, st.level, s.cls), rar = Math.max(2, Math.min(5, rollRarity(c.rnd, st.mf, 2)));
+      const rar = Math.max(2, Math.min(5, rollRarity(c.rnd, st.mf, 2))), b = pickBase(c.rnd, rar, s.cls);
       if (addItem(s, b.id, 1, 0, { ...makeGear(c.rnd, b.id, rar), set })) { gear.push({ id: b.id, rar, set }); if (rar >= 5) news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: b.id, rar }); }
     }
     const gold = Math.round(200 + st.level * 40), shards = 3 + Math.floor(c.rnd() * 3);

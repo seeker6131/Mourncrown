@@ -22,16 +22,19 @@ describe('progression', () => {
     expect(s.level).toBe(3);
     expect(derive(s).maxHp).toBeGreaterThan(before);
   });
-  it('rarer gear is stronger and has more affixes', () => {
-    const common = makeGear(() => 0.5, 'iron_sword', 0);
-    const legend = makeGear(() => 0.5, 'iron_sword', 4);
-    expect(common.aff!.length).toBe(0);
-    expect(legend.aff!.length).toBe(4);
-    s.level = 5;
-    addItem(s, 'iron_sword', 1, 0, common); equip(s, s.inventory[s.inventory.length - 1].uid);
-    const p1 = derive(s).power;
-    addItem(s, 'iron_sword', 1, 0, legend); equip(s, s.inventory[s.inventory.length - 1].uid);
-    expect(derive(s).power).toBeGreaterThan(p1);
+  it('each item has one fixed rarity; rarer items are stronger and have more affixes', () => {
+    const common = makeGear(() => 0.5, 'wood_sword', 5), legend = makeGear(() => 0.5, 'dawn_blade', 0);
+    expect(common.rar).toBe(0); expect(legend.rar).toBe(4);            // the asked rarity is ignored
+    expect(common.aff!.length).toBe(0); expect(legend.aff!.length).toBe(4);
+    const line = ['wood_sword', 'iron_sword', 'knight_blade', 'flame_saber', 'dawn_blade', 'oblivion_blade'];
+    const pw = line.map(id => { const t = startNewGame(); addItem(t, id, 1, 0, makeGear(() => 0.5, id)); equip(t, t.inventory[t.inventory.length - 1].uid); return derive(t).atk; });
+    for (let i = 1; i < pw.length; i++) expect(pw[i]).toBeGreaterThan(pw[i - 1]);
+  });
+  it('wrong class line gear works with reduced stats', () => {
+    const a = startNewGame(), b = startNewGame(); a.cls = b.cls = 'sword';
+    addItem(a, 'knight_blade', 1, 0, makeGear(() => 0.5, 'knight_blade')); equip(a, a.inventory[a.inventory.length - 1].uid);
+    addItem(b, 'elven_bow', 1, 0, makeGear(() => 0.5, 'elven_bow')); equip(b, b.inventory[b.inventory.length - 1].uid);
+    expect(derive(b).atk).toBeLessThan(derive(a).atk); expect(derive(b).atk).toBeGreaterThan(derive(startNewGame()).atk - 5);
   });
   it('rarity roll respects floor and magic find', () => {
     expect(rollRarity(() => 0, 0, 3)).toBeGreaterThanOrEqual(3);
@@ -194,8 +197,8 @@ describe('selling to the NPC', () => {
     const eq = s.inventory.find(i => s.equip.weapon === i.uid)!;
     expect(sellUid(s, eq.uid, 1)).toBe(0); expect(s.inventory.includes(eq)).toBe(true);
     let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    for (let i = 0; i < 4; i++) addItem(s, 'iron_sword', 1, 0, makeGear(rnd, 'iron_sword', 0));
+    for (let i = 0; i < 4; i++) addItem(s, 'cloth_tunic', 1, 0, makeGear(rnd, 'cloth_tunic'));
     const r = sellJunk(s, 0);
-    expect(r.count).toBe(4); expect(s.inventory.filter(i => i.id === 'iron_sword').length).toBe(0);
+    expect(r.count).toBeGreaterThanOrEqual(4); expect(s.inventory.filter(i => i.id === 'cloth_tunic' && s.equip.armor !== i.uid).length).toBe(0);
   });
 });

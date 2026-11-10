@@ -1,5 +1,5 @@
 // Loot / rarity / random affixes — power comes from gear, not stat points.
-import { ITEMS, itemDef, RARITY_MULT, type ItemDef } from '../data/items';
+import { ITEMS, itemDef, type ItemDef } from '../data/items';
 import type { InvItem } from '../core/state';
 
 export type AffixKey = 'atk' | 'matk' | 'def' | 'hp' | 'crit' | 'aspd' | 'move' | 'leech' | 'mf' | 'exp';
@@ -53,12 +53,10 @@ export function rollAffixes(rnd: () => number, d: ItemDef, rarity: number): Affi
   return out;
 }
 
-/** Pick an equipment base appropriate for a monster level. */
-export function pickBase(rnd: () => number, monLevel: number, cls?: string): ItemDef {
-  const maxTier = Math.min(4, 1 + Math.floor(monLevel / 4));
-  const pool = GEAR_BASES.filter(d => baseTier(d) <= maxTier && baseTier(d) >= maxTier - 1);
+/** Pick the item of a given rarity (each item has one fixed rarity). Weapons favour the hero's own class line. */
+export function pickBase(rnd: () => number, rarity: number, cls?: string, slot?: string): ItemDef {
+  const pool = GEAR_BASES.filter(d => d.rarity === rarity && (!slot || d.type === slot));
   let d = pool[Math.floor(rnd() * pool.length)] ?? GEAR_BASES[0];
-  // weapons for another class line are re-rolled most of the time (each class mostly finds its own weapons)
   if (cls && cls !== 'novice' && d.cls && d.cls !== cls && rnd() < 0.7) {
     const own = pool.filter(q => q.type === 'weapon' && q.cls === cls);
     if (own.length) d = own[Math.floor(rnd() * own.length)];
@@ -66,13 +64,14 @@ export function pickBase(rnd: () => number, monLevel: number, cls?: string): Ite
   return d;
 }
 
-export function makeGear(rnd: () => number, id: string, rarity: number): Pick<InvItem, 'id' | 'rar' | 'aff'> {
-  const d = itemDef(id);
+export function makeGear(rnd: () => number, id: string, _rarity?: number): Pick<InvItem, 'id' | 'rar' | 'aff'> {
+  const d = itemDef(id), rarity = d.rarity;   // the item's own rarity, always
   return { id, rar: rarity, aff: rollAffixes(rnd, d, rarity) };
 }
 
-export function rarOf(it: InvItem): number { return it.rar ?? (isGear(itemDef(it.id)) ? 0 : itemDef(it.id).rarity); }
+export function rarOf(it: InvItem): number { return itemDef(it.id).rarity; }
 
-export function rarMult(it: InvItem): number { return isGear(itemDef(it.id)) ? RARITY_MULT[it.rar ?? 0] : 1; }
+/** stats are already set per rarity in the item table */
+export function rarMult(_it: InvItem): number { return 1; }
 
 export function affixText(a: Affix) { return `${AFFIX_NAMES[a.k]} +${a.v}`; }

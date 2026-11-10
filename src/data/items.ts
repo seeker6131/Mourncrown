@@ -43,6 +43,24 @@ export const RARITY_NAMES = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legend
 export const RARITY_MULT = [1, 1.35, 1.8, 2.5, 3.6, 7.0];
 /** Gear made for one class line; other classes can wear it at reduced power. */
 export const OFF_CLASS_MULT = 0.6;
+/** Gear power comes only from the item's fixed rarity (no level requirement — anyone can wear anything;
+ *  gear of another class line gives OFF_CLASS_MULT). T = weapon power, D / H = armour defence / HP per rarity. */
+export const GEAR_T = [10, 45, 110, 200, 320, 520], GEAR_D = [3, 15, 35, 60, 95, 160], GEAR_H = [15, 80, 200, 380, 600, 1000];
+type Prof = (r: number) => Partial<Record<'atk' | 'matk' | 'def' | 'hp' | 'mp' | 'crit' | 'aspd' | 'mf', number>>;
+const T = (r: number, k: number) => Math.round(GEAR_T[r] * k);
+const LINE: Record<string, Prof> = {
+  sword: r => ({ atk: T(r, 1), crit: r ? 2 + r : 0 }),
+  mage: r => ({ matk: T(r, 1.15), atk: T(r, 0.15), mp: 20 + r * 20 }),
+  archer: r => ({ atk: T(r, 0.95), crit: 3 + r * 2, aspd: r >= 2 ? r * 2 : 0 }),
+  cleric: r => ({ atk: T(r, 0.8), def: Math.round(GEAR_D[r] * 0.6), hp: Math.round(GEAR_H[r] * 0.5) }),
+  armor: r => ({ def: GEAR_D[r], hp: GEAR_H[r], aspd: r >= 3 ? r : 0 }),
+  accessory: r => ({ atk: T(r, 0.25), matk: T(r, 0.25), hp: Math.round(GEAR_H[r] * 0.5), crit: 2 + r, mf: 5 + r * 5 }),
+};
+/** accessories with their own flavour */
+const ACC: Record<string, Prof> = {
+  ruby_amulet: r => ({ atk: T(r, 0.4), hp: GEAR_H[r] }),
+  sage_pendant: r => ({ matk: T(r, 0.45), mp: 30 + r * 20 }),
+};
 
 export const ITEMS: Record<string, ItemDef> = {
   // Weapons
@@ -72,6 +90,20 @@ export const ITEMS: Record<string, ItemDef> = {
   ruby_amulet: { id: 'ruby_amulet', name: 'สร้อยทับทิม', type: 'accessory', icon: 'amulet0', desc: 'เพิ่มพลังโจมตีและพลังชีวิต', price: 600, rarity: 2, atk: 10, hp: 60 },
   sage_pendant: { id: 'sage_pendant', name: 'จี้ปราชญ์', type: 'accessory', icon: 'amulet1', desc: 'เพิ่มมานาและพลังเวท', price: 650, rarity: 2, matk: 16, mp: 40 },
   heart_of_forest: { id: 'heart_of_forest', name: 'หัวใจแห่งพงไพร', type: 'accessory', icon: 'gem0', desc: 'อัญมณีจากผู้พิทักษ์ป่า', price: 3000, rarity: 3, atk: 12, matk: 12, hp: 190, crit: 4 },
+  // ---- Legend / SL gear (one fixed rarity per item — the item IS its rarity) ----
+  dawn_blade: { id: 'dawn_blade', cls: 'sword', name: 'ดาบรุ่งอรุณราชันย์', type: 'weapon', icon: 'sword4', desc: 'ดาบทองแห่งราชันย์ ส่องแสงอรุณไม่มีวันดับ', price: 9000, rarity: 4, look: 3 },
+  oblivion_blade: { id: 'oblivion_blade', cls: 'sword', name: 'ดาบอวสานคำสาป', type: 'weapon', icon: 'sword5', desc: 'ดาบในตำนานที่ฟันคำสาปให้สิ้นสูญ', price: 40000, rarity: 5, look: 3 },
+  astral_staff: { id: 'astral_staff', cls: 'mage', name: 'คทาดาราจักร', type: 'weapon', icon: 'staff4', desc: 'คทาที่บรรจุแสงดาวทั้งจักรวาล', price: 9000, rarity: 4, look: 4 },
+  abyss_staff: { id: 'abyss_staff', cls: 'mage', name: 'คทาเหวนิรันดร์', type: 'weapon', icon: 'staff5', desc: 'คทาจากก้นเหวลึก พลังเวทไร้ขีดจำกัด', price: 40000, rarity: 5, look: 4 },
+  phoenix_bow: { id: 'phoenix_bow', cls: 'archer', name: 'ธนูวิหคเพลิง', type: 'weapon', icon: 'bow4', desc: 'ธนูขนนกฟีนิกซ์ ลูกศรลุกเป็นไฟ', price: 9000, rarity: 4, look: 0 },
+  tempest_bow: { id: 'tempest_bow', cls: 'archer', name: 'ธนูพายุสวรรค์', type: 'weapon', icon: 'bow5', desc: 'ธนูที่เรียกพายุจากฟ้า ยิงเร็วดั่งสายฟ้า', price: 40000, rarity: 5, look: 0 },
+  sun_hammer: { id: 'sun_hammer', cls: 'cleric', name: 'ค้อนสุริยะ', type: 'weapon', icon: 'hammer4', desc: 'ค้อนทองคำที่ร้อนดั่งดวงอาทิตย์', price: 9000, rarity: 4, look: 0 },
+  worldbreaker: { id: 'worldbreaker', cls: 'cleric', name: 'ค้อนพสุธาแหลก', type: 'weapon', icon: 'hammer5', desc: 'ค้อนในตำนานที่ทุบแผ่นดินให้แยก', price: 40000, rarity: 5, look: 0 },
+  dragonscale: { id: 'dragonscale', name: 'เกราะเกล็ดมังกร', type: 'armor', icon: 'armor4', desc: 'เกราะเกล็ดมังกรทองคำ ทนทานไฟ', price: 9000, rarity: 4, look: 3 },
+  celestial_plate: { id: 'celestial_plate', name: 'เกราะเทพสวรรค์', type: 'armor', icon: 'armor5', desc: 'เกราะของเทพผู้พิทักษ์ ไม่มีสิ่งใดทะลุได้', price: 40000, rarity: 5, look: 3 },
+  bead_charm: { id: 'bead_charm', name: 'สร้อยลูกปัดไม้', type: 'accessory', icon: 'ring_c', desc: 'เครื่องรางลูกปัดไม้ธรรมดา', price: 20, rarity: 0 },
+  phoenix_feather: { id: 'phoenix_feather', name: 'ขนนกฟีนิกซ์', type: 'accessory', icon: 'gem4', desc: 'ขนนกอมตะที่ยังอุ่นอยู่เสมอ', price: 9000, rarity: 4 },
+  eye_of_dawn: { id: 'eye_of_dawn', name: 'ดวงตาอรุณ', type: 'accessory', icon: 'gem5', desc: 'อัญมณีที่มองเห็นทุกสิ่ง หายากที่สุดในโลก', price: 40000, rarity: 5 },
   // Consumables
   hp_potion: { id: 'hp_potion', name: 'ยาฟื้นพลัง', type: 'consumable', icon: 'potion_hp', desc: 'ฟื้นฟู HP 120', price: 25, rarity: 0, heal: 120, stack: true },
   hp_potion_l: { id: 'hp_potion_l', name: 'ยาฟื้นพลังใหญ่', type: 'consumable', icon: 'potion_hp_l', desc: 'ฟื้นฟู HP 400', price: 90, rarity: 1, heal: 400, stack: true },
@@ -112,6 +144,14 @@ export const ITEMS: Record<string, ItemDef> = {
   ancient_core: { id: 'ancient_core', name: 'แก่นโบราณ', type: 'material', icon: 'gem0', desc: 'แกนพลังจากของแรร์/บอส ใช้อัปเกรดอาคารขั้นสูง', price: 300, rarity: 3, stack: true },
   mana_shard: { id: 'mana_shard', name: 'ผลึกมานา', type: 'material', icon: 'shard', desc: 'ใช้ในการตีบวกอุปกรณ์', price: 40, rarity: 1, stack: true },
 };
+// apply the rarity stat tables to every piece of gear (stats written in the item list above are replaced)
+for (const d of Object.values(ITEMS)) {
+  if (d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') continue;
+  const prof = d.type === 'weapon' ? LINE[d.cls ?? 'sword'] : d.type === 'armor' ? LINE.armor : ACC[d.id] ?? LINE.accessory;
+  for (const k of ['atk', 'matk', 'def', 'hp', 'mp', 'crit', 'aspd', 'mf'] as const) delete (d as unknown as Record<string, unknown>)[k];
+  for (const [k, v] of Object.entries(prof(d.rarity))) if (v) (d as unknown as Record<string, number>)[k] = v;
+  d.tier = d.rarity + 1;
+}
 
 export function itemDef(id: string): ItemDef {
   const d = ITEMS[id];

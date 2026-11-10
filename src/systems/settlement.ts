@@ -3,7 +3,7 @@ import type { GameState } from '../core/state';
 import { BUILDINGS, NPC_BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type ResKey, type MealId } from '../data/buildings';
 import { addItem, countItem, removeItem } from './inventory';
 import { villageUpkeep } from './supplies';
-import { GEAR_BASES, baseTier, rollRarity, makeGear } from './loot';
+import { rollRarity, makeGear, pickBase } from './loot';
 import { itemDef } from '../data/items';
 
 export function canAfford(s: GameState, c: Cost): boolean {
@@ -98,9 +98,8 @@ export function craft(s: GameState, slot: 'weapon' | 'armor' | 'accessory', rnd:
   const r = forgeRecipe(lv, slot);
   if (countItem(s, 'mana_shard') < r.shards) return { ok: false, reason: 'no_shard' };
   if (!canAfford(s, r.cost)) return { ok: false, reason: 'no_res' };
-  const pool = GEAR_BASES.filter(d => d.type === slot && baseTier(d) <= r.tier && baseTier(d) >= Math.max(1, r.tier - 1));
-  const base = pool[Math.floor(rnd() * pool.length)] ?? GEAR_BASES.find(d => d.type === slot)!;
-  const rar = rollRarity(rnd, r.mf, r.minRarity);
+  const rar = Math.min(4, rollRarity(rnd, r.mf, r.minRarity));   // the forge never makes SL (drops only)
+  const base = pickBase(rnd, rar, s.cls, slot);
   if (!addItem(s, base.id, 1, 0, makeGear(rnd, base.id, rar))) return { ok: false, reason: 'bag_full' };
   pay(s, r.cost);
   removeItem(s, 'mana_shard', r.shards);
