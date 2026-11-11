@@ -9,7 +9,7 @@ out, key = sys.argv[1], sys.argv[2]
 anims = (sys.argv[3] if len(sys.argv) > 3 else 'walk,attack').split(',')
 step = int(sys.argv[4]) if len(sys.argv) > 4 else 2
 v = man[key]; idle = Image.open(f'{D}/{key}_idle.webp').convert('RGBA'); fs = v['idleFs']
-S = 3 if fs <= 70 else 1
+S = 3 if fs <= 100 else 1
 rows = []
 for dn in v['dirs']:
     i = v['dirs'].index(dn); cells = [('idle', idle.crop((i * fs, 0, (i + 1) * fs, fs)), v['idleFoot'])]

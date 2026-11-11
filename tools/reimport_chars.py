@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import import_chars as I
 p = os.path.join(I.OUT, 'chars.json'); man = json.load(open(p))
 for k in sys.argv[1:]:
-    zs = [os.path.join(I.PL, z) for z in I.OLD[k]] if k in I.OLD else [os.path.join(I.PL, 'chars', I.SRC.get(k, k) + '.zip')]
+    zs = [(os.path.join(I.PL, z[0]), z[1]) if isinstance(z, tuple) else os.path.join(I.PL, z) for z in I.OLD[k]] if k in I.OLD else [os.path.join(I.PL, 'chars', I.SRC.get(k, k) + '.zip')]
     new = {}; I.build(k, zs, new); man[k] = new[k]
     print(k, 'idle', new[k]['idleFs'], {a: (x['fs'], x['n'], len(x['dirs'])) for a, x in new[k]['anims'].items()})
 json.dump(man, open(p, 'w'), indent=0)

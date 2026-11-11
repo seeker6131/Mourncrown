@@ -17,7 +17,7 @@ import { sellJunk } from '../systems/inventory';
 import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
-import { CH, playAnim, setIdle, hasAnim } from './chars';
+import { CH, playAnim, setIdle, hasAnim, hitMs } from './chars';
 import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
@@ -398,7 +398,8 @@ export class Combat {
     }).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y));
     const hits = ranged ? targets.slice(0, 1) : targets.slice(0, 3);
     const magic = MAGIC.has(formKey);
-    this.s.time.delayedCall(ranged ? 260 : 120, () => {
+    // damage and the slash effect land on the frame where the weapon / bow / staff strikes
+    this.s.time.delayedCall(hitMs(formKey, formKey === 'hg' ? (hasAnim('hg', 'hunt') ? 'hunt' : 'chop') : 'attack', ranged ? 260 : 120), () => {
       if (!ranged) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
       for (const m of hits) {
         if (!m.alive) continue;
@@ -587,8 +588,8 @@ export class Combat {
         };
         if (base.ranged) {   // archers and spirits fire a projectile; the hit lands when it arrives
           const col = RANGED_COL[m.m.kind] ?? 0xc8a0ff;
-          this.s.time.delayedCall(260, () => { if (m.alive && !this.s.dead) this.vfx.bolt(m.x, m.y - m.m.size * 0.45, h.x, h.y - 16, col, 0.8, 300, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin'); });
-        } else this.s.time.delayedCall(220, land);
+          this.s.time.delayedCall(hitMs(m.m.key, 'attack', 260), () => { if (m.alive && !this.s.dead) this.vfx.bolt(m.x, m.y - m.m.size * 0.45, h.x, h.y - 16, col, 0.8, 300, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin'); });
+        } else this.s.time.delayedCall(hitMs(m.m.key, 'attack', 220), land);   // the hit lands on the frame the claw / weapon strikes
       }
       if (CH[m.m.key]) {
         const attacking = time - m.atkT < 600;

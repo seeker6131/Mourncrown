@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import manifest from '../assets/td/chars.json';
 
 export const DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'];
-interface AnimInfo { fs: number; n: number; dirs: string[]; foot: number }
+interface AnimInfo { fs: number; n: number; dirs: string[]; foot: number; hit?: number }
 interface CharInfo { dirs: string[]; idleFs: number; idleFoot: number; anims: Record<string, AnimInfo> }
 export const CH = manifest as unknown as Record<string, CharInfo>;
 const FILES = import.meta.glob('../assets/td/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -37,6 +37,11 @@ function near(dirs: string[], d: number) {
   return dirs[0];
 }
 export const hasAnim = (k: string, a: string) => !!CH[k]?.anims[a];
+/** ms from the start of an attack / work animation to the frame where the weapon lands (found by tools/import_chars.py) */
+export function hitMs(k: string, a: string, fallback: number) {
+  const h = CH[k]?.anims[a]?.hit;
+  return h ? Math.round(h * 1000 / (RATE[a] ?? 10)) : fallback;
+}
 export function setIdle(sp: Phaser.GameObjects.Sprite, k: string, d: number) {
   const c = CH[k]; sp.anims.stop();
   sp.setTexture(`c_${k}_idle`, c.dirs.indexOf(near(c.dirs, d))).setOrigin(0.5, c.idleFoot / c.idleFs);

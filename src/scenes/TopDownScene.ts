@@ -36,7 +36,7 @@ import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
-import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, formKeyOf } from '../world/chars';
+import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, hitMs, formKeyOf } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -1293,7 +1293,7 @@ export class TopDownScene extends Phaser.Scene {
       if (n.hp <= 0) this.depleteNode(n, n.vein?.rare ? 240000 : this.wild ? 45000 : 90000);
       bus.emit(EV.STATE_CHANGED);
     };
-    this.time.delayedCall(380, () => (n.kind === 'wood' ? sfx.chop() : sfx.mine()));
+    this.time.delayedCall(hitMs(key, anim, 380), () => (n.kind === 'wood' ? sfx.chop() : sfx.mine()));   // the thud on the frame the tool lands
     if (playAnim(h, key, anim, this.dir, false) || playAnim(h, key, 'attack', this.dir, false)) h.once('animationcomplete', done);
     else this.time.delayedCall(500, done);
   }
@@ -1390,7 +1390,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero;
     const F = this.F;
     playAnim(h, F.key, this.swing, this.dir, false);
-    this.time.delayedCall(120, () => sfx.swing());
+    this.time.delayedCall(Math.max(60, hitMs(F.key, this.swing, 210) - 90), () => sfx.swing());   // the whoosh just before the weapon lands
     if (this.stageN) this.combat.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }

@@ -489,7 +489,8 @@
    "south-east",
    "south-west",
    "west"
-  ]
+  ],
+  "attackfix_redo": 1
  },
  "hr8": {
   "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5",
@@ -674,7 +675,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "work2": 1
  },
  "np5": {
   "cid": "1182012a-5455-469f-bed2-427d8effdeee",
@@ -691,7 +693,8 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "work2": 1
  },
  "np6": {
   "cid": "8841c9fc-a8fb-4f62-8e7a-c28ecf0eae0a",
@@ -959,5 +962,17 @@
   "cid": "953b9883-85ee-436b-bad4-a431af109ca2",
   "walk_g": "1e42d726-7e21-46cc-98c5-7f96235ac939",
   "attack_g": "e86cebd8-521d-4a66-9863-253c3693e812"
+ },
+ "hero": {
+  "cid": "755016b3-f6b1-4b0e-aaa3-3bc937accd35"
+ },
+ "hr3": {
+  "cid": "d0a01c4a-3a8f-4c3b-bcc6-a36f722e16e1"
+ },
+ "hr4": {
+  "cid": "e26767d2-9a4d-4f35-abea-3c75491e3c08"
+ },
+ "hr9": {
+  "cid": "13f0c952-ddf0-49de-b3e2-c884d72ddfd7"
  }
 }
