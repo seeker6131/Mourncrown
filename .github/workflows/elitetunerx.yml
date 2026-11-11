@@ -36,7 +36,14 @@ jobs:
       - name: Build release APK
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace assembleRelease
+          set +e
+          ./gradlew --no-daemon assembleRelease 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "=================== BUILD ERRORS ==================="
+            grep -E "^e: |error:|What went wrong|FAILED" -A3 build.log | grep -v "^--$" | head -120
+            exit "$status"
+          fi
 
       - name: Rename APK
         run: |
