@@ -2,7 +2,8 @@
 export type ResKey = 'wood' | 'stone' | 'food';
 export interface Cost { gold?: number; wood?: number; stone?: number; food?: number; items?: Record<string, number> }
 export type BuildingId = 'forge' | 'kitchen' | 'warehouse' | 'lumber' | 'quarry' | 'barn' | 'tavern' | 'market' | 'tower' | 'home';
-/** village buildings run by NPCs (already standing in a new game); the player only builds their own 'home' */
+/** the starter village's buildings, run by NPCs (already standing in a new game); the player only builds their own 'home'.
+ *  (the guild village has its own buildings: src/data/guild.ts GUILD_BLD) */
 export const NPC_BUILDINGS: BuildingId[] = ['forge', 'barn', 'lumber', 'tavern', 'kitchen', 'market', 'warehouse', 'quarry', 'tower'];
 
 export interface BuildingDef {
@@ -110,7 +111,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     effect: lv => `ทอง ${(2 * (1 + (lv - 1) * 0.6)).toFixed(1)}/นาที`,
   },
   tower: {
-    id: 'tower', icon: '🏰', name: 'หอป้องกัน', desc: 'ป้องกันหมู่บ้าน (สงครามปล้นหมู่บ้านในโหมดออนไลน์) • ทหารฝึกให้เราแกร่งขึ้น', rate: 0, maxLevel: 5,
+    id: 'tower', icon: '🏰', name: 'หอป้องกัน', desc: 'ป้องกันหมู่บ้าน • ทหารฝึกให้เราแกร่งขึ้น (DEF/HP)', rate: 0, maxLevel: 5,
     costs: [
       { gold: 720, wood: 160, stone: 240 },
       { gold: 2160, wood: 320, stone: 480 },
@@ -121,7 +122,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     effect: lv => `DEF +${lv * 3}%  HP +${lv * 2}%`,
   },
   home: {
-    id: 'home', icon: '🏠', name: 'บ้านของฉัน', desc: 'บ้านของคุณเองในหมู่บ้าน — พักฟื้นเร็วขึ้น เก็บของได้มากขึ้น (ออนไลน์: เพื่อนมาเยี่ยมได้)', rate: 0, maxLevel: 5,
+    id: 'home', icon: '🏠', name: 'บ้านของฉัน', desc: 'บ้านของคุณเอง (สร้าง/อัปด้วยของส่วนตัว) — พักฟื้นเร็วขึ้น • ข้างในมีเตียงพักผ่อน (ล่ามอนได้ EXP เพิ่ม) ตู้โชว์ของแรร์ (บัฟถาวร) หีบเก็บของส่วนตัว', rate: 0, maxLevel: 5,
     costs: [
       { gold: 320, wood: 120, stone: 60 },
       { gold: 1200, wood: 320, stone: 200 },
@@ -129,7 +130,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       { gold: 7200, wood: 1040, stone: 800, items: { goblin_fang: 5 } },
       { gold: 14400, wood: 1680, stone: 1360, items: { ancient_core: 1 } },
     ],
-    effect: lv => `ฟื้น HP ในหมู่บ้าน x${(1 + lv * 0.5).toFixed(1)} • กระเป๋า +${lv * 2} ช่อง`,
+    effect: lv => `ฟื้น HP ในหมู่บ้าน x${(1 + lv * 0.5).toFixed(1)} • หีบ ${10 + lv * 10} ช่อง • ตู้โชว์ ${Math.min(6, 1 + lv)} ชิ้น • พักผ่อนสะสมได้ ${300 + 150 * lv} ตัว • กระเป๋า +${lv * 2} ช่อง`,
   },
 };
 

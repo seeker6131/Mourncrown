@@ -18,6 +18,13 @@ import { derive } from '../systems/stats';
 import { addItem, sellUid, sellJunk, tryUpgrade, dismantle, equip, unequipUid, useItem } from '../systems/inventory';
 import { itemDef, SHOP_STOCK, SHOP_SHARD_DAILY } from '../data/items';
 import { build, upgrade, collect, craft, cook } from '../systems/settlement';
+import {
+  guildOf, homeOf, donate, upgradeVillage, collectVillage, setRole, simInvite, kick, defBuild, defUpgrade, defRepair, defRemove, createGuild, joinGuild,
+  houseBuild, hireGuard, dismissGuard, sleep, wake, trophyPut, trophyTake, stashPut, stashTake, shopBuy as guildShopBuy, goals, goalProgress, guildTick, rivals,
+  rivalStructs, canRaid, raidResult, type Rival,
+} from '../systems/guild';
+import { RAID_SECS, REST_EXP, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
+import { gainExp } from '../systems/stats';
 import { upSkill, advanceClass } from '../systems/stats';
 import { listItem, cancelListing } from '../systems/market';
 import { buyDiamondItem, claimVipGift, grantVip, grantDiamonds, vipActive } from '../systems/premium';
@@ -39,7 +46,7 @@ const no = (why: string): Refused => ({ refused: why });
 interface Drop { id: string; qty: number; gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }; until: number }
 /** server-wide news (SL drops) — on the real server this goes to every connected player */
 const news: { t: number; name: string; item: string; rar: number }[] = [];
-const mem = { drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -102,8 +109,12 @@ export const handlers = {
       if (hm < 1) for (let i = drops.length - 1; i >= 0; i--) if (c.rnd() > hm) { mem.drops.delete(drops[i].did); drops.splice(i, 1); }
     }
     const ps = pstats(s); if (base.animal) ps.animals++; else { ps.kills++; ps.kinds[a.kind] = (ps.kinds[a.kind] ?? 0) + 1; if (sp.elite) ps.golden++; }
+    // rested in your own bed: extra EXP for a number of kills (docs/GUILD_WAR.md 5)
+    let restExp = 0; const hm0 = homeOf(s);
+    if (!base.animal && hm0.rest > 0 && r.exp > 0) { restExp = Math.round(r.exp * REST_EXP / 100); hm0.rest--; r.levels += gainExp(s, restExp); }
+    goalProgress(s, base.animal ? 'animal' : 'kill', 1, c.now);
     const junk = vipActive(s, c.now) && s.inventory.length >= invSize(s) - 2 ? sellJunk(s, 1) : null;   // VIP auto-sell
-    return { ...r, junk, drops };
+    return { ...r, junk, drops, restExp };
   },
   /** pick up a drop from the ground (first come, first served) */
   pickup(s: GameState, a: { did: number }, c: Ctx) {
@@ -132,6 +143,7 @@ export const handlers = {
     if (r.low) return { ...r, refused: 'level' };
     energy(s, c.now).gather += a.rare ? 3 : 1;
     { const ps = pstats(s); ps.ore += r.oreQty; if (r.gem) ps.gems++; }
+    goalProgress(s, a.kind, r.amt ?? 0, c.now); if (r.oreQty) goalProgress(s, 'ore', r.oreQty, c.now);
     nd.hits++; const max = a.rare ? 6 : 4;
     if (nd.hits >= max) { nd.hits = 0; nd.until = c.now + (a.rare ? 240000 : 45000) - 1500; }
     mem.nodes.set(a.node, nd);
@@ -174,6 +186,54 @@ export const handlers = {
   build: (s: GameState, a: { plot: number; id: BuildingId }, c: Ctx) => build(s, a.plot, a.id, c.now),
   upgradeBuilding: (s: GameState, a: { plot: number }) => upgrade(s, a.plot),
   collect: (s: GameState, a: { plot: number }) => collect(s, a.plot),
+  // ---------------- guild (docs/GUILD_WAR.md) ----------------
+  /** entering the village: catch up the simulated members / incoming raids, then the guild data for the UI */
+  guildSync(s: GameState, _a: object, c: Ctx) {
+    const g = guildOf(s); if (!g) return no('guild');
+    guildTick(s, c.now, c.rnd); goals(s, c.now); rivals(s, c.now);
+    return { unread: g.unread.splice(0) };
+  },
+  guildCreate: (s: GameState, a: { name: string }, c: Ctx) => createGuild(s, a.name, c.now, c.rnd),
+  guildJoin: (s: GameState, a: { id: string }, c: Ctx) => joinGuild(s, a.id, c.now, c.rnd),
+  guildUpgrade: (s: GameState, a: { type: GuildBld }, c: Ctx) => upgradeVillage(s, a.type, c.now),
+  guildCollect: (s: GameState, a: { type: GuildBld }, c: Ctx) => collectVillage(s, a.type, c.now),
+  houseBuild: (s: GameState, _a: object, c: Ctx) => houseBuild(s, c.now),
+  hireGuard: (s: GameState, a: { type: GuardType }, c: Ctx) => hireGuard(s, a.type, c.now),
+  dismissGuard: (s: GameState, a: { type: GuardType }) => dismissGuard(s, a.type),
+  donate: (s: GameState, a: { gold?: number; wood?: number; stone?: number; food?: number; item?: string; qty?: number }, c: Ctx) => (rateOk('donate', 4, c.now) ? donate(s, a, c.now) : no('rate')),
+  guildRole: (s: GameState, a: { id: string; role: 'leader' | 'deputy' | 'member' }, c: Ctx) => setRole(s, a.id, a.role, c.now),
+  guildInvite: (s: GameState, _a: object, c: Ctx) => simInvite(s, c.now, c.rnd),
+  guildKick: (s: GameState, a: { id: string }, c: Ctx) => kick(s, a.id, c.now),
+  guildShop: (s: GameState, a: { id: string }, c: Ctx) => guildShopBuy(s, a.id, c.now),
+  defBuild: (s: GameState, a: { slot: number; type: DefenseId }, c: Ctx) => defBuild(s, a.slot, a.type, c.now),
+  defUpgrade: (s: GameState, a: { slot: number }, c: Ctx) => defUpgrade(s, a.slot, c.now),
+  defRepair: (s: GameState, a: { slot: number }) => defRepair(s, a.slot),
+  defRemove: (s: GameState, a: { slot: number }) => defRemove(s, a.slot),
+  /** your bed: HP / MP full now, rest builds up while you are away */
+  sleep(s: GameState, _a: object, c: Ctx) { const r = sleep(s, c.now); if (!('refused' in r)) { const d = derive(s); s.hp = d.maxHp; s.mp = d.maxMp; } return r; },
+  wake: (s: GameState, _a: object, c: Ctx) => wake(s, c.now),
+  trophyPut: (s: GameState, a: { uid: number }) => trophyPut(s, a.uid),
+  trophyTake: (s: GameState, a: { i: number }) => trophyTake(s, a.i),
+  stashPut: (s: GameState, a: { uid: number }) => stashPut(s, a.uid),
+  stashTake: (s: GameState, a: { i: number }) => stashTake(s, a.i),
+  /** start a raid on one of today's matched villages: the server keeps the village and its HP; the client gets the layout */
+  raidStart(s: GameState, a: { id: string }, c: Ctx) {
+    const r = canRaid(s, a.id, c.now); if ('refused' in r) return r;
+    const structs = rivalStructs(r.rival);
+    mem.raid = { rival: r.rival, start: c.now, hp: structs.reduce((x, q) => x + q.hp, 0) };
+    mem.map = -1; mem.dmg = 0; mem.dmgT = c.now;
+    return { rival: r.rival, structs, secs: RAID_SECS };
+  },
+  /** raid over: the server checks the time and that the hero could deal that much damage, then pays out */
+  raidEnd(s: GameState, a: { destroyed: string[] }, c: Ctx) {
+    const R = mem.raid; if (!R) return no('raid');
+    mem.raid = null; mem.map = 0;
+    const secs = (c.now - R.start) / 1000; if (secs > RAID_SECS + 20) return no('time');
+    const structs = rivalStructs(R.rival), ids = [...new Set(a.destroyed ?? [])].filter(id => structs.some(q => q.id === id));
+    const hp = structs.filter(q => ids.includes(q.id)).reduce((x, q) => x + q.hp, 0);
+    if (!DEV_TOOLS && hp > dpsOf(s) * secs * 8 + 500) return no('dps');
+    return raidResult(s, R.rival, ids, c.now);
+  },
   upSkill: (s: GameState, a: { id: string }) => upSkill(s, a.id),
   /** class change; from villager the new line gets a free starter weapon (equipped) */
   advanceClass(s: GameState, a: { cls?: ClassId }) {

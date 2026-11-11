@@ -1,3 +1,4 @@
+import { TROPHY_BONUS } from '../data/guild';
 import { setBonus } from '../data/sets';
 // Character / Stats / Progression — pure functions over GameState.
 import type { GameState, InvItem } from '../core/state';
@@ -50,6 +51,9 @@ export function derive(s: GameState): Derived {
     for (const a of it.aff ?? []) g[a.k] = (g[a.k] ?? 0) + a.v;
   }
   const bl = (t: string) => { const b = s.buildings?.find(q => q.type === t); return b ? (b.done && Date.now() < b.done ? b.level - 1 : b.level) : 0; };
+  // trophies displayed in the player's house: small permanent bonuses by rarity (docs/GUILD_WAR.md 5)
+  const tro = { atk: 0, def: 0, hp: 0 };
+  for (const it of (s as GameState & { home?: { trophies?: { id: string; rar?: number }[] } }).home?.trophies ?? []) { const b = TROPHY_BONUS[Math.min(5, it.rar ?? itemDef(it.id).rarity)]; if (b) { tro.atk += b.atk; tro.def += b.def; tro.hp += b.hp; } }
   const tav = bl('tavern'), tow = bl('tower');
   g.exp += tav * 4;
   const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
@@ -65,11 +69,11 @@ export function derive(s: GameState): Derived {
   const sb = (s as GameState & { skillBuff?: { atk?: number; def?: number; aspd?: number; until: number } }).skillBuff;
   const sbOn = sb && sb.until > Date.now() ? sb : null;
   g.aspd += sbOn?.aspd ?? 0;
-  const ab = (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (1 + (sbOn?.atk ?? 0) / 100) * (1 + (el?.atk ?? 0) / 100) * (1 + (sf.atk ?? 0) / 100), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
+  const ab = (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (1 + (sbOn?.atk ?? 0) / 100) * (1 + (el?.atk ?? 0) / 100) * (1 + (sf.atk ?? 0) / 100) * (1 + tro.atk / 100), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
   const atk = Math.round((8 + L * 2.5 + g.atk) * ab * (1 + (cb.atk ?? 0) * tf / 100));
   const matk = Math.round((6 + L * 2.5 + g.matk) * ab * (1 + (cb.matk ?? 0) * tf / 100));
-  const def = Math.round((L * 1 + g.def) * hb * (1 + ((cb.def ?? 0) * tf + (sbOn?.def ?? 0) + tow * 3 + (buff?.stat === 'def' ? buff.pct : 0) + (el?.def ?? 0) + (sf.def ?? 0)) / 100));
-  const maxHp = Math.round((140 + L * 22 + g.hp) * hb * (1 + (el?.hp ?? 0) / 100) * (1 + (sf.hp ?? 0) / 100) * (1 + ((cb.hp ?? 0) * tf + tow * 2) / 100));
+  const def = Math.round((L * 1 + g.def) * hb * (1 + ((cb.def ?? 0) * tf + (sbOn?.def ?? 0) + tow * 3 + (buff?.stat === 'def' ? buff.pct : 0) + (el?.def ?? 0) + (sf.def ?? 0) + tro.def) / 100));
+  const maxHp = Math.round((140 + L * 22 + g.hp) * hb * (1 + (el?.hp ?? 0) / 100) * (1 + (sf.hp ?? 0) / 100) * (1 + ((cb.hp ?? 0) * tf + tow * 2 + tro.hp) / 100));
   const crit = Math.min(0.75, 0.05 + g.crit / 100);
   const attackInterval = Math.max(300, Math.round(700 / (1 + g.aspd / 100)));
   return {
