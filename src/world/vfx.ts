@@ -98,6 +98,16 @@ export class Vfx {
     }).setDepth(D + 2);
     em.explode(8); this.s.time.delayedCall(400, () => em.destroy());
   }
+  /** spear thrust: a thin bright streak stabbing forward, a small star at the tip (angle in radians, screen space) */
+  thrust(x: number, y: number, angle: number, col: number, size = 1) {
+    const c = Math.cos(angle), s = Math.sin(angle);
+    for (const [tint, wd, a, delay] of [[col, 0.11, 0.85, 0], [0xffffff, 0.05, 1, 15]] as const) {
+      const im = this.s.add.image(x, y, 'vfx_glow').setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(D + 1).setRotation(angle).setScale(0.15 * size, wd * size).setAlpha(a);
+      this.s.tweens.add({ targets: im, x: x + c * 20 * size, y: y + s * 20 * size, scaleX: 0.85 * size, duration: 110, delay, ease: 'Cubic.easeOut' });
+      this.s.tweens.add({ targets: im, alpha: 0, duration: 140, delay: delay + 90, onComplete: () => im.destroy() });
+    }
+    this.s.time.delayedCall(70, () => this.star(x + c * 36 * size, y + s * 36 * size, col, 0.5 * size));
+  }
   /** hit: star + flash + embers (+ ring for big hits) */
   impact(x: number, y: number, col: number, big = false) {
     this.star(x, y, col, big ? 1.6 : 0.9);

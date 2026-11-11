@@ -16,7 +16,18 @@
    "west"
   ],
   "walk8": "done",
-  "attack8": 8
+  "attack8": 8,
+  "walkfix_g": "f8a52910-f410-492f-be22-6b0d5d1aeee0",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr2": {
   "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793",
@@ -34,7 +45,18 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "walkfix_g": "f0c8fbcc-cb19-4cd7-93a6-6c55ee70b0a7",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr5": {
   "cid": "b2384178-a25a-4a3d-b753-8db5961bbb80",
@@ -52,7 +74,18 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "walkfix_g": "fed9b9be-9ef2-4003-8789-bcc8cf444cd9",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr6": {
   "cid": "63b5475c-9848-4b58-b9ed-cf1d16dd853d",
@@ -71,7 +104,18 @@
    "west"
   ],
   "walk8": "done",
-  "attack8": 8
+  "attack8": 8,
+  "walkfix_g": "1588a340-361c-48f9-bcca-7b6abf681af0",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "mo1": {
   "cid": "4b012d32-7ed9-4e21-8204-117085658759",
@@ -434,7 +478,18 @@
    "west"
   ],
   "walk8": "done",
-  "attack8": 8
+  "attack8": 8,
+  "walkfix_g": "971c61cd-bdae-4354-b329-ccd8c7247ac1",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr8": {
   "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5",
@@ -453,7 +508,18 @@
    "west"
   ],
   "walk8": "done",
-  "attack8": 8
+  "attack8": 8,
+  "walkfix_g": "b7138db4-8714-42ac-9640-79fcd5c7e943",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr10": {
   "cid": "c63d1244-7e03-4541-89b9-4feaac6c36c6",
@@ -471,7 +537,18 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "walkfix_g": "d18aed0e-d0c3-4ae7-9089-145796b96987",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr11": {
   "cid": "6563876c-d993-46b9-aca0-be6b0a0a23b5",
@@ -489,7 +566,18 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "walkfix_g": "6e53738d-2ec8-4c19-b7d1-b81544d4ec0a",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "hr12": {
   "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0",
@@ -507,7 +595,18 @@
    "south-west",
    "west"
   ],
-  "walk8": "done"
+  "walk8": "done",
+  "walkfix_g": "3b2e9ba9-a82b-463c-a3db-6fbea9dc235a",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "np1": {
   "cid": "8e93d3e3-f754-453c-b5e9-c83fcae74927",
@@ -843,7 +942,18 @@
   "walk8": "done",
   "chop": "done",
   "mine": "done",
-  "zip": 1
+  "zip": 1,
+  "states": {
+   "spear": {
+    "cid": "df1dc0ad-89a2-47e7-88cc-12db0f155b00"
+   },
+   "axe": {
+    "cid": "59347c83-9bc9-48af-8c03-a507318efbc6"
+   },
+   "pick": {
+    "cid": "816b2cfe-4b8f-47e6-9b79-1dd898ab6df7"
+   }
+  }
  },
  "bs3b": {
   "cid": "953b9883-85ee-436b-bad4-a431af109ca2",

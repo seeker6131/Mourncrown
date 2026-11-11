@@ -420,6 +420,7 @@ export class Combat {
   slash(x: number, y: number, dir: number, form: string) {
     const col = slashFx(S()) ?? (form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8);
     const fx = Math.sin(dir * Math.PI / 4), fy = Math.cos(dir * Math.PI / 4);
+    if (form === 'hg') { this.vfx.thrust(x + fx * 4, y + fy * 3, Math.atan2(fy, fx), col, 0.9); return; }   // hunting spear: a stab, not a sweep
     this.vfx.slash(x + fx * 6, y + fy * 4, Math.atan2(fy, fx), col, form === 'hero' ? 0.85 : 1.05, (this.slashN++ & 1) === 1);
   }
 

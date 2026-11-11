@@ -20,7 +20,7 @@ export function preloadChars(scene: Phaser.Scene, keys?: string[]) {
   }
 }
 
-const RATE: Record<string, number> = { walk: 10, attack: 18, special: 12, die: 10, chop: 14, mine: 14 };
+const RATE: Record<string, number> = { walk: 10, attack: 18, special: 12, die: 10, chop: 14, mine: 14, hunt: 16 };
 export function createCharAnims(scene: Phaser.Scene) {
   for (const [k, c] of Object.entries(CH)) for (const [a, i] of Object.entries(c.anims)) {
     if (!scene.textures.exists(`c_${k}_${a}`)) continue;

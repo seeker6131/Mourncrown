@@ -931,10 +931,10 @@ export class TopDownScene extends Phaser.Scene {
     for (const c of this.crowd?.list ?? []) dots.push({ x: c.x, y: c.y, kind: 'player' });
     return { key: String(this.stageN), w: MW, h: MH, hero: { x: this.hero.x, y: this.hero.y, dir: this.dir }, exits, marks, dots };
   }
-  /** in the Deepwild the gathering outfit is the empty-handed villager 'hg' (axe / pickaxe only when working) */
+  /** in the Deepwild the gathering outfit is the empty-handed villager 'hg' (axe / pickaxe / spear only when working) */
   get F() { const s = S(); const t = activeTier(s); if (this.wild && s.outfit === 'gather' && CH.hg) return { key: 'hg', name: formName(s.cls, 0) }; return { key: formKeyOf(s.cls, t), name: formName(s.cls, t) }; }
-  /** the swing used to hit: the empty-handed villager hits with the axe */
-  get swing() { return this.F.key === 'hg' ? 'chop' : 'attack'; }
+  /** the swing used to hit: the gathering villager hunts with a spear (axe = trees, pickaxe = rocks, spear = animals) */
+  get swing() { return this.F.key !== 'hg' ? 'attack' : hasAnim('hg', 'hunt') ? 'hunt' : 'chop'; }
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }

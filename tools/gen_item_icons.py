@@ -40,6 +40,20 @@ ICONS = {
  'elix_frost': 'a frosty pale blue vial of swift potion with snowflakes', 'elix_mithril': 'a teal glowing mithril-capped vial of vitality potion',
  'elix_emerald': 'a glowing emerald green ornate potion flask with leaf engraving and golden cap', 'elix_soul': 'a ghostly violet soul potion bottle with a skull stopper and swirling spirits',
  'elix_magma': 'a blazing red-orange magma potion flask with molten glow and obsidian cap', 'elix_frosttear': 'an icy crystal teardrop shaped potion bottle glowing pale cyan',
+ # Legend (4) and SL (5) gear, drawn for real (they used to be recolours of the Super Rare art)
+ 'sword4': 'a regal golden royal greatsword glowing with warm dawn sunlight, a sun emblem on the crossguard',
+ 'sword5': 'a legendary greatsword with a white-hot glowing blade and a dark crimson hilt, wrapped in broken black curse chains',
+ 'staff4': 'a golden celestial staff topped with a swirling blue galaxy orb and tiny orbiting stars',
+ 'staff5': 'a legendary staff of jagged black abyss crystal holding a violet void eye with swirling dark purple energy',
+ 'bow4': 'a golden recurve bow with a taut bowstring, its two limbs made of red-orange flaming phoenix feathers',
+ 'bow5': 'a legendary silver recurve bow with a taut glowing bowstring, the limbs crackling with white-blue lightning',
+ 'hammer4': 'a golden war hammer whose head is a blazing sun disc with short rays',
+ 'hammer5': 'a legendary colossal war hammer of dark stone with glowing crimson cracks and a spiked head',
+ 'armor4': 'a golden dragon scale breastplate with overlapping red-gold scales and small horned pauldrons',
+ 'armor5': 'a legendary white and silver celestial breastplate with thin gold trim, two small white feathered wings on the shoulders and a glowing blue gem in the chest',
+ 'gem4': 'a single phoenix feather glowing gold and orange with tiny embers',
+ 'gem5': 'a legendary radiant eye-shaped gemstone of dawn light, golden iris with white rays',
+ 'ring_c': 'a plain necklace of brown wooden beads on a thin cord',
  'elix_god': 'a radiant ornate crystal elixir bottle with a golden crown stopper and swirling rainbow light', 'essence': 'a floating pale blue spirit wisp essence', 'shard': 'a glowing purple mana crystal shard',
 }
 def run(k):

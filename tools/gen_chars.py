@@ -8,7 +8,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'art-source', 'pixellab', 'chars'); os.makedirs(OUT, exist_ok=True)
 SF = os.path.join(OUT, 'state.json')
 STATE = json.load(open(SF)) if os.path.exists(SF) else {}
-def save(): json.dump(STATE, open(SF, 'w'), indent=1)
+def save():
+    """merge into the file key by key, so two tools running at the same time do not erase each other's entries"""
+    cur = json.load(open(SF)) if os.path.exists(SF) else {}
+    for k, v in STATE.items(): cur.setdefault(k, {}).update(v)
+    json.dump(cur, open(SF, 'w'), indent=1)
 PL = ', top-down pixel art, muted desaturated dark-forest colours, soft shading'
 D8 = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']
 D4 = ['south', 'east', 'north', 'west']
