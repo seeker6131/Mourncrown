@@ -14,7 +14,7 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 68,
+"fs": 54,
 "n": 8,
 "dirs": [
 "south",
@@ -26,7 +26,7 @@
 "west",
 "south-west"
 ],
-"foot": 58
+"foot": 53
 },
 "attack": {
 "fs": 68,
@@ -41,25 +41,10 @@
 "west",
 "south-west"
 ],
-"foot": 58
+"foot": 66
 },
 "mine": {
-"fs": 68,
-"n": 9,
-"dirs": [
-"south",
-"south-east",
-"east",
-"north-east",
-"north",
-"north-west",
-"west",
-"south-west"
-],
-"foot": 62
-},
-"chop": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
 "south",
@@ -72,6 +57,21 @@
 "south-west"
 ],
 "foot": 64
+},
+"chop": {
+"fs": 70,
+"n": 9,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 62
 }
 }
 },
@@ -90,7 +90,7 @@
 "idleFoot": 45,
 "anims": {
 "walk": {
-"fs": 68,
+"fs": 64,
 "n": 8,
 "dirs": [
 "south",
@@ -102,10 +102,10 @@
 "west",
 "south-west"
 ],
-"foot": 56
+"foot": 63
 },
 "attack": {
-"fs": 68,
+"fs": 60,
 "n": 9,
 "dirs": [
 "south",
@@ -117,7 +117,7 @@
 "west",
 "south-west"
 ],
-"foot": 54
+"foot": 59
 }
 }
 },
@@ -136,7 +136,7 @@
 "idleFoot": 46,
 "anims": {
 "walk": {
-"fs": 64,
+"fs": 48,
 "n": 8,
 "dirs": [
 "south",
@@ -148,10 +148,10 @@
 "west",
 "south-west"
 ],
-"foot": 55
+"foot": 47
 },
 "attack": {
-"fs": 64,
+"fs": 54,
 "n": 9,
 "dirs": [
 "south",
@@ -163,7 +163,7 @@
 "west",
 "south-west"
 ],
-"foot": 54
+"foot": 53
 }
 }
 },
@@ -182,7 +182,7 @@
 "idleFoot": 45,
 "anims": {
 "walk": {
-"fs": 56,
+"fs": 46,
 "n": 8,
 "dirs": [
 "south",
@@ -194,7 +194,7 @@
 "west",
 "south-west"
 ],
-"foot": 52
+"foot": 45
 },
 "attack": {
 "fs": 56,
@@ -209,7 +209,7 @@
 "west",
 "south-west"
 ],
-"foot": 51
+"foot": 55
 }
 }
 },
@@ -262,6 +262,7 @@
 "fs": 32,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -294,9 +295,11 @@
 "dirs": [
 "south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
 "foot": 45
@@ -356,6 +359,7 @@
 "south-east",
 "east",
 "north-east",
+"north",
 "north-west",
 "west",
 "south-west"
@@ -691,30 +695,34 @@
 "idleFoot": 68,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 62,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
+"north",
 "north-west",
 "west",
 "south-west"
 ],
-"foot": 48
+"foot": 61
 },
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
+"north",
 "north-west",
 "west",
 "south-west"
 ],
-"foot": 58
+"foot": 69
 }
 }
 },
@@ -745,10 +753,10 @@
 "west",
 "south-west"
 ],
-"foot": 45
+"foot": 47
 },
 "attack": {
-"fs": 64,
+"fs": 50,
 "n": 9,
 "dirs": [
 "south",
@@ -760,7 +768,7 @@
 "west",
 "south-west"
 ],
-"foot": 55
+"foot": 48
 }
 }
 },
@@ -779,21 +787,22 @@
 "idleFoot": 47,
 "anims": {
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
 "south",
 "south-east",
 "east",
 "north-east",
+"north",
 "north-west",
 "west",
 "south-west"
 ],
-"foot": 57
+"foot": 69
 },
 "walk": {
-"fs": 48,
+"fs": 54,
 "n": 8,
 "dirs": [
 "south",
@@ -805,7 +814,7 @@
 "west",
 "south-west"
 ],
-"foot": 46
+"foot": 53
 }
 }
 },
@@ -824,7 +833,7 @@
 "idleFoot": 46,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
 "south",
@@ -836,12 +845,13 @@
 "west",
 "south-west"
 ],
-"foot": 46
+"foot": 49
 },
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -850,7 +860,7 @@
 "west",
 "south-west"
 ],
-"foot": 58
+"foot": 66
 }
 }
 },
@@ -869,7 +879,7 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 52,
 "n": 8,
 "dirs": [
 "south",
@@ -881,16 +891,22 @@
 "west",
 "south-west"
 ],
-"foot": 45
+"foot": 51
 },
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
+"south",
+"south-east",
+"east",
 "north-east",
-"north-west"
+"north",
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 56
+"foot": 69
 }
 }
 },
@@ -909,21 +925,10 @@
 "idleFoot": 48,
 "anims": {
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
-"south-east",
-"east",
-"north",
-"west",
-"south-west"
-],
-"foot": 63
-},
-"walk": {
-"fs": 48,
-"n": 8,
-"dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -932,7 +937,22 @@
 "west",
 "south-west"
 ],
-"foot": 48
+"foot": 64
+},
+"walk": {
+"fs": 50,
+"n": 8,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 49
 }
 }
 },
@@ -951,7 +971,7 @@
 "idleFoot": 46,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
 "south",
@@ -963,10 +983,10 @@
 "west",
 "south-west"
 ],
-"foot": 46
+"foot": 49
 },
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
 "south",
@@ -978,7 +998,7 @@
 "west",
 "south-west"
 ],
-"foot": 68
+"foot": 57
 }
 }
 },
@@ -997,9 +1017,10 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -1008,19 +1029,22 @@
 "west",
 "south-west"
 ],
-"foot": 48
+"foot": 49
 },
 "attack": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
 "east",
+"north-east",
 "north",
+"north-west",
 "west",
 "south-west"
 ],
-"foot": 57
+"foot": 69
 }
 }
 },
@@ -1039,7 +1063,7 @@
 "idleFoot": 46,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
 "south",
@@ -1051,12 +1075,13 @@
 "west",
 "south-west"
 ],
-"foot": 44
+"foot": 49
 },
 "attack": {
-"fs": 64,
+"fs": 66,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -1065,7 +1090,7 @@
 "west",
 "south-west"
 ],
-"foot": 54
+"foot": 55
 }
 }
 },
@@ -1194,8 +1219,12 @@
 "fs": 32,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
+"north-east",
+"north",
+"north-west",
 "west",
 "south-west"
 ],
@@ -1284,12 +1313,14 @@
 "dirs": [
 "south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
-"foot": 40
+"foot": 41
 }
 }
 },
@@ -1313,9 +1344,11 @@
 "dirs": [
 "south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
 "foot": 46
@@ -1324,7 +1357,14 @@
 "fs": 68,
 "n": 9,
 "dirs": [
-"south"
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 65
 }
@@ -1396,9 +1436,11 @@
 "dirs": [
 "south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
 "foot": 57
@@ -1407,6 +1449,7 @@
 "fs": 48,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -1454,9 +1497,11 @@
 "dirs": [
 "south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
 "foot": 45
@@ -1498,9 +1543,11 @@
 "dirs": [
 "south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
 "foot": 44
@@ -1632,6 +1679,7 @@
 "fs": 68,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -1754,9 +1802,14 @@
 "fs": 48,
 "n": 8,
 "dirs": [
+"south",
+"south-east",
 "east",
+"north-east",
 "north",
-"west"
+"north-west",
+"west",
+"south-west"
 ],
 "foot": 47
 },
@@ -1764,14 +1817,16 @@
 "fs": 68,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
+"north",
 "north-west",
 "west",
 "south-west"
 ],
-"foot": 58
+"foot": 60
 }
 }
 },
@@ -1848,7 +1903,7 @@
 "west",
 "south-west"
 ],
-"foot": 46
+"foot": 47
 }
 }
 },
@@ -1867,9 +1922,10 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -1878,7 +1934,7 @@
 "west",
 "south-west"
 ],
-"foot": 45
+"foot": 49
 }
 }
 },
@@ -1897,7 +1953,7 @@
 "idleFoot": 44,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 46,
 "n": 8,
 "dirs": [
 "south",
@@ -1909,7 +1965,7 @@
 "west",
 "south-west"
 ],
-"foot": 42
+"foot": 45
 }
 }
 },
@@ -1928,7 +1984,7 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
 "south",
@@ -1940,7 +1996,7 @@
 "west",
 "south-west"
 ],
-"foot": 48
+"foot": 49
 }
 }
 },
@@ -1959,7 +2015,7 @@
 "idleFoot": 47,
 "anims": {
 "chop": {
-"fs": 64,
+"fs": 58,
 "n": 9,
 "dirs": [
 "south",
@@ -1967,7 +2023,7 @@
 "north",
 "west"
 ],
-"foot": 57
+"foot": 55
 },
 "walk": {
 "fs": 48,
@@ -2001,19 +2057,21 @@
 "idleFoot": 47,
 "anims": {
 "mine": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
+"south",
 "east",
 "north",
 "west"
 ],
-"foot": 60
+"foot": 65
 },
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -2022,7 +2080,7 @@
 "west",
 "south-west"
 ],
-"foot": 46
+"foot": 49
 }
 }
 },
@@ -2053,7 +2111,7 @@
 "west",
 "south-west"
 ],
-"foot": 46
+"foot": 47
 }
 }
 },
@@ -2072,9 +2130,10 @@
 "idleFoot": 47,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 52,
 "n": 8,
 "dirs": [
+"south",
 "south-east",
 "east",
 "north-east",
@@ -2083,7 +2142,7 @@
 "west",
 "south-west"
 ],
-"foot": 47
+"foot": 50
 }
 }
 },
@@ -2102,7 +2161,7 @@
 "idleFoot": 48,
 "anims": {
 "walk": {
-"fs": 48,
+"fs": 50,
 "n": 8,
 "dirs": [
 "south",
@@ -2114,7 +2173,7 @@
 "west",
 "south-west"
 ],
-"foot": 48
+"foot": 49
 }
 }
 },
@@ -2133,13 +2192,19 @@
 "idleFoot": 31,
 "anims": {
 "walk": {
-"fs": 32,
+"fs": 34,
 "n": 8,
 "dirs": [
+"south",
+"south-east",
 "east",
-"west"
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
 ],
-"foot": 30
+"foot": 33
 }
 }
 },
@@ -2158,32 +2223,37 @@
 "idleFoot": 47,
 "anims": {
 "mine": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
 "south",
+"south-east",
 "east",
 "north-east",
 "north",
 "north-west",
-"west"
+"west",
+"south-west"
 ],
-"foot": 63
+"foot": 62
 },
 "chop": {
-"fs": 68,
+"fs": 70,
 "n": 9,
 "dirs": [
+"south",
 "south-east",
+"east",
 "north-east",
 "north",
 "north-west",
+"west",
 "south-west"
 ],
-"foot": 59
+"foot": 58
 },
 "walk": {
-"fs": 48,
+"fs": 52,
 "n": 8,
 "dirs": [
 "south",
@@ -2195,7 +2265,7 @@
 "west",
 "south-west"
 ],
-"foot": 48
+"foot": 50
 }
 }
 }
