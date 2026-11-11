@@ -9,6 +9,31 @@ export class PathGrid {
       this.walk[j * this.w + i] = blocked(x - 5, y) || blocked(x + 5, y) || blocked(x, y - 2) || blocked(x, y + 2) ? 0 : 1;
     }
   }
+  /** cells reachable from (x, y) — the map's open area seen from its entrance */
+  reach?: Uint8Array;
+  flood(x: number, y: number) {
+    const st = this.nearestOk(...this.cell(x, y), 8); const r = new Uint8Array(this.w * this.h); this.reach = r; if (!st) return;
+    const q = [st[1] * this.w + st[0]]; r[q[0]] = 1;
+    while (q.length) { const c = q.pop()!, ci = c % this.w, cj = (c - ci) / this.w;
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ni = ci + a, nj = cj + b; if (this.ok(ni, nj) && !r[nj * this.w + ni]) { r[nj * this.w + ni] = 1; q.push(nj * this.w + ni); } } }
+  }
+  reachable(x: number, y: number) { if (!this.reach) return true; const [i, j] = this.cell(x, y); return i >= 0 && j >= 0 && i < this.w && j < this.h && this.reach[j * this.w + i] === 1; }
+  /** the point is on / right beside the open area (3x3 cells) — tolerant, for points checked with the real collision test */
+  near(x: number, y: number) {
+    if (!this.reach) return true; const [i, j] = this.cell(x, y);
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const ni = i + a, nj = j + b; if (ni >= 0 && nj >= 0 && ni < this.w && nj < this.h && this.reach[nj * this.w + ni]) return true; }
+    return false;
+  }
+  /** nearest reachable point (world px) to (x, y) */
+  rescue(x: number, y: number, maxRing = 80): { x: number; y: number } | null {
+    const [i0, j0] = this.cell(x, y);
+    if (this.reach?.[j0 * this.w + i0]) return { x: i0 * this.S + 4, y: j0 * this.S + 4 };
+    for (let d = 1; d < maxRing; d++) for (let b = -d; b <= d; b++) for (let a = -d; a <= d; a++) {
+      if (Math.abs(a) !== d && Math.abs(b) !== d) continue; const i = i0 + a, j = j0 + b;
+      if (i >= 0 && j >= 0 && i < this.w && j < this.h && this.reach?.[j * this.w + i]) return { x: i * this.S + 4, y: j * this.S + 4 };
+    }
+    return null;
+  }
   ok(i: number, j: number) { return i >= 0 && j >= 0 && i < this.w && j < this.h && this.walk[j * this.w + i] === 1; }
   cell(x: number, y: number) { return [Math.floor(x / this.S), Math.floor(y / this.S)] as const; }
   /** nearest walkable cell to (i, j) within r cells */

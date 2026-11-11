@@ -30,6 +30,8 @@ export interface Host extends Phaser.Scene {
   burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean; stageN: number;
   /** an animal kicks back: push the hero away and stun for ms */
   stunHero(ms: number, fromX: number, fromY: number): void;
+  /** forced moves: may the hero be put here / nearest good spot (never inside or wedged against obstacles) */
+  canLand(x: number, y: number): boolean; landing(x: number, y: number): { x: number; y: number } | null;
   /** other players nearby who may grab loot left on the ground (Deepwild simulation; online: real players) */
   others?(): { x: number; y: number; name: string; grab(x: number, y: number): void }[];
 }
@@ -255,7 +257,7 @@ export class Combat {
       }
       case 'dash': {
         let tx = h.x, ty = h.y;
-        for (let d = 0; d < 110; d += 4) { const nx = h.x + fx * d, ny = h.y + fy * d; if (this.s.isBlocked(nx, ny)) break; tx = nx; ty = ny; }
+        for (let d = 4; d < 110; d += 4) { const nx = h.x + fx * d, ny = h.y + fy * d; if (!this.s.canLand(nx, ny)) break; tx = nx; ty = ny; }
         const x0 = h.x, y0 = h.y, hitSet = new Set<Mon>();
         for (let k = 0; k < 6; k++) this.s.time.delayedCall(k * 30, () => { const gh = this.s.add.image(h.x, h.y, h.texture.key, h.frame.name).setOrigin(h.originX, h.originY).setTint(col).setAlpha(0.5).setDepth(h.depth - 1); this.s.tweens.add({ targets: gh, alpha: 0, duration: 260, onComplete: () => gh.destroy() }); });
         this.s.tweens.add({ targets: h, x: tx, y: ty, duration: 200, ease: 'Quad.easeOut', onUpdate: () => {
@@ -268,7 +270,7 @@ export class Combat {
       }
       case 'leap': {
         const r = sk.radius ?? 60, tgt = near && Math.hypot(near.x - h.x, near.y - h.y) < 170 ? { x: near.x - fx * 16, y: near.y - fy * 10 } : { x: h.x + fx * 60, y: h.y + fy * 60 };
-        if (this.s.isBlocked(tgt.x, tgt.y)) { tgt.x = h.x; tgt.y = h.y; }
+        { const ok = this.s.landing(tgt.x, tgt.y); tgt.x = ok ? ok.x : h.x; tgt.y = ok ? ok.y : h.y; }
         this.s.tweens.add({ targets: h, x: tgt.x, y: tgt.y, duration: 320, ease: 'Sine.easeInOut' });
         this.s.tweens.add({ targets: h, scale: 1.25, duration: 160, yoyo: true });
         this.vfx.glow(h.x, h.y - 10, col, 1, 300);

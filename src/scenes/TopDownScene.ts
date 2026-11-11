@@ -529,7 +529,7 @@ export class TopDownScene extends Phaser.Scene {
     this.dDone = true; sfx.chest(); this.levelUpFx(); this.combat.vfx.star(this.hero.x, this.hero.y - 30, 0xffd84a, 2.4);
     bus.emit(EV.TOAST, `🎁 ผ่านดันเจี้ยน! 💰${r.gold.toLocaleString()} + ผลึกมานา ${r.shards}`, '#ffd84a');
     for (const g of r.gear) { bus.emit(EV.TOAST, `◆ ${SETS[g.set!].name}: ${idef(g.id).name}`, '#' + SETS[g.set!].col.toString(16).padStart(6, '0')); bus.emit('loot:popup', { id: g.id, rar: g.rar, set: g.set }); }
-    this.addPortal(this.hero.x + 40, this.hero.y, 0, 'กลับหมู่บ้าน'); saveGame(S()); bus.emit(EV.STATE_CHANGED);
+    { const pp = this.landing(this.hero.x + 40, this.hero.y) ?? { x: this.hero.x, y: this.hero.y }; this.addPortal(pp.x, pp.y, 0, 'กลับหมู่บ้าน'); } saveGame(S()); bus.emit(EV.STATE_CHANGED);
   }
 
   // ---------- the Deepwild: one big shared jungle for gathering (no monsters) ----------
@@ -1326,14 +1326,26 @@ export class TopDownScene extends Phaser.Scene {
   }
   tutText() { const s = S(); return tutActive(s) ? `🎓 ${tutStep(s) + 1}/${TUT_STEPS.length}  ${TUT_STEPS[tutStep(s)]}` : ''; }
   titleTx!: Phaser.GameObjects.Text;
-  stepT = 0;
+  stepT = 0; unstuckT = 0;
+  /** the hero's feet fit here (the same test walking uses) */
+  canStand(x: number, y: number) { return !this.isBlocked(x - 5, y) && !this.isBlocked(x + 5, y) && !this.isBlocked(x, y - 2) && !this.isBlocked(x, y + 1); }
+  /** path grid with the area reachable from the map's entrance marked */
+  openGrid() {
+    this.grid ??= new PathGrid(MW, MH, (x, y) => this.isBlocked(x, y));
+    if (!this.grid.reach) { const e = this.portals[0] ?? { x: this.hero.x, y: this.hero.y }; this.grid.flood(e.x, e.y); }
+    return this.grid;
+  }
+  /** a skill / knockback may put the hero here: feet fit and it is part of the walkable map (not a closed pocket) */
+  canLand(x: number, y: number) { return this.canStand(x, y) && this.openGrid().near(x, y); }
+  /** nearest good landing spot to (x, y) within ~30 px, or null */
+  landing(x: number, y: number) { if (this.canLand(x, y)) return { x, y }; return this.openGrid().rescue(x, y, 5); }
   /** other players who may grab loot (simulated crowd in the Deepwild) */
   others() { const c = this.crowd; return c ? c.list.map(p => ({ x: p.x, y: p.y, name: p.name, grab: (x: number, y: number) => c.grab(p, x, y, this.time.now) })) : []; }
   stunUntil = 0;
   /** animal kick: pushed back a little and dazed (can't move or swing) */
   stunHero(ms: number, fx: number, fy: number) {
     const h = this.hero, a = Math.atan2(h.y - fy, h.x - fx);
-    for (let i = 0; i < 18; i += 2) { const nx = h.x + Math.cos(a) * 2, ny = h.y + Math.sin(a) * 2; if (this.isBlocked(nx, ny)) break; h.x = nx; h.y = ny; }
+    for (let i = 0; i < 18; i += 2) { const nx = h.x + Math.cos(a) * 2, ny = h.y + Math.sin(a) * 2; if (!this.canStand(nx, ny)) break; h.x = nx; h.y = ny; }
     this.stunUntil = this.time.now + ms; this.attacking = false; setIdle(h, this.F.key, this.dir);
     h.setTintFill(0xfff0a0); this.time.delayedCall(90, () => h.clearTint());
     this.combat.float(h.x, h.y - 46, '💫 มึน!', '#ffe080', 10);
@@ -1410,7 +1422,7 @@ export class TopDownScene extends Phaser.Scene {
       mx /= len; my /= len;
       const sp = 92 * dt / 1000;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
-      const ok = (x: number, y: number) => !this.isBlocked(x - 5, y) && !this.isBlocked(x + 5, y) && !this.isBlocked(x, y - 2) && !this.isBlocked(x, y + 1);
+      const ok = (x: number, y: number) => this.canStand(x, y);
       if (ok(nx, h.y)) h.x = nx;
       if (ok(h.x, ny)) h.y = ny;
       const ang = Math.atan2(my, mx);                       // 0 = east
@@ -1423,6 +1435,11 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
+// never embedded: a forced move (skill, knockback) must not leave the hero where the collision test fails in every direction
+    if (!this.dead && time > this.unstuckT && !this.tweens.isTweening(this.hero)) {
+      this.unstuckT = time + 300;
+      if (!this.canStand(this.hero.x, this.hero.y)) { const p = this.openGrid().rescue(this.hero.x, this.hero.y); if (p) { this.hero.setPosition(p.x, p.y); this.combat.vfx.dust(p.x, p.y, 6, 20); } }
+    }
     if (this.dungeon && !this.dDone && !this.dead && this.dEnd && time > this.dEnd) { this.dEnd = 0; bus.emit(EV.TOAST, '⏱ หมดเวลา! ดันเจี้ยนล้มเหลว', '#ff6a5a'); this.time.delayedCall(1500, () => { showWait(); this.scene.restart({ stage: 0 }); }); }
     if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; const r = act('wildRooms', { pick: this.room }); this.online = r.rooms[this.room - 1].count; }
     else this.village?.update(time, dt);
