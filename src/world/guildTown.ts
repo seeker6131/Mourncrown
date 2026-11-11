@@ -1,0 +1,278 @@
+// The guild village on the top-down scene (docs/GUILD_WAR.md 2): no NPC villagers — the guild's buildings (level art,
+// scaffolding while upgrading), the members' 10 house lots side by side, the defenses on the wall road, and the hired
+// guards walking their rounds. Layout: src/world/villageLayout.ts. Rules: src/systems/guild.ts (through act()).
+import Phaser from 'phaser';
+import { S, bus, EV } from '../core/events';
+import { act, refused } from '../net/client';
+import { guildOf, meOf, hallLv } from '../systems/guild';
+import { GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, defSlots, DEFENSES, GUARDS, type GuildBld, type GuardType } from '../data/guild';
+import * as L from './villageLayout';
+import { Village, type Step } from './npcs';
+import { fx2 } from './fx2';
+
+type Ter = 'g' | 'd' | 'c' | 'w';
+type Obj = Phaser.GameObjects.GameObject;
+const ART: Record<GuildBld, string> = { hall: 'townhall', barracks: 'tower', forge: 'forge', kitchen: 'kitchen', tavern: 'tavern', market: 'market', warehouse: 'warehouse', lumber: 'lumber', quarry: 'quarry', barn: 'barn' };
+const artLv = (lv: number) => lv >= 5 ? 2 : lv >= 3 ? 1 : 0;
+/** defense picture scale (the PixelLab objects are drawn bigger than a wall-road slot) */
+const DEF_SC: Record<string, number> = { spikes: 0.62, palisade: 0.7, archer: 0.62, cannon: 0.6, ballista: 0.62, bunker: 0.6, banner: 0.8 };
+export const ICON_RES: Record<string, string> = { gold: '💰', wood: '🪵', stone: '🪨', food: '🍖' };
+
+/** ground type at a vertex of the guild village (same rules as the starter village: wobbly edges, grass islands) */
+export function gvTerrain(x: number, y: number, wob: number, isl: number): Ter {
+  if (Math.abs(x - L.riverX(y)) < 30 + wob * 14 || Math.hypot(x - L.POND.x, (y - L.POND.y) * 1.3) < L.POND.r + wob * 22) return 'w';
+  const core = L.laneDist(x, y) < 10 || L.ringDist(x, y) < 9;
+  if (Math.hypot(x - L.PLAZA.x, (y - L.PLAZA.y) * 1.1) < L.PLAZA.r + 18 + wob * 50) return isl > 0.74 && !core ? 'g' : 'c';
+  for (const Y of L.yards()) if (Math.hypot((x - Y.x) / Y.rx, (y - Y.y) / Y.ry) + wob * 0.9 < 1) return isl > 0.76 && !core ? 'g' : 'c';
+  if (L.laneDist(x, y) < 17 + wob * 18 || L.ringDist(x, y) < 15 + wob * 12) return 'd';
+  return 'g';
+}
+/** planks over the river: the main road and the wall road (north and south) */
+export function gvBridges() {
+  return [L.roadY(L.riverX(470)), L.RING.y0, L.RING.y1].map(cy => ({ x0: L.riverX(cy) - 46, x1: L.riverX(cy) + 46, y0: cy - 15, y1: cy + 15 }));
+}
+
+/** what the guild town needs from the top-down scene */
+export interface TownHost extends Phaser.Scene {
+  hero: Phaser.GameObjects.Sprite; reserved: Set<string>; lamps: Phaser.GameObjects.Image[];
+  obj(name: string, x: number, y: number, fw?: number, fd?: number, shadow?: boolean, sc?: number): Phaser.GameObjects.Image | null;
+  isBlocked(x: number, y: number): boolean; surfAt(x: number, y: number): string;
+  combat: { float(x: number, y: number, t: string, col: string, size?: number): void };
+  castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live?: boolean, cut?: number): void;
+}
+interface View { key: string; objs: Obj[]; bubble?: Phaser.GameObjects.Container }
+
+export class GuildTown {
+  views = new Map<string, View>();
+  guards?: Village;
+  guardKey = '';
+  t = 0; syncT = 0;
+  constructor(public sc: TownHost) {}
+
+  // ---------------------------------------------------------------- static dressing
+  place(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
+    const sc = this.sc;
+    // keep trees off the plots, the slots and the gates
+    const keep = (x: number, y: number, rx: number, ry0: number, ry1: number) => { for (let j = -ry0; j <= ry1; j += 4) for (let i = -rx; i <= rx; i += 4) sc.reserved.add(Math.round((x + i) / 4) + ',' + Math.round((y + j) / 4)); };
+    L.PLOTS.forEach((P, i) => keep(P.x, P.y, i >= 10 ? 60 : 100, i >= 10 ? 130 : 200, 60));
+    for (const s of L.SLOTS) keep(s.x, s.y, 36, 60, 24);
+    const near = (x: number, y: number) => sc.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
+    // the fountain in the middle of the plaza (animated), braziers at the hall door, benches and flower beds round the plaza
+    const block = (x: number, y: number, rx: number, ry: number) => { for (let j = -ry; j <= ry; j += 2) for (let i = -rx; i <= rx; i += 2) if ((i / rx) ** 2 + (j / ry) ** 2 <= 1) (sc as unknown as { block(x: number, y: number): void }).block(x + i, y + j); };
+    if (fx2(sc, 'fx_fountain', L.PLAZA.x, L.PLAZA.y - 6, L.PLAZA.y - 6, 0.85)) block(L.PLAZA.x, L.PLAZA.y - 14, 54, 12);
+    const hall = L.PLOTS[L.HALL_PLOT];
+    for (const dx of [-62, 62]) if (fx2(sc, 'fx_brazier', hall.x + dx, hall.y + 34, hall.y + 34, 0.75)) { block(hall.x + dx, hall.y + 32, 9, 4); sc.lamps.push(sc.add.image(hall.x + dx, hall.y + 14, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990)); }
+    for (const [k, x, y, f] of [
+      ['dc_bench', L.PLAZA.x - 100, L.PLAZA.y + 20, 0.8], ['dc_bench', L.PLAZA.x + 100, L.PLAZA.y + 20, 0.8], ['dc_flowerbed', L.PLAZA.x - 96, L.PLAZA.y - 30, 0.8], ['dc_flowerbed', L.PLAZA.x + 96, L.PLAZA.y - 30, 0.8],
+      ['dc_statue', hall.x - 150, hall.y + 10, 0.8], ['dc_statue', hall.x + 150, hall.y + 10, 0.8],
+      ['dc_signpost', L.NORTH_GATE.x + 40, L.roadY(L.NORTH_GATE.x) - 26, 0.8], ['dc_signpost', L.SOUTH_GATE.x + 40, L.SOUTH_GATE.y - 60, 0.8],
+      ['dc_trough', L.PLOTS[L.PLOT_OF.barn].x - 100, L.PLOTS[L.PLOT_OF.barn].y + 20, 0.8], ['dc_woodpile', L.PLOTS[L.PLOT_OF.lumber].x + 96, L.PLOTS[L.PLOT_OF.lumber].y + 10, 0.8],
+      ['dc_target', L.PLOTS[L.PLOT_OF.barracks].x + 100, L.PLOTS[L.PLOT_OF.barracks].y + 6, 0.8], ['fu_dummy', L.PLOTS[L.PLOT_OF.barracks].x + 130, L.PLOTS[L.PLOT_OF.barracks].y + 10, 0.8],
+      ['dc_shrine', L.POND.x + 70, L.POND.y - 40, 0.8], ['dc_bench', L.POND.x + 20, L.POND.y + 70, 0.8],
+      ['dc_veggies', 170, 1236, 0.8], ['dc_veggies', 300, 1236, 0.8], ['dc_clothesline', 470, 1240, 0.8], ['dc_doghouse', 640, 1236, 0.8],
+    ] as [string, number, number, number][]) if (!sc.isBlocked(x, y)) sc.obj(k, x, y, 0.7, 4, true, f);
+    // planters between the houses of the residential street
+    for (const ly of [905, 1135]) for (let c = 0; c < 4; c++) { const x = 170 + c * 116 + 58, y = ly - 30; if (!sc.isBlocked(x, y)) sc.obj('dc_planter', x, y, 0.6, 3, true, 0.7); }
+    // market stalls + lamps on the plaza
+    for (const [x, y] of [[L.PLAZA.x - 70, L.PLAZA.y + 50], [L.PLAZA.x + 72, L.PLAZA.y + 46]]) sc.obj(pick('stall', 5), x, y, 0.8, 10);
+    for (let a = 0; a < 6; a++) {
+      const x = Math.round(L.PLAZA.x + Math.cos(a * Math.PI / 3 + 0.5) * (L.PLAZA.r + 22)), y = Math.round(L.PLAZA.y + Math.sin(a * Math.PI / 3 + 0.5) * (L.PLAZA.r + 18));
+      if (sc.surfAt(x, y) === 'water' || sc.isBlocked(x, y) || near(x, y)) continue;
+      sc.obj('lamp_0', x, y, 0.2, 2);
+      sc.lamps.push(sc.add.image(x + 6, y - 26, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990));
+    }
+    // lamps along the residential lanes, fences behind the house rows
+    for (const ly of L.ROW_LANES) for (let x = 140; x < 760; x += 116) { const y = ly + 4; if (!sc.isBlocked(x + 58, y)) { sc.obj('lamp_1', x + 58, y, 0.2, 2); sc.lamps.push(sc.add.image(x + 62, y - 20, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990).setScale(0.7)); } }
+    for (let x = 120; x < 760; x += 30) { const y = 820; if (sc.surfAt(x, y) === 'grass' && !sc.isBlocked(x, y)) sc.obj('fenceh_0', x, y, 1, 3, false); }
+    // river banks and the pond
+    const BR = gvBridges();
+    for (let y = 20; y < 1270; y += 14) for (const side of [-1, 1]) {
+      const x = L.riverX(y) + side * (40 + rnd() * 10);
+      if (BR.some(b => y > b.y0 - 30 && y < b.y1 + 30) || sc.isBlocked(x, y) || sc.surfAt(x, y) !== 'grass') continue;
+      const r = rnd();
+      if (r < 0.28) sc.obj(pick('rock', 8), x, y, 0.5, 3, true, 0.75 + rnd() * 0.3);
+      else if (r < 0.75) sc.add.image(Math.round(x), Math.round(y), 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y);
+    }
+    for (let a = 0; a < Math.PI * 2; a += 0.25) {
+      const x = L.POND.x + Math.cos(a) * (L.POND.r + 14 + rnd() * 8), y = L.POND.y + Math.sin(a) * (L.POND.r / 1.3 + 12 + rnd() * 6);
+      if (sc.isBlocked(x, y) || sc.surfAt(x, y) !== 'grass') continue;
+      if (rnd() < 0.35) sc.obj(pick('rock', 8), x, y, 0.5, 3, true, 0.7 + rnd() * 0.3); else sc.add.image(Math.round(x), Math.round(y), 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y);
+    }
+    // forest outside the wall road, a few trees inside
+    const { x0, y0, x1, y1 } = L.RING;
+    for (let k = 0; k < 1100; k++) {
+      const x = 16 + rnd() * 1568, y = 30 + rnd() * 1240;
+      const outside = x < x0 - 26 || x > x1 + 26 || y < y0 - 26 || y > y1 + 26;
+      if (!outside && !(fbmish(x, y) > 0.86)) continue;
+      if (!free(x, y, 40) || near(x, y)) continue;
+      const r = rnd();
+      sc.obj(r < 0.45 ? pick('pine', 3) : r < 0.9 ? pick('oak', 3) : pick('dead', 2), x, y, 0.22, 16, true, outside ? 1 : 0.8);
+    }
+    for (let k = 0; k < 2400; k++) {
+      const x = 8 + rnd() * 1584, y = 8 + rnd() * 1264, sf = sc.surfAt(x, y);
+      if (sf !== 'grass' || sc.isBlocked(x, y) || near(x, y)) continue;
+      const r = rnd();
+      if (r < 0.04) sc.add.image(Math.round(x), Math.round(y), 'o_' + pick('bush', 5)).setOrigin(0.5, 0.85).setDepth(y);
+      else if (r < 0.2) sc.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.1 ? pick('flower', 5) : r < 0.16 ? pick('tuft', 2) : pick('leaf', 3))).setOrigin(0.5, 0.8).setDepth(y);
+    }
+    // the guild banner before the hall
+    for (const dx of [-120, 120]) sc.obj('def_banner', L.PLOTS[L.HALL_PLOT].x + dx, L.PLOTS[L.HALL_PLOT].y + 30, 0.3, 2, true, 0.8);
+  }
+
+  // ---------------------------------------------------------------- live parts (rebuilt when the guild state changes)
+  private view(id: string, key: string, make: () => Obj[]) {
+    const v = this.views.get(id); if (v?.key === key) return v;
+    v?.objs.forEach(o => o.destroy()); v?.bubble?.destroy();
+    const nv: View = { key, objs: make() }; this.views.set(id, nv); return nv;
+  }
+  private label(x: number, y: number, t: string, col = '#ffe7a0', size = 7) {
+    return this.sc.add.text(x, y, t, { fontFamily: 'sans-serif', fontSize: size + 'px', color: col, stroke: '#0b0f0c', strokeThickness: 3, resolution: 8, align: 'center' }).setOrigin(0.5, 1).setDepth(99980);
+  }
+  private lot(x: number, y: number, w: number, h: number) {
+    const g = this.sc.add.graphics().setDepth(1.1);
+    g.fillStyle(0x2a2016, 0.35).fillRoundedRect(x - w / 2, y - h + 6, w, h, 8).lineStyle(1, 0xc8a878, 0.5).strokeRoundedRect(x - w / 2, y - h + 6, w, h, 8);
+    const out: Obj[] = [g];
+    for (const [dx, dy] of [[-w / 2, -h + 6], [w / 2, -h + 6], [-w / 2, 6], [w / 2, 6]]) out.push(this.sc.add.rectangle(x + dx, y + dy, 2, 7, 0x6a4a2a).setOrigin(0.5, 1).setDepth(y + dy));
+    return out;
+  }
+  /** draw / refresh buildings, houses and defenses from the guild state */
+  render(now = Date.now()) {
+    const g = guildOf(S()); if (!g) return;
+    const sc = this.sc;
+    for (const t of GUILD_BLD_ORDER) {
+      const b = g.buildings.find(q => q.type === t)!, P = L.PLOTS[L.PLOT_OF[t]], busy = !!b.done && now < b.done;
+      const art = busy ? 'site_0' : `${ART[t]}_${artLv(b.level)}`;
+      this.view('b:' + t, art + b.level, () => {
+        const im = sc.obj(art, P.x, P.y, 0.82, Math.round(((sc.textures.exists('o_' + art) ? 1 : 0) || 1) * 50), true, t === 'hall' ? 1.1 : 1);
+        const top = im ? im.y - im.displayHeight * im.originY : P.y - 120;
+        const lb = this.label(P.x, top - 2, `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${b.level}${busy ? ' 🔨' : ''}`, t === 'hall' ? '#ffd84a' : '#ffe7a0');
+        if (busy) lb.setData('timer', t);
+        if (sc.hero && sc.isBlocked(sc.hero.x, sc.hero.y)) sc.hero.setPosition(L.doorOf(L.PLOT_OF[t]).x, L.doorOf(L.PLOT_OF[t]).y + 20);
+        return im ? [im, lb] : [lb];
+      });
+    }
+    // the residential street: one lot per member (empty until they build), free lots stay staked out
+    for (let i = 0; i < L.PLOTS.length - 10; i++) {
+      const P = L.PLOTS[10 + i], m = g.members.find(q => q.house === i), mine = m?.id === g.me;
+      const busy = !!m?.houseDone && now < m.houseDone, lv = m ? (busy ? m.houseLv - 1 : m.houseLv) : 0;
+      const key = !m ? 'free' : busy ? `site:${m.name}` : lv > 0 ? `h${artLv(lv)}:${lv}:${m.name}` : `lot:${m.name}`;
+      this.view('h:' + i, key + (mine ? ':me' : ''), () => {
+        const out: Obj[] = [];
+        if (!m || (lv === 0 && !busy)) {
+          out.push(...this.lot(P.x, P.y, 84, 40));
+          const sg = sc.obj('sign_1', P.x, P.y - 6, 0.5, 2, false); if (sg) out.push(sg);
+          out.push(this.label(P.x, P.y - 40, m ? `${mine ? '🏠 ที่ดินของคุณ — สร้างบ้าน' : `ที่ดินของ ${m.name}`}` : 'ที่ดินว่าง', mine ? '#9fffb0' : '#c8b898', 6.5));
+        } else {
+          const art = busy ? 'site_0' : `house_${artLv(lv)}`;
+          const im = sc.obj(art, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE); if (im) out.push(im);
+          const top = im ? im.y - im.displayHeight * im.originY : P.y - 90;
+          out.push(this.label(P.x, top, `${mine ? '🏠 ' : ''}${m.name} Lv${lv}${busy ? ' 🔨' : ''}`, mine ? '#9fffb0' : '#ffe7a0', 6.5));
+        }
+        return out;
+      });
+    }
+    // defenses on the wall road (slots open with the hall level)
+    const open = defSlots(hallLv(S(), now));
+    L.SLOTS.forEach((P, i) => {
+      const q = g.defenses.find(d => d.slot === i), busy = !!q?.done && now < q.done;
+      const key = i >= open ? 'locked' : !q ? 'empty' : `${q.type}:${q.level}:${busy}`;
+      this.view('d:' + i, key, () => {
+        if (key === 'locked') return [];
+        if (!q) { const g2 = sc.add.graphics().setDepth(1.2); g2.lineStyle(1, 0xc8a878, 0.45).strokeEllipse(P.x, P.y, 34, 14); return [g2]; }
+        const art = 'def_' + q.type, im = sc.obj(busy ? 'site_0' : art, P.x, P.y, 0.6, 6, true, busy ? 0.3 : DEF_SC[q.type] ?? 0.65);
+        const out: Obj[] = im ? [im] : [];
+        if (q.level > 1) out.push(this.label(P.x, P.y + 12, '★'.repeat(Math.min(5, q.level - 1)), '#ffd84a', 6));
+        return out;
+      });
+    });
+    this.spawnGuards();
+  }
+
+  /** hired guards: spearmen walk the wall road, archers keep watch at the gates and the plaza */
+  spawnGuards() {
+    const g = guildOf(S()); if (!g) return;
+    const key = `${g.guards.spear}:${g.guards.archer}:${!!g.hungry}`; if (key === this.guardKey) return;
+    this.guardKey = key;
+    if (this.guards) for (const n of this.guards.npcs) { n.sp.destroy(); n.shadow.destroy(); n.tag.destroy(); }
+    const v = this.guards = new Village(this.sc as never, L.VW, L.VH);
+    const go = (x: number, y: number): Step => ({ kind: 'go', to: { x, y } });
+    const watch = (ms: number, face: number): Step => ({ kind: 'work', ms, face });
+    const ring = [[L.NORTH_GATE.x, L.RING.y0 + 12], [L.RING.x1 - 30, L.RING.y0 + 40], [L.RING.x1 - 12, 700], [L.RING.x1 - 40, L.RING.y1 - 20], [L.SOUTH_GATE.x, L.RING.y1 - 10], [L.RING.x0 + 30, L.RING.y1 - 40], [L.RING.x0 + 12, 640], [L.RING.x0 + 40, L.RING.y0 + 30]];
+    const posts = [[L.NORTH_GATE.x + 30, 120, 0], [L.SOUTH_GATE.x - 30, L.SOUTH_GATE.y - 70, 4], [L.PLAZA.x + 40, L.PLAZA.y + 60, 0], [L.PLOTS[L.HALL_PLOT].x - 60, L.PLOTS[L.HALL_PLOT].y + 40, 0], [L.WEST_EXIT.x + 60, L.WEST_EXIT.y + 26, 6]];
+    const name = (t: GuardType) => GUARDS[t].name + (g.hungry ? ' (หิว)' : '');
+    for (let i = 0; i < g.guards.spear; i++) {
+      const plan: Step[] = []; for (let k = 0; k < ring.length; k++) { const [x, y] = ring[(k + i * 3) % ring.length]; plan.push(go(x, y)); if (k % 2) plan.push(watch(3000 + i * 400, 0)); }
+      const [hx, hy] = ring[(i * 3) % ring.length];
+      v.add(GUARDS.spear.key, name('spear'), { x: hx, y: hy }, plan, g.hungry ? 14 : 22, true, 'walk');
+    }
+    for (let i = 0; i < g.guards.archer; i++) {
+      const [x, y, f] = posts[i % posts.length], [x2, y2] = posts[(i + 2) % posts.length];
+      v.add(GUARDS.archer.key, name('archer'), { x, y }, [go(x, y), watch(14000, f), go(x2 + 20, y2), watch(9000, 0)], g.hungry ? 14 : 20, true, 'walk');
+    }
+    for (const n of v.npcs) this.sc.castShadow(n.sp, true);
+  }
+
+  /** every frame: guards walk; every second: timers, production bubbles, walking up to a building collects its output */
+  update(time: number, dt: number) {
+    this.guards?.update(time, dt);
+    if (time - this.t < 1000) return;
+    this.t = time;
+    const s = S(), g = guildOf(s); if (!g) return;
+    if (time - this.syncT > 60000) { this.syncT = time; this.sync(); }
+    const now = Date.now();
+    this.render(now);
+    for (const t of GUILD_BLD_ORDER) {
+      const v = this.views.get('b:' + t), b = g.buildings.find(q => q.type === t)!, d = GUILD_BLD[t], P = L.PLOTS[L.PLOT_OF[t]];
+      if (!v) continue;
+      if (b.done && now < b.done) { (v.objs.find(o => o.getData?.('timer')) as Phaser.GameObjects.Text | undefined)?.setText(`🔨 ${d.name} Lv${b.level} • ${fmtLeft(b.done - now)}`); continue; }
+      if (!d.produces) continue;
+      const stored = Math.min(gbStoreCap(d, b.level), b.stored + gbRate(d, b.level) * Math.max(0, (now - b.last) / 60000));
+      const show = stored >= 1;
+      if (show && !v.bubble) {
+        const im = v.objs[0] as Phaser.GameObjects.Image, top = im?.y ? im.y - im.displayHeight * im.originY - 14 : P.y - 130;
+        const bub = this.sc.add.container(P.x, top).setDepth(99990);
+        bub.add([this.sc.add.circle(0, 0, 8, 0xffffff, 0.95).setStrokeStyle(1.5, 0x3a8a3a), this.sc.add.text(0, 0, ICON_RES[d.produces], { fontSize: '9px', resolution: 8 }).setOrigin(0.5)]);
+        this.sc.tweens.add({ targets: bub, y: top - 4, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        v.bubble = bub;
+      } else if (!show && v.bubble) { v.bubble.destroy(); v.bubble = undefined; }
+      if (show && this.sc.hero && Math.hypot(P.x - this.sc.hero.x, P.y + 14 - this.sc.hero.y) < 50) {
+        const r = act('guildCollect', { type: t });
+        if (!refused(r)) { this.sc.combat.float(P.x, P.y - 70, `+${r.amount} ${ICON_RES[r.res]} เข้าคลังหมู่บ้าน`, '#9fffb0', 10); bus.emit(EV.STATE_CHANGED); }
+      }
+    }
+  }
+  /** catch the village up (production, guards' food, simulated members) and show what happened while away */
+  sync() {
+    const r = act('guildSync', {});
+    if (refused(r)) return;
+    for (const m of r.unread) bus.emit(EV.TOAST, m, m.startsWith('🛡') ? '#9fffb0' : '#ff9a7a');
+    if (r.unread.length) bus.emit(EV.STATE_CHANGED);
+  }
+
+  /** what the action button offers near the guild buildings, the house lots and the defense slots */
+  offers(h: { x: number; y: number }, offer: (d: number, label: string, cb: () => void) => void, open: (what: string, arg?: number) => void) {
+    const g = guildOf(S()); if (!g) return;
+    for (const t of GUILD_BLD_ORDER) {
+      const P = L.doorOf(L.PLOT_OF[t]), d = Math.hypot(P.x - h.x, (P.y - h.y) * 1.4); if (d > 64) continue;
+      const room = ['lumber', 'quarry', 'barn'].includes(t) ? null : t;
+      if (room) offer(d + 10, `🚪 เข้า${GUILD_BLD[t].name}`, () => open('enter', L.PLOT_OF[t]));
+      else offer(d + 10, `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name}`, () => open('tab:build'));
+    }
+    const me = meOf(S());
+    for (const m of g.members) {
+      const P = L.doorOf(L.housePlot(m.house)), d = Math.hypot(P.x - h.x, (P.y - h.y) * 1.4); if (d > 52) continue;
+      if (m.id !== g.me) { offer(d + 20, `🏠 บ้านของ ${m.name}`, () => bus.emit(EV.TOAST, `${m.name} • Lv${m.lv} • บ้าน Lv${m.houseLv} • แต้มบุญ ${m.pts}`, '#ffe7a0')); continue; }
+      if ((me?.houseLv ?? 0) > 0 && !(me?.houseDone && Date.now() < me.houseDone)) offer(d, '🚪 เข้าบ้าน', () => open('enter', L.housePlot(m.house)));
+      else offer(d, (me?.houseDone && Date.now() < me.houseDone) ? '🔨 กำลังสร้างบ้าน' : '🔨 สร้างบ้าน', () => open('tab:home'));
+    }
+    L.SLOTS.forEach((P, i) => {
+      const d = Math.hypot(P.x - h.x, (P.y - h.y) * 1.4); if (d > 40 || i >= defSlots(hallLv(S()))) return;
+      const q = g.defenses.find(x => x.slot === i);
+      offer(d + 15, q ? `${DEFENSES[q.type].icon} ${DEFENSES[q.type].name} Lv${q.level}` : '🛡 ช่องวางป้อม', () => open('slot', i));
+    });
+  }
+}
+
+const fmtLeft = (ms: number) => { const s = Math.ceil(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)} นาที ${s % 60} วิ` : `${s} วิ`; };
+/** cheap smooth noise for the few trees inside the wall */
+function fbmish(x: number, y: number) { return (Math.sin(x / 97 + Math.cos(y / 71)) * Math.cos(y / 83 - Math.sin(x / 59)) + 1) / 2; }

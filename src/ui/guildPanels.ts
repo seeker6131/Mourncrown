@@ -217,7 +217,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
         T(L + 14, by + 4, `⚔ ${r.name}`, 10, '#ffd84a');
         T(L + 14, by + 22, `หอกิลด์ Lv${r.hall} • ป้อม ${r.defenses.length} • ทหาร ${r.guards} • อาคาร ${st.length - r.defenses.length}`, 8, '#e8dcc0');
         T(L + 14, by + 38, `คลัง: ${rich > 60000 ? 'ร่ำรวย 💰💰💰' : rich > 25000 ? 'ปานกลาง 💰💰' : 'น้อย 💰'}`, 8, '#c8e8b0');
-        c.add(k.button(R - 120, by + 16, 104, 26, '⚔ บุกปล้น', () => { h.close(); bus.emit('td:raid', r.id); }, { size: 10, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
+        c.add(k.button(R - 120, by + 16, 104, 26, '⚔ บุกปล้น', () => { bus.emit(EV.TOAST, 'ฉากบุกปล้นกำลังสร้าง — เปิดในอัปเดตถัดไป', '#ffd84a'); }, { size: 10, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
       });
       if (!rivals(s).length) T(L + 12, top + 60, 'วันนี้ไม่มีเป้าหมายเหลือแล้ว พรุ่งนี้มาใหม่', 9, '#a89878');
       if (!off) T(L + 8, top + H - 80, 'เฉพาะหัวหน้า/รองหัวหน้าที่สั่งบุกได้', 8, '#ffb080');

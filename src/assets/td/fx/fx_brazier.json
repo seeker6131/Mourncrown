@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "brazier-fire 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 1.png",
+   "frame": {
+    "x": 64,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 2.png",
+   "frame": {
+    "x": 128,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 3.png",
+   "frame": {
+    "x": 192,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 4.png",
+   "frame": {
+    "x": 0,
+    "y": 72,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 5.png",
+   "frame": {
+    "x": 64,
+    "y": 72,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 6.png",
+   "frame": {
+    "x": 128,
+    "y": 72,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 7.png",
+   "frame": {
+    "x": 192,
+    "y": 72,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 8.png",
+   "frame": {
+    "x": 0,
+    "y": 144,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 9.png",
+   "frame": {
+    "x": 64,
+    "y": 144,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 10.png",
+   "frame": {
+    "x": 128,
+    "y": 144,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  },
+  {
+   "filename": "brazier-fire 11.png",
+   "frame": {
+    "x": 192,
+    "y": 144,
+    "w": 64,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9166666666666666
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "brazier-fire.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 256,
+   "h": 216
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "feet",
+   "x": 32,
+   "y": 66
+  },
+  "frameTags": [
+   {
+    "name": "brazier-fire",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

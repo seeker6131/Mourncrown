@@ -40,8 +40,10 @@ import { stageFood } from '../systems/supplies';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, audioState } from '../audio/sfx';
+import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
+import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon' | 'profile';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -49,8 +51,10 @@ const NPC_INFO: Record<string, { name: string; tex: string }> = {
   smith: { name: 'ช่างตีเหล็กบรอม', tex: 'npc_smith' },
 };
 
-export class Panels {
+export class Panels implements GuildHost {
   cur: PanelId | null = null;
+  guildTab: GuildTab = 'home'; guildSlot = -1; guildPick: DefenseId | null = null;
+  get scene() { return this.ui; }
   c: Phaser.GameObjects.Container | null = null;
   selUid: number | null = null;
   plot = 0;
@@ -139,6 +143,9 @@ export class Panels {
       case 'collection': this.buildCollection(c); break;
       case 'dungeon': this.buildDungeon(c); break;
       case 'profile': this.buildProfile(c); break;
+      case 'guild': buildGuild(this, c); break;
+      case 'stash': buildStash(this, c); break;
+      case 'trophy': buildTrophy(this, c); break;
     }
   }
 
@@ -351,6 +358,8 @@ export class Panels {
 
   // ---------------- VILLAGE PLOT ----------------
   openPlot(i: number) { this.plot = i; this.open('plot'); }
+  /** the guild window on a tab (and a defense slot picked) */
+  openGuild(tab: GuildTab, slot = -1) { this.guildTab = tab; if (slot >= 0) this.guildSlot = slot; this.guildPick = null; this.open('guild'); }
 
   costText(c: Cost) {
     const s = S();
@@ -602,6 +611,7 @@ export class Panels {
     let n = 0;
     const b = (label: string, cb: () => void, color?: number) => { const col = n % 2, row = Math.floor(n / 2); c.add(k.button(x + 16 + col * (colW + 14), y + 34 + row * 26, colW, 22, label, cb, { size: 8.5, color })); n++; };
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
+    b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {

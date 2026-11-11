@@ -52,7 +52,8 @@ export class Village {
     return p;
   }
 
-  add(key: string, name: string, home: Pt, plan: Step[], speed = 26, visible = false) {
+  /** `anim`: what they play while working (default: their chop / mine / attack animation); 'walk' = stand and look around */
+  add(key: string, name: string, home: Pt, plan: Step[], speed = 26, visible = false, anim?: string) {
     if (!CH[key]) return;
     home = this.free(home);
     plan = plan.map(st => st.to ? { ...st, to: this.free(st.to) } : st);
@@ -62,7 +63,7 @@ export class Village {
     const fw = (CH[key]?.idleFs ?? 48) * 0.5;
     const shadow = sc.add.image(home.x, home.y, sc.textures.exists('td_shadow') ? 'td_shadow' : '__WHITE').setDisplaySize(fw, fw * 0.34).setDepth(1).setAlpha(a0 * 0.5);
     const tag = sc.add.text(home.x, home.y, name, { fontFamily: 'sans-serif', fontSize: '6px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990).setAlpha(a0 * 0.85);
-    this.npcs.push({ key, name, sp, shadow, tag, plan, i: -1, path: [], until: sc.time.now + Math.random() * 3000, dir: 0, speed, home, back: home, hidden: !visible, anim: hasAnim(key, 'chop') ? 'chop' : hasAnim(key, 'mine') ? 'mine' : hasAnim(key, 'attack') ? 'attack' : 'walk' });
+    this.npcs.push({ key, name, sp, shadow, tag, plan, i: -1, path: [], until: sc.time.now + Math.random() * 3000, dir: 0, speed, home, back: home, hidden: !visible, anim: anim ?? (hasAnim(key, 'chop') ? 'chop' : hasAnim(key, 'mine') ? 'mine' : hasAnim(key, 'attack') ? 'attack' : 'walk') });
   }
 
   next(n: Npc, now: number) {

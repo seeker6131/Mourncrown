@@ -221,6 +221,8 @@ def hit_frame(dd):
         ch = [_diff(fr[i], fr[i - 1]) for i in range(1, max(2, len(fr) * 3 // 4))]
         hs.append(1 + int(np.argmax(ch)))
     return int(np.median(hs)) if hs else 0
+# hit frames checked by eye where the motion detector picks the wind-up instead of the release (bow draw, spear pull-back)
+HIT = {'np8': {'attack': 4}, 'np10': {'attack': 5}}
 # Frames the AI got wrong (seen with tools/audit_dirs.py <out> <key> attack 1 --raw): they are removed before retiming.
 # {key: {animation: {direction: [frame numbers of the clip as generated, 0 = the idle picture]}}}
 DROP = {}
@@ -318,7 +320,7 @@ def build(key, zips, man):
             for c, im in enumerate(row): s.paste(centre(im, fs), (c * fs, r * fs))
         s.save(os.path.join(OUT, f'{key}_{a}.webp'), lossless=True)
         info['anims'][a] = {'fs': fs, 'n': n, 'dirs': ad, 'foot': ft}
-        if a in RETIME: info['anims'][a]['hit'] = hit_frame(dd)
+        if a in RETIME: info['anims'][a]['hit'] = HIT.get(key, {}).get(a, hit_frame(dd))
     man[key] = info
 
 if __name__ == '__main__':

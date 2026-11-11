@@ -29,6 +29,9 @@ export const PLOTS: { x: number; y: number }[] = [
 ];
 export const PLOT_OF: Record<string, number> = { forge: 0, barn: 1, lumber: 2, tavern: 3, kitchen: 4, market: 5, warehouse: 6, quarry: 7, barracks: 8, hall: 9 };
 export const HOUSE_SCALE = 0.7;
+export const HALL_PLOT = 9;
+/** the plot of the i-th house lot on the residential street */
+export const housePlot = (i: number) => 10 + i;
 /** the lane in front of each row of houses */
 export const ROW_LANES = [930, 1160];
 /** extra decor houses (none: villagers live in the buildings they work at) */
