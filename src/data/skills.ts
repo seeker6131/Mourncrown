@@ -46,7 +46,7 @@ export const SKILL_LIST: SkillDef[] = [
   S({ id: 's3_crusade', name: 'คมดาบอัศวิน', icon: 'sk_thunder', desc: 'ฟันกากบาท 2 ครั้ง ครั้งละ 200% ATK', mp: 12, cooldown: 5000, kind: 'strike', stat: 'atk', power: 2.0, count: 2, range: 38, color: 0xffd860 }),
   S({ id: 's3_valor', name: 'ใจกล้าอัศวิน', icon: 'sk_heal', desc: 'ATK +30% และตีเร็วขึ้น 20% นาน 12 วินาที', mp: 14, cooldown: 22000, kind: 'buff', stat: 'atk', power: 0, range: 0, buff: { atk: 30, aspd: 20, dur: 12000 }, color: 0xffb040 }),
   S({ id: 's4_judgment', name: 'คำพิพากษาสวรรค์', icon: 'sk_thunder', desc: 'กระโดดฟาดลงพื้น ระเบิดแสงวงกว้าง 320% ATK', mp: 16, cooldown: 6000, kind: 'leap', stat: 'atk', power: 3.2, radius: 52, range: 110, color: 0xfff0a0 }),
-  S({ id: 's4_blades', name: 'ดาบศักดิ์สิทธิ์พันเล่ม', icon: 'sk_cyclone', desc: 'ดาบแสงตกใส่ศัตรู 6 ตัว ตัวละ 240% ATK', mp: 22, cooldown: 9000, kind: 'rain', stat: 'atk', power: 2.4, count: 6, radius: 130, fall: 'blade', range: 120, color: 0x9ad8ff }),
+  S({ id: 's4_blades', name: 'พายุดาบศักดิ์สิทธิ์', icon: 'sk_cyclone', desc: 'หมุนดาบแสงรอบตัว 4 ครั้ง ครั้งละ 190% ATK (ประชิดตัว)', mp: 22, cooldown: 8000, kind: 'spin', stat: 'atk', power: 1.9, count: 4, radius: 58, range: 50, color: 0x9ad8ff }),   // director: the knight has no ranged skills
   S({ id: 's4_aegis', name: 'โล่ทองคำ', icon: 'sk_heal', desc: 'โล่ดูดซับดาเมจ 40% ของ HP สูงสุด', mp: 18, cooldown: 25000, kind: 'shield', stat: 'atk', power: 0.4, range: 0, color: 0xffd860 }),
   // ---- Archer line ----
   S({ id: 'a2_double', name: 'ยิงคู่', icon: 'sk_flame', desc: 'ยิงธนู 2 ดอกติดกัน ดอกละ 150% ATK', mp: 5, cooldown: 2500, kind: 'shot', stat: 'atk', power: 1.5, count: 2, spread: 0.06, proj: 'arrow', range: 130 }),

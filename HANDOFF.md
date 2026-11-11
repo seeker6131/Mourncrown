@@ -97,6 +97,12 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
   · นำเข้า `tools/import_guild_art.py` (def_/fu_/dc_ → src/assets/td/obj) · เอฟเฟกต์ `tools/gen_vfx2.py` (POST /vfx 'lite' ≈ $0.005/ชิ้น, ไฟล์โหลดด้วย curl) → src/assets/td/fx
   · ทหาร np8 (แทงหอก) / np10 (ยิงธนู) 8 ทิศ: `reimport_chars.py np8 np10`, จังหวะโดน `HIT` ใน import_chars.py
 
+- **เงา = แบบเกมพิกเซล (ผู้กำกับสั่ง)**: วงรีเม็ดพิกเซลขนาดพอดี ขอบ dither ไม่เบลอ ไม่มีเงาเอียงตามแดด (`src/world/pxShadow.ts`, `castShadow` เป็น no-op)
+- ห้องในอาคาร: ชุดกระเบื้องผนัง+พื้นแบบ cliff 32px (`tools/gen_room_tiles.py` → src/assets/td/room: rt_stone / rt_woodstone / rt_wood) · `/create-room` ใช้ไม่ได้ (ระบบความปลอดภัยไม่ให้เลี่ยงการบล็อก — อย่าลองอีก)
+- เอฟเฟกต์ PixelLab VFX (`tools/gen_vfx2.py`): ประตูมิติ fx_portal · ฮีโร่ตีโดน fx_hit_sword/arrow/magic/holy/punch/crit (`Combat.hitFx`) · บอส fx_bsN_hit / fx_bsN_special
+- น้ำพุ = dc_fountain2 (ภาพนิ่ง) + หยดน้ำ/ประกายพิกเซลด้วยโค้ด (`fountainWater` ใน guildTown.ts)
+- สายดาบ (อัศวิน) ไม่มีสกิลระยะไกล: s4_blades เป็น "พายุดาบศักดิ์สิทธิ์" หมุนรอบตัว · มอนช่วงต้น: พื้น HP ให้ร่างแรกตี ~3.5 ที (`scaleStats` ใน stages.ts)
+
 ## 8.5 ✅ งานภาพ/ท่าทางรอบ 2026-11-11 (เสร็จและ push แล้ว)
 คำสั่งผู้ใช้: **"ทำเกมที่เหลือให้สวย ทุกอย่างที่ไม่ดีทำเลย · ตัดไม้/ขุดแร่/ล่าสัตว์ ท่าทางแยกชัดเจน · ทำบอสให้สมบูรณ์ · ท่าทางฮีโร่ยังผิดพลาดเยอะ · ทำท่าให้เนียนมากๆ"** (ใช้เครดิต PixelLab ไป $2.51)
 

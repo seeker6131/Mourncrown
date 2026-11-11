@@ -59,7 +59,7 @@ export class GuildTown {
     const near = (x: number, y: number) => sc.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
     // the fountain in the middle of the plaza (animated), braziers at the hall door, benches and flower beds round the plaza
     const block = (x: number, y: number, rx: number, ry: number) => { for (let j = -ry; j <= ry; j += 2) for (let i = -rx; i <= rx; i += 2) if ((i / rx) ** 2 + (j / ry) ** 2 <= 1) (sc as unknown as { block(x: number, y: number): void }).block(x + i, y + j); };
-    if (fx2(sc, 'fx_fountain', L.PLAZA.x, L.PLAZA.y - 6, L.PLAZA.y - 6, 0.85)) block(L.PLAZA.x, L.PLAZA.y - 14, 54, 12);
+    { const fy = L.PLAZA.y - 4, im = sc.obj('dc_fountain2', L.PLAZA.x, fy, 0.86, 18, true, 1); if (im) fountainWater(sc, L.PLAZA.x, fy, im); }
     const hall = L.PLOTS[L.HALL_PLOT];
     for (const dx of [-62, 62]) if (fx2(sc, 'fx_brazier', hall.x + dx, hall.y + 34, hall.y + 34, 0.75)) { block(hall.x + dx, hall.y + 32, 9, 4); sc.lamps.push(sc.add.image(hall.x + dx, hall.y + 14, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990)); }
     for (const [k, x, y, f] of [
@@ -273,6 +273,23 @@ export class GuildTown {
   }
 }
 
+/** the fountain's water, in pixels: drops falling from the upper bowl and sparkles drifting on the basin (no blur) */
+function fountainWater(sc: Phaser.Scene, x: number, foot: number, im: Phaser.GameObjects.Image) {
+  if (!sc.textures.exists('px_drop')) { const c = document.createElement('canvas'); c.width = 2; c.height = 2; const k = c.getContext('2d')!; k.fillStyle = '#d8f4f8'; k.fillRect(0, 0, 2, 2); sc.textures.addCanvas('px_drop', c); }
+  const top = foot - im.displayHeight * im.originY, h = im.displayHeight;
+  const bowlY = top + h * 0.3, basinY = top + h * 0.72;
+  // a thin spout of drops falling from the upper bowl into the basin, all round its rim
+  sc.add.particles(x, bowlY, 'px_drop', { x: { min: -16, max: 16 }, speedY: { min: -6, max: 4 }, speedX: { min: -14, max: 14 }, gravityY: 160, lifespan: { min: 380, max: 520 },
+    alpha: { start: 0.95, end: 0.4 }, frequency: 45, quantity: 1 }).setDepth(foot + 1);
+  // the jet at the top
+  sc.add.particles(x, top + 6, 'px_drop', { speedY: { min: -26, max: -14 }, speedX: { min: -5, max: 5 }, gravityY: 140, lifespan: { min: 280, max: 380 }, alpha: { start: 1, end: 0.5 }, frequency: 70, quantity: 1 }).setDepth(foot + 1);
+  // glints on the water of the basin
+  for (let i = 0; i < 9; i++) {
+    const g = sc.add.image(x, basinY, 'px_drop').setAlpha(0).setDepth(foot + 0.5);
+    const blink = () => { const a = Math.random() * Math.PI * 2, r = Math.random(); g.setPosition(Math.round(x + Math.cos(a) * im.displayWidth * 0.36 * r), Math.round(basinY + Math.sin(a) * h * 0.1 * r)); sc.tweens.add({ targets: g, alpha: { from: 0, to: 0.9 }, duration: 260 + Math.random() * 300, yoyo: true, delay: Math.random() * 900, onComplete: blink }); };
+    blink();
+  }
+}
 const fmtLeft = (ms: number) => { const s = Math.ceil(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)} นาที ${s % 60} วิ` : `${s} วิ`; };
 /** cheap smooth noise for the few trees inside the wall */
 function fbmish(x: number, y: number) { return (Math.sin(x / 97 + Math.cos(y / 71)) * Math.cos(y / 83 - Math.sin(x / 59)) + 1) / 2; }

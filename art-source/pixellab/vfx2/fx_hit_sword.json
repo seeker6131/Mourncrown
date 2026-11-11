@@ -1,0 +1,209 @@
+{
+ "frames": [
+  {
+   "filename": "fx-hit-sword 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-sword 1.png",
+   "frame": {
+    "x": 64,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-sword 2.png",
+   "frame": {
+    "x": 128,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-sword 3.png",
+   "frame": {
+    "x": 0,
+    "y": 60,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-sword 4.png",
+   "frame": {
+    "x": 64,
+    "y": 60,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-sword 5.png",
+   "frame": {
+    "x": 128,
+    "y": 60,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-sword 6.png",
+   "frame": {
+    "x": 0,
+    "y": 120,
+    "w": 64,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.515625,
+    "y": 0.5166666666666667
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-hit-sword.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 192,
+   "h": 180
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 33,
+   "y": 31
+  },
+  "frameTags": [
+   {
+    "name": "fx-hit-sword",
+    "from": 0,
+    "to": 6,
+    "direction": "forward"
+   }
+  ]
+ }
+}

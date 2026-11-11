@@ -1,0 +1,261 @@
+{
+ "frames": [
+  {
+   "filename": "fx-hit-crit 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 1.png",
+   "frame": {
+    "x": 103,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 2.png",
+   "frame": {
+    "x": 206,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 3.png",
+   "frame": {
+    "x": 0,
+    "y": 104,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 4.png",
+   "frame": {
+    "x": 103,
+    "y": 104,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 5.png",
+   "frame": {
+    "x": 206,
+    "y": 104,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 6.png",
+   "frame": {
+    "x": 0,
+    "y": 208,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 7.png",
+   "frame": {
+    "x": 103,
+    "y": 208,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-hit-crit 8.png",
+   "frame": {
+    "x": 206,
+    "y": 208,
+    "w": 103,
+    "h": 104
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 103,
+    "h": 104
+   },
+   "sourceSize": {
+    "w": 103,
+    "h": 104
+   },
+   "pivot": {
+    "x": 0.5339805825242718,
+    "y": 0.4326923076923077
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-hit-crit.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 309,
+   "h": 312
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 55,
+   "y": 45
+  },
+  "frameTags": [
+   {
+    "name": "fx-hit-crit",
+    "from": 0,
+    "to": 8,
+    "direction": "forward"
+   }
+  ]
+ }
+}

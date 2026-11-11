@@ -1,4 +1,6 @@
+import { fx2, hasFx2 } from './fx2';
 // Monsters, combat, loot and stage flow for the top-down world.
+import { pxShadow } from './pxShadow';
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
@@ -188,7 +190,7 @@ export class Combat {
     if (ph) sp.setData('ph', ph);
     const bar = sc.add.graphics().setDepth(99960);
     const shw = m.size * (boss ? 0.75 : 0.62);
-    const sh = sc.add.image(x, y, sc.textures.exists('td_shadow') ? 'td_shadow' : '__WHITE').setDisplaySize(shw, shw * 0.34).setAlpha(0.5).setDepth(1);
+    const sh = pxShadow(sc, x, y, shw, shw * 0.34, 0.45);
     sp.setData('sh', sh);
     if (reg.elite) {   // golden monster: gold aura, a bit bigger
       sp.setScale(1.2);
@@ -405,9 +407,16 @@ export class Combat {
         if (!m.alive) continue;
         if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff); else this.arrow(h.x, h.y - 18, m); }
         const r = calcDamage(magic ? d.matk : d.atk, m.def, 1, d.crit);
-        this.s.time.delayedCall(ranged ? 170 : 0, () => this.hurtMon(m, r.dmg, r.crit, magic));
+        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged); this.hurtMon(m, r.dmg, r.crit, magic); });
       }
     });
+  }
+
+  /** PixelLab hit effect on the monster, by the hero's class line (tools/gen_vfx2.py) */
+  hitFx(m: Mon, form: string, crit: boolean, magic: boolean, ranged: boolean) {
+    const n = +form.replace(/\D/g, '') || 0;
+    const key = crit ? 'fx_hit_crit' : magic ? 'fx_hit_magic' : ranged ? 'fx_hit_arrow' : n >= 10 ? 'fx_hit_holy' : n >= 1 ? 'fx_hit_sword' : 'fx_hit_punch';
+    fx2(this.s, key, m.x + (Math.random() - 0.5) * 6, m.y - m.m.size * 0.4, 99952, crit ? 0.75 : 0.9)?.setFlipX(Math.random() < 0.5);
   }
 
   tex(key: string, draw: (k: CanvasRenderingContext2D) => void, w = 32, h = 32) {
@@ -558,7 +567,8 @@ export class Combat {
         this.s.time.delayedCall(1100, () => {
           warn.destroy(); if (!m.alive) return;
           this.glowTex();
-          playPfx(this.s, BOSS_FX[this.stage?.land.id ?? 'forest'], cx, cy + 6, { scale: 0.95, depth: 99953 });
+          if (hasFx2(`fx_${m.m.key}_special`)) fx2(this.s, `fx_${m.m.key}_special`, cx, cy + 6, 99953, m.m.key === 'bs3' ? 0.6 : 1);
+          else playPfx(this.s, BOSS_FX[this.stage?.land.id ?? 'forest'], cx, cy + 6, { scale: 0.95, depth: 99953 });
           const boom = this.s.add.image(cx, cy - 6, 'fx_dot').setTint(0xff6a3a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99954).setScale(1);
           this.s.tweens.add({ targets: boom, scale: 4, alpha: 0, duration: 450, onComplete: () => boom.destroy() });
           this.sparks(cx, cy - 6, 0xffa050, 14);
@@ -579,7 +589,8 @@ export class Combat {
           if (!r.miss) {
             sfx.hurt();
             const heavy = m.boss || HEAVY.has(m.m.kind), left = h.x < m.x;
-            playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : base.ranged ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss ? 0.6 : heavy ? 0.6 : 0.7, flip: left });
+            if (m.boss && hasFx2(`fx_${m.m.key}_hit`)) fx2(this.s, `fx_${m.m.key}_hit`, h.x, h.y - 14, 99953, 0.9)?.setFlipX(left);
+            else playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : base.ranged ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss ? 0.6 : heavy ? 0.6 : 0.7, flip: left });
             if (m.boss) this.vfx.impact(h.x, h.y - 16, 0xff6a3a, true);
           }
           this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);

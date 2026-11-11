@@ -6,7 +6,7 @@ const PNG = import.meta.glob('../assets/td/fx/*.png', { eager: true, query: '?ur
 const JSON_ = import.meta.glob('../assets/td/fx/*.json', { eager: true, import: 'default' }) as Record<string, FxSheet>;
 interface FxSheet { frames: { filename: string; duration: number; frame: { w: number; h: number } }[]; meta: { anchor?: { x: number; y: number } } }
 /** effects that loop (the others play once) */
-const LOOP = new Set(['fx_brazier', 'fx_fountain', 'fx_shield', 'fx_build']);
+const LOOP = new Set(['fx_brazier', 'fx_fountain', 'fx_shield', 'fx_build', 'fx_portal']);
 const name = (p: string) => p.split('/').pop()!.replace(/\.(png|json)$/, '');
 const sheets: Record<string, FxSheet> = Object.fromEntries(Object.entries(JSON_).map(([p, j]) => [name(p), j]));
 

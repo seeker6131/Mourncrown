@@ -193,6 +193,17 @@ def sk_clothesline(S):
     for i, (x, c) in enumerate(((14, (170, 160, 140)), (30, (120, 70, 70)), (46, (90, 110, 150)), (60, (180, 170, 120)))): d.rectangle([x, 15, x + 11, 32 + (i % 2) * 6], fill=c)
     return im
 
+def sk_fountain2(S):   # round stone basin seen from the front and above: rim, water inside, brick front, a pedestal with a small bowl
+    im, d = canvas(S); RIM, RIM_D = (150, 146, 140), (96, 94, 92)
+    d.ellipse([8, 54, 120, 98], fill=RIM); d.ellipse([16, 60, 112, 92], fill=(58, 104, 116)); d.ellipse([24, 66, 104, 88], fill=(70, 122, 132))
+    d.rectangle([8, 76, 120, 106], fill=RIM_D); d.ellipse([8, 96, 120, 116], fill=RIM_D); d.ellipse([8, 54, 120, 98], outline=RIM, width=6)
+    for y in (84, 96):
+        for x in range(14, 118, 14): d.line([x + (y // 12 % 2) * 7, y, x + (y // 12 % 2) * 7, y + 10], fill=(70, 68, 68))
+    d.line([10, 90, 118, 90], fill=(70, 68, 68))
+    d.rectangle([56, 34, 72, 76], fill=RIM); d.rectangle([60, 34, 64, 76], fill=(170, 166, 160))
+    d.ellipse([40, 26, 88, 40], fill=RIM); d.ellipse([46, 28, 82, 37], fill=(70, 122, 132)); d.ellipse([58, 12, 70, 28], fill=RIM)
+    return im
+
 JOBS = [   # key, description, size, sketch
     ('def_archer', 'a wooden archer watchtower on log legs with a roofed lookout cabin', 128, sk_archer),
     ('def_cannon', 'a black iron cannon on a wooden carriage with two big wheels, the muzzle pointing at the viewer', 96, sk_cannon),
@@ -224,6 +235,7 @@ JOBS = [   # key, description, size, sketch
     ('fu_trophy', 'a glass trophy display cabinet with a golden sword, a gem and a helmet inside', 80, sk_trophy),
     ('fu_wardrobe', 'a tall wooden wardrobe with two doors', 72, sk_wardrobe),
     ('fu_rug', 'a rectangular dark red rug with a gold border, flat on the floor', 64, sk_rug),
+    ('dc_fountain2', 'a round grey stone village fountain: a wide basin full of clear blue water with a thick stone rim, a stone pedestal in the middle with a small upper bowl, mossy cracks, old and calm', 128, sk_fountain2),
     ('dc_fountain', 'a round stone fountain with clear water and a small upper basin spouting water', 128, sk_fountain),
     ('dc_statue', 'a stone statue of a knight holding a sword on a stone pedestal', 96, sk_statue),
     ('dc_bench', 'a wooden park bench with a backrest', 64, sk_bench),

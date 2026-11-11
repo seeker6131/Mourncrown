@@ -39,8 +39,12 @@ import type { TdUIScene } from './TdUIScene';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, hitMs, formKeyOf } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 import { GuildTown, gvTerrain, gvBridges } from '../world/guildTown';
+import { pxShadow } from '../world/pxShadow';
 import * as GV from '../world/villageLayout';
-import { ROOMS, RW, RH, DOOR, paintRoom, roomFloor, roomOf, type HotAct, type RoomKind } from '../world/interiors';
+import { ROOMS, RW, RH, DOOR, ROOM_SET, paintRoom, roomFloor, roomOf, type HotAct, type RoomKind } from '../world/interiors';
+const ROOM_PNG = import.meta.glob('../assets/td/room/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const ROOM_META = import.meta.glob('../assets/td/room/*.json', { eager: true, import: 'default' }) as Record<string, { corners: string[] }>;
+const baseName = (p: string) => p.split('/').pop()!.replace(/\.(png|json)$/, '');
 import { guildOf, homeOf, meOf } from '../systems/guild';
 import { GUILD_BLD, GUILD_UNLOCK_LV, type GuildBld } from '../data/guild';
 import { preloadFx2, createFx2Anims, fx2 } from '../world/fx2';
@@ -201,7 +205,8 @@ export class TopDownScene extends Phaser.Scene {
   preload() {
     for (const [p, u] of Object.entries(VFX_FILES)) this.load.image('px_' + p.split('/').pop()!.replace('.png', ''), u);   // PixelLab skill effects
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
-    if (!this.stageN) preloadFx2(this);
+    preloadFx2(this);
+    if (this.gv) for (const [p, u] of Object.entries(ROOM_PNG)) this.load.image(baseName(p), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
     // only the characters this scene shows: hero forms always; villagers + animals in the village;
     // the land's monsters, its boss (boss stages) and the wild game in a stage
@@ -257,7 +262,7 @@ export class TopDownScene extends Phaser.Scene {
     this.shadow = this.contact(sp0.x, sp0.y, 24, 9, 0.5);
     this.time.delayedCall(250, () => sfx.door());   // arriving on a map
     this.hero = this.add.sprite(sp0.x, sp0.y, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, this.inside >= 0 ? 4 : 0);
-    if (!this.stageN) createFx2Anims(this);
+    createFx2Anims(this);
     this.town = this.gv && this.inside < 0 ? new GuildTown(this as never) : undefined; this.hot = [];
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);
@@ -326,9 +331,9 @@ export class TopDownScene extends Phaser.Scene {
   }
   /** a room of the guild village: floor, walls and door drawn in code (src/world/interiors.ts) */
   paintRoom() {
-    const r = ROOMS[this.roomKind ?? 'hall'];
+    const set = ROOM_SET[this.roomKind ?? 'hall'], meta = Object.entries(ROOM_META).find(([p]) => baseName(p) === set)?.[1];
     const cv = document.createElement('canvas'); cv.width = MW; cv.height = MH;
-    paintRoom(cv.getContext('2d')!, r);
+    if (meta && this.textures.exists(set)) paintRoom(cv.getContext('2d')!, this.textures.get(set).getSourceImage() as HTMLImageElement, meta.corners, ROOMS[this.roomKind ?? 'hall'].win);
     this.surf = new Array(MW * MH);
     for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const ok = roomFloor(x, y); this.surf[y * MW + x] = ok ? 'cobble' : 'edge'; if (!ok) this.block(x, y); }
     if (this.textures.exists('td_ground')) this.textures.remove('td_ground');
@@ -767,11 +772,14 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   addPortal(x: number, y: number, to: number | 'select' | 'starter' | 'guild' | 'out', text: string) {
-    const g = this.add.image(x, y - 10, 'td_glow').setTint(to === 0 ? 0x9affc8 : 0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(99985).setScale(1.2);
-    this.tweens.add({ targets: g, alpha: { from: 0.5, to: 1 }, scale: { from: 1.0, to: 1.35 }, duration: 900, yoyo: true, repeat: -1 });
-    const ring = this.add.ellipse(x, y, 30, 12).setStrokeStyle(2, 0xbfeaff, 0.9).setDepth(2);
-    this.tweens.add({ targets: ring, scaleX: 1.25, scaleY: 1.25, alpha: 0.4, duration: 900, yoyo: true, repeat: -1 });
-    const label = this.add.text(x, y - 34, text, { fontFamily: 'sans-serif', fontSize: '8px', color: '#e8f8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99999);
+    // the PixelLab dimension gate (loops); a soft glow under it; gates home / to the villages are tinted green
+    const home = to === 0 || to === 'starter' || to === 'guild' || to === 'out';
+    const gate = to === 'out' ? null : fx2(this, 'fx_portal', x, y + 6, y + 6, 0.62);
+    if (gate && home) gate.setTint(0xb8ffd8);
+    const g = this.add.image(x, y - 6, 'td_glow').setTint(home ? 0x9affc8 : 0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(99985).setScale(gate ? 0.9 : 1.2).setAlpha(0.6);
+    this.tweens.add({ targets: g, alpha: { from: 0.35, to: 0.75 }, duration: 900, yoyo: true, repeat: -1 });
+    if (!gate) { const ring = this.add.ellipse(x, y, 30, 12).setStrokeStyle(2, 0xbfeaff, 0.9).setDepth(2); this.tweens.add({ targets: ring, scaleX: 1.25, scaleY: 1.25, alpha: 0.4, duration: 900, yoyo: true, repeat: -1 }); }
+    const label = this.add.text(x, y - 52, text, { fontFamily: 'sans-serif', fontSize: '8px', color: '#e8f8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99999);
     this.portals.push({ x, y, to, label });
   }
 
@@ -813,19 +821,17 @@ export class TopDownScene extends Phaser.Scene {
     k.save(); k.scale(1, 0.5); k.fillStyle = g; k.fillRect(0, 0, 64, 64); k.restore();
     this.textures.addCanvas('td_shadow', c);
   }
-  /** soft oval shadow under something (w × h px) */
+  /** pixel oval shadow under something (w × h px) — flat, crisp, the same for every map (src/world/pxShadow.ts) */
   contact(x: number, y: number, w: number, h: number, alpha = 0.45) {
-    return this.add.image(x, y, 'td_shadow').setDisplaySize(w, h).setAlpha(alpha).setDepth(1);
+    return pxShadow(this, x, y, w, h, alpha * 0.85);
   }
   casts: { src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; live: boolean; cut?: number }[] = [];
   /** dark silhouette of the object laid on the ground, pointing away from the sun (updated by updateDayNight) */
   /** dark silhouette of the object laid on the ground to the south (fixed light, see placeShadow) */
   /** cut = source pixels above the foot left out of the shadow (trees: roots + trunk, so only the canopy throws a shadow) */
-  castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live = false, cut = 0) {
-    const sh = this.add.image(src.x, src.y, src.texture.key, src.frame.name).setOrigin(src.originX, src.originY).setTintFill(0x050a08).setAlpha(0).setDepth(1.3);
-    this.casts.push({ src, sh, live, cut });
-    return sh;
-  }
+  /** director: pixel-game shadows, not realistic ones — the silhouettes laid on the ground are gone, every object keeps
+   *  only its pixel oval (contact / pxShadow). Kept as a no-op so the callers stay simple. */
+  castShadow(_src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, _live = false, _cut = 0) { void _src; void _live; void _cut; }
 
   clock() { const h = this.dayHour(), hh = Math.floor(h), mm = Math.floor((h - hh) * 60); return `${h >= 6 && h < 18 ? '☀' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; }
   /** hour of the village day (0-24): one full day lasts 20 real minutes */

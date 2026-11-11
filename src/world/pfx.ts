@@ -22,7 +22,7 @@ export const SKILL_PFX: Record<string, Use[]> = {
   s3_crusade: [U('double-slash', 'front', { scale: 1.2 })],
   s3_valor: [U('fire-ring', 'hero', { scale: 0.7, behind: true }), U('charge-up', 'hero', { scale: 0.9 })],
   s4_judgment: [U('smite', 'land', { delay: 300, scale: 1.1 }), U('sunburst', 'land', { delay: 340, scale: 1.1 })],
-  s4_blades: [U('holy-pillar', 'target', { scale: 0.6 })],
+  s4_blades: [U('spin-slash', 'hero', { scale: 1.4 }), U('sunburst', 'hero', { scale: 0.8, delay: 400 })],
   s4_aegis: [U('divine-shield', 'hero', { scale: 1.4 }), U('blessing', 'hero')],
   a2_double: [U('hit-spark', 'target', { delay: 180, scale: 0.7 })],
   a2_fan: [U('hit-spark', 'target', { delay: 180, scale: 0.7 })],

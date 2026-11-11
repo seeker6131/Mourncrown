@@ -58,7 +58,10 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   const ka = Math.min(1.4, Math.max(0.7, base.atk / (7 + base.level * 2.6)));
   const def = Math.round(2 + L * 0.9);
   const heroHit = refAtk * 100 / (100 + def * 3) * 1.08;
-  const hp = Math.round(heroHit * (boss ? 120 : 3 * kf));
+  // director: a brand-new hero (first form, starter sword: ATK ≈ 18.5 + 2.5L) needs 3-4 hits per monster, never 1-2 —
+  // a floor on normal monsters' HP (only binds at low levels, where the real hero out-hits the reference)
+  const newHit = (18.5 + 2.5 * L) * 100 / (100 + def * 3);
+  const hp = Math.round(boss ? heroHit * 120 : Math.max(heroHit * 3 * kf, newHit * 3.5));
   const cd = (base.attackCooldown ?? 1400) / 1000;
   const want = refHp * cd / (boss ? 28 : 55) * ka;
   const atk = Math.round(want * (100 + refDef * 3) / 100);
