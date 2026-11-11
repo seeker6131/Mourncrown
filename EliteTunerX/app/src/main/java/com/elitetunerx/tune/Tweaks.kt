@@ -139,7 +139,7 @@ object Tweaks {
             "device_config delete activity_manager max_phantom_processes; device_config set_sync_disabled_for_tests none; settings put global settings_enable_monitor_phantom_procs true"
         val r = sh(cmds)
         val v = sh("device_config get activity_manager max_phantom_processes; settings get global settings_enable_monitor_phantom_procs").out.trim()
-        return (if (r.ok) "✔ " else "✖ ") + (if (disable) "ปิด phantom process killer" else "คืนค่า phantom process killer") + "\nตรวจสอบ: ${v.replace('\n', ' / ')}"
+        return (if (r.ok) "✔ " else "✖ ") + (if (disable) "ปิด phantom process killer" else "คืนค่า phantom process killer") + "\nตรวจสอบ: ${v.replace("\n", " / ")}"
     }
 
     fun batteryWhitelist(pkg: String, add: Boolean): String {
