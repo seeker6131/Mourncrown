@@ -63,7 +63,7 @@ const cleanWreck = (w?: Wreck): Wreck | undefined => {
 };
 /** one player's server memory (spawns, drops, damage budget, map...): the game server keeps one per player and swaps it
  *  in before each action (useMem); handlers run synchronously, so this is safe even with many players in one process */
-export function newMem() { return { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
+export function newMem() { return { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number; /** rolled by this server (not copied from the room) */ srv?: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
 export type Mem = ReturnType<typeof newMem>;
 let mem: Mem = newMem();
 export function useMem(m: Mem) { mem = m; }
@@ -111,7 +111,7 @@ export const handlers = {
   bountySpawn(s: GameState, a: { n: number }, c: Ctx) {
     const b = bountyOf(s, c.now); if (b.killed || b.n !== a.n || mem.map !== a.n) return no('none');
     for (const v of mem.spawns.values()) if (v.bounty === b.slot) return no('alive');
-    const sid = mem.sid++; mem.spawns.set(sid, { key: b.mob.key, elite: false, boss: false, bounty: b.slot });
+    const sid = mem.sid++; mem.spawns.set(sid, { key: b.mob.key, elite: false, boss: false, bounty: b.slot, srv: true });
     return { sid, mob: b.mob, name: b.name, hp: BOUNTY_HP };
   },
   /** (test crowd) another player took this monster: the spawn is gone, nobody here is paid */
@@ -121,7 +121,7 @@ export const handlers = {
     // (online the game names the number it already uses; the server keeps its count past it)
     const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = a.sid && a.sid > 0 && !mem.spawns.has(a.sid) ? a.sid : mem.sid++;
     mem.sid = Math.max(mem.sid, sid + 1);
-    mem.spawns.set(sid, { key: a.key, elite, boss: a.boss });
+    mem.spawns.set(sid, { key: a.key, elite, boss: !!a.boss, srv: true });
     return { sid, elite };
   },
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */

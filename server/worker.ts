@@ -1,6 +1,7 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
-import { STAGES, WILD } from '../src/world/stages';
+import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
+import { MONSTERS, type MonsterKind } from '../src/data/monsters';
 import { itemDef, ITEMS } from '../src/data/items';
 import { invSize, type GameState } from '../src/core/state';
 import { addItem } from '../src/systems/inventory';
@@ -180,13 +181,29 @@ const roomCap = (room: string) => room.startsWith('w') ? 100 : room.startsWith('
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
-interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number>; key: string; kind: string; elite: boolean; join: number }
+interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number>; key: string; kind: string; elite: boolean; join: number; /** where the room lets it be (the host's word, kept to a believable speed) */ x: number; y: number; t: number; /** last swing at another player */ atk: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
   /** the monsters of this map: the host's game spawns and moves them, the room keeps their HP (in memory: a room that
    *  sleeps forgets, and the host's next list brings them back at full HP) */
-  mons = new Map<number, RMon>(); host = '';
+  mons = new Map<number, RMon>(); host = ''; bad = 0; badT = 0; asked = new Map<number, number>();
+  /** the host's game said something no fair game says: too many and another player's game takes over the monsters */
+  private strike(now: number) { if (now - this.badT > 10000) { this.badT = now; this.bad = 0; } if (++this.bad > 40) { this.bad = 0; const hw = this.state.getWebSockets(this.host)[0]; this.pickHost(hw); } }
+  /** the lowest believable HP for a monster of this map (the host's game cannot make monsters paper-thin) */
+  private minHp(room: string, key: string, kind: string, boss: boolean, elite: boolean, lv: number): number | null {
+    const n = room.startsWith('w') ? WILD : parseInt(room.slice(1), 10) || 0, base = MONSTERS[kind as MonsterKind]; if (!n || !base) return null;
+    if (n === WILD) { if (!base.animal) return null; }
+    else { const L = STAGES[n - 1]?.land; if (!L || base.animal || ![...L.mobs, L.boss].some(q => q.key === key && q.kind === kind)) return null; }
+    return Math.floor(scaleStats(base, stageOf(n, lv).level, boss).hp * (elite ? 5 : 1) * 0.95);
+  }
+  private async lvOf(ws: WebSocket, me: Who, now: number) {
+    if (!me.lv || now - (me.lvT ?? 0) > 60000) {   // the level from the player's character on the server (not what the game says), once a minute
+      try { me.lv = ((await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/lv?id=' + me.id))).json()) as { lv: number }).lv; } catch { me.lv = me.lv ?? 1; }
+      me.lvT = now; (ws as WSX).serializeAttachment(me);
+    }
+    return Math.max(1, Math.min(999, me.lv ?? 1));
+  }
   constructor(private state: DOState, private env: Env) {}
   private all(skip?: WebSocket) { return this.state.getWebSockets().filter(w => w !== skip).map(w => ({ w, a: (w as WSX).deserializeAttachment() as Who })).filter(x => x.a); }
   /** the host = who has been here longest; tell everyone when it changes */
@@ -225,21 +242,36 @@ export class Room {
     } else if (m.t === 'hit') {   // swing / skill (for the animation others see)
       this.others(ws, JSON.stringify({ t: 'hit', id: me.id, k: String(m.k ?? 'attack').slice(0, 12), d: Math.max(0, Math.min(7, Number(m.d) || 0)) }));
     } else if (m.t === 'ms' && me.id === this.host && Array.isArray(m.a)) {   // the host's monsters: where they are
-      const seen = new Set<number>(), out: unknown[] = [];
-      for (const e of (m.a as unknown[][]).slice(0, 160)) {
-        const sid = Number(e[0]), max = Math.max(1, Number(e[10]) || 1); if (!sid) continue; seen.add(sid);
-        let r = this.mons.get(sid); if (!r) { r = { hp: max, max, alive: true, boss: !!e[3], dmg: {}, key: String(e[1]), kind: String(e[2]), elite: !!e[4], join: now }; this.mons.set(sid, r); }
-        if (r.alive) out.push([...e.slice(0, 11), Math.max(0, Math.round(r.hp))]);
+      const seen = new Set<number>(), out: unknown[] = [], lv = await this.lvOf(ws, me, now);
+      for (const e of (m.a as unknown[][]).slice(0, 80)) {
+        if (!Array.isArray(e)) continue;
+        const sid = Number(e[0]); if (!sid) continue;
+        const ex = Math.max(0, Math.min(4000, Number(e[5]) || 0)), ey = Math.max(0, Math.min(4000, Number(e[6]) || 0));
+        let r = this.mons.get(sid);
+        if (!r) {   // a new monster: it must belong to this map, with at least the HP such a monster has
+          // the host's own server says what it handed out (golden or not is the server's roll, never the host's word)
+          if (now - (this.asked.get(sid) ?? 0) < 1000) continue; this.asked.set(sid, now); if (this.asked.size > 300) this.asked.clear();
+          let sp: { key: string; elite: boolean; boss: boolean; bounty: boolean } | null = null;
+          try { sp = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request(`https://p/spawned?id=${me.id}&sid=${sid}`))).json(); } catch { /* ask again next time */ }
+          if (!sp) continue;   // not yet (the spawn may still be on its way to the server)
+          const key = String(e[1]).slice(0, 12), kind = String(e[2]).slice(0, 16), boss = sp.boss, elite = sp.elite;
+          if (sp.key !== key) { this.strike(now); continue; }
+          const lo = this.minHp(me.room ?? '', key, kind, boss, elite, lv); if (lo === null) { this.strike(now); continue; }
+          const max = Math.max(lo, Math.min(lo * (sp.bounty ? 43 : 1.12), Number(e[10]) || 0));
+          r = { hp: max, max, alive: true, boss, dmg: {}, key, kind, elite, join: now, x: ex, y: ey, t: now, atk: 0 }; this.mons.set(sid, r);
+        } else {   // it moves no faster than a monster can (a boss's charge is the fastest: ~360 px/s)
+          const dt = Math.min(2, (now - r.t) / 1000), lim = 420 * dt + 24, dx = ex - r.x, dy = ey - r.y, d = Math.hypot(dx, dy);
+          if (d > lim) { r.x += dx / d * lim; r.y += dy / d * lim; this.strike(now); } else { r.x = ex; r.y = ey; }
+          r.t = now;
+        }
+        seen.add(sid);
+        if (r.alive) out.push([sid, r.key, r.kind, r.boss ? 1 : 0, r.elite ? 1 : 0, Math.round(r.x), Math.round(r.y), Math.max(0, Math.min(7, Number(e[7]) || 0)), e[8] ? 1 : 0, e[9] ? 1 : 0, Math.round(r.max), Math.max(0, Math.round(r.hp))]);
       }
       for (const sid of [...this.mons.keys()]) if (!seen.has(sid)) this.mons.delete(sid);
       this.others(ws, JSON.stringify({ t: 'ms', a: out }));
     } else if (m.t === 'dmg') {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
       const r = this.mons.get(Number(m.sid)); if (!r || !r.alive) return;
-      if (!me.lv || now - (me.lvT ?? 0) > 60000) {   // the level from the player's character on the server (not what the game says), once a minute
-        try { me.lv = ((await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/lv?id=' + me.id))).json()) as { lv: number }).lv; } catch { me.lv = me.lv ?? 1; }
-        me.lvT = now;
-      }
-      const lv = Math.max(1, Math.min(999, me.lv ?? 1)), cap = (lv * 30 + 100) * 10;   // damage per second, generous
+      const lv = await this.lvOf(ws, me, now), cap = (lv * 30 + 100) * 10;   // damage per second, generous
       me.bud = Math.min(cap * 4, me.bud + (now - me.budT) / 1000 * cap); me.budT = now;
       const n = Math.max(0, Math.min(Math.round(Number(m.n) || 0), me.bud)); if (!n) { (ws as WSX).serializeAttachment(me); return; }
       me.bud -= n; (ws as WSX).serializeAttachment(me);
@@ -257,7 +289,12 @@ export class Room {
           this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid: Number(m.sid), key: r.key, kind: r.kind, boss: r.boss, elite: r.elite, share: v }) }))));
       }
     } else if (m.t === 'matk' && me.id === this.host) {   // a monster (moved by the host) swings at another player
-      const to = String(m.to ?? ''), msg = JSON.stringify({ t: 'matk', sid: Number(m.sid), k: String(m.k ?? 'hit').slice(0, 8) });
+      // only a live monster of this room, next to that player, at most once every 0.6 s
+      const r = this.mons.get(Number(m.sid)), to = String(m.to ?? ''), tw = this.state.getWebSockets(to)[0], tp = tw && ((tw as WSX).deserializeAttachment() as Who)?.p as { x: number; y: number } | undefined;
+      const base = r && MONSTERS[r.kind as MonsterKind], reach = (base?.attackRange ?? 40) + 80;
+      if (!r || !r.alive || !tp || now - r.atk < 600 || Math.hypot(tp.x - r.x, tp.y - r.y) > reach) { this.strike(now); return; }
+      r.atk = now;
+      const msg = JSON.stringify({ t: 'matk', sid: Number(m.sid), k: String(m.k ?? 'hit').slice(0, 8) });
       for (const w of this.state.getWebSockets(to)) { try { w.send(msg); } catch { /* closing */ } }
     } else if (m.t === 'c') {   // chat: one line every 2 seconds, filtered
       if (now - me.chatT < 2000) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
@@ -463,6 +500,10 @@ export class Player {
       else for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
       this.dirty = true; await this.persist();
       return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
+    }
+    if (u.pathname === '/spawned') {   // the map room asks: did this server hand out that monster (and is it golden)?
+      const sp = this.mem.spawns.get(Number(u.searchParams.get('sid')));
+      return new Response(JSON.stringify(sp ? { key: sp.key, elite: !!sp.srv && sp.elite, boss: sp.boss, bounty: sp.bounty !== undefined } : null));
     }
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
       const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number };
