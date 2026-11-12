@@ -167,6 +167,16 @@ export class Combat {
     d.wave++; d.onWave(d.wave);
   }
   /** bring a dead monster back somewhere else on the map */
+  /** a bot player (test crowd) finished this monster: it dies and comes back, the player gets nothing */
+  botKill(m: Mon) {
+    if (!m.alive) return;
+    m.alive = false; m.bar.clear();
+    { const sh = m.sp.getData('sh') as Phaser.GameObjects.Image | undefined; if (sh) this.s.tweens.add({ targets: sh, alpha: 0, duration: 400 }); }
+    (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
+    this.s.burst(m.sp, 0xbfe8ff); m.sp.setVisible(false); fx2(this.s, 'fx_mon_death', m.x, m.y - 6, m.y + 1, 0.8);
+    act('botKill', { sid: m.sid });
+    if (!this.dungeon) this.respawn(m);
+  }
   respawn(m: Mon) {
     const delay = m.boss ? 300000 : m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000;
     this.s.time.delayedCall(delay, () => {

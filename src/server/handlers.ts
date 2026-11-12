@@ -90,6 +90,8 @@ export const handlers = {
     const sid = mem.sid++; mem.spawns.set(sid, { key: b.mob.key, elite: false, boss: false, bounty: b.slot });
     return { sid, mob: b.mob, name: b.name, hp: BOUNTY_HP };
   },
+  /** (test crowd) another player took this monster: the spawn is gone, nobody here is paid */
+  botKill: (_s: GameState, a: { sid: number }) => { mem.spawns.delete(a.sid); return { ok: true }; },
   spawn(_s: GameState, a: { key: string; boss: boolean; animal?: boolean }, c: Ctx) {
     if (mem.spawns.size > 400) mem.spawns.delete(mem.spawns.keys().next().value!);
     const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = mem.sid++;

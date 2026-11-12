@@ -51,6 +51,8 @@ import { preloadFx2, createFx2Anims, fx2 } from '../world/fx2';
 import { RaidBattle, type RaidStart } from '../world/raid';
 import { ambience } from '../world/ambience';
 import { DefenseBattle } from '../world/defense';
+import { Hunters } from '../world/hunters';
+import { testBots } from '../core/testBots';
 /** the raid the guild window just started (the scene restarts into the rival village) */
 let RAID_DATA: RaidStart | null = null;
 /** the bounty slot already announced (survives scene restarts) */
@@ -244,6 +246,7 @@ export class TopDownScene extends Phaser.Scene {
   raid?: RaidBattle;
   defense?: DefenseBattle;
   defendNext = false;
+  hunters?: Hunters;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -302,6 +305,14 @@ export class TopDownScene extends Phaser.Scene {
     bus.on('td:defend', goDefend); this.events.once('shutdown', () => bus.off('td:defend', goDefend));
     const goStage = (n: number) => { if (this.stageN === n) { bus.emit(EV.TOAST, 'คุณอยู่ในแผนที่นี้แล้ว — ตามหาบอส 👑', '#ffb04a'); return; } this.enterStage(n); };
     bus.on('td:goStage', goStage); this.events.once('shutdown', () => bus.off('td:goStage', goStage));
+    const onBots = () => {
+      if (this.wild) { this.portalCool = this.time.now + 99999; this.scene.restart({ stage: WILD, room: this.room }); return; }
+      if (!this.stageN || this.wild) { bus.emit(EV.TOAST, 'บอทใช้ได้ในแผนที่มอนและป่าดงดิบ', '#ffd8a0'); return; }
+      this.hunters?.destroy(); this.hunters = testBots.n ? new Hunters(this as never, this.combat, testBots.n, () => this.botSpot()) : undefined;
+    };
+    bus.on('td:bots', onBots); this.events.once('shutdown', () => bus.off('td:bots', onBots));
+    this.hunters = undefined;
+    if (this.stageN && !this.wild && testBots.n) this.time.delayedCall(300, () => { this.hunters = new Hunters(this as never, this.combat, testBots.n, () => this.botSpot()); });
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
     if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
@@ -804,7 +815,7 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.spawnMap(WILD, spot, null);
     // other players gathering here (simulated until the server exists)
     const work = this.nodes.filter(n => !n.vein || n.vein.req <= 20);
-    this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.filter(n => n.until <= this.time.now).map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
+    this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.filter(n => n.until <= this.time.now).map(n => ({ x: n.x, y: n.y, kind: n.kind })), 16 + testBots.n, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
   }
 
   /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
@@ -891,6 +902,8 @@ export class TopDownScene extends Phaser.Scene {
     this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n }));
   }
   hungryWarned = false;
+  /** a walkable point for a bot player */
+  botSpot() { for (let i = 0; i < 60; i++) { const x = 40 + Math.random() * (MW - 80), y = 40 + Math.random() * (MH - 80); if (this.canStand(x, y)) return { x, y }; } return { x: this.hero.x, y: this.hero.y }; }
   bountyT = 0;
 
   /** the stage select is a TdUI panel (same skin as the other windows) */
@@ -1132,7 +1145,8 @@ export class TopDownScene extends Phaser.Scene {
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }
   heroKey() { return this.F.key; }
   resetJoy() { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; }
-  stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
+  stageTitle() { const t = this.stageTitle0(); return testBots.n && (this.stageN || this.wild) ? `${t} • 🤖 บอท ${testBots.n} • FPS ${Math.round(this.game.loop.actualFps)}` : t; }
+  stageTitle0() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
     if (this.raid) return this.raid.title();
@@ -1646,6 +1660,7 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
+    this.hunters?.update(time, dt);
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);
 // never embedded: a forced move (skill, knockback) must not leave the hero where the collision test fails in every direction

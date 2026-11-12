@@ -40,6 +40,7 @@ import { stageFood } from '../systems/supplies';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, audioState } from '../audio/sfx';
+import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
@@ -635,6 +636,7 @@ export class Panels implements GuildHost {
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
+    b(`🧪 จำลองผู้เล่นบอท: ${testBots.n} คน (แตะเพื่อเพิ่ม)`, () => { testBots.n = BOT_STEPS[(BOT_STEPS.indexOf(testBots.n) + 1) % BOT_STEPS.length]; bus.emit('td:bots'); bus.emit(EV.TOAST, testBots.n ? `🤖 จำลองผู้เล่น ${testBots.n} คน (แผนที่มอน + ป่าดงดิบ) — ดู FPS บนแถบชื่อแผนที่` : '🤖 ปิดผู้เล่นบอท', '#9ad8ff'); this.rebuild(); }, 0x2a3a5a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
