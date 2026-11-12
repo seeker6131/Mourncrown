@@ -12,14 +12,16 @@ ACC, NAME = cfg['account'], cfg['worker']
 API = f'https://api.cloudflare.com/client/v4/accounts/{ACC}'
 assert NAME.startswith('mourncrown'), 'only mourncrown* workers are ours'
 
-def call(method, path, body=None, raw=None, ctype='application/json'):
+def call(method, path, body=None, raw=None, ctype='application/json', ok_errors=()):
     data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
     req = urllib.request.Request(API + path, method=method, data=data, headers={'Content-Type': ctype, 'Authorization': 'Bearer proxy-injected'})
     try:
         with urllib.request.urlopen(req, timeout=120) as r: out = json.loads(r.read())
     except urllib.error.HTTPError as e:
         out = json.loads(e.read() or b'{}'); out.setdefault('success', False)
-    if not out.get('success'): sys.exit(f'{method} {path} failed: {out.get("errors")}')
+    if not out.get('success'):
+        if any(e in str(out.get('errors')) for e in ok_errors): return None   # e.g. a column added by an earlier deploy
+        sys.exit(f'{method} {path} failed: {out.get("errors")}')
     return out['result']
 
 # 1. the database
@@ -30,7 +32,7 @@ if not cfg.get('db'):
     print('database', cfg['dbName'], cfg['db'])
 schema = '\n'.join(l.split('--')[0] for l in open(os.path.join(ROOT, 'server', 'schema.sql')).read().splitlines())   # comments out
 for stmt in [s.strip() for s in schema.split(';') if s.strip()]:
-    call('POST', f'/d1/database/{cfg["db"]}/query', {'sql': stmt})
+    call('POST', f'/d1/database/{cfg["db"]}/query', {'sql': stmt}, ok_errors=('duplicate column name',))
 print('schema applied')
 
 # 2. the code

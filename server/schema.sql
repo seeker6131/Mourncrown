@@ -15,3 +15,7 @@ CREATE TABLE IF NOT EXISTS saves (
   size INTEGER NOT NULL,
   data TEXT NOT NULL                 -- the game state JSON
 );
+-- player names (one per account, unique ignoring case); ALTERs fail harmlessly once applied (deploy skips 'duplicate column')
+ALTER TABLE accounts ADD COLUMN name TEXT;
+ALTER TABLE accounts ADD COLUMN name_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS accounts_name ON accounts (name_key);

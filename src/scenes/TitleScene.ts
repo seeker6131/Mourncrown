@@ -13,7 +13,8 @@ import { formKeyOf } from '../world/chars';
 import { activeTier } from '../systems/stats';
 import { guildOf } from '../systems/guild';
 import { mountOn } from '../systems/mounts';
-import { cloud, googleLinked } from '../net/cloud';
+import { cloud, googleLinked, accountName } from '../net/cloud';
+import { askName } from '../net/namePrompt';
 import { showGoogleButton } from '../net/googleBtn';
 
 export class TitleScene extends Phaser.Scene {
@@ -76,17 +77,19 @@ export class TitleScene extends Phaser.Scene {
     const cl = k.text(cx, 336, '', 7.5, '#9fd4ff').setOrigin(0.5);
     // Google sign-in: the hero follows the player to any device (until linked, the account lives on this device only)
     let note = '';
-    const showCloud = () => cl.setText(note || (cloud.state === 'ok' || cloud.state === 'saving' ? (googleLinked() ? '☁ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม' : '☁ เชื่อมต่อเซิร์ฟแล้ว — เซฟเก็บบนเซิร์ฟ') : cloud.state === 'error' ? '☁ ออฟไลน์ — เล่นได้ปกติ เซฟเก็บในเครื่อง' : '☁ กำลังเชื่อมต่อเซิร์ฟ...')).setColor(cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
+    const showCloud = () => cl.active && cl.setText(note || (cloud.state === 'ok' || cloud.state === 'saving' ? (googleLinked() ? '☁ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม' : '☁ เชื่อมต่อเซิร์ฟแล้ว — เซฟเก็บบนเซิร์ฟ') : cloud.state === 'error' ? '☁ ออฟไลน์ — เล่นได้ปกติ เซฟเก็บในเครื่อง' : '☁ กำลังเชื่อมต่อเซิร์ฟ...')).setColor(cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
     if (!googleLinked()) {
       const off = showGoogleButton(r => {
         if (r === 'switched') { off(); this.scene.restart(); return; }   // the hero of that Google account is now on this device
-        if (r === 'linked') { off(); note = '✔ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม'; }
+        if (r === 'linked') { off(); note = '✔ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม'; if (!accountName()) askName(n => { note = `✔ ยินดีต้อนรับ ${n}!`; showCloud(); }); }
         else note = '✖ เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง';
         showCloud();
       });
       this.events.once('shutdown', off);
     }
     showCloud(); this.time.addEvent({ delay: 600, loop: true, callback: showCloud });
+    // signed in with Google but no name yet (e.g. this device just loaded that account): name the hero now
+    if (googleLinked() && !accountName()) askName(n => { note = `✔ ยินดีต้อนรับ ${n}!`; showCloud(); });
     // language switch (English by default on the first visit)
     this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));
     this.cameras.main.fadeIn(400);

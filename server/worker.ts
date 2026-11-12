@@ -23,7 +23,7 @@ const json = (req: Request, body: unknown, status = 200) => new Response(JSON.st
 
 async function who(req: Request, env: Env) {
   const t = req.headers.get('x-mc-token'); if (!t || t.length < 32 || t.length > 128) return null;
-  const a = await env.DB.prepare('SELECT id, google_sub FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string; google_sub: string | null }>();
+  const a = await env.DB.prepare('SELECT id, google_sub, name FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string; google_sub: string | null; name: string | null }>();
   if (a) await env.DB.prepare('UPDATE accounts SET seen = ? WHERE id = ?').bind(Date.now(), a.id).run();
   return a;
 }
@@ -31,6 +31,13 @@ async function newAccount(env: Env, ipHash: string, sub: string | null) {
   const id = rand(12), token = rand(32), now = Date.now();
   await env.DB.prepare('INSERT INTO accounts (id, token_hash, google_sub, ip_hash, created, seen) VALUES (?, ?, ?, ?, ?, ?)').bind(id, await sha(token), sub, ipHash, now, now).run();
   return { id, token };
+}
+/** player names: Thai / English letters, digits, _ — 2 to 16 characters; no staff look-alikes or rude words */
+const BAD = ['admin', 'gm', 'moderator', 'mourncrown', 'support', 'ทีมงาน', 'แอดมิน', 'ผู้ดูแล', 'fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา'];
+function cleanName(raw: unknown) {
+  const n = String(raw ?? '').normalize('NFC').trim();
+  if (!/^[\u0E00-\u0E7FA-Za-z0-9_]{2,16}$/.test(n)) return null;
+  const k = n.toLowerCase(); return BAD.some(b => k.includes(b)) ? null : n;
 }
 /** a Google sign-in credential (ID token) checked with Google: right app, not expired, e-mail verified */
 async function googleSub(env: Env, credential: string) {
@@ -76,7 +83,17 @@ export default {
       const me = await who(req, env);
       if (!me) return json(req, { error: 'auth' }, 401);
 
-      if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub });
+      if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub, name: me.name });
+
+      // the player's name: set once (changing it later is a support / shop matter), unique ignoring case
+      if (path === '/name' && req.method === 'POST') {
+        if (me.name) return json(req, { error: 'set', name: me.name }, 409);
+        const body = await req.json().catch(() => ({})) as { name?: string };
+        const n = cleanName(body.name); if (!n) return json(req, { error: 'bad' }, 400);
+        try { await env.DB.prepare('UPDATE accounts SET name = ?, name_key = ? WHERE id = ? AND name IS NULL').bind(n, n.toLowerCase(), me.id).run(); }
+        catch { return json(req, { error: 'taken' }, 409); }
+        return json(req, { name: n });
+      }
 
       if (path === '/save' && req.method === 'GET') {
         const s = await env.DB.prepare('SELECT rev, at, data FROM saves WHERE id = ?').bind(me.id).first<{ rev: number; at: number; data: string }>();

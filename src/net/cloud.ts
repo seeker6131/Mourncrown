@@ -7,13 +7,14 @@ export const SERVER = 'https://mourncrown.egowenit.workers.dev';
 export const GOOGLE_CLIENT_ID = '481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com';
 const ACC = 'mc_cloud', SAVE_KEY = 'eldergrove_save_v1', DELAY = 12_000;
 
-interface Acc { id: string; token: string; rev: number; google?: boolean }
+interface Acc { id: string; token: string; rev: number; google?: boolean; name?: string }
 export const cloud = { state: 'off' as 'off' | 'ok' | 'saving' | 'error', at: 0 };
 /** is this device's account linked to a Google account (the hero loads on any device) */
 export const googleLinked = () => ok() && !!acc()?.google;
 const ok = () => typeof window !== 'undefined' && typeof fetch === 'function' && typeof localStorage !== 'undefined';
-function acc(): Acc | null { try { return JSON.parse(localStorage.getItem(ACC) ?? 'null'); } catch { return null; } }
-function setAcc(a: Acc) { try { localStorage.setItem(ACC, JSON.stringify(a)); } catch { /* private mode */ } }
+let accCache: Acc | null | undefined;   // (read every frame for the name tag: parsed once)
+function acc(): Acc | null { if (accCache !== undefined) return accCache ? { ...accCache } : null; try { accCache = JSON.parse(localStorage.getItem(ACC) ?? 'null'); } catch { accCache = null; } return accCache ? { ...accCache } : null; }
+function setAcc(a: Acc) { accCache = { ...a }; try { localStorage.setItem(ACC, JSON.stringify(a)); } catch { /* private mode */ } }
 async function req(path: string, init: RequestInit = {}, a = acc()) {
   const r = await fetch(SERVER + path, { ...init, headers: { 'content-type': 'application/json', ...(a ? { 'x-mc-token': a.token } : {}), ...(init.headers ?? {}) } });
   return { status: r.status, body: await r.json().catch(() => ({})) as Record<string, unknown> };
@@ -32,6 +33,8 @@ export async function cloudBoot(gameStarted: () => boolean): Promise<boolean> {
   if (!ok() || started) return false; started = true; let took = false;
   try {
     const a = await account(); if (!a) { cloud.state = 'error'; return false; }
+    const me = await req('/me');   // name / Google link may have been set on another device
+    if (me.status === 200) { a.google = !!me.body.google; a.name = me.body.name ? String(me.body.name) : undefined; setAcc(a); }
     const r = await req('/save'); if (r.status !== 200) { cloud.state = 'error'; return false; }
     const rev = Number(r.body.rev) || 0;
     if (rev > a.rev && r.body.data && !gameStarted()) { localStorage.setItem(SAVE_KEY, JSON.stringify(r.body.data)); a.rev = rev; setAcc(a); took = true; }
@@ -77,5 +80,17 @@ export async function googleLogin(credential: string): Promise<'linked' | 'switc
     if (sv.status === 200 && sv.body.data) { localStorage.setItem(SAVE_KEY, JSON.stringify(sv.body.data)); n.rev = Number(sv.body.rev) || 0; setAcc(n); return 'switched'; }
     dirty = true; flush();   // a new Google account: the hero on this device becomes its hero
     return 'linked';
+  } catch { return 'fail'; }
+}
+
+/** the player's name on the server (null = not chosen yet) */
+export const accountName = () => (ok() ? acc()?.name ?? null : null);
+/** choose the name once: 'bad' = not allowed (2-16 Thai/English letters, digits, _), 'taken' = someone has it */
+export async function chooseName(name: string): Promise<'ok' | 'bad' | 'taken' | 'fail'> {
+  if (!ok()) return 'fail';
+  try {
+    const r = await req('/name', { method: 'POST', body: JSON.stringify({ name }) });
+    if (r.status === 200 || (r.status === 409 && r.body.error === 'set')) { const a = acc()!; a.name = String(r.body.name); setAcc(a); return 'ok'; }
+    return r.body.error === 'taken' ? 'taken' : r.body.error === 'bad' ? 'bad' : 'fail';
   } catch { return 'fail'; }
 }

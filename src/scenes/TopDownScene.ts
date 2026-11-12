@@ -32,6 +32,7 @@ import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { potOf, pickPotion, POT_CD } from '../systems/potions';
+import { accountName } from '../net/cloud';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -275,7 +276,7 @@ export class TopDownScene extends Phaser.Scene {
   defense?: DefenseBattle;
   defendNext = false;
   hunters?: Hunters;
-  heroBar?: Phaser.GameObjects.Graphics;
+  heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text;
   heroRing?: Phaser.GameObjects.Sprite | null;
   /** riding a mount (world/mount.ts); fighting / gathering gets off for a moment */
   riding?: Riding; rideBlockT = 0; heroMoving = false;
@@ -360,6 +361,8 @@ export class TopDownScene extends Phaser.Scene {
     bus.on('td:bots', onBots); this.events.once('shutdown', () => bus.off('td:bots', onBots));
     this.hunters = undefined;
     this.heroBar = this.add.graphics().setDepth(99991);
+    { const nm = accountName(); if (nm && S().name !== nm) { S().name = nm; saveGame(S()); } }   // the name chosen on the server
+    this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
     this.riding = undefined; this.rideBlockT = 0;
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
@@ -1864,7 +1867,12 @@ export class TopDownScene extends Phaser.Scene {
       else if (!can && this.riding) { this.riding.destroy(); this.riding = undefined; this.combat.vfx.dust(h.x, h.y, 6, 16); if (h.alpha === 0) h.setAlpha(1); }
       if (this.riding) { this.riding.update(h.x, h.y, this.dir, this.heroMoving, this.F.key, h.scaleX, time); h.setAlpha(0); }
     }
-    if (this.heroBar) { const s0 = S(); this.heroBar.clear(); if (h.visible) hpBar(this.heroBar, h.x, this.riding ? this.riding.headY() : h.y - 36, s0.hp / Math.max(1, derive(s0).maxHp), 24); }
+    if (this.heroBar) {   // the name over the head, the HP bar just under it (director)
+      const s0 = S(), by = this.riding ? this.riding.headY() : h.y - 36; this.heroBar.clear();
+      if (h.visible) hpBar(this.heroBar, h.x, by, s0.hp / Math.max(1, derive(s0).maxHp), 24);
+      const nm = accountName(); if (nm && s0.name !== nm) s0.name = nm;   // the server's name (it can arrive after the scene opened)
+      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); this.heroTag.setPosition(Math.round(h.x), Math.round(by - 2)).setVisible(h.visible || !!this.riding); }
+    }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);
     if (this.gv && this.inside < 0 && time > this.warT && (this.warSide || WC.war || guildOf(S())?.war)) { this.warT = time + 1000; this.warStep(); }
