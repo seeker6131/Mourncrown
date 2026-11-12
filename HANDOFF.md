@@ -76,6 +76,7 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 - คู่มือโปรโมทล่าสุดทำจาก HTML + Playwright (ภาพในเกมจริง, ฟอนต์ Kanit) — สคริปต์ไม่ได้อยู่ใน repo
 
 ## 7. ค้าง / ถัดไป
+- **Cloudflare (เซิร์ฟออนไลน์, 2026-11-12):** ผู้กำกับเลือก Cloudflare (Firebase ผูกบัตรไม่ได้) · แผนฟรี ไม่ผูกบัตร · Account ID `2a23c3f4cabf7dee140f122ac5876004` · workers.dev subdomain `egowenit` · กุญแจ API `mourncrown-deploy` (Workers + KV + R2 + Pages + **D1 Edit**) เก็บเป็น network secret ของ environment สำหรับ `api.cloudflare.com` (proxy ใส่ให้เอง ห้ามขอให้วางในแชต) · ⚠️ มี worker เดิม `pixeldeck-pay` (ของเกม Pixeldeck) **ห้ามแตะ** · ของเราให้ชื่อขึ้นต้น `mourncrown` · ยังรอ Google OAuth Client ID (สำหรับล็อกอิน)
 0. **กิลด์วอร์ (ข้อ 8.6)**: บุกปล้นหมู่บ้านบอทเล่นได้แล้ว (`src/world/raid.ts`) · ถัดไป: ให้สกิลตีอาคารได้, ทีมบุกหลายคน/ผู้เล่นจริง (ต้องมีเซิร์ฟ), fx_shield ตอนมีโล่ · รอผู้กำกับเลือกทรัพยากรใหม่ (GUILD_WAR.md ข้อ 13.1)
 2. **เซิร์ฟจริง** (ข้อ 4) → แชต, ปาร์ตี้, กิลด์, บอสโลก, ตลาดจริง, PvP, จุติหลัง Lv100
 3. เพลงพื้นหลัง: ผู้ใช้สั่งเอาออก (อย่าใส่กลับเองโดยไม่ถาม)
