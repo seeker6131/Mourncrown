@@ -60,7 +60,12 @@ const cleanWreck = (w?: Wreck): Wreck | undefined => {
   for (const t of Object.keys(w.b ?? {})) if (GUILD_BLD[t as GuildBld]) b[t as GuildBld] = k(w.b![t as GuildBld]);
   return { b, house: k(w.house) };
 };
-const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+/** one player's server memory (spawns, drops, damage budget, map...): the game server keeps one per player and swaps it
+ *  in before each action (useMem); handlers run synchronously, so this is safe even with many players in one process */
+export function newMem() { return { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
+export type Mem = ReturnType<typeof newMem>;
+let mem: Mem = newMem();
+export function useMem(m: Mem) { mem = m; }
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -110,9 +115,11 @@ export const handlers = {
   },
   /** (test crowd) another player took this monster: the spawn is gone, nobody here is paid */
   botKill: (_s: GameState, a: { sid: number }) => { mem.spawns.delete(a.sid); return { ok: true }; },
-  spawn(_s: GameState, a: { key: string; boss: boolean; animal?: boolean }, c: Ctx) {
+  spawn(_s: GameState, a: { key: string; boss: boolean; animal?: boolean; sid?: number }, c: Ctx) {
     if (mem.spawns.size > 400) mem.spawns.delete(mem.spawns.keys().next().value!);
-    const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = mem.sid++;
+    // (online the game names the number it already uses; the server keeps its count past it)
+    const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = a.sid && a.sid > 0 && !mem.spawns.has(a.sid) ? a.sid : mem.sid++;
+    mem.sid = Math.max(mem.sid, sid + 1);
     mem.spawns.set(sid, { key: a.key, elite, boss: a.boss });
     return { sid, elite };
   },

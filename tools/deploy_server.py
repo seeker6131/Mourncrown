@@ -41,10 +41,11 @@ subprocess.run([os.path.join(ROOT, 'node_modules', '.bin', 'esbuild'), os.path.j
                 '--target=es2022', '--platform=neutral', '--minify', '--outfile=' + out], check=True)
 code = open(out, 'rb').read()
 meta = {'main_module': 'worker.js', 'compatibility_date': '2025-01-01',
-        'bindings': [{'type': 'd1', 'name': 'DB', 'id': cfg['db']}, {'type': 'durable_object_namespace', 'name': 'ROOM', 'class_name': 'Room'}]
-                    + ([{'type': 'plain_text', 'name': 'GOOGLE_CLIENT_ID', 'text': cfg['googleClientId']}] if cfg.get('googleClientId') else [])}
+        'bindings': [{'type': 'd1', 'name': 'DB', 'id': cfg['db']}, {'type': 'durable_object_namespace', 'name': 'ROOM', 'class_name': 'Room'}, {'type': 'durable_object_namespace', 'name': 'PLAYER', 'class_name': 'Player'}]
+                    + ([{'type': 'plain_text', 'name': 'GOOGLE_CLIENT_ID', 'text': cfg['googleClientId']}] if cfg.get('googleClientId') else [])
+                    + [{'type': 'plain_text', 'name': 'ADMINS', 'text': ','.join(cfg.get('admins', []))}]}
 # Durable Object classes: each migration once (the tag applied last is kept in cf.json)
-MIGRATIONS = [('v1', {'new_sqlite_classes': ['Room']})]
+MIGRATIONS = [('v1', {'new_sqlite_classes': ['Room']}), ('v2', {'new_sqlite_classes': ['Player']})]
 done = cfg.get('migrationTag'); todo = MIGRATIONS[[t for t, _ in MIGRATIONS].index(done) + 1:] if done else MIGRATIONS
 if todo:
     meta['migrations'] = {'old_tag': done, 'new_tag': todo[-1][0], 'steps': [m for _, m in todo]} if done else {'new_tag': todo[-1][0], 'steps': [m for _, m in todo]}

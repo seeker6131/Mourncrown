@@ -1,4 +1,6 @@
-// Mourncrown game server — Cloudflare Worker + D1 (free plan). Deployed by tools/deploy_server.mjs.
+// Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
+import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
+import { STAGES, WILD } from '../src/world/stages';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -6,7 +8,7 @@ interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<D1Result<T>> }
 interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[] }
 interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(r: Request): Promise<Response> } }
-interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ROOM: DONamespace }
+interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; ROOM: DONamespace; PLAYER: DONamespace }
 declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
 type WSX = WebSocket & { serializeAttachment(v: unknown): void; deserializeAttachment(): unknown; accept?: () => void };
 
@@ -88,6 +90,15 @@ export default {
         return json(req, { ...(await newAccount(env, ipHash, sub)), switched: true });
       }
 
+      // the player's own game on the server (Durable Object): every valuable action runs here
+      if (path === '/play') {
+        if (req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'play' }, 400);
+        const t = url.searchParams.get('t') ?? '';
+        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string }>() : null;
+        if (!a) return new Response('auth', { status: 401 });
+        const u = new URL(req.url); u.pathname = '/ws'; u.search = ''; u.searchParams.set('id', a.id);
+        return env.PLAYER.get(env.PLAYER.idFromName(a.id)).fetch(new Request(u.toString(), req));
+      }
       // a map room (Durable Object): see the other players in this map and talk (WebSocket; the token rides in the URL
       // because a browser cannot set headers on a WebSocket)
       if (path.startsWith('/room/')) {
@@ -96,7 +107,7 @@ export default {
         const t = url.searchParams.get('t') ?? '';
         const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
         if (!a) return new Response('auth', { status: 401 });
-        const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? '');
+        const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
       }
 
@@ -115,9 +126,15 @@ export default {
         return json(req, { name: n });
       }
 
-      if (path === '/save' && req.method === 'GET') {
-        const s = await env.DB.prepare('SELECT rev, at, data FROM saves WHERE id = ?').bind(me.id).first<{ rev: number; at: number; data: string }>();
-        return json(req, s ? { rev: s.rev, at: s.at, data: JSON.parse(s.data) } : { rev: 0, at: 0, data: null });
+      // the save lives in the player's object (it writes the database); the game's copy only brings what is not valuable
+      if (path === '/save') {
+        const stub = env.PLAYER.get(env.PLAYER.idFromName(me.id));
+        if (req.method === 'GET') return json(req, await (await stub.fetch(new Request('https://p/save?id=' + me.id))).json());
+        if (req.method === 'PUT') {
+          const raw = await req.text(); if (raw.length > MAX_SAVE + 200) return json(req, { error: 'size' }, 413);
+          const r = await stub.fetch(new Request('https://p/merge?id=' + me.id, { method: 'PUT', body: raw }));
+          return json(req, await r.json(), r.status);
+        }
       }
       if (path === '/save' && req.method === 'PUT') {
         const raw = await req.text(); if (raw.length > MAX_SAVE + 200) return json(req, { error: 'size' }, 413);
@@ -152,15 +169,15 @@ export default {
 // ===== a map room: the players in one map see each other and talk =====
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
-interface Who { id: string; name: string; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
-interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number> }
+interface Who { id: string; room: string; name: string; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
+interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number>; key: string; kind: string; elite: boolean; join: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
   /** the monsters of this map: the host's game spawns and moves them, the room keeps their HP (in memory: a room that
    *  sleeps forgets, and the host's next list brings them back at full HP) */
   mons = new Map<number, RMon>(); host = '';
-  constructor(private state: DOState) {}
+  constructor(private state: DOState, private env: Env) {}
   private all(skip?: WebSocket) { return this.state.getWebSockets().filter(w => w !== skip).map(w => ({ w, a: (w as WSX).deserializeAttachment() as Who })).filter(x => x.a); }
   /** the host = who has been here longest; tell everyone when it changes */
   private pickHost(skip?: WebSocket) {
@@ -172,7 +189,7 @@ export class Room {
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
     this.state.acceptWebSocket(server, [id]);
-    server.serializeAttachment({ id, name, n: 0, win: Date.now(), chatT: 0, join: Date.now(), bud: 0, budT: Date.now() } as Who);
+    server.serializeAttachment({ id, room: u.searchParams.get('room') ?? '', name, n: 0, win: Date.now(), chatT: 0, join: Date.now(), bud: 0, budT: Date.now() } as Who);
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
     if (!this.host || !others.some(o => o.id === this.host)) this.host = '';
     this.pickHost();
@@ -197,7 +214,7 @@ export class Room {
       const seen = new Set<number>(), out: unknown[] = [];
       for (const e of (m.a as unknown[][]).slice(0, 160)) {
         const sid = Number(e[0]), max = Math.max(1, Number(e[10]) || 1); if (!sid) continue; seen.add(sid);
-        let r = this.mons.get(sid); if (!r) { r = { hp: max, max, alive: true, boss: !!e[3], dmg: {} }; this.mons.set(sid, r); }
+        let r = this.mons.get(sid); if (!r) { r = { hp: max, max, alive: true, boss: !!e[3], dmg: {}, key: String(e[1]), kind: String(e[2]), elite: !!e[4], join: now }; this.mons.set(sid, r); }
         if (r.alive) out.push([...e.slice(0, 11), Math.max(0, Math.round(r.hp))]);
       }
       for (const sid of [...this.mons.keys()]) if (!seen.has(sid)) this.mons.delete(sid);
@@ -216,6 +233,10 @@ export class Room {
         r.alive = false; const sh: Record<string, number> = {};
         for (const [k, v] of Object.entries(r.dmg)) sh[k] = Math.round(v / r.max * 1000) / 1000;
         send({ t: 'mdead', sid: Number(m.sid), sh });
+        // the server pays: each player with a fair share gets their own reward in their own game on the server
+        const room = me.room ?? '', n = room === 'w' ? WILD : Number(room.slice(1)) || 0, need = r.boss ? 0.03 : 0.1;
+        if (n) await Promise.allSettled(Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) =>
+          this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid: Number(m.sid), key: r.key, kind: r.kind, boss: r.boss, elite: r.elite, share: v }) }))));
       }
     } else if (m.t === 'matk' && me.id === this.host) {   // a monster (moved by the host) swings at another player
       const to = String(m.to ?? ''), msg = JSON.stringify({ t: 'matk', sid: Number(m.sid), k: String(m.k ?? 'hit').slice(0, 8) });
@@ -233,4 +254,84 @@ export class Room {
     if (me && me.id === this.host) { this.host = ''; this.pickHost(ws); }
   }
   async webSocketError(ws: WebSocket) { await this.webSocketClose(ws); }
+}
+
+// ===== the player's game on the server =====
+// Holds the real character: every action the game sends runs the same rules (src/server/handlers.ts) here with the
+// server's dice and clock, and the answer carries what changed. What is valuable (level, gold, items, resources,
+// buildings, diamonds, VIP...) is written ONLY here; the game's own save can only bring the harmless fields below.
+const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name']);
+type St = Record<string, unknown>;
+interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
+export class Player {
+  st: St | null = null; mem: Mem = newMem(); rev = 0; at = 0; dirty = false; loaded = false; id = '';
+  constructor(private state: DOState & { storage: DOStore }, private env: Env) {}
+  private async load(id: string) {
+    if (this.loaded) return; this.id = id;
+    const row = await this.env.DB.prepare('SELECT rev, at, data FROM saves WHERE id = ?').bind(id).first<{ rev: number; at: number; data: string }>();
+    if (row) { this.st = JSON.parse(row.data); this.rev = row.rev; this.at = row.at; }
+    this.loaded = true;
+  }
+  private async persist() {
+    if (!this.dirty || !this.st) return;
+    const data = JSON.stringify(this.st), now = Date.now(); this.rev++; this.at = now; this.dirty = false;
+    await this.env.DB.prepare('INSERT INTO saves (id, rev, at, size, data) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET rev = excluded.rev, at = excluded.at, size = excluded.size, data = excluded.data').bind(this.id, this.rev, now, data.length, data).run();
+  }
+  private async later() { this.dirty = true; if (!(await this.state.storage.getAlarm())) await this.state.storage.setAlarm(Date.now() + 15000); }
+  async alarm() { await this.persist(); }
+  /** run one action with the server's dice and clock; the answer + the top-level fields it changed */
+  private run(name: string, args: unknown) {
+    const st = this.st!, fn = (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name];
+    if (!fn) return { r: { refused: 'action' }, own: {} };
+    // the test buttons (free VIP / diamonds / levels / kits / unlock-all) work only for the admin accounts (server/cf.json)
+    if ((name === 'dev' || name === 'devTest') && !(this.env.ADMINS ?? '').split(',').includes(this.id)) return { r: { refused: 'dev' }, own: {} };
+    if (!(this.env.ADMINS ?? '').split(',').includes(this.id)) delete st.tdUnlockAll;
+    const before = new Map<string, string>(); for (const k of Object.keys(st)) if (!CLIENT_KEYS.has(k)) before.set(k, JSON.stringify(st[k]));
+    useMem(this.mem);
+    let r: unknown; try { r = fn(st, args ?? {}, { now: Date.now(), rnd: Math.random }); } catch (e) { r = { refused: 'error', detail: String(e).slice(0, 120) }; }
+    const own: St = {}; for (const k of Object.keys(st)) if (!CLIENT_KEYS.has(k) && before.get(k) !== JSON.stringify(st[k])) own[k] = st[k];
+    return { r, own };
+  }
+  private send(o: unknown) { const t = JSON.stringify(o); for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } } }
+  async fetch(req: Request) {
+    const u = new URL(req.url), id = u.searchParams.get('id') ?? ''; await this.load(id);
+    if (u.pathname === '/ws') {
+      for (const old of this.state.getWebSockets()) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one game per player
+      const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
+      this.state.acceptWebSocket(server, [id]); server.serializeAttachment({ id });
+      // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
+      const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
+      server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
+      return new Response(null, { status: 101, webSocket: client } as ResponseInit);
+    }
+    if (u.pathname === '/save') return new Response(JSON.stringify(this.st ? { rev: this.rev, at: this.at, data: this.st } : { rev: 0, at: 0, data: null }));
+    if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
+      const body = JSON.parse(await req.text()) as { data?: St };
+      if (!body.data || typeof body.data !== 'object' || typeof body.data.version !== 'number') return new Response(JSON.stringify({ error: 'data' }), { status: 400 });
+      if (!this.st) { this.st = body.data; for (const k of ['diamonds', 'vipUntil', 'vipTier']) delete this.st[k]; }   // (never money things from a save)
+      else for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
+      this.dirty = true; await this.persist();
+      return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
+    }
+    if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
+      const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number };
+      const st = p.n === WILD ? null : STAGES[p.n - 1], L = st?.land, mob = L ? [...L.mobs, L.boss].find(m => m.key === p.key) : null;
+      this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now(); }
+      const out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });
+      await this.later(); this.send({ t: 'pay', sid: p.sid, ...out });
+      return new Response('{}');
+    }
+    return new Response('{}', { status: 404 });
+  }
+  async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
+    if (typeof data !== 'string' || data.length > 20000) return;
+    const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
+    let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
+    if (m.t !== 'act' || typeof m.name !== 'string') return;
+    if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
+    const out = this.run(m.name, m.args);
+    if (Object.keys(out.own).length) await this.later();
+    ws.send(JSON.stringify({ t: 'r', q: m.q, ...out }));
+  }
+  async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); }
 }

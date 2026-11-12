@@ -31,7 +31,7 @@ import { mountOn, hasMount } from '../systems/mounts';
 
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
-import { act, refused } from '../net/client';
+import { act, actServer, isOnline, refused } from '../net/client';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
@@ -331,8 +331,12 @@ export class Panels implements GuildHost {
   }
 
   doUpgrade(uid: number) {
+    if (isOnline()) { if (this.busyAct) return; this.busyAct = true; actServer('upgradeItem', { uid }).then(r => { this.busyAct = false; this.upgradeDone(uid, r); }); return; }   // the server rolls the dice
+    this.upgradeDone(uid, act('upgradeItem', { uid }));
+  }
+  busyAct = false;
+  upgradeDone(uid: number, r: ReturnType<typeof act<'upgradeItem'>>) {
     const s = S();
-    const r = act('upgradeItem', { uid });
     const msg: Record<string, [string, string]> = {
       ok: ['ตีบวกสำเร็จ!', '#9fffb0'], fail: ['ตีบวกล้มเหลว... (เสียวัตถุดิบ)', '#ff8a8a'], max: ['ระดับสูงสุดแล้ว', '#ffe7a0'],
       no_gold: ['ทองไม่พอ', '#ff8a8a'], no_shard: ['ผลึกมานาไม่พอ (ดรอปจากมอนสเตอร์/ซื้อที่ร้าน)', '#ff8a8a'], invalid: ['ตีบวกไม่ได้', '#ff8a8a'],
@@ -502,7 +506,10 @@ export class Panels implements GuildHost {
         c.add(k.text(rx + 12, yy + 4, `${['อาวุธ', 'เกราะ', 'เครื่องประดับ'][i]}  • ขั้นต่ำ ${RARITY_NAMES[r.minRarity]}`, 9, '#' + RARITY_COLORS[r.minRarity].toString(16).padStart(6, '0')));
         this.addCost(c, rx + 12, yy + 20, rw - 110, r.cost);
         c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'หลอม', () => {
-          const res = act('craft', { slot });
+          if (isOnline()) { if (this.busyAct) return; this.busyAct = true; actServer('craft', { slot }).then(res => { this.busyAct = false; crafted(res); }); return; }   // the server rolls the dice
+          crafted(act('craft', { slot }));
+        }, { size: 10, color: 0x6a3a10 }));
+        const crafted = (res: ReturnType<typeof act<'craft'>>) => {
           if (res.ok) {
             for (const t of dailyProgress(s, 'craft')) bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind]} สำเร็จ! +${t.gold} G`, '#9fffb0');
             sfx.upgradeOk(); bus.emit('td:fx', res.rar >= 4 ? 'fx_ore_rare' : 'fx_upgrade_ok'); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
@@ -511,7 +518,7 @@ export class Panels implements GuildHost {
             ui.tweens.add({ targets: fl, alpha: 0, duration: 500, onComplete: () => fl.destroy() });
             bus.emit(EV.STATE_CHANGED); this.rebuild();
           } else { sfx.error(); bus.emit(EV.TOAST, { no_res: 'วัตถุดิบไม่พอ', no_shard: 'ผลึกมานาไม่พอ', bag_full: 'กระเป๋าเต็ม', no_forge: 'ยังไม่มีโรงหลอม' }[res.reason], '#ff8a8a'); }
-        }, { size: 10, color: 0x7a2a10 }));
+        };
       });
     } else if (b.type === 'kitchen') {
       const p = mealPower(b.level);

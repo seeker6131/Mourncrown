@@ -12,7 +12,7 @@ import { sfx } from '../audio/sfx';
 import { playSkill } from '../audio/skillSfx';
 import { PathGrid } from '../world/pathfind';
 import { ensurePfx, pfxFor } from '../world/pfx';
-import { act, refused } from '../net/client';
+import { act, actServer, isOnline, refused } from '../net/client';
 import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
 import { titleOf } from '../data/achievements';
 import { energyLeft, resCap } from '../systems/economy';
@@ -396,6 +396,7 @@ export class TopDownScene extends Phaser.Scene {
       if (shared) this.combat.net = link;
     } }
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
+    { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
     this.riding = undefined; this.rideBlockT = 0;
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
@@ -799,7 +800,10 @@ export class TopDownScene extends Phaser.Scene {
   }
   clearDungeon() {
     if (this.dDone || this.dead) return;
-    const r = act('dungeonClear', {});
+    if (isOnline()) { this.dDone = true; actServer('dungeonClear', {}).then(r => { this.dDone = false; this.dungeonCleared(r); }); return; }
+    this.dungeonCleared(act('dungeonClear', {}));
+  }
+  dungeonCleared(r: ReturnType<typeof act<'dungeonClear'>>) {
     if (refused(r)) { bus.emit(EV.TOAST, 'เซิร์ฟไม่รับผลดันเจี้ยน', '#ff8a6a'); return; }
     this.dDone = true; sfx.chest(); this.levelUpFx(); this.combat.vfx.star(this.hero.x, this.hero.y - 30, 0xffd84a, 2.4);
     bus.emit(EV.TOAST, `🎁 ผ่านดันเจี้ยน! 💰${r.gold.toLocaleString()} + ผลึกมานา ${r.shards}`, '#ffd84a');
@@ -1808,7 +1812,12 @@ export class TopDownScene extends Phaser.Scene {
     this.attacking = true;
     const done = () => {
       this.attacking = false; setIdle(h, key, this.dir);
-      const s = S(), r = act('gather', { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold });
+      const ga = { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold };
+      if (isOnline()) { actServer('gather', ga).then(r => gathered(r)); return; }   // the server rolls the ore / gems
+      gathered(act('gather', ga));
+    };
+    const gathered = (r: ReturnType<typeof act<'gather'>>) => {
+      const s = S(), h = this.hero;
       if (!refused(r)) this.tutGathered = true;
       if (refused(r) && r.refused === 'tired' && this.farm) this.stopFarm('⚡ วันนี้เหนื่อยแล้ว — หยุดฟาร์มออโต้');
       if (refused(r) && r.refused === 'tired') { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 6000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว เก็บของต่อไม่ไหว พรุ่งนี้มาใหม่ (ยังล่ามอน/ทำอย่างอื่นได้)', '#ffb080'); } return; }

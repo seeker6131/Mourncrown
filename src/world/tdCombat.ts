@@ -9,7 +9,7 @@ import { S, bus, EV } from '../core/events';
 import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
-import { act, refused } from '../net/client';
+import { act, actServer, isOnline, refused } from '../net/client';
 import { sfx } from '../audio/sfx';
 import { element } from '../audio/skillSfx';
 import { SKILL_PFX, playPfx } from './pfx';
@@ -136,7 +136,11 @@ export class Combat {
       onComplete: () => this.pickLoot(g) });
   }
   pickLoot(g: Loot) {
-    const r = act('pickup', { did: g.did }), sc = this.s;
+    if (isOnline()) { actServer('pickup', { did: g.did }).then(r => this.picked(g, r)); return; }   // the loot is the server's
+    this.picked(g, act('pickup', { did: g.did }));
+  }
+  picked(g: Loot, r: ReturnType<typeof act<'pickup'>>) {
+    const sc = this.s;
     if (refused(r)) {
       if (r.refused === 'bag') {   // bag full: the item drops back and waits
         g.busy = false; g.retryT = sc.time.now + 4000; g.im.setPosition(g.x, g.y - 6); g.aura.setPosition(g.x, g.y); g.beam?.setPosition(g.x, g.y);
@@ -240,7 +244,9 @@ export class Combat {
   }
   spawn(m: StageMon, x: number, y: number, boss: boolean, forced?: { sid: number; hpMult: number }, mir?: { sid: number; elite: boolean }) {
     const base = MONSTERS[m.kind]; const st = scaleStats(base, this.stage!.level, boss);
-    const reg = mir ? (act('mirror', { sid: mir.sid, key: m.key, boss, elite: mir.elite }), mir) : forced ? { sid: forced.sid, elite: false } : act('spawn', { key: m.key, boss, animal: !!base.animal });   // the server names the spawn and decides golden monsters
+    const online = isOnline() && !mir && !forced;
+    const reg0 = mir ? (act('mirror', { sid: mir.sid, key: m.key, boss, elite: mir.elite }), mir) : forced ? { sid: forced.sid, elite: false } : act('spawn', { key: m.key, boss, animal: !!base.animal }, online ? r => { if (r.elite) this.makeGolden(r.sid); } : undefined);
+    const reg = { sid: reg0.sid, elite: online ? false : reg0.elite };   // online: the server says later whether it is golden   // the server names the spawn and decides golden monsters
     if (reg.elite) st.hp *= 5;
     if (forced) { st.hp *= forced.hpMult; st.atk = Math.round(st.atk * 2.2); st.exp *= 20; }
     const sc = this.s;
@@ -609,7 +615,19 @@ export class Combat {
     { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) this.s.tweens.add({ targets: rg, alpha: 0, duration: 500, onComplete: () => rg.destroy() }); }
     if (!this.dungeon && !m.bounty && !this.mirror) this.respawn(m);
     if (share <= 0) return;   // (shared map: too little of the damage was mine — no reward)
-    const r = act('kill', { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss, share });
+    const at = { x: m.x, y: m.y, boss: m.boss };
+    if (this.live) { this.deadAt.set(m.sid, at); return; }   // shared map: the server pays each player (net:pay → onPay)
+    const args = { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss, share };
+    if (isOnline()) { actServer('kill', args).then(r => this.reward(at, r)); return; }   // the server rolls the loot
+    this.reward(at, act('kill', args));
+  }
+  /** where monsters died recently (the server's payment comes a moment later) */
+  deadAt = new Map<number, { x: number; y: number; boss: boolean }>();
+  /** the server paid this player for monster sid (shared map) */
+  onPay(sid: number, r: ReturnType<typeof act<'kill'>>) { const at = this.deadAt.get(sid) ?? { x: this.s.hero.x, y: this.s.hero.y, boss: false }; this.deadAt.delete(sid); this.reward(at, r); }
+  /** show a kill's reward: EXP / gold numbers, loot on the ground, level up, bounty / golden news */
+  reward(at: { x: number; y: number; boss: boolean }, r: ReturnType<typeof act<'kill'>>) {
+    const m = at, s = S();
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
     const bty = (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty;
@@ -623,7 +641,7 @@ export class Combat {
     if (r.food) this.float(m.x + 14, m.y - 8, `🍖${r.food}`, '#ffd8a0', 8);
 
     if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที', '#ffd040');
-    saveGame(s);
+    saveGame(s); bus.emit(EV.STATE_CHANGED);
   }
 
   /** big readable damage numbers: pop in, hang, drift up; crits get a label and a bigger punch */
@@ -846,6 +864,16 @@ export class Combat {
     this.mirror = on;
     if (on) { for (const m of [...this.mons]) this.dispose(m); this.pending = []; }   // the host's monsters come in its next list
     else for (const m of this.mons) { m.hx = m.x; m.hy = m.y; }                    // now mine to move; the map fills up as usual
+  }
+  /** the server made this monster golden: 5x HP, a gold aura, a little bigger */
+  makeGolden(sid: number) {
+    const m = this.mons.find(q => q.sid === sid); if (!m || !m.alive || m.elite) return;
+    const sc = this.s, x = m.x, y = m.y; m.elite = true; m.hp *= 5; m.max *= 5;
+    fx2(sc, 'fx_golden_spawn', x, y - 10, y + 1, 1.1); m.sp.setScale(1.2);
+    const au = sc.add.image(x, y - m.m.size * 0.35, 'td_glow').setTint(0xffd84a).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(m.m.size / 40);
+    sc.tweens.add({ targets: au, alpha: { from: 0.45, to: 1 }, scale: { from: m.m.size / 44, to: m.m.size / 34 }, duration: 700, yoyo: true, repeat: -1 });
+    m.sp.setData('aura', au);
+    const ea = fx2(sc, 'fx_elite_aura', x, y + 2, y + 1, m.m.size / 40); if (ea) m.sp.setData('aura2', ea);
   }
   /** sprite, shadow, aura, ring and HP bar where the monster is */
   place(m: Mon, angry: boolean) {
