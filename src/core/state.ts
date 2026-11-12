@@ -43,7 +43,7 @@ export interface GameState {
   buildings: { plot: number; type: string; level: number; stored: number; last: number; done?: number }[];
   skillPts: number;
   skillLv: Record<string, number>;
-  buff: { stat: string; pct: number; until: number } | null;
+  buff: { stat: string; pct: number; until: number; meal?: boolean } | null;
   introSeen: boolean;
   cls: 'novice' | 'sword' | 'archer' | 'mage' | 'cleric';
   tier: number;

@@ -30,7 +30,7 @@ import { SKILL_BY_ID } from '../data/skills';
 import { vipActive } from '../systems/premium';
 import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
-import { stageFood, isHungry } from '../systems/supplies';
+import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -332,6 +332,7 @@ export class TopDownScene extends Phaser.Scene {
     this.village = this.stageN || this.gv ? undefined : new Village(this, MW, MH);
     const home = () => { this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true })); };
     bus.on('td:guildHome', home); this.events.once('shutdown', () => bus.off('td:guildHome', home));
+    this.events.once('shutdown', () => { if (this.stageN && !this.wild && !this.dungeon) act('supplyTick', {}); });   // the last minutes on the map are eaten too
     const goRaid = (r: RaidStart) => { RAID_DATA = r; this.portalCool = this.time.now + 99999; sfx.door(); this.cameras.main.fadeOut(300); this.time.delayedCall(310, () => showWait()); this.time.delayedCall(340, () => this.scene.restart({ stage: 0, guild: true, raid: true })); };
     bus.on('td:raid', goRaid); this.events.once('shutdown', () => bus.off('td:raid', goRaid));
     const goDefend = () => {
@@ -994,14 +995,28 @@ export class TopDownScene extends Phaser.Scene {
     }
     const st = STAGES[n - 1], sv = s as unknown as { tdUnlockAll?: boolean };
     if (s.level < st.req && !sv.tdUnlockAll) { bus.emit(EV.TOAST, `ต้องเลเวล ${st.req} ถึงจะเข้าแผนที่ ${n} ได้`, '#ff8a6a'); return; }
-    if (s.res.food < stageFood(n) && !vipActive(s)) { bus.emit(EV.TOAST, `อาหารไม่พอ! แผนที่ ${n} ต้องใช้เสบียง 🍖${stageFood(n)} — ล่าสัตว์ในป่าดงดิบหรือเก็บจากคอกสัตว์`, '#ff8a6a'); return; }
     if (s.outfit === 'gather') { s.outfit = 'hunt'; bus.emit(EV.TOAST, 'สวมชุดนักรบแล้ว (แผนที่มอน)', '#ffd8a0'); }
     bus.emit(EV.TOAST, 'แผนที่มอน: ได้ EXP ทอง ไอเทม • ทรัพยากรอยู่ที่ 🌿 ป่าดงดิบ', '#c8e8ff');
-    if (stageFood(n) && !vipActive(s)) bus.emit(EV.TOAST, `ใช้เสบียง 🍖${stageFood(n)}`, '#ffd8a0');
+    // supplies: eaten while on the map (not paid at the gate) — say how long the larder lasts
+    if (stageFood(n)) { const m = supplyMinutes(s, n); bus.emit(EV.TOAST, m < 1 ? `⚠ ไม่มีเสบียง! เข้าได้ แต่ฮีโร่จะหิว (พลังตี −20% EXP −30%)` : `🍖 เสบียง ${stageFood(n)} ทุก ${SUPPLY_MINS} นาที • พอสำหรับ ~${Math.floor(m)} นาที`, m < 1 ? '#ff8a6a' : '#ffd8a0'); }
     saveGame(s);
     this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n }));
   }
   hungryWarned = false;
+  supT = 0; heroWarned = false; lowWarn = 0;
+  /** supplies on a monster map: the server charges the time spent here; warn when the hero starts / stops starving */
+  supplyStep() {
+    const r = act('supplyTick', {}) as { ate: number; hungry: boolean; food: number };
+    if (r.hungry && !this.heroWarned) { bus.emit(EV.TOAST, '😫 เสบียงหมด! ฮีโร่หิว พลังตี −20% EXP −30% — ล่าสัตว์ที่ 🌿 ป่าดงดิบ หรือกินอาหารจากครัว', '#ff8a6a'); sfx.error(); }
+    if (!r.hungry && this.heroWarned) bus.emit(EV.TOAST, '🍖 อิ่มแล้ว! กลับมาแข็งแรงเหมือนเดิม', '#9fffb0');
+    else if (!r.hungry) {   // running low: warn twice (10 and 3 minutes left), not on every bite
+      const m = supplyMinutes(S(), this.stageN), lv = m < 3 ? 2 : m < 10 ? 1 : 0;
+      if (lv > this.lowWarn) bus.emit(EV.TOAST, `🍖 เสบียงใกล้หมด (เหลือ ~${Math.floor(m)} นาที)`, '#ffd8a0');
+      this.lowWarn = lv;
+    }
+    this.heroWarned = r.hungry;
+    if (r.ate || r.hungry) { saveGame(S()); bus.emit(EV.STATE_CHANGED); }
+  }
   /** a walkable point for a bot player */
   botSpot() { for (let i = 0; i < 60; i++) { const x = 40 + Math.random() * (MW - 80), y = 40 + Math.random() * (MH - 80); if (this.canStand(x, y)) return { x, y }; } return { x: this.hero.x, y: this.hero.y }; }
   bountyT = 0;
@@ -1258,7 +1273,7 @@ export class TopDownScene extends Phaser.Scene {
     this.hunters?.destroy(); this.hunters = r.players > 1 ? new Hunters(this as never, this.combat, r.players - 1, () => this.botSpot()) : undefined;
   }
   stageTitle() {
-    const t = this.stageTitle0(); if (!testBots.n || !(this.stageN || this.wild)) return t;
+    const t = this.stageTitle0() + (this.stageN && !this.wild && heroHungry(S()) ? ' • 😫 หิว' : ''); if (!testBots.n || !(this.stageN || this.wild)) return t;
     const mr = this.mapRoom, rm = this.wild ? '' : ` • ห้องนี้ ${mr.players}/${mr.cap} คน (ระบบแบ่ง ${mr.rooms} ห้อง)`;
     return `${t} • 🤖 บอท ${testBots.n}${rm} • มอน ${this.combat.mons.filter(m => m.alive && !m.boss).length} • FPS ${Math.round(this.game.loop.actualFps)}`;
   }
@@ -1790,6 +1805,7 @@ export class TopDownScene extends Phaser.Scene {
     this.updateTutorial(time);
     if (this.wild) this.updateNodeTimers(time);
     this.updatePlots(time); this.updateAction(time); this.updateGuide(time); this.updateOcclusion(time);
+    if (this.stageN && !this.wild && !this.dungeon && time > this.supT) { this.supT = time + 15000; this.supplyStep(); }
     if (!this.stageN && !this.gv) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ไปล่าสัตว์ที่ป่าดงดิบ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;

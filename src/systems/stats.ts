@@ -57,6 +57,7 @@ export function derive(s: GameState): Derived {
   const tav = bl('tavern'), tow = bl('tower');
   g.exp += tav * 4;
   const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
+  const starve = (s as { heroHungry?: boolean }).heroHungry ? 0.8 : 1;   // out of supplies on a monster map (supplies.ts)
   if (buff?.stat === 'exp') g.exp += buff.pct;
   const ex = (s as GameState & { elixir?: { atk?: number; def?: number; hp?: number; crit?: number; aspd?: number; exp?: number; until: number } }).elixir;
   const el = ex && ex.until > Date.now() ? ex : null;
@@ -69,7 +70,7 @@ export function derive(s: GameState): Derived {
   const sb = (s as GameState & { skillBuff?: { atk?: number; def?: number; aspd?: number; until: number } }).skillBuff;
   const sbOn = sb && sb.until > Date.now() ? sb : null;
   g.aspd += sbOn?.aspd ?? 0;
-  const ab = (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (1 + (sbOn?.atk ?? 0) / 100) * (1 + (el?.atk ?? 0) / 100) * (1 + (sf.atk ?? 0) / 100) * (1 + tro.atk / 100), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
+  const ab = starve * (buff && buff.stat === 'atk' ? 1 + buff.pct / 100 : 1) * (1 + (sbOn?.atk ?? 0) / 100) * (1 + (el?.atk ?? 0) / 100) * (1 + (sf.atk ?? 0) / 100) * (1 + tro.atk / 100), hb = buff?.stat === 'hp' ? 1 + buff.pct / 100 : 1;
   const atk = Math.round((8 + L * 2.5 + g.atk) * ab * (1 + (cb.atk ?? 0) * tf / 100));
   const matk = Math.round((6 + L * 2.5 + g.matk) * ab * (1 + (cb.matk ?? 0) * tf / 100));
   const def = Math.round((L * 1 + g.def) * hb * (1 + ((cb.def ?? 0) * tf + (sbOn?.def ?? 0) + tow * 3 + (buff?.stat === 'def' ? buff.pct : 0) + (el?.def ?? 0) + (sf.def ?? 0) + tro.def) / 100));
@@ -83,7 +84,7 @@ export function derive(s: GameState): Derived {
     moveSpeed: Math.min(140, 92 * (1 + g.move / 100)),
     leech: Math.min(0.3, g.leech / 100),
     mf: g.mf,
-    expBonus: 1 + g.exp / 100,
+    expBonus: (1 + g.exp / 100) * (starve < 1 ? 0.7 : 1),
     power: Math.round(atk * 2 + matk * 1.5 + def * 3 + maxHp / 5 + crit * 400 + (1000 / attackInterval) * 40),
   };
 }

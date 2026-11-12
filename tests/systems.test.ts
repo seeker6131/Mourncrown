@@ -163,12 +163,32 @@ describe('SL is the strongest rarity', () => {
   });
 });
 
-import { stageFood, payStage, villageUpkeep, upkeepPerHour } from '../src/systems/supplies';
+import { stageFood, eatSupplies, supplyPerHour, heroHungry, villageUpkeep, upkeepPerHour } from '../src/systems/supplies';
+import { cook } from '../src/systems/settlement';
 describe('food: supplies and village upkeep', () => {
-  it('stages 1-2 are free, later ones cost more food', () => {
-    expect(stageFood(1)).toBe(0); expect(stageFood(10)).toBe(4); expect(stageFood(50)).toBe(12);
-    const s = startNewGame(); s.res.food = 3;
-    expect(payStage(s, 10)).toBe(false); expect(payStage(s, 2)).toBe(true);
+  it('the hero eats every 5 minutes on monster maps: maps 1-2 free, far maps more', () => {
+    expect(stageFood(1)).toBe(0); expect(stageFood(3)).toBe(1); expect(stageFood(10)).toBe(2); expect(stageFood(45)).toBe(5); expect(stageFood(50)).toBe(5);
+    const s = startNewGame(); s.res.food = 100; const now = 1_000_000;
+    expect(eatSupplies(s, 2, 3600000, now).ate).toBe(0);
+    expect(eatSupplies(s, 25, 3600000, now)).toEqual({ ate: 36, hungry: false });   // 3 every 5 min
+    expect(s.res.food).toBe(64);
+  });
+  it('out of food = hungry (weaker, less EXP) but never thrown out; food again = fed', () => {
+    const s = startNewGame(); s.res.food = 2; const now = 1_000_000;
+    const atk0 = derive(s).atk, exp0 = derive(s).expBonus;
+    expect(eatSupplies(s, 40, 600000, now).hungry).toBe(true);   // needs 10, had 2
+    expect(heroHungry(s)).toBe(true); expect(s.res.food).toBe(0);
+    expect(derive(s).atk).toBeLessThan(atk0); expect(derive(s).expBonus).toBeLessThan(exp0);
+    s.res.food = 50; expect(eatSupplies(s, 40, 60000, now).hungry).toBe(false);
+    expect(derive(s).atk).toBe(atk0);
+  });
+  it('VIP eats 30% less (not free); a kitchen meal halves it', () => {
+    const s = startNewGame(), now = 1_000_000;
+    expect(supplyPerHour(s, 30, now)).toBe(48);
+    (s as unknown as { vipUntil: number }).vipUntil = now + 1e9; expect(supplyPerHour(s, 30, now)).toBeCloseTo(33.6);
+    (s as unknown as { vipUntil: number }).vipUntil = 0;
+    s.buildings.push({ type: 'kitchen', level: 1 } as never); s.res.food = 999;
+    expect(cook(s, 'hunter_stew', now)).toBe('ok'); expect(supplyPerHour(s, 30, now)).toBe(24);
   });
   it('villagers eat every hour and go hungry when the larder is empty', () => {
     const s = startNewGame(); s.res.food = 10; const t0 = 1_000_000;

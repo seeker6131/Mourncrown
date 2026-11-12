@@ -35,7 +35,7 @@ import { listItem, cancelListing } from '../systems/market';
 import { buyDiamondItem, claimVipGift, grantVip, grantDiamonds, vipActive } from '../systems/premium';
 import { claimTdQuest } from '../systems/tdQuests';
 import { acceptQuest, completeQuest } from '../systems/quests';
-import { payStage } from '../systems/supplies';
+import { eatSupplies, heroFed } from '../systems/supplies';
 import { giveTestKit, testLevelUp } from '../systems/testKit';
 import { invSize } from '../core/state';
 import { tutPay, claimLogin } from '../systems/progress';
@@ -58,7 +58,7 @@ const cleanWreck = (w?: Wreck): Wreck | undefined => {
   for (const t of Object.keys(w.b ?? {})) if (GUILD_BLD[t as GuildBld]) b[t as GuildBld] = k(w.b![t as GuildBld]);
   return { b, house: k(w.house) };
 };
-const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -76,7 +76,7 @@ export const handlers = {
   /** entering a map (server remembers where the player is) */
   enterMap(s: GameState, a: { n: number }, c: Ctx) {
     mem.spawns.clear(); mem.drops.clear();
-    if (a.n === 0) { mem.map = 0; return { ok: true }; }
+    if (a.n === 0) { mem.map = 0; heroFed(s); return { ok: true }; }   // home: the hero has eaten
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
     if (isDungeon(a.n)) {   // daily dungeon: 2 runs a day (VIP 3), land by level
       const li = a.n - DUNGEON; if (li > dungeonLand(s.level)) return no('level');
@@ -86,10 +86,15 @@ export const handlers = {
     }
     const st = STAGES[a.n - 1]; if (!st) return no('map');
     if (s.level < st.req && !(DEV_TOOLS && (s as { tdUnlockAll?: boolean }).tdUnlockAll)) return no('level');
-    if (!payStage(s, a.n)) return no('food');
-    mem.map = a.n; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now;
+    mem.map = a.n; mem.supAt = c.now; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now;   // supplies are eaten while here (supplyTick), not paid at the gate
     const sv = s as unknown as { tdMaxMap?: number }; sv.tdMaxMap = Math.max(sv.tdMaxMap ?? 0, a.n);
     return { ok: true };
+  },
+  /** time on a monster map eats supplies (server clock; a long pause counts as at most 2 minutes) */
+  supplyTick(s: GameState, _a: object, c: Ctx) {
+    const n = mem.map; if (!n || n === WILD || isDungeon(n) || !STAGES[n - 1]) return { ate: 0, hungry: false, food: s.res.food };
+    const ms = Math.min(120_000, c.now - (mem.supAt || c.now)); mem.supAt = c.now;
+    return { ...eatSupplies(s, n, ms, c.now), food: s.res.food };
   },
   /** the server owns every spawn: it hands out an id and decides golden monsters (3%, never bosses / animals / the Deepwild) */
   /** today's wandering bounty boss for this player (board + announcements) */

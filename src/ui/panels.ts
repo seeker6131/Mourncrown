@@ -39,7 +39,7 @@ import { vipActive, vipLeftMs as vipLeft2 } from '../systems/premium';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
-import { stageFood } from '../systems/supplies';
+import { stageFood, supplyMinutes } from '../systems/supplies';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, audioState } from '../audio/sfx';
@@ -948,8 +948,8 @@ export class Panels implements GuildHost {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(x + 30 + i * 26, by + 24, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(24 / im.height, 1)); c.add(im);
     });
-    const info = `แผนที่ ${sel.n}${sel.boss ? ' 👑 บอสดินแดน' : ''}  •  มอน Lv${sel.level}  •  ${food ? `🍖 ${food}` : 'เข้าฟรี'}`;
-    c.add(k.text(x + 30 + Math.min(5, L.mobs.length) * 26, by + 5, info, 8.5, open ? (s.res.food >= food ? '#ffe7a0' : '#ff8a6a') : '#8a7a60'));
+    const info = `แผนที่ ${sel.n}${sel.boss ? ' 👑 บอสดินแดน' : ''}  •  มอน Lv${sel.level}  •  ${food ? `เสบียง 🍖${food}/5 นาที` : 'เสบียงฟรี'}`;
+    c.add(k.text(x + 30 + Math.min(5, L.mobs.length) * 26, by + 5, info, 8.5, open ? (!food || supplyMinutes(s, sel.n) >= 10 ? '#ffe7a0' : '#ff8a6a') : '#8a7a60'));
     c.add(k.button(x + W - 12 - 118, by - 2, 114, 26, open ? `▶ เข้าแผนที่ ${sel.n}` : `🔒 ต้อง Lv${sel.req}`, () => go(sel.n), { size: 10, color: sel.boss ? 0x7a2a14 : 0x1f4a2a, disabled: !open }));
   }
 

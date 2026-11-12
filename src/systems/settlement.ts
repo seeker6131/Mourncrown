@@ -116,6 +116,6 @@ export function cook(s: GameState, meal: MealId, now = Date.now()): 'ok' | 'no_k
   const p = mealPower(lv);
   if (s.res.food < p.food) return 'no_food';
   s.res.food -= p.food;
-  s.buff = { stat: MEALS[meal].stat, pct: p.pct, until: now + p.mins * 60000 };
+  s.buff = { stat: MEALS[meal].stat, pct: p.pct, until: now + p.mins * 60000, meal: true };   // a meal also halves what the hero eats on the maps (supplies.ts)
   return 'ok';
 }
