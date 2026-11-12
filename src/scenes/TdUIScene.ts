@@ -178,7 +178,7 @@ export class TdUIScene extends Phaser.Scene {
     this.questZone = this.add.zone(8, 60, 200, 30).setOrigin(0).setInteractive();
     this.questZone.on('pointerup', () => {
       const s = S(), q = act('claimTdQuest', {});
-      if (q) { sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
+      if (q) { bus.emit('td:fx', 'fx_quest'); sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
     });
     this.root.add([this.questG, this.questText, this.questZone]);
 

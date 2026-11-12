@@ -1,0 +1,859 @@
+{
+ "frames": [
+  {
+   "filename": "fx-boss-death 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 1.png",
+   "frame": {
+    "x": 220,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 2.png",
+   "frame": {
+    "x": 440,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 3.png",
+   "frame": {
+    "x": 660,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 4.png",
+   "frame": {
+    "x": 880,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 5.png",
+   "frame": {
+    "x": 1100,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 6.png",
+   "frame": {
+    "x": 0,
+    "y": 179,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 7.png",
+   "frame": {
+    "x": 220,
+    "y": 179,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 8.png",
+   "frame": {
+    "x": 440,
+    "y": 179,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 9.png",
+   "frame": {
+    "x": 660,
+    "y": 179,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 10.png",
+   "frame": {
+    "x": 880,
+    "y": 179,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 11.png",
+   "frame": {
+    "x": 1100,
+    "y": 179,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 12.png",
+   "frame": {
+    "x": 0,
+    "y": 358,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 13.png",
+   "frame": {
+    "x": 220,
+    "y": 358,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 14.png",
+   "frame": {
+    "x": 440,
+    "y": 358,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 15.png",
+   "frame": {
+    "x": 660,
+    "y": 358,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 16.png",
+   "frame": {
+    "x": 880,
+    "y": 358,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 17.png",
+   "frame": {
+    "x": 1100,
+    "y": 358,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 18.png",
+   "frame": {
+    "x": 0,
+    "y": 537,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 19.png",
+   "frame": {
+    "x": 220,
+    "y": 537,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 20.png",
+   "frame": {
+    "x": 440,
+    "y": 537,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 21.png",
+   "frame": {
+    "x": 660,
+    "y": 537,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 22.png",
+   "frame": {
+    "x": 880,
+    "y": 537,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 23.png",
+   "frame": {
+    "x": 1100,
+    "y": 537,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 24.png",
+   "frame": {
+    "x": 0,
+    "y": 716,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 25.png",
+   "frame": {
+    "x": 220,
+    "y": 716,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 26.png",
+   "frame": {
+    "x": 440,
+    "y": 716,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 27.png",
+   "frame": {
+    "x": 660,
+    "y": 716,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 28.png",
+   "frame": {
+    "x": 880,
+    "y": 716,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 29.png",
+   "frame": {
+    "x": 1100,
+    "y": 716,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 30.png",
+   "frame": {
+    "x": 0,
+    "y": 895,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-death 31.png",
+   "frame": {
+    "x": 220,
+    "y": 895,
+    "w": 220,
+    "h": 179
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 220,
+    "h": 179
+   },
+   "sourceSize": {
+    "w": 220,
+    "h": 179
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6536312849162011
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-boss-death.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 1320,
+   "h": 1074
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 110,
+   "y": 117
+  },
+  "frameTags": [
+   {
+    "name": "fx-boss-death",
+    "from": 0,
+    "to": 31,
+    "direction": "forward"
+   }
+  ]
+ }
+}

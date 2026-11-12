@@ -49,6 +49,7 @@ import { guildOf, homeOf, meOf } from '../systems/guild';
 import { GUILD_BLD, GUILD_UNLOCK_LV, type GuildBld } from '../data/guild';
 import { preloadFx2, createFx2Anims, fx2 } from '../world/fx2';
 import { RaidBattle, type RaidStart } from '../world/raid';
+import { ambience } from '../world/ambience';
 /** the raid the guild window just started (the scene restarts into the rival village) */
 let RAID_DATA: RaidStart | null = null;
 const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -279,8 +280,10 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN && !this.wild) ensurePfx(this, MONSTER_PFX(this.st.land.id));   // monsters / boss attacking the hero
     this.placeProps();
     // return scroll: back to the village from any map
-    const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
+    const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; fx2(this, 'fx_recall', this.hero.x, this.hero.y + 6, this.hero.y + 1); sfx.cast(); this.time.delayedCall(650, () => this.cameras.main.fadeOut(250)); this.time.delayedCall(910, () => showWait()); this.time.delayedCall(950, () => this.scene.restart({ stage: 0 })); };
     bus.on('td:recall', recall); this.events.once('shutdown', () => bus.off('td:recall', recall));
+    const onFx = (k: string) => fx2(this, k, this.hero.x, this.hero.y - 18, 99993, 1);
+    bus.on('td:fx', onFx); this.events.once('shutdown', () => bus.off('td:fx', onFx));
     this.village = this.stageN || this.gv ? undefined : new Village(this, MW, MH);
     const home = () => { this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true })); };
     bus.on('td:guildHome', home); this.events.once('shutdown', () => bus.off('td:guildHome', home));
@@ -317,6 +320,7 @@ export class TopDownScene extends Phaser.Scene {
     zoom(); this.scale.on('resize', zoom);
 
     this.addOverlay();
+    ambience(this, this.inside >= 0 ? 'room' : this.stageN && !this.wild ? this.st.land.ground : this.wild ? 'forest' : 'village');
     // UI lives on its own unzoomed camera
     const ui = [this.vignette, this.label, this.joyG = this.add.graphics(), this.arrowG = this.add.graphics().setDepth(100003),
       this.arrowT = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: Math.round(this.scale.height / 34) + 'px', color: '#fff4c8', stroke: '#0b0f0c', strokeThickness: 4 }).setOrigin(0.5).setDepth(100003)];
@@ -1068,8 +1072,9 @@ export class TopDownScene extends Phaser.Scene {
     const g = guildOf(S()); if (this.inside >= 0) return `🏠 ${this.roomKind === 'house' ? 'บ้านของฉัน' : ROOMS[this.roomKind ?? 'hall'].name} • ${g?.name ?? ''}`;
     return this.gv && g ? `🏛 หมู่บ้านกิลด์ ${g.name}` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
-  levelUpFx() {
+  levelUpFx(kind: 'level' | 'transform' = 'level') {
     const h = this.hero;
+    fx2(this, kind === 'transform' ? 'fx_transform' : 'fx_levelup', h.x, h.y + 6, h.y + 1);
     const ring = this.add.ellipse(h.x, h.y, 20, 8).setStrokeStyle(2, 0xffd24a, 1).setDepth(h.y + 1);
     this.tweens.add({ targets: ring, scaleX: 3, scaleY: 3, alpha: 0, duration: 700, onComplete: () => ring.destroy() });
     const g = this.add.image(h.x, h.y - 20, 'td_glow').setTint(0xffd24a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99991).setScale(0.3);
@@ -1229,6 +1234,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     sfx.cast(); playSkill(r);
     this.combat.castSkill(r);
+    this.raid?.skill(r);
     bus.emit(EV.STATE_CHANGED);
   }
 
@@ -1415,11 +1421,12 @@ export class TopDownScene extends Phaser.Scene {
       if (!refused(r)) this.tutGathered = true;
       if (refused(r) && r.refused === 'tired') { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 6000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว เก็บของต่อไม่ไหว พรุ่งนี้มาใหม่ (ยังล่ามอน/ทำอย่างอื่นได้)', '#ffb080'); } return; }
       if (refused(r)) { if (r.refused === 'level') bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein?.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); return; }
+      fx2(this, n.kind === 'wood' ? 'fx_chop' : 'fx_mine', n.x + (h.x < n.x ? -8 : 8), n.y - 14, 99952, 0.9);
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
       if (s.res[n.kind] >= resCap(s) && this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 8000; bus.emit(EV.TOAST, '📦 คลังเต็ม! ของล้นทิ้ง — อัปเกรดโกดังหรือใช้ทรัพยากรก่อน', '#ff8a6a'); }
       if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
       if (r.gold) this.combat.float(n.x - 10, n.y - 52, `💰 +${r.gold}G`, '#ffd84a', 10);
-      if (r.gem) { this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); bus.emit('loot:popup', { id: r.gem, rar: itemDef(r.gem).rarity }); saveGame(s); }
+      if (r.gem) { fx2(this, 'fx_ore_rare', n.x, n.y - 24, 99953, 1.1); this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); bus.emit('loot:popup', { id: r.gem, rar: itemDef(r.gem).rarity }); saveGame(s); }
       this.tweens.add({ targets: n.im, x: n.im.x + 2, duration: 40, yoyo: true, repeat: 2 });
       n.hp--;
       if (n.hp <= 0) this.depleteNode(n, n.vein?.rare ? 240000 : this.wild ? 45000 : 90000);
@@ -1532,7 +1539,7 @@ export class TopDownScene extends Phaser.Scene {
     let mx = 0, my = 0;
     this.label.setVisible(false);
     const s1 = S();
-    if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; ensurePfx(this, pfxFor(currentSkills(S()))); if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx(); }
+    if (this.F.key !== this.heroKeyNow) { this.heroKeyNow = this.F.key; ensurePfx(this, pfxFor(currentSkills(S()))); if (!this.attacking && !this.dead) setIdle(this.hero, this.F.key, this.dir); this.levelUpFx('transform'); }
     if (this.lastLevel && s1.level > this.lastLevel) { this.levelUpFx(); if (nextForm(s1) !== null) bus.emit(EV.TOAST, s1.tier === 0 ? 'ถึงเลเวล 10! กลับหมู่บ้านไปหาผู้เฒ่าเพื่อเลือกสายอาชีพ' : 'เปลี่ยนร่างได้แล้ว! แตะปุ่ม ✨ ด้านบน', '#ffd84a'); bus.emit(EV.STATE_CHANGED); }
     this.lastLevel = s1.level;
     this.updateTutorial(time);

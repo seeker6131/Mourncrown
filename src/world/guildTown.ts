@@ -48,6 +48,7 @@ export class GuildTown {
   guards?: Village;
   guardKey = '';
   t = 0; syncT = 0;
+  dome?: Phaser.GameObjects.Sprite | null;
   constructor(public sc: TownHost) {}
 
   // ---------------------------------------------------------------- static dressing
@@ -231,6 +232,10 @@ export class GuildTown {
     if (time - this.syncT > 60000) { this.syncT = time; this.sync(); }
     const now = Date.now();
     this.render(now);
+    // the shield dome over the guild hall while enemies cannot raid us
+    const shielded = g.shieldUntil > now;
+    if (shielded && !this.dome) { const P = L.PLOTS[L.HALL_PLOT]; this.dome = fx2(this.sc, 'fx_shield', P.x, P.y + 30, P.y + 30, 3.2); this.dome?.setAlpha(0.45); }
+    else if (!shielded && this.dome) { this.dome.destroy(); this.dome = null; }
     for (const t of GUILD_BLD_ORDER) {
       const v = this.views.get('b:' + t), b = g.buildings.find(q => q.type === t)!, d = GUILD_BLD[t], P = L.PLOTS[L.PLOT_OF[t]];
       if (!v) continue;

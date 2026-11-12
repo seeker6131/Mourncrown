@@ -5,7 +5,8 @@
 import Phaser from 'phaser';
 import { S, bus, EV } from '../core/events';
 import { act, refused } from '../net/client';
-import { derive, calcDamage } from '../systems/stats';
+import { derive, calcDamage, skillMult } from '../systems/stats';
+import type { SkillDef } from '../data/skills';
 import { saveGame } from '../core/save';
 import { sfx } from '../audio/sfx';
 import type { Rival, RivalStruct } from '../systems/guild';
@@ -96,6 +97,19 @@ export class RaidBattle {
         if (g) this.hurtGuard(g, r.dmg); else if (t) this.hurtTarget(t, r.dmg);
       };
       if (ranged) this.sc.combat.vfx.bolt(h.x, h.y - 18, tx, ty, magic ? 0xc08aff : 0xffe8a0, 1, 900, land, !magic); else land();
+    });
+  }
+  /** skills hit buildings too: close skills everything round the hero, ranged skills the nearest few in sight */
+  skill(sk: SkillDef) {
+    if (this.over || sk.kind === 'buff' || sk.kind === 'heal' || sk.kind === 'shield') return;
+    const s = S(), d = derive(s), atk = sk.stat === 'matk' ? d.matk : d.atk, h = this.sc.hero;
+    const far = sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain', R = far ? 170 : (sk.radius ?? sk.range ?? 50) + 12;
+    const mult = sk.power * skillMult(s, sk.id) * (far ? 1 : Math.max(1, sk.count ?? 1));
+    this.sc.time.delayedCall(sk.kind === 'leap' ? 360 : 260, () => {
+      if (this.over) return;
+      for (const g of this.guards) if (g.alive && Math.hypot(g.x - h.x, g.y - h.y) < R) { const r = calcDamage(atk, 8, mult, d.crit); this.sc.combat.float(g.x, g.y - 40, `${r.dmg}`, '#ffcf3a', 11); this.hurtGuard(g, r.dmg); }
+      const tg = this.targets.filter(t => t.alive && this.dist(t, h.x, h.y) < R).sort((a, b) => this.dist(a, h.x, h.y) - this.dist(b, h.x, h.y));
+      for (const t of far ? tg.slice(0, sk.count ?? 1) : tg) { const r = calcDamage(atk, 0, mult, d.crit); this.sc.combat.float(t.x, t.y - 50, `${r.dmg}`, '#ffcf3a', 13); fx2(this.sc, 'fx_boom', t.x, t.y - 10, 99952, 0.8); this.hurtTarget(t, r.dmg); }
     });
   }
   /** distance from the hero to a building / defense footprint (a box from its foot up to its back wall) */
@@ -191,7 +205,7 @@ export class RaidBattle {
     else {
       bus.emit(EV.TOAST, `${head} ${'⭐'.repeat(r.stars) || 'ไม่ได้ดาว'} • ทำลาย ${r.destroyed}/${r.total}`, '#ffd84a');
       bus.emit(EV.TOAST, `ของเข้าคลังหมู่บ้าน 💰${r.gain.gold} 🪵${r.gain.wood} 🪨${r.gain.stone} 🍖${r.gain.food} • แต้มบุญ +${r.pts}`, '#9fffb0');
-      if (r.stars) sfx.levelUp();
+      if (r.stars) { sfx.levelUp(); fx2(this.sc, 'fx_raid_victory', this.sc.hero.x, this.sc.hero.y - 20, 99995, 1.4); }
     }
     saveGame(s); bus.emit(EV.STATE_CHANGED);
     this.sc.time.delayedCall(2600, () => { this.sc.cameras.main.fadeOut(300); this.sc.time.delayedCall(320, () => this.sc.scene.restart({ stage: 0, guild: true })); });

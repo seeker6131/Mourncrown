@@ -308,7 +308,7 @@ export class Panels implements GuildHost {
       no_gold: ['ทองไม่พอ', '#ff8a8a'], no_shard: ['ผลึกมานาไม่พอ (ดรอปจากมอนสเตอร์/ซื้อที่ร้าน)', '#ff8a8a'], invalid: ['ตีบวกไม่ได้', '#ff8a8a'],
     };
     const [t, col] = msg[r];
-    if (r === 'ok') sfx.upgradeOk(); else if (r === 'fail') sfx.upgradeFail(); else sfx.error();
+    if (r === 'ok') { sfx.upgradeOk(); bus.emit('td:fx', 'fx_upgrade_ok'); } else if (r === 'fail') { sfx.upgradeFail(); bus.emit('td:fx', 'fx_upgrade_fail'); } else sfx.error();
     bus.emit(EV.TOAST, t, col);
     if (r === 'ok' || r === 'fail') {
       const ui = this.ui;
@@ -437,7 +437,7 @@ export class Panels implements GuildHost {
           const res = act('craft', { slot });
           if (res.ok) {
             for (const t of dailyProgress(s, 'craft')) bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind]} สำเร็จ! +${t.gold} G`, '#9fffb0');
-            sfx.upgradeOk(); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
+            sfx.upgradeOk(); bus.emit('td:fx', res.rar >= 4 ? 'fx_ore_rare' : 'fx_upgrade_ok'); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
             bus.emit(EV.TOAST, `หลอมได้ [${RARITY_NAMES[res.rar]}] ${itemDef(res.id).name}!`, col);
             const fl = ui.add.rectangle(0, 0, ui.VW, 360, RARITY_COLORS[res.rar], 0.35).setOrigin(0);
             ui.tweens.add({ targets: fl, alpha: 0, duration: 500, onComplete: () => fl.destroy() });

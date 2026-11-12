@@ -59,7 +59,7 @@ const DMG = {
 };
 
 const AURA = [0.32, 0.42, 0.55, 0.75, 0.95, 1.25];
-interface Loot { did: number; id: string; qty: number; rar: number; set?: string; x: number; y: number; im: Phaser.GameObjects.Image; aura: Phaser.GameObjects.Image; beam?: Phaser.GameObjects.Image; born: number; landed: boolean; busy: boolean; retryT: number; lured?: boolean }
+interface Loot { did: number; id: string; qty: number; rar: number; set?: string; x: number; y: number; im: Phaser.GameObjects.Image; aura: Phaser.GameObjects.Image; beam?: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; born: number; landed: boolean; busy: boolean; retryT: number; lured?: boolean }
 
 export class Combat {
   mons: Mon[] = [];
@@ -92,8 +92,10 @@ export class Combat {
       const tx = x + (Math.random() - 0.5) * 50, ty = y + 4 + (Math.random() - 0.5) * 26;
       const aura = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(ty - 1).setScale(AURA[d.rar]);
       sc.tweens.add({ targets: aura, alpha: { from: 0.55, to: 1 }, scale: { from: AURA[d.rar] * 0.85, to: AURA[d.rar] * 1.15 }, duration: 600 - d.rar * 40, yoyo: true, repeat: -1 });
-      let beam: Phaser.GameObjects.Image | undefined;
-      if (d.rar >= 3) {   // a pillar of light for Super Rare and better
+      let beam: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite | undefined;
+      const pillar = d.rar >= 3 ? fx2(sc, d.rar >= 5 ? 'fx_drop_sl' : d.rar >= 4 ? 'fx_drop_legend' : 'fx_drop_epic', x, y + 2, ty - 1, 0.55 + d.rar * 0.06) : null;
+      if (pillar) beam = pillar;   // PixelLab light pillar (looping) for Super Rare and better
+      else if (d.rar >= 3) {   // a pillar of light for Super Rare and better
         beam = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setOrigin(0.5, 0.92).setDepth(ty - 1).setDisplaySize(6 + d.rar * 3, 40 + d.rar * 18).setAlpha(0.7);
         sc.tweens.add({ targets: beam, alpha: { from: 0.35, to: 0.85 }, duration: 500, yoyo: true, repeat: -1 });
       }
@@ -169,7 +171,7 @@ export class Combat {
     this.s.time.delayedCall(delay, () => {
       if (!this.s.sys.isActive() || this.s.stageN !== this.stage?.n) return;
       const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
-      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
+      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
       const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
       this.spawn(m.m, p.x, p.y, m.boss);
       const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
@@ -192,11 +194,14 @@ export class Combat {
     const shw = m.size * (boss ? 0.75 : 0.62);
     const sh = pxShadow(sc, x, y, shw, shw * 0.34, 0.45);
     sp.setData('sh', sh);
+    if (reg.elite) fx2(sc, 'fx_golden_spawn', x, y - 10, y + 1, 1.1);
+    if (boss) fx2(sc, 'fx_boss_spawn', x, y + 4, y - 1, 1.6);
     if (reg.elite) {   // golden monster: gold aura, a bit bigger
       sp.setScale(1.2);
       const au = sc.add.image(x, y - m.size * 0.35, 'td_glow').setTint(0xffd84a).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(m.size / 40);
       sc.tweens.add({ targets: au, alpha: { from: 0.45, to: 1 }, scale: { from: m.size / 44, to: m.size / 34 }, duration: 700, yoyo: true, repeat: -1 });
       sp.setData('aura', au);
+      const ea = fx2(sc, 'fx_elite_aura', x, y + 2, y + 1, m.size / 40); if (ea) sp.setData('aura2', ea);
     }
     this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite });
   }
@@ -231,6 +236,13 @@ export class Combat {
     const aim = near ? Math.atan2(near.y - h.y, near.x - h.x) : Math.atan2(Math.cos(this.s.dir * Math.PI / 4), Math.sin(this.s.dir * Math.PI / 4));
     const fx = Math.cos(aim), fy = Math.sin(aim);
     if (near) this.s.dir = dirOf(fx, fy);
+    // the 4th-form finishers get a big PixelLab effect on top (where the hero lands, or on each target hit)
+    const ULT: Record<string, [string, 'land' | 'targets', number]> = { s4_judgment: ['fx_ult_sword', 'land', 360], t4_titan: ['fx_ult_tank', 'land', 340], a4_storm: ['fx_ult_bow', 'targets', 600], m4_meteor: ['fx_ult_mage', 'targets', 650] };
+    const u = ULT[sk.id];
+    if (u) {
+      if (u[1] === 'land') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], h.x, h.y + 4, h.y + 2, 1.3));
+      else this.nearest(230).slice(0, sk.count ?? 5).forEach((m, i) => this.s.time.delayedCall(u[2] + i * 90, () => fx2(this.s, u[0], m.x, m.y + 2, m.y + 2, 0.9)));
+    }
     this.float(h.x, h.y - 56, sk.name, '#' + col.toString(16).padStart(6, '0'), 10);
     const times = (n: number, gap: number, f: (i: number) => void) => { for (let i = 0; i < n; i++) this.s.time.delayedCall(i * gap, () => f(i)); };
     // PixelLab effect art layered over the procedural effects
@@ -352,6 +364,7 @@ export class Combat {
         break;
       }
       case 'buff': case 'heal': case 'shield': {
+        fx2(this.s, sk.kind === 'heal' ? 'fx_heal' : sk.kind === 'shield' ? 'fx_shield_up' : 'fx_buff', h.x, h.y + 4, h.y + 1, 1);
         const r = selfEffect(s, sk);
         if (!pf) this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
         circle(h.x, h.y, 0.75, 900); if (artOn) V.art('px_fx_pillar', h.x, h.y + 4, { oy: 1, s0: 0.6, s1: 1.1, sy: 1.4, a0: 1, dur: 800, tint: sk.kind === 'shield' ? undefined : col });
@@ -478,10 +491,12 @@ export class Combat {
     else if (m.boss && hasAnim(m.m.key, 'die')) {
       playAnim(m.sp, m.m.key, 'die', m.dir, false);
       m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
-    } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); }
+    } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); if (!m.animal) fx2(this.s, 'fx_mon_death', m.x, m.y - 6, m.y + 1, 0.8); }
+    if (m.boss) { fx2(this.s, 'fx_boss_death', m.x, m.y, m.y + 2, 1.5); this.s.cameras.main.flash(180, 255, 230, 200); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
     const s = S();
     (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
+    (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
     const r = act('kill', { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
     if (!this.dungeon) this.respawn(m);
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
@@ -608,6 +623,7 @@ export class Combat {
       }
       m.sp.setPosition(m.x, m.y).setDepth(m.y);
       (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
+      (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.setPosition(m.x, m.y + 2).setDepth(m.y + 1);
       (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
       const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
       if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);

@@ -42,13 +42,40 @@ JOBS = [   # key, description, sprite to build around (or None)
     ('fx_bs4_hit', 'a frost giant punch: a burst of ice shards and white frost mist, 0.5 seconds, no loop', None),
     ('fx_bs4_special', 'a frost giant slams the ground: a ring of sharp ice spikes shoots up and shatters, cold mist rolls out, 1 second, no loop, seen from the front and above', None),
     ('fx_bs5_hit', 'a cursed skeleton king strikes: a burst of dark purple curse energy with small skull-shaped wisps, 0.5 seconds, no loop', None),
+    # big moments (pro artist for the three showpieces)
+    ('fx_levelup', 'PRO a triumphant level up: a column of golden light bursts up around a hero standing in the middle, a ring of light expands on the ground, golden sparks and small stars spiral upward and fade, 1.4 seconds, no loop, leave the middle clear for the character', None),
+    ('fx_transform', 'PRO a class transformation: swirling ribbons of white and gold magic wrap around a standing hero, rise into a bright vertical flash, then burst into a shockwave ring and falling glitter, 1.6 seconds, no loop, leave the middle clear for the character', None),
+    ('fx_boss_death', 'PRO a huge boss dies: a blinding white-orange explosion, a shockwave ring across the ground, then a tall plume of dark smoke and drifting embers with a ghostly soul rising out of it, 1.6 seconds, no loop', None),
+    ('fx_drop_epic', 'a pillar of soft violet light rising from the ground where a rare item lies, gentle sparkles drifting up, seamless loop, 1.2 seconds', None),
+    ('fx_drop_legend', 'a tall pillar of golden light rising from the ground where a legendary item lies, golden sparkles and a slowly turning ring of light on the ground, seamless loop, 1.2 seconds', None),
+    ('fx_drop_sl', 'a tall blazing pillar of crimson and rainbow light where the rarest item lies, crackling sparks and a pulsing ring on the ground, seamless loop, 1.2 seconds', None),
+    ('fx_golden_spawn', 'a golden monster appears: a burst of gold coins and golden light with a bright ring expanding on the ground, 0.8 seconds, no loop', None),
+    ('fx_mon_death', 'a small monster dies: a puff of pale smoke with a tiny glowing soul wisp floating up and fading, 0.7 seconds, no loop', None),
+    ('fx_recall', 'a teleport home: a column of blue-white light swirls up from a magic circle on the ground and shoots into the sky, 1 second, no loop, leave the middle clear for the character', None),
+    ('fx_heal', 'a healing spell on a character: green and white light rises from the ground with leaves and plus-shaped sparkles floating up, 1 second, no loop, leave the middle clear for the character', None),
+    ('fx_buff', 'a power-up aura: red-orange flames of energy flare up around a character and settle into a glowing outline, 1 second, no loop, leave the middle clear for the character', None),
+    ('fx_shield_up', 'a protective barrier forms around a character: a golden hexagon shield bubble flashes into place, 0.8 seconds, no loop', None),
+    ('fx_upgrade_ok', 'an upgrade succeeds: a bright blue-white star flash with radiating sparks and a rising sparkle, 0.8 seconds, no loop', None),
+    ('fx_upgrade_fail', 'an upgrade fails: a dark grey puff of smoke with a few dim red sparks falling, 0.7 seconds, no loop', None),
+    ('fx_chop', 'chopping wood: wood chips and splinters fly out from an axe hit, 0.4 seconds, no loop', None),
+    ('fx_mine', 'mining rock: stone chips and bright yellow sparks fly out from a pickaxe hit, 0.4 seconds, no loop', None),
+    ('fx_ore_rare', 'a rare gem is found: a burst of rainbow sparkles and a bright twinkling star, 0.9 seconds, no loop', None),
+    ('fx_quest', 'a quest is complete: a golden scroll-shaped burst of light with confetti-like golden sparks, 1 second, no loop', None),
+    ('fx_ult_sword', 'a holy judgment: a giant golden sword of light slams down from the sky into the ground, a cross-shaped burst of light and a shockwave ring, 1.2 seconds, no loop', None),
+    ('fx_ult_bow', 'an emerald arrow storm hits: dozens of glowing green arrows rain down into one spot and burst into emerald light and leaves, 1 second, no loop', None),
+    ('fx_ult_mage', 'a blood meteor impact: a crimson flaming meteor crashes into the ground and explodes into red fire and black smoke, 1.1 seconds, no loop', None),
+    ('fx_ult_tank', 'a titan ground smash: the ground cracks in a big ring, rocks fly up and an orange shockwave spreads out, 1 second, no loop', None),
+    ('fx_boss_spawn', 'PRO a boss arrives: a dark red magic circle tears open on the ground, black-red lightning crackles and a pillar of dark energy erupts, then settles into swirling smoke, 1.5 seconds, no loop, leave the middle clear for the monster', None),
+    ('fx_elite_aura', 'a golden aura around a monster: golden flames flicker gently upward with tiny sparkles, seamless loop, 1 second, mostly transparent, leave the middle clear', None),
+    ('fx_raid_victory', 'a victory celebration: golden stars burst up and explode like fireworks with streamers of light, 1.4 seconds, no loop', None),
     ('fx_bs5_special', 'a dark curse explodes on the ground: a purple-black magic circle flares, then a pillar of dark violet flame bursts up, 1 second, no loop, seen from the front and above', None),
 ]
 
 
 def one(key, desc, sprite):
     if os.path.exists(os.path.join(OUT, key + '.json')): return key, 'exists'
-    body = {'description': desc + STYLE, 'artist': 'lite', 'name': key}
+    pro = desc.startswith('PRO ')
+    body = {'description': desc[4:] + STYLE if pro else desc + STYLE, 'artist': 'pro' if pro else 'lite', 'name': key}
     if sprite: body['sprite'] = {'type': 'base64', 'base64': base64.b64encode(open(os.path.join(G, sprite + '.png'), 'rb').read()).decode()}
     try:
         r = P.call('POST', '/vfx', body); jid = r['background_job_id']
