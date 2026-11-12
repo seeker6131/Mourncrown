@@ -11,7 +11,7 @@ import { itemDef, RARITY_COLORS, RARITY_NAMES } from '../data/items';
 import { isEquipped } from '../systems/inventory';
 import { invSize } from '../core/state';
 import {
-  guildOf, meOf, isOfficer, hallLv, whLv, barracksLv, gbLv, tCap, villageCost, goals, rivals, rivalStructs, raidsLeft, repairCost, homeOf, houseLv, defensePower,
+  guildOf, meOf, isOfficer, hallLv, whLv, barracksLv, gbLv, tCap, villageCost, goals, rivals, rivalStructs, raidsLeft, repairCost, homeOf, houseLv, defensePower, isRuin, bldRepairCost, houseRepairCost,
   guildUnlocked, guildOffers, guardsTotal, guardFoodH, houseCost, produce, season, seasonBoard, weekEnd, SEASON_REWARD,
 } from '../systems/guild';
 import {
@@ -65,8 +65,13 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
       const sh = g0.shieldUntil - now;
       T(L + 8, top + 38, `🛡 โล่: ${sh > 0 ? `อีก ${hrs(sh)}` : 'ไม่มี (ศัตรูปล้นได้)'}   •   ห้องนิรภัยกันของไว้ ${Math.round(vaultShare(whLv(s)) * 100)}%   •   พลังป้องกัน ${num(defensePower(s))}   •   ปล้นได้อีกวันนี้ ${raidsLeft(s)} ครั้ง`, 8.5, '#9ad8ff', CW - 16);
       const hl = me.houseLv, hc = hl < BUILDINGS.home.maxLevel ? houseCost(hl + 1) : null;
-      T(L + 8, top + 54, `🏠 บ้านของคุณในหมู่บ้านกิลด์: ${hl ? `Lv${hl}` : 'ที่ดินโล่ง'}${hc ? ` — ${hl ? 'อัป' : 'สร้าง'}ใช้ของส่วนตัว ${(['gold', 'wood', 'stone', 'food'] as const).filter(r => hc[r]).map(r => `${RES_ICON[r]}${num(hc[r]!)}`).join(' ')}` : ''}`, 8, '#ffe7a0', CW - 130);
-      if (hc) c.add(k.button(R - 116, top + 50, 108, 18, hl ? '⬆ อัปบ้าน' : '🔨 สร้างบ้าน', () => { const r = act('houseBuild', {}); if (refused(r)) fail(r); else done(h, `บ้านของคุณ → Lv${r.level}`); }, { size: 8, color: 0x1f4a2a, disabled: !!me.houseDone && now < me.houseDone }));
+      if (!me.houseDmg) T(L + 8, top + 54, `🏠 บ้านของคุณในหมู่บ้านกิลด์: ${hl ? `Lv${hl}` : 'ที่ดินโล่ง'}${hc ? ` — ${hl ? 'อัป' : 'สร้าง'}ใช้ของส่วนตัว ${(['gold', 'wood', 'stone', 'food'] as const).filter(r => hc[r]).map(r => `${RES_ICON[r]}${num(hc[r]!)}`).join(' ')}` : ''}`, 8, '#ffe7a0', CW - 130);
+      if (hc && !me.houseDmg) c.add(k.button(R - 116, top + 50, 108, 18, hl ? '⬆ อัปบ้าน' : '🔨 สร้างบ้าน', () => { const r = act('houseBuild', {}); if (refused(r)) fail(r); else done(h, `บ้านของคุณ → Lv${r.level}`); }, { size: 8, color: 0x1f4a2a, disabled: !!me.houseDone && now < me.houseDone }));
+      if (me.houseDmg) {   // your own house: you repair it yourself with your own wood and stone
+        const rc = houseRepairCost(s);
+        T(L + 8, top + 54, `🏠 บ้านของคุณ${me.houseDmg >= 1 ? 'พังเป็นซาก 💀' : `โดนไฟไหม้ 🔥 ${Math.round(me.houseDmg * 100)}%`} — ซ่อมเองด้วยของส่วนตัว ${RES_ICON.wood}${num(rc.wood ?? 0)} ${RES_ICON.stone}${num(rc.stone ?? 0)}`, 8, '#ff9a7a', CW - 130);
+        c.add(k.button(R - 116, top + 50, 108, 18, '🔧 ซ่อมบ้าน', () => { const r = act('houseRepair', {}); if (refused(r)) fail(r); else done(h, '🔧 ซ่อมบ้านแล้ว'); }, { size: 8, color: 0x7a3a10, disabled: (rc.wood ?? 0) > s.res.wood || (rc.stone ?? 0) > s.res.stone }));
+      }
       T(L + 8, top + 72, 'ข่าวล่าสุดในกิลด์', 9, '#ffd84a');
       g0.log.slice(0, 7).forEach((l, i) => T(L + 12, top + 88 + i * 15, `${new Date(l.t).toLocaleTimeString().slice(0, 5)}  ${l.text}`, 8, '#e8dcc0', CW - 24));
       T(L + 8, top + H - 80, 'บริจาคเข้าคลัง → หัวหน้าอัปอาคาร/ป้อม • ของส่วนตัวไม่โดนปล้น แต่คลังหมู่บ้านโดน', 7.5, '#a89878', CW - 16);
@@ -123,7 +128,14 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
         const d = GUILD_BLD[t], col = i % 2, row = Math.floor(i / 2), bx = L + 6 + col * (CW / 2), by = top + 34 + row * 44, bw = CW / 2 - 10;
         g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(bx, by, bw, 41, 3).lineStyle(1, GOLD_D, 1).strokeRoundedRect(bx, by, bw, 41, 3);
         const building = !!b.done && now < b.done;
-        T(bx + 6, by + 2, `${d.icon} ${d.name} Lv${b.level}${building ? ' 🔨' : ''}`, 8.5, '#ffd84a');
+        T(bx + 6, by + 2, `${d.icon} ${d.name} Lv${b.level}${building ? ' 🔨' : ''}${isRuin(b) ? ' 💀 ซาก' : b.dmg ? ` 🔥 ${Math.round(b.dmg * 100)}%` : ''}`, 8.5, b.dmg ? '#ff9a7a' : '#ffd84a');
+        if (b.dmg) {   // burnt: anyone can repair it with the treasury; a ruin makes nothing and cannot be upgraded until then
+          const rc = bldRepairCost(s, b), rok = (rc.wood ?? 0) <= tr.wood && (rc.stone ?? 0) <= tr.stone;
+          T(bx + 6, by + 15, isRuin(b) ? 'พังเป็นซาก — หยุดทำงาน ต้องซ่อมก่อน' : 'ไฟไหม้เสียหาย — ยังทำงาน แต่ถ้าโดนอีกอาจพัง', 7, '#ffb080', bw - 70);
+          T(bx + 6, by + 28, `ซ่อม: ${RES_ICON.wood}${num(rc.wood ?? 0)} ${RES_ICON.stone}${num(rc.stone ?? 0)} (คลังกิลด์)`, 6.5, rok ? '#c8e8b0' : '#ff8a7a', bw - 70);
+          c.add(k.button(bx + bw - 60, by + 12, 54, 18, '🔧 ซ่อม', () => { const r = act('bldRepair', { t }); if (refused(r)) fail(r); else done(h, `🔧 ซ่อม${d.name}แล้ว`); }, { size: 8, color: 0x7a3a10, disabled: !rok }));
+          return;
+        }
         T(bx + 6, by + 15, d.produces ? `ผลิต ${RES_ICON[d.produces]}${gbRate(d, b.level).toFixed(1)}/นาที • มีรอเก็บ ${num(b.stored)}/${num(gbStoreCap(d, b.level))}` : d.effect(b.level), 7, '#9ad8ff', bw - 70);
         if (b.level >= 5) { T(bx + 6, by + 28, 'เลเวลสูงสุด', 7, '#9fffb0'); return; }
         const cost = villageCost(t, b.level + 1), ok = (['gold', 'wood', 'stone', 'food'] as const).every(r => (cost[r] ?? 0) <= tr[r]) && Object.entries(cost.items ?? {}).every(([id, n]) => (tr.items[id] ?? 0) >= n);

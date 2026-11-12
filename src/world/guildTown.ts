@@ -4,11 +4,12 @@
 import Phaser from 'phaser';
 import { S, bus, EV } from '../core/events';
 import { act, refused } from '../net/client';
-import { guildOf, meOf, hallLv } from '../systems/guild';
-import { GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, defSlots, DEFENSES, GUARDS, type GuildBld, type GuardType } from '../data/guild';
+import { guildOf, meOf, hallLv, isRuin, bldRepairCost, houseRepairCost } from '../systems/guild';
+import { GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, defSlots, defStat, DEFENSES, GUARDS, type GuildBld, type GuardType } from '../data/guild';
 import * as L from './villageLayout';
 import { Village, type Step } from './npcs';
 import { fx2 } from './fx2';
+import { opaqueBox, charTint } from './ruin';
 import { formKeyOf } from './chars';
 
 type Ter = 'g' | 'd' | 'c' | 'w';
@@ -37,11 +38,36 @@ export function gvBridges() {
 export interface TownHost extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; reserved: Set<string>; lamps: Phaser.GameObjects.Image[];
   obj(name: string, x: number, y: number, fw?: number, fd?: number, shadow?: boolean, sc?: number): Phaser.GameObjects.Image | null;
+  /** the burnt ruin of an object picture (world/ruin.ts) */
+  ruin(name: string, x: number, y: number, fw?: number, fd?: number, shadow?: boolean, sc?: number): Phaser.GameObjects.Image | null;
   isBlocked(x: number, y: number): boolean; surfAt(x: number, y: number): string;
   combat: { float(x: number, y: number, t: string, col: string, size?: number): void };
   castShadow(src: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite, live?: boolean, cut?: number): void;
 }
 interface View { key: string; objs: Obj[]; bubble?: Phaser.GameObjects.Container }
+
+/** fire state of a building for its view key: '' intact, f1-f3 burning (more flames the worse), 'ruin' burnt down */
+export const fireKey = (dmg = 0) => dmg >= 1 ? 'ruin' : dmg > 0 ? 'f' + Math.min(3, Math.ceil(dmg * 3)) : '';
+/** flames + smoke on a burning building (same look for every building), or small fires in its ruin. The flames rise from
+ *  behind the roof line (their base hidden by the roof) and the walls darken with soot the worse the fire gets. */
+export function burnFx(sc: Phaser.Scene, im: Phaser.GameObjects.Image, dmg: number): Obj[] {
+  const out: Obj[] = [], bx = opaqueBox(sc, im.texture.key), k = im.scaleY, foot = im.y;
+  const top = im.y - (im.height * im.originY - bx.top) * k, bh = (bx.bot - bx.top) * k, bw = (bx.x1 - bx.x0) * im.scaleX, cx = im.x + ((bx.x0 + bx.x1) / 2 - im.width * im.originX) * im.scaleX;
+  const add = (o: Phaser.GameObjects.Sprite | null) => { if (o) out.push(o); return o; };
+  if (dmg >= 1) {   // the ruin: little fires among the rubble, a thin smoke column
+    add(fx2(sc, 'fx_ruin_fire', cx, foot - bh * 0.06, foot + 2, Math.max(0.7, bw / 60)))?.setOrigin(0.5, 0.95);
+    add(fx2(sc, 'fx_smoke', cx + bw * 0.12, foot - bh * 0.3, foot + 3, Math.max(0.7, bw / 120)))?.setOrigin(0.5, 1).setAlpha(0.6);
+    return out;
+  }
+  im.setTint(charTint(dmg));
+  const n = Math.min(3, Math.ceil(dmg * 3)), fs = Math.max(0.3, bw / 88 * 0.4);
+  for (let i = 0; i < n; i++) {
+    const x = cx + (n === 1 ? 0 : (i / (n - 1) - 0.5) * bw * 0.55), y = top + bh * (0.4 + (i % 2) * 0.06);
+    add(fx2(sc, 'fx_bld_fire', x, y, foot - 0.5, fs * (i % 2 ? 0.85 : 1)))?.setOrigin(0.5, 0.95);   // just behind the building: the roof hides the flame's base
+  }
+  add(fx2(sc, 'fx_smoke', cx - bw * 0.1, top + bh * 0.1, foot + 6, Math.max(0.7, bw / 100)))?.setOrigin(0.5, 1).setAlpha(0.7);
+  return out;
+}
 
 export class GuildTown {
   views = new Map<string, View>();
@@ -144,20 +170,23 @@ export class GuildTown {
     for (const t of GUILD_BLD_ORDER) {
       const b = g.buildings.find(q => q.type === t)!, P = L.PLOTS[L.PLOT_OF[t]], busy = !!b.done && now < b.done;
       const art = busy ? 'site_0' : `${ART[t]}_${artLv(b.level)}`;
-      this.view('b:' + t, art + b.level, () => {
-        const im = sc.obj(art, P.x, P.y, 0.82, Math.round(((sc.textures.exists('o_' + art) ? 1 : 0) || 1) * 50), true, t === 'hall' ? 1.1 : 1);
+      const fk = busy ? '' : fireKey(b.dmg);
+      this.view('b:' + t, art + b.level + fk, () => {
+        const sc0 = t === 'hall' ? 1.1 : 1, im = fk === 'ruin' ? sc.ruin(art, P.x, P.y, 0.82, 50, true, sc0) : sc.obj(art, P.x, P.y, 0.82, 50, true, sc0);
         const top = im ? im.y - im.displayHeight * im.originY : P.y - 120;
-        const lb = this.label(P.x, top - 2, `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${b.level}${busy ? ' 🔨' : ''}`, t === 'hall' ? '#ffd84a' : '#ffe7a0');
+        const fire = fk === 'ruin' ? ' 💀 ซาก (ต้องซ่อม)' : fk ? ' 🔥' : '';
+        const lb = this.label(P.x, (fk === 'ruin' ? P.y - 70 : top - 2), `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${b.level}${busy ? ' 🔨' : ''}${fire}`, fk === 'ruin' ? '#ff9a7a' : t === 'hall' ? '#ffd84a' : '#ffe7a0');
         if (busy) lb.setData('timer', t);
         if (sc.hero && sc.isBlocked(sc.hero.x, sc.hero.y)) sc.hero.setPosition(L.doorOf(L.PLOT_OF[t]).x, L.doorOf(L.PLOT_OF[t]).y + 20);
-        return im ? [im, lb] : [lb];
+        return im ? [im, lb, ...(fk ? burnFx(sc, im, b.dmg ?? 0) : [])] : [lb];
       });
     }
     // the residential street: one lot per member (empty until they build), free lots stay staked out
     for (let i = 0; i < L.PLOTS.length - 10; i++) {
       const P = L.PLOTS[10 + i], m = g.members.find(q => q.house === i), mine = m?.id === g.me;
       const busy = !!m?.houseDone && now < m.houseDone, lv = m ? (busy ? m.houseLv - 1 : m.houseLv) : 0;
-      const key = !m ? 'free' : busy ? `site:${m.name}` : lv > 0 ? `h${artLv(lv)}:${lv}:${m.name}` : `lot:${m.name}`;
+      const hk = m && !busy && lv > 0 ? fireKey(m.houseDmg) : '';
+      const key = (!m ? 'free' : busy ? `site:${m.name}` : lv > 0 ? `h${artLv(lv)}:${lv}:${m.name}` : `lot:${m.name}`) + hk;
       this.view('h:' + i, key + (mine ? ':me' : ''), () => {
         const out: Obj[] = [];
         if (!m || (lv === 0 && !busy)) {
@@ -166,9 +195,10 @@ export class GuildTown {
           out.push(this.label(P.x, P.y - 40, m ? `${mine ? '🏠 ที่ดินของคุณ — สร้างบ้าน' : `ที่ดินของ ${m.name}`}` : 'ที่ดินว่าง', mine ? '#9fffb0' : '#c8b898', 6.5));
         } else {
           const art = busy ? 'site_0' : `house_${artLv(lv)}`;
-          const im = sc.obj(art, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE); if (im) out.push(im);
+          const im = hk === 'ruin' ? sc.ruin(art, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE) : sc.obj(art, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE); if (im) out.push(im);
           const top = im ? im.y - im.displayHeight * im.originY : P.y - 90;
-          out.push(this.label(P.x, top, `${mine ? '🏠 ' : ''}${m.name} Lv${lv}${busy ? ' 🔨' : ''}`, mine ? '#9fffb0' : '#ffe7a0', 6.5));
+          out.push(this.label(P.x, hk === 'ruin' ? P.y - 50 : top, `${mine ? '🏠 ' : ''}${m.name} Lv${lv}${busy ? ' 🔨' : ''}${hk === 'ruin' ? ' 💀' : hk ? ' 🔥' : ''}`, hk ? '#ff9a7a' : mine ? '#9fffb0' : '#ffe7a0', 6.5));
+          if (im && hk) out.push(...burnFx(sc, im, m.houseDmg ?? 0));
         }
         return out;
       });
@@ -177,12 +207,14 @@ export class GuildTown {
     const open = defSlots(hallLv(S(), now));
     L.SLOTS.forEach((P, i) => {
       const q = g.defenses.find(d => d.slot === i), busy = !!q?.done && now < q.done;
-      const key = i >= open ? 'locked' : !q ? 'empty' : `${q.type}:${q.level}:${busy}`;
+      const hurt = q && !busy && q.hp < defStat(DEFENSES[q.type], q.level).hp * 0.5;
+      const key = i >= open ? 'locked' : !q ? 'empty' : `${q.type}:${q.level}:${busy}:${hurt}`;
       this.view('d:' + i, key, () => {
         if (key === 'locked') return [];
         if (!q) { const g2 = sc.add.graphics().setDepth(1.2); g2.lineStyle(1, 0xc8a878, 0.45).strokeEllipse(P.x, P.y, 34, 14); return [g2]; }
         const art = 'def_' + q.type, im = sc.obj(busy ? 'site_0' : art, P.x, P.y, 0.6, 6, true, busy ? 0.3 : DEF_SC[q.type] ?? 0.65);
         const out: Obj[] = im ? [im] : [];
+        if (im && hurt) { const f = fx2(sc, 'fx_bld_fire', P.x, im.y - im.displayHeight * im.originY * 0.5, P.y + 2, 0.3); if (f) out.push(f.setOrigin(0.5, 0.95)); }
         if (q.level > 1) out.push(this.label(P.x, P.y + 12, '★'.repeat(Math.min(5, q.level - 1)), '#ffd84a', 6));
         return out;
       });
@@ -264,17 +296,34 @@ export class GuildTown {
     if (r.unread.length) bus.emit(EV.STATE_CHANGED);
   }
 
+  /** repair with the guild treasury (any member) — the fire goes out with a puff of building dust */
+  repair(t: GuildBld) {
+    const r = act('bldRepair', { t });
+    if (refused(r)) { bus.emit(EV.TOAST, r.refused === 'treasury' ? 'ของในคลังกิลด์ไม่พอซ่อม — ช่วยกันบริจาคไม้/หิน' : 'ซ่อมไม่ได้', '#ff8a6a'); return; }
+    const P = L.PLOTS[L.PLOT_OF[t]]; fx2(this.sc, 'fx_build', P.x, P.y - 40, P.y + 5, 1.4);
+    bus.emit(EV.TOAST, `🔧 ซ่อม${GUILD_BLD[t].name}แล้ว — กลับมาทำงานตามปกติ`, '#9fffb0'); this.render(); bus.emit(EV.STATE_CHANGED);
+  }
+  repairHouse() {
+    const r = act('houseRepair', {});
+    if (refused(r)) { bus.emit(EV.TOAST, r.refused === 'cost' ? 'ไม้/หินของคุณไม่พอซ่อมบ้าน' : 'ซ่อมไม่ได้', '#ff8a6a'); return; }
+    const m = meOf(S())!, P = L.PLOTS[L.housePlot(m.house)]; fx2(this.sc, 'fx_build', P.x, P.y - 30, P.y + 5, 1.1);
+    bus.emit(EV.TOAST, '🔧 ซ่อมบ้านแล้ว', '#9fffb0'); this.render(); bus.emit(EV.STATE_CHANGED);
+  }
   /** what the action button offers near the guild buildings, the house lots and the defense slots */
   offers(h: { x: number; y: number }, offer: (d: number, label: string, cb: () => void) => void, open: (what: string, arg?: number) => void) {
     const g = guildOf(S()); if (!g) return;
     for (const t of GUILD_BLD_ORDER) {
       const P = L.doorOf(L.PLOT_OF[t]), d = Math.hypot(P.x - h.x, (P.y - h.y) * 1.4); if (d > 64) continue;
-      offer(d + 10, `🚪 เข้า${GUILD_BLD[t].name}`, () => open('enter', L.PLOT_OF[t]));
+      const b = g.buildings.find(q => q.type === t)!;
+      if (b.dmg) { const c = bldRepairCost(S(), b); offer(d + 5, `🔧 ซ่อม${GUILD_BLD[t].name} (คลังกิลด์ 🪵${c.wood} 🪨${c.stone})`, () => this.repair(t)); }
+      if (!isRuin(b)) offer(d + 10, `🚪 เข้า${GUILD_BLD[t].name}`, () => open('enter', L.PLOT_OF[t]));
     }
     const me = meOf(S());
     for (const m of g.members) {
       const P = L.doorOf(L.housePlot(m.house)), d = Math.hypot(P.x - h.x, (P.y - h.y) * 1.4); if (d > 52) continue;
       if (m.id !== g.me) { offer(d + 20, `🏠 บ้านของ ${m.name}`, () => bus.emit(EV.TOAST, `${m.name} • Lv${m.lv} • บ้าน Lv${m.houseLv} • แต้มบุญ ${m.pts}`, '#ffe7a0')); continue; }
+      if (me?.houseDmg) { const c = houseRepairCost(S()); offer(d - 1, `🔧 ซ่อมบ้าน (ของคุณเอง 🪵${c.wood} 🪨${c.stone})`, () => this.repairHouse()); }
+      if (me?.houseDmg && me.houseDmg >= 1) continue;
       if ((me?.houseLv ?? 0) > 0 && !(me?.houseDone && Date.now() < me.houseDone)) offer(d, '🚪 เข้าบ้าน', () => open('enter', L.housePlot(m.house)));
       else offer(d, (me?.houseDone && Date.now() < me.houseDone) ? '🔨 กำลังสร้างบ้าน' : '🔨 สร้างบ้าน', () => open('tab:home'));
     }

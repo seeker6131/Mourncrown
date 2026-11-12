@@ -19,9 +19,9 @@ import { pay } from './settlement';
 import { dayKey } from './daily';
 
 export type Role = 'leader' | 'deputy' | 'member';
-export interface GMember { id: string; name: string; role: Role; pts: number; house: number; houseLv: number; houseDone?: number; cls: string; lv: number; sim?: boolean; joined: number }
+export interface GMember { id: string; name: string; role: Role; pts: number; house: number; houseLv: number; houseDone?: number; houseDmg?: number; cls: string; lv: number; sim?: boolean; joined: number }
 export interface GDefense { slot: number; type: DefenseId; level: number; hp: number; done?: number }
-export interface GBuilding { type: GuildBld; level: number; stored: number; last: number; done?: number }
+export interface GBuilding { type: GuildBld; level: number; stored: number; last: number; done?: number; /** fire damage 0..1 after a raid (1 = burnt to a ruin) */ dmg?: number }
 export interface Treasury { gold: number; wood: number; stone: number; food: number; items: Record<string, number> }
 export interface GLog { t: number; kind: 'donate' | 'upgrade' | 'defense' | 'raid' | 'defend' | 'goal' | 'join' | 'role' | 'guard'; text: string }
 export interface Goal { kind: GoalKind; need: number; have: number; mine: number; done: boolean }
@@ -171,6 +171,7 @@ export function upgradeVillage(s: GameState, t: GuildBld, now = Date.now()): R |
   if (!isOfficer(s)) return no('role');
   const b = g.buildings.find(q => q.type === t); if (!b) return no('building');
   if (b.done && now < b.done) return no('busy');
+  if (isRuin(b)) return no('ruin');
   if (b.level >= 5) return no('max');
   if (t !== 'hall' && b.level + 1 > hallLv(s, now)) return no('hall');
   produce(s, now);
@@ -184,7 +185,7 @@ export function produce(s: GameState, now = Date.now()) {
   const g = guildOf(s); if (!g) return;
   for (const b of g.buildings) {
     const d = GUILD_BLD[b.type];
-    if (!d.produces || (b.done && now < b.done)) { b.last = now; continue; }
+    if (!d.produces || (b.done && now < b.done) || isRuin(b)) { b.last = now; continue; }   // a ruin makes nothing until repaired
     const mins = Math.max(0, (now - b.last) / 60000);
     b.stored = Math.min(gbStoreCap(d, b.level), b.stored + gbRate(d, b.level) * mins); b.last = now;
   }
@@ -235,9 +236,57 @@ export function houseBuild(s: GameState, now = Date.now()): R | { level: number 
   const g = guildOf(s); if (!g) return no('guild');
   const me = meOf(s)!; if (me.houseDone && now < me.houseDone) return no('busy');
   if (me.houseLv >= BUILDINGS.home.maxLevel) return no('max');
+  if ((me.houseDmg ?? 0) >= 1) return no('ruin');
   if (!pay(s, houseCost(me.houseLv + 1))) return no('cost');
   me.houseLv++; me.houseDone = now + buildTime(me.houseLv);
   return { level: me.houseLv };
+}
+
+// ---------------------------------------------------------------- fire damage & repairs (docs/GUILD_WAR.md 13.3)
+/** a guild building's toughness in a fight */
+export const bldHp = (t: GuildBld, lv: number) => t === 'hall' ? 2500 + 1500 * lv : 700 + 500 * lv;
+export const isRuin = (b: { dmg?: number }) => (b.dmg ?? 0) >= 1;
+/** repairing a guild building: wood + stone from the guild treasury for the burnt part (the forge makes it cheaper) */
+export function bldRepairCost(s: GameState, b: GBuilding): Cost {
+  const miss = (b.dmg ?? 0) * bldHp(b.type, b.level), m = 0.3 * (1 - 0.1 * (Math.max(1, gbLv(s, 'forge')) - 1));
+  return { wood: Math.ceil(miss * m), stone: Math.ceil(miss * m * 0.8) };
+}
+/** any member may repair: the treasury is what everyone gathered together */
+export function bldRepair(s: GameState, t: GuildBld, now = Date.now()): R | { ok: true } {
+  const g = guildOf(s); if (!g) return no('guild');
+  const b = g.buildings.find(q => q.type === t); if (!b || !(b.dmg ?? 0)) return no('full');
+  if (!tPay(g, bldRepairCost(s, b))) return no('treasury');
+  b.dmg = 0; b.last = now;
+  log(g, 'upgrade', `🔧 ${meOf(s)!.name} ซ่อม${GUILD_BLD[t].name}`, now);
+  return { ok: true };
+}
+/** your own house: you repair it yourself, with your own wood and stone */
+export function houseRepairCost(s: GameState): Cost {
+  const me = meOf(s); if (!me) return {};
+  const base = 150 + 120 * me.houseLv, d = me.houseDmg ?? 0;
+  return { wood: Math.ceil(d * base), stone: Math.ceil(d * base * 0.7) };
+}
+export function houseRepair(s: GameState): R | { ok: true } {
+  const me = meOf(s); if (!me) return no('guild');
+  if (!(me.houseDmg ?? 0)) return no('full');
+  if (!pay(s, houseRepairCost(s))) return no('cost');
+  me.houseDmg = 0; return { ok: true };
+}
+/** what burned in a raid on our village: share of each building's toughness lost (0..1), and our own house */
+export interface Wreck { b?: Partial<Record<GuildBld, number>>; house?: number }
+function applyWreck(s: GameState, w: Wreck) {
+  const g = guildOf(s)!, me = meOf(s)!;
+  for (const b of g.buildings) { const x = w.b?.[b.type]; if (x && x > 0) b.dmg = Math.min(1, Math.round(((b.dmg ?? 0) + x) * 100) / 100); }
+  if (w.house && me.houseLv > 0) me.houseDmg = Math.min(1, Math.round(((me.houseDmg ?? 0) + w.house) * 100) / 100);
+}
+/** a raid nobody watched (offline): fire where the enemy got through — more stars, more burning */
+function simWreck(stars: number, rnd: () => number): Wreck {
+  const w: Wreck = { b: {} };
+  if (!stars) return w;
+  for (const t of GUILD_BLD_ORDER) if (t !== 'hall' && rnd() < 0.2 * stars) w.b![t] = stars >= 3 && rnd() < 0.4 ? 1 : 0.2 + rnd() * 0.3 * stars;
+  if (stars >= 3) w.b!.hall = 0.5;
+  if (rnd() < 0.15 * stars) w.house = 0.3 + rnd() * 0.4;
+  return w;
 }
 
 // ---------------------------------------------------------------- defenses & hired guards
@@ -426,11 +475,15 @@ export function simIncoming(s: GameState, now: number, rnd: () => number) {
   const atk = (hallLv(s) * 420 + 300) * (0.7 + rnd() * 0.7), def = defensePower(s), ratio = atk / Math.max(1, def);
   const stars = ratio > 2.2 ? 3 : ratio > 1.4 ? 2 : ratio > 0.9 ? 1 : 0;
   const name = RIVAL_NAMES[Math.floor(rnd() * RIVAL_NAMES.length)];
-  return raidOutcome(s, stars, name, now);
+  return raidOutcome(s, stars, name, now, simWreck(stars, rnd));
 }
 /** what an enemy raid on our village costs (or earns, when it was beaten off) */
-export function raidOutcome(s: GameState, stars: number, name: string, now: number) {
+export function raidOutcome(s: GameState, stars: number, name: string, now: number, wreck?: Wreck) {
   const g = guildOf(s)!;
+  if (wreck) applyWreck(s, wreck);
+  const burnt = g.buildings.filter(b => (b.dmg ?? 0) > 0).length;
+  if (burnt) g.unread.push(`🔥 อาคารถูกเผาเสียหาย ${burnt} หลัง${g.buildings.some(isRuin) ? ' (บางหลังพังเป็นซาก — หยุดทำงานจนกว่าจะซ่อม)' : ''} • ซ่อมด้วยของในคลังกิลด์ที่แท็บสร้าง`);
+  if ((meOf(s)!.houseDmg ?? 0) > 0) g.unread.push('🏠 บ้านของคุณโดนไฟไหม้ — ซ่อมเองด้วยไม้/หินของคุณ (เดินไปที่บ้าน หรือแท็บหน้าหลักกิลด์)');
   if (!stars) seasonAdd(s, 8, now);   // beating a raid off counts for the season too
   if (!stars) { meOf(s)!.pts += 20; log(g, 'defend', `🛡 ${name} บุกแต่ป้องกันได้! (+20 แต้มบุญ)`, now); g.unread.push(`🛡 ${name} บุกหมู่บ้าน แต่ป้อมและทหารป้องกันไว้ได้!`); g.shieldUntil = now + 4 * 3600000; return { stars }; }
   const take = RAID_TAKE[stars], free = 1 - vaultShare(whLv(s)); const lost: string[] = [];
@@ -496,10 +549,10 @@ export function raidResult(s: GameState, rv: Rival, destroyed: string[], now = D
   return { stars, gain, pts, destroyed: set.size, total: all.length };
 }
 /** test buttons (DEV_TOOLS only, refused by the server for OBT): fill the treasury, skip 12 hours, an enemy raid right now */
-export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend', now = Date.now(), rnd: () => number = Math.random, n?: number, name?: string): string[] {
+export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend', now = Date.now(), rnd: () => number = Math.random, n?: number, name?: string, wreck?: Wreck): string[] {
   const g = guildOf(s); if (!g) return ['ยังไม่มีกิลด์'];
   if (op === 'guildDefend') {   // the defense battle in the village ended: n = stars the enemy got (0 = beaten off)
-    raidOutcome(s, Math.max(0, Math.min(3, Math.floor(n ?? 0))), name ?? RIVAL_NAMES[0], now);
+    raidOutcome(s, Math.max(0, Math.min(3, Math.floor(n ?? 0))), name ?? RIVAL_NAMES[0], now, wreck);
     return g.unread.splice(0);
   }
   if (op === 'guildFill') {

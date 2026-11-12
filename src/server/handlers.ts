@@ -23,9 +23,9 @@ import { build, upgrade, collect, craft, cook } from '../systems/settlement';
 import {
   guildOf, homeOf, donate, upgradeVillage, collectVillage, setRole, simInvite, kick, defBuild, defUpgrade, defRepair, defRemove, createGuild, joinGuild,
   houseBuild, hireGuard, dismissGuard, sleep, wake, trophyPut, trophyTake, stashPut, stashTake, shopBuy as guildShopBuy, goals, goalProgress, guildTick, rivals,
-  rivalStructs, canRaid, raidResult, devGuild, seasonClaim, type Rival,
+  rivalStructs, canRaid, raidResult, devGuild, seasonClaim, bldRepair, houseRepair, type Rival, type Wreck,
 } from '../systems/guild';
-import { RAID_SECS, REST_EXP, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
+import { RAID_SECS, REST_EXP, GUILD_BLD, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
 import { gainExp } from '../systems/stats';
 import { upSkill, advanceClass } from '../systems/stats';
 import { listItem, cancelListing } from '../systems/market';
@@ -48,6 +48,13 @@ const no = (why: string): Refused => ({ refused: why });
 interface Drop { id: string; qty: number; gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }; until: number }
 /** server-wide news (SL drops) — on the real server this goes to every connected player */
 const news: { t: number; name: string; item: string; rar: number }[] = [];
+/** the defense battle reports what burned (test op only — online the server runs the battle itself) */
+const cleanWreck = (w?: Wreck): Wreck | undefined => {
+  if (!w) return undefined;
+  const b: Wreck['b'] = {}, k = (x: unknown) => Math.max(0, Math.min(1, Number(x) || 0));
+  for (const t of Object.keys(w.b ?? {})) if (GUILD_BLD[t as GuildBld]) b[t as GuildBld] = k(w.b![t as GuildBld]);
+  return { b, house: k(w.house) };
+};
 const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
@@ -219,6 +226,9 @@ export const handlers = {
   guildJoin: (s: GameState, a: { id: string }, c: Ctx) => joinGuild(s, a.id, c.now, c.rnd),
   guildUpgrade: (s: GameState, a: { type: GuildBld }, c: Ctx) => upgradeVillage(s, a.type, c.now),
   guildCollect: (s: GameState, a: { type: GuildBld }, c: Ctx) => collectVillage(s, a.type, c.now),
+  /** repair a burnt guild building from the treasury (any member) / your own house from your own stock */
+  bldRepair: (s: GameState, a: { t: GuildBld }, c: Ctx) => GUILD_BLD[a.t] ? bldRepair(s, a.t, c.now) : no('building'),
+  houseRepair: (s: GameState, _a: object) => houseRepair(s),
   houseBuild: (s: GameState, _a: object, c: Ctx) => houseBuild(s, c.now),
   seasonClaim: (s: GameState, _a: object, c: Ctx) => seasonClaim(s, c.now),
   hireGuard: (s: GameState, a: { type: GuardType }, c: Ctx) => hireGuard(s, a.type, c.now),
@@ -296,9 +306,9 @@ export const handlers = {
   /** daily login calendar: one claim per day */
   loginClaim: (s: GameState, _a: object, c: Ctx) => claimLogin(s, c.now) ?? no('claimed'),
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
-  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend'; n?: number; name?: string }, c: Ctx): Refused | { got: string[] } {
+  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend'; n?: number; name?: string; wreck?: Wreck }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');
-    if (a.op === 'guildFill' || a.op === 'guildTime' || a.op === 'guildAttack' || a.op === 'guildDefend') return { got: devGuild(s, a.op, c.now, c.rnd, a.n, a.name) };
+    if (a.op === 'guildFill' || a.op === 'guildTime' || a.op === 'guildAttack' || a.op === 'guildDefend') return { got: devGuild(s, a.op, c.now, c.rnd, a.n, a.name, a.op === 'guildDefend' ? cleanWreck(a.wreck) : undefined) };
     if (a.op === 'kit') return { got: giveTestKit(s, 5, c.rnd) };
     if (a.op === 'level') testLevelUp(s, a.n ?? 10);
     else if (a.op === 'vip') grantVip(s, a.n ?? 3, c.now);

@@ -8,14 +8,15 @@ import { act, refused } from '../net/client';
 import { derive, calcDamage, skillMult } from '../systems/stats';
 import { saveGame } from '../core/save';
 import { sfx } from '../audio/sfx';
-import { guildOf, hallLv, barracksLv } from '../systems/guild';
+import { guildOf, hallLv, barracksLv, meOf, isRuin, bldHp, type Wreck } from '../systems/guild';
 import { DEFENSES, defStat, GUARDS, GUILD_BLD, GUILD_BLD_ORDER, RIVAL_NAMES, type GuildBld } from '../data/guild';
 import type { SkillDef } from '../data/skills';
 import * as L from './villageLayout';
 import { CH, playAnim, setIdle, hitMs, formKeyOf } from './chars';
 import { fx2 } from './fx2';
 import { pxShadow } from './pxShadow';
-import type { GuildTown } from './guildTown';
+import { burnFx, fireKey, type GuildTown } from './guildTown';
+import { makeRuin, charTint } from './ruin';
 
 export interface DefHost extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; dead: boolean; canStand(x: number, y: number): boolean;
@@ -23,7 +24,7 @@ export interface DefHost extends Phaser.Scene {
 }
 interface Unit { side: 'atk' | 'def'; key: string; name: string; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Graphics; tag: Phaser.GameObjects.Text;
   x: number; y: number; hp: number; max: number; atk: number; range: number; rate: number; speed: number; last: number; dir: number; alive: boolean; busy: boolean; ranged: boolean; magic: boolean }
-interface Bld { id: string; name: string; kind: 'hall' | 'building' | 'defense'; x: number; y: number; rx: number; hp: number; max: number; alive: boolean; img?: Phaser.GameObjects.Image; shoot?: { dmg: number; range: number; rate: number; next: number; aoe?: number; spikes?: boolean } }
+interface Bld { dmg0?: number; orig?: string; fx?: Phaser.GameObjects.GameObject[]; fk?: string; id: string; name: string; kind: 'hall' | 'building' | 'defense' | 'house'; x: number; y: number; rx: number; hp: number; max: number; alive: boolean; img?: Phaser.GameObjects.Image; shoot?: { dmg: number; range: number; rate: number; next: number; aoe?: number; spikes?: boolean } }
 
 const RANGED = new Set(['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9', 'np10']);
 const MAGIC = new Set(['hr7', 'hr8', 'hr9']);
@@ -44,8 +45,16 @@ export class DefenseBattle {
     // our buildings and defenses become targets (their pictures come from the town)
     for (const t of GUILD_BLD_ORDER) {
       const b = g.buildings.find(q => q.type === t)!, P = L.PLOTS[L.PLOT_OF[t]], img = this.town.views.get('b:' + t)?.objs[0] as Phaser.GameObjects.Image | undefined;
-      const hp = t === 'hall' ? 2500 + 1500 * b.level : 700 + 500 * b.level;
-      this.blds.push({ id: 'b:' + t, name: `${GUILD_BLD[t as GuildBld].icon} ${GUILD_BLD[t as GuildBld].name}`, kind: t === 'hall' ? 'hall' : 'building', x: P.x, y: P.y, rx: t === 'hall' ? 84 : 70, hp, max: hp, alive: true, img: img?.setTint ? img : undefined });
+      if (isRuin(b)) continue;   // already a ruin: nothing left to burn
+      const max = bldHp(t, b.level), d0 = b.dmg ?? 0;
+      this.blds.push({ id: 'b:' + t, name: `${GUILD_BLD[t as GuildBld].icon} ${GUILD_BLD[t as GuildBld].name}`, kind: t === 'hall' ? 'hall' : 'building', x: P.x, y: P.y, rx: t === 'hall' ? 84 : 70, hp: max * (1 - d0), max, alive: true, img: img?.setTint ? img : undefined, dmg0: d0, fk: fireKey(d0) });
+    }
+    { // our own house burns too (it is not counted for the enemy's stars)
+      const me = meOf(s), m = me && g.members.find(q => q.id === g.me);
+      if (m && m.houseLv > 0 && !(m.houseDmg && m.houseDmg >= 1)) {
+        const P = L.PLOTS[L.housePlot(m.house)], img = this.town.views.get('h:' + m.house)?.objs.find(o => (o as Phaser.GameObjects.Image).setTint) as Phaser.GameObjects.Image | undefined, max = 500 + 300 * m.houseLv, d0 = m.houseDmg ?? 0;
+        this.blds.push({ id: 'house', name: '🏠 บ้านของคุณ', kind: 'house', x: P.x, y: P.y, rx: 44, hp: max * (1 - d0), max, alive: true, img, dmg0: d0, fk: fireKey(d0) });
+      }
     }
     for (const q of g.defenses) {
       const D = DEFENSES[q.type], st = defStat(D, q.level), P = L.SLOTS[q.slot], img = this.town.views.get('d:' + q.slot)?.objs[0] as Phaser.GameObjects.Image | undefined;
@@ -91,7 +100,7 @@ export class DefenseBattle {
     this.units.push({ side, key, name, sp, sh: pxShadow(sc, x, y, 22, 8, 0.45), bar: sc.add.graphics().setDepth(99961), tag, x, y, hp, max: hp, atk, range: RANGED.has(key) ? 130 : 30, rate: 1100 + Math.random() * 400, speed, last: 0, dir: 0, alive: true, busy: false, ranged: RANGED.has(key), magic: MAGIC.has(key) });
   }
 
-  stars() { const all = this.blds.length, down = this.blds.filter(b => !b.alive).length, hall = this.blds.some(b => b.kind === 'hall' && !b.alive), p = down / Math.max(1, all); return p >= 1 ? 3 : hall && p >= 0.5 ? 2 : hall || p >= 0.5 ? 1 : 0; }
+  stars() { const cnt = this.blds.filter(b => b.kind !== 'house'), all = cnt.length, down = cnt.filter(b => !b.alive).length, hall = this.blds.some(b => b.kind === 'hall' && !b.alive), p = down / Math.max(1, all); return p >= 1 ? 3 : hall && p >= 0.5 ? 2 : hall || p >= 0.5 ? 1 : 0; }
   title() { const l = Math.max(0, Math.ceil((this.end - this.sc.time.now) / 1000)), left = this.units.filter(u => u.side === 'atk' && u.alive).length + (this.waves > 0 ? ' (+ระลอกถัดไป)' : ''); return `🛡 ป้องกันหมู่บ้านจาก ${this.enemy} • ⏱ ${Math.floor(l / 60)}:${String(l % 60).padStart(2, '0')} • ศัตรูเหลือ ${left} • เสียหาย ${'⭐'.repeat(this.stars()) || 'ยังไม่เสียอะไร'}`; }
 
   heroAttack(form: string) {
@@ -123,11 +132,28 @@ export class DefenseBattle {
   }
   hurtBld(b: Bld, dmg: number) {
     if (!b.alive) return;
-    b.hp -= dmg; if (b.img) { b.img.setTintFill(0xffb0a0); this.sc.time.delayedCall(60, () => b.img?.clearTint()); }
+    this.liveImg(b);
+    b.hp -= dmg; if (b.img) { b.img.setTintFill(0xffb0a0); this.sc.time.delayedCall(60, () => b.img?.active && b.img.setTint(charTint(b.fk === 'ruin' ? 0 : Math.max(0, 1 - b.hp / b.max)))); }
+    this.burn(b);
     if (b.hp > 0) return;
     b.alive = false; fx2(this.sc, 'fx_collapse', b.x, b.y + 4, b.y + 5, b.kind === 'defense' ? 0.8 : 1.5); this.sc.combat.vfx.dust(b.x, b.y, 14, b.rx);
-    if (b.img) this.sc.tweens.add({ targets: b.img, alpha: 0.35, duration: 500, onComplete: () => b.img?.setTint(0x3a3430) });
     bus.emit(EV.TOAST, `💥 ${this.enemy} ทำลาย ${b.name}!`, '#ff9a7a');
+  }
+  /** flames grow as a building loses HP (same look for every building); at 0 it falls into a burning ruin */
+  /** the town may redraw a building while we fight (its state changed): pick up the new picture */
+  liveImg(b: Bld) {
+    if (b.img?.active) return;
+    const id = b.id === 'house' ? 'h:' + (guildOf(S())?.members.find(m => m.id === guildOf(S())!.me)?.house ?? -1) : b.id;
+    b.img = this.town.views.get(id)?.objs.find(o => (o as Phaser.GameObjects.Image).setTint && o.active) as Phaser.GameObjects.Image | undefined;
+    b.orig = undefined; b.fk = undefined;
+  }
+  burn(b: Bld) {
+    if (!b.img?.active) return;
+    const f = Math.max(0, Math.min(1, 1 - b.hp / b.max)), fk = b.hp <= 0 ? 'ruin' : fireKey(f >= 0.15 ? f : 0);
+    if (fk === b.fk) return;
+    b.fk = fk; b.fx?.forEach(o => o.destroy());
+    if (fk === 'ruin') { const src = b.img.texture.key, dst = 'o_ruin_' + src.replace(/^o_/, ''); b.orig ??= src; if (makeRuin(this.sc, src, dst)) b.img.setTexture(dst); }
+    b.fx = fk ? burnFx(this.sc, b.img, fk === 'ruin' ? 1 : f) : [];
   }
   hitHero(dmg: number) {
     const s = S(), d = derive(s), r = calcDamage(dmg, d.def, 1, 0.05, Math.random, d.evade), h = this.sc.hero;
@@ -204,13 +230,20 @@ export class DefenseBattle {
   }
   finish() {
     if (this.over) return; this.over = true;
-    const stars = this.stars(), r = act('dev', { op: 'guildDefend', n: stars, name: this.enemy });
+    // what burned: the share of toughness each building lost in this fight (the server adds it to the damage it had)
+    const wreck: Wreck = { b: {} };
+    for (const b of this.blds) {
+      const lost = Math.max(0, (b.alive ? 1 - b.hp / b.max : 1) - (b.dmg0 ?? 0)); if (lost < 0.05) continue;
+      if (b.kind === 'house') wreck.house = lost; else if (b.id.startsWith('b:')) wreck.b![b.id.slice(2) as GuildBld] = b.alive ? lost : 1;
+    }
+    const stars = this.stars(), r = act('dev', { op: 'guildDefend', n: stars, name: this.enemy, wreck });
     if (!refused(r)) for (const m of r.got) bus.emit(EV.TOAST, m, m.startsWith('🛡') ? '#9fffb0' : '#ff9a7a');
     if (!stars) { fx2(this.sc, 'fx_raid_victory', this.sc.hero.x, this.sc.hero.y - 20, 99995, 1.4); sfx.levelUp(); bus.emit(EV.TOAST, '🏆 ป้องกันหมู่บ้านสำเร็จ!', '#ffd84a'); }
     saveGame(S()); bus.emit(EV.STATE_CHANGED);
     this.sc.time.delayedCall(2500, () => {
       for (const u of this.units) { u.sp.destroy(); u.sh.destroy(); u.bar.destroy(); if (u.tag.active) u.tag.destroy(); }
-      for (const b of this.blds) if (b.img?.active) { b.img.clearTint(); b.img.setAlpha(1); }
+      for (const b of this.blds) { b.fx?.forEach(o => o.destroy()); if (b.img?.active) { if (b.orig) b.img.setTexture(b.orig); b.img.clearTint(); b.img.setAlpha(1); } }
+      this.town.render();   // the village now shows what really burned (fires / ruins from the saved state)
       for (const w of this.town.guards?.npcs ?? []) { w.sp.setVisible(true); w.shadow.setVisible(true); w.tag.setVisible(true); }
       this.town.dome?.setVisible(true);
       this.units = []; (this.sc as unknown as { defense?: DefenseBattle }).defense = undefined;

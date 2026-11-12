@@ -240,3 +240,31 @@ describe('bounty boss', () => {
     expect(bountyOf(s, b.until + 1).killed).toBe(false);
   });
 });
+
+import { devGuild, bldRepair, houseRepair, isRuin, bldRepairCost } from '../src/systems/guild';
+describe('burnt buildings and repairs', () => {
+  it('a raid burns buildings; a ruin makes nothing until the guild repairs it from the treasury', () => {
+    const { s, g } = village(); rich(g); houseBuild(s, T0); meOf(s)!.houseDone = 0;
+    devGuild(s, 'guildDefend', T0, rnd, 2, 'โจร', { b: { lumber: 1, forge: 0.4 }, house: 0.5 });
+    const lum = g.buildings.find(b => b.type === 'lumber')!, forge = g.buildings.find(b => b.type === 'forge')!;
+    expect(isRuin(lum)).toBe(true); expect(forge.dmg).toBe(0.4); expect(meOf(s)!.houseDmg).toBe(0.5);
+    lum.stored = 0; lum.last = T0; produce(s, T0 + 3600000); expect(lum.stored).toBe(0);
+    expect(upgradeVillage(s, 'lumber', T0)).toEqual({ refused: 'ruin' });
+    const wood = g.treasury.wood, cost = bldRepairCost(s, lum);
+    expect(bldRepair(s, 'lumber', T0)).toEqual({ ok: true }); expect(g.treasury.wood).toBe(wood - cost.wood!); expect(lum.dmg).toBe(0);
+    expect(bldRepair(s, 'lumber', T0)).toEqual({ refused: 'full' });
+  });
+  it('your own house: you repair it with your own wood and stone, not the treasury', () => {
+    const { s, g } = village(); rich(g); houseBuild(s, T0); meOf(s)!.houseDone = 0;
+    devGuild(s, 'guildDefend', T0, rnd, 0, 'โจร', { house: 1 });
+    expect(houseBuild(s, T0)).toEqual({ refused: 'ruin' });
+    const tw = g.treasury.wood, w = s.res.wood;
+    expect(houseRepair(s)).toEqual({ ok: true }); expect(s.res.wood).toBeLessThan(w); expect(g.treasury.wood).toBe(tw); expect(meOf(s)!.houseDmg).toBe(0);
+    s.res = { wood: 0, stone: 0, food: 0 }; meOf(s)!.houseDmg = 0.5; expect(houseRepair(s)).toEqual({ refused: 'cost' });
+  });
+  it('the server clamps what a client says burned', () => {
+    const { s, g } = village();
+    handlers.dev(s, { op: 'guildDefend', n: 0, name: 'x', wreck: { b: { lumber: 9, nope: 1 } as never, house: -3 } }, { now: T0, rnd } as never);
+    expect(g.buildings.find(b => b.type === 'lumber')!.dmg).toBe(1);
+  });
+});

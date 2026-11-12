@@ -15,6 +15,8 @@ import * as L from './villageLayout';
 import { CH, playAnim, setIdle, hitMs } from './chars';
 import { fx2 } from './fx2';
 import { pxShadow } from './pxShadow';
+import { burnFx, fireKey } from './guildTown';
+import { makeRuin, charTint } from './ruin';
 
 export interface RaidStart { rival: Rival; structs: RivalStruct[]; secs: number }
 /** what the battle needs from the top-down scene */
@@ -24,7 +26,7 @@ export interface RaidHost extends Phaser.Scene {
   canStand(x: number, y: number): boolean;
   combat: { float(x: number, y: number, t: string, col: string, size: number): void; vfx: { bolt(x: number, y: number, tx: number, ty: number, col: number, size?: number, speed?: number, hit?: () => void, arrow?: boolean): void; impact(x: number, y: number, col: number, big?: boolean): void; dust(x: number, y: number, n: number, r: number): void } };
 }
-interface Target { id: string; name: string; kind: 'hall' | 'building' | 'defense'; x: number; y: number; rx: number; ry: number; hp: number; max: number; alive: boolean; img: Phaser.GameObjects.Image | null; bar: Phaser.GameObjects.Graphics; def?: { id: DefenseId; dmg: number; range: number; rate: number; aoe?: number; slow?: number; spawn?: number; buff?: number; shot?: string; next: number; spawned?: boolean } }
+interface Target { fk?: string; fx?: Phaser.GameObjects.GameObject[]; id: string; name: string; kind: 'hall' | 'building' | 'defense'; x: number; y: number; rx: number; ry: number; hp: number; max: number; alive: boolean; img: Phaser.GameObjects.Image | null; bar: Phaser.GameObjects.Graphics; def?: { id: DefenseId; dmg: number; range: number; rate: number; aoe?: number; slow?: number; spawn?: number; buff?: number; shot?: string; next: number; spawned?: boolean } }
 interface Guard { type: GuardType; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Graphics; x: number; y: number; hp: number; max: number; atk: number; range: number; rate: number; last: number; dir: number; alive: boolean; post: { x: number; y: number }; busy: boolean }
 
 const ART: Record<GuildBld, string> = { hall: 'townhall', barracks: 'tower', forge: 'forge', kitchen: 'kitchen', tavern: 'tavern', market: 'market', warehouse: 'warehouse', lumber: 'lumber', quarry: 'quarry', barn: 'barn' };
@@ -114,14 +116,23 @@ export class RaidBattle {
   }
   /** distance from the hero to a building / defense footprint (a box from its foot up to its back wall) */
   dist(t: Target, x: number, y: number) { const dx = Math.max(0, Math.abs(x - t.x) - t.rx), dy = y > t.y ? y - t.y : y < t.y - t.ry ? t.y - t.ry - y : 0; return Math.hypot(dx, dy); }
+  /** the same fire as in our own village: flames grow with the damage, a destroyed building is a burning ruin */
+  burn(t: Target) {
+    if (!t.img) return;
+    const f = Math.max(0, Math.min(1, 1 - t.hp / t.max)), fk = t.hp <= 0 ? 'ruin' : fireKey(f >= 0.15 ? f : 0);
+    if (fk === (t.fk ?? '')) return;
+    t.fk = fk; t.fx?.forEach(o => o.destroy());
+    if (fk === 'ruin') { const src = t.img.texture.key, dst = 'o_ruin_' + src.replace(/^o_/, ''); if (makeRuin(this.sc, src, dst)) t.img.setTexture(dst); }
+    t.fx = fk ? burnFx(this.sc, t.img, fk === 'ruin' ? 1 : f) : [];
+  }
   hurtTarget(t: Target, dmg: number) {
     t.hp -= dmg; sfx.hit();
-    if (t.img) { t.img.setTintFill(0xffffff); this.sc.time.delayedCall(50, () => t.img?.clearTint()); }
+    if (t.img) { t.img.setTintFill(0xffffff); this.sc.time.delayedCall(50, () => t.img?.active && t.img.setTint(charTint(t.fk === 'ruin' ? 0 : Math.max(0, 1 - t.hp / t.max)))); }
+    this.burn(t);
     if (t.hp > 0) return;
     t.alive = false; t.hp = 0; t.bar.clear();
     fx2(this.sc, 'fx_collapse', t.x, t.y + 4, t.y + 5, t.kind === 'defense' ? 0.8 : 1.6); fx2(this.sc, 'fx_coins', t.x, t.y - 40, 99955, 0.9);
     sfx.crit(); this.sc.combat.vfx.dust(t.x, t.y, 16, t.rx);
-    if (t.img) this.sc.tweens.add({ targets: t.img, alpha: 0.25, duration: 600, onComplete: () => t.img?.setTint(0x2a2622) });
     bus.emit(EV.TOAST, `💥 ทำลาย ${t.name}! ${'⭐'.repeat(this.stars())}`, '#ffd84a');
     if (this.targets.every(q => !q.alive)) this.finish('all');
   }

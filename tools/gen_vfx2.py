@@ -102,6 +102,10 @@ JOBS = [   # key, description, sprite to build around (or None)
     ('fx_sk_t4_fortress', 'a fortress stance: golden-orange stone-like armor of light builds up around the middle with a glow, 0.7 seconds, no loop, leave the middle clear for the character', None),
     ('fx_sk_t4_lion', 'a lion roar hammer spin: three orange-gold circular hammer shockwaves sweep around the middle with a roaring lion-shaped aura, 0.7 seconds, no loop, leave the middle clear for the character', None),
     ('fx_raid_victory', 'a victory celebration: golden stars burst up and explode like fireworks with streamers of light, 1.4 seconds, no loop', None),
+    # burning buildings (guild village raids): fire on a damaged building, smoke, small flames left in the ruins
+    ('fx_bld_fire', 'a building on fire: several tall tongues of orange and yellow flame licking upward from a wide base, sparks and embers flying up, dark red glow at the bottom, seamless loop, 1 second, no ground, no building', None),
+    ('fx_smoke', 'a column of thick dark grey smoke rising and billowing slowly upward from a fire, puffs drifting and fading at the top, seamless loop, 2 seconds', None),
+    ('fx_ruin_fire', 'small low flames flickering among burnt rubble: three or four little orange fires spread out on the ground with glowing embers and thin wisps of smoke, seamless loop, 1 second, no rubble drawn, just the fires', None),
     ('fx_bs5_special', 'a dark curse explodes on the ground: a purple-black magic circle flares, then a pillar of dark violet flame bursts up, 1 second, no loop, seen from the front and above', None),
 ]
 

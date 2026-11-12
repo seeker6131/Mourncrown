@@ -53,6 +53,7 @@ import { ambience } from '../world/ambience';
 import { DefenseBattle } from '../world/defense';
 import { Hunters } from '../world/hunters';
 import { hpBar } from '../world/hpBar';
+import { makeRuin } from '../world/ruin';
 import { testBots } from '../core/testBots';
 /** the raid the guild window just started (the scene restarts into the rival village) */
 let RAID_DATA: RaidStart | null = null;
@@ -977,6 +978,12 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   /** Place a PixelLab object by its feet; blocks a footprint `fw` wide and `fd` deep above the feet. */
+  /** the burnt ruin of an object (world/ruin.ts): same footprint as the building, made from its own picture */
+  ruin(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
+    const k = 'ruin_' + name;
+    if (!OM[k]) { if (!OM[name] || !makeRuin(this, 'o_' + name, 'o_' + k)) return this.obj(name, x, y, fw, fd, shadow, sc); OM[k] = OM[name]; }
+    return this.obj(k, x, y, fw, fd, shadow, sc);
+  }
   obj(name: string, x: number, y: number, fw = 0.5, fd = 6, shadow = true, sc = 1) {
     const m = OM[name]; if (!m) return null;
     const im = this.add.image(Math.round(x), Math.round(y), 'o_' + name).setOrigin(0.5, m.foot / m.h).setDepth(y).setScale(sc);
