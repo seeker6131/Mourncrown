@@ -21,7 +21,7 @@ import { build, upgrade, collect, craft, cook } from '../systems/settlement';
 import {
   guildOf, homeOf, donate, upgradeVillage, collectVillage, setRole, simInvite, kick, defBuild, defUpgrade, defRepair, defRemove, createGuild, joinGuild,
   houseBuild, hireGuard, dismissGuard, sleep, wake, trophyPut, trophyTake, stashPut, stashTake, shopBuy as guildShopBuy, goals, goalProgress, guildTick, rivals,
-  rivalStructs, canRaid, raidResult, type Rival,
+  rivalStructs, canRaid, raidResult, devGuild, type Rival,
 } from '../systems/guild';
 import { RAID_SECS, REST_EXP, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
 import { gainExp } from '../systems/stats';
@@ -273,8 +273,9 @@ export const handlers = {
   /** daily login calendar: one claim per day */
   loginClaim: (s: GameState, _a: object, c: Ctx) => claimLogin(s, c.now) ?? no('claimed'),
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
-  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds'; n?: number }, c: Ctx): Refused | { got: string[] } {
+  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack'; n?: number }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');
+    if (a.op === 'guildFill' || a.op === 'guildTime' || a.op === 'guildAttack') return { got: devGuild(s, a.op, c.now, c.rnd) };
     if (a.op === 'kit') return { got: giveTestKit(s, 5, c.rnd) };
     if (a.op === 'level') testLevelUp(s, a.n ?? 10);
     else if (a.op === 'vip') grantVip(s, a.n ?? 3, c.now);

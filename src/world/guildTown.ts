@@ -9,6 +9,7 @@ import { GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, defSlots, DEFENSES, GUA
 import * as L from './villageLayout';
 import { Village, type Step } from './npcs';
 import { fx2 } from './fx2';
+import { formKeyOf } from './chars';
 
 type Ter = 'g' | 'd' | 'c' | 'w';
 type Obj = Phaser.GameObjects.GameObject;
@@ -191,7 +192,7 @@ export class GuildTown {
   /** hired guards: spearmen walk the wall road, archers keep watch at the gates and the plaza */
   spawnGuards() {
     const g = guildOf(S()); if (!g) return;
-    const key = `${g.guards.spear}:${g.guards.archer}:${!!g.hungry}`; if (key === this.guardKey) return;
+    const key = `${g.guards.spear}:${g.guards.archer}:${!!g.hungry}:${g.members.map(m => m.id + m.house).join(',')}`; if (key === this.guardKey) return;
     this.guardKey = key;
     if (this.guards) for (const n of this.guards.npcs) { n.sp.destroy(); n.shadow.destroy(); n.tag.destroy(); }
     const v = this.guards = new Village(this.sc as never, L.VW, L.VH);
@@ -209,6 +210,15 @@ export class GuildTown {
       const [x, y, f] = posts[i % posts.length], [x2, y2] = posts[(i + 2) % posts.length];
       v.add(GUARDS.archer.key, name('archer'), { x, y }, [go(x, y), watch(14000, f), go(x2 + 20, y2), watch(9000, 0)], g.hungry ? 14 : 20, true, 'walk');
     }
+    // the other members (bots until the game is online) live here too: home, the plaza, a building, back home
+    const spots = [L.PLAZA, ...(['hall', 'tavern', 'market', 'forge', 'warehouse', 'kitchen'] as GuildBld[]).map(t => L.doorOf(L.PLOT_OF[t]))];
+    g.members.forEach((m, i) => {
+      if (!m.sim) return;
+      const tier = m.lv >= 80 ? 3 : m.lv >= 40 ? 2 : m.lv >= 10 ? 1 : 0, k = formKeyOf(m.cls, tier), d = L.doorOf(L.housePlot(m.house));
+      const a = spots[i % spots.length], b = spots[(i * 3 + 2) % spots.length], off = (n: number) => ((i * 29 + n * 17) % 50) - 25;
+      v.add(k, `${m.role === 'leader' ? '👑 ' : m.role === 'deputy' ? '⭐ ' : ''}${m.name} Lv${m.lv}`, { x: d.x, y: d.y + 16 },
+        [go(d.x, d.y + 16), watch(4000 + i * 700, 0), go(a.x + off(1), a.y + 24 + off(2) / 3), watch(7000, (i * 2) % 8), go(b.x + off(3), b.y + 24), watch(5000, 0)], 24, true, 'walk');
+    });
     for (const n of v.npcs) this.sc.castShadow(n.sp, true);
   }
 
@@ -254,9 +264,7 @@ export class GuildTown {
     const g = guildOf(S()); if (!g) return;
     for (const t of GUILD_BLD_ORDER) {
       const P = L.doorOf(L.PLOT_OF[t]), d = Math.hypot(P.x - h.x, (P.y - h.y) * 1.4); if (d > 64) continue;
-      const room = ['lumber', 'quarry', 'barn'].includes(t) ? null : t;
-      if (room) offer(d + 10, `🚪 เข้า${GUILD_BLD[t].name}`, () => open('enter', L.PLOT_OF[t]));
-      else offer(d + 10, `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name}`, () => open('tab:build'));
+      offer(d + 10, `🚪 เข้า${GUILD_BLD[t].name}`, () => open('enter', L.PLOT_OF[t]));
     }
     const me = meOf(S());
     for (const m of g.members) {

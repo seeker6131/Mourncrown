@@ -48,6 +48,9 @@ const baseName = (p: string) => p.split('/').pop()!.replace(/\.(png|json)$/, '')
 import { guildOf, homeOf, meOf } from '../systems/guild';
 import { GUILD_BLD, GUILD_UNLOCK_LV, type GuildBld } from '../data/guild';
 import { preloadFx2, createFx2Anims, fx2 } from '../world/fx2';
+import { RaidBattle, type RaidStart } from '../world/raid';
+/** the raid the guild window just started (the scene restarts into the rival village) */
+let RAID_DATA: RaidStart | null = null;
 const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OM = objMeta as unknown as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number; chim?: [number, number] }>;
@@ -222,7 +225,7 @@ export class TopDownScene extends Phaser.Scene {
   regenT = 0;
   combat!: Combat;
   village?: Village;
-  portals: { x: number; y: number; to: number | 'select' | 'starter' | 'guild' | 'out'; label: Phaser.GameObjects.Text }[] = [];
+  portals: { x: number; y: number; to: number | 'select' | 'starter' | 'guild' | 'out' | 'leave'; label: Phaser.GameObjects.Text }[] = [];
   get wild() { return this.stageN === WILD; }
   get dungeon() { return isDungeon(this.stageN); }
   /** the map's stage data (monster maps, the dungeon, the Deepwild) */
@@ -234,13 +237,17 @@ export class TopDownScene extends Phaser.Scene {
   inside = -1;
   arriveAt = -1;
   town?: GuildTown;
+  raid?: RaidBattle;
+  raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
-  init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number }) {
+  init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number; raid?: boolean }) {
     this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
     const st0 = runtime.state;
     this.gv = !this.stageN && (data?.guild ?? !!(st0 && guildOf(st0)));
     this.inside = this.gv ? data?.inside ?? -1 : -1; this.arriveAt = data?.at ?? -1;
+    this.raidMode = this.gv && !!(data as { raid?: boolean })?.raid && !!RAID_DATA;
+    if (this.raidMode) this.inside = -1;
     if (this.gv) { MW = this.inside >= 0 ? RW : GV.VW; MH = this.inside >= 0 ? RH : GV.VH; }
     if (this.dungeon) { MW = 1536; MH = 1024; }
     if (this.wild) this.makeWild(); else if (this.dungeon) this.makeTrails((this.stageN - DUNGEON) * 10 + 2); else if (this.stageN) this.makeTrails(this.stageN);
@@ -277,20 +284,24 @@ export class TopDownScene extends Phaser.Scene {
     this.village = this.stageN || this.gv ? undefined : new Village(this, MW, MH);
     const home = () => { this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true })); };
     bus.on('td:guildHome', home); this.events.once('shutdown', () => bus.off('td:guildHome', home));
+    const goRaid = (r: RaidStart) => { RAID_DATA = r; this.portalCool = this.time.now + 99999; sfx.door(); this.cameras.main.fadeOut(300); this.time.delayedCall(310, () => showWait()); this.time.delayedCall(340, () => this.scene.restart({ stage: 0, guild: true, raid: true })); };
+    bus.on('td:raid', goRaid); this.events.once('shutdown', () => bus.off('td:raid', goRaid));
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
     if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;
     if (this.wild) { const r = act('wildRooms', { pick: this.roomPick }); if (r.refused) bus.emit(EV.TOAST, 'ห้องเต็ม — ย้ายไปห้องที่ว่าง', '#ff8a6a'); this.room = r.room; this.online = r.rooms[r.room - 1].count; this.onlineT = this.time.now + 30000; }
     if (!this.stageN && !this.gv) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
-    if (this.town) { this.town.render(); this.town.sync(); }
+    if (this.raidMode && RAID_DATA) { this.raid = new RaidBattle(this as never, RAID_DATA); RAID_DATA = null; this.raid.build(); bus.emit(EV.TOAST, `⚔ บุกหมู่บ้าน ${this.raid.data.rival.name}! ทำลายอาคาร/ป้อมใน ${this.raid.data.secs / 60} นาที`, '#ffd84a'); }
+    else { this.raid = undefined; if (this.town) { this.town.render(); this.town.sync(); } }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
     if (!this.stageN && !this.gv) {
       this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲'); this.addPortal(70, roadY(70), WILD, '◀ ป่าดงดิบ');
       if (S().level >= GUILD_UNLOCK_LV || guildOf(S())) this.addPortal(MW - 40, roadY(MW - 40), 'guild', guildOf(S()) ? 'หมู่บ้านกิลด์ ▶' : '🏛 กิลด์ ▶');
     }
-    if (this.town) { this.addPortal(GV.NORTH_GATE.x, 30, 'select', 'ประตูแผนที่ ▲'); this.addPortal(GV.WEST_EXIT.x + 6, GV.WEST_EXIT.y, WILD, '◀ ป่าดงดิบ'); this.addPortal(GV.SOUTH_GATE.x, GV.VH - 22, 'starter', 'หมู่บ้านเริ่มต้น ▼'); }
+    if (this.raid) this.addPortal(GV.SOUTH_GATE.x, GV.VH - 22, 'leave', '🏳 ถอนทัพ ▼');
+    else if (this.town) { this.addPortal(GV.NORTH_GATE.x, 30, 'select', 'ประตูแผนที่ ▲'); this.addPortal(GV.WEST_EXIT.x + 6, GV.WEST_EXIT.y, WILD, '◀ ป่าดงดิบ'); this.addPortal(GV.SOUTH_GATE.x, GV.VH - 22, 'starter', 'หมู่บ้านเริ่มต้น ▼'); }
     if (this.inside >= 0) this.addPortal(DOOR.x, DOOR.y, 'out', 'ออกไปข้างนอก ▼');
 
     const cam = this.cameras.main;
@@ -326,6 +337,7 @@ export class TopDownScene extends Phaser.Scene {
   /** where the hero appears: a room's door, the door of the building just left, the guild plaza, the starter plaza */
   spawnPoint() {
     if (this.inside >= 0) return { x: DOOR.x, y: DOOR.y - 26 };
+    if (this.raidMode) return { x: GV.SOUTH_GATE.x, y: GV.SOUTH_GATE.y - 40 };
     if (this.gv) { if (this.arriveAt >= 0) { const d = GV.doorOf(this.arriveAt); return { x: d.x, y: d.y + 22 }; } return GV.VILLAGE_SPAWN; }
     return { x: PLAZA.x, y: PLAZA.y + 40 };
   }
@@ -354,13 +366,19 @@ export class TopDownScene extends Phaser.Scene {
     // warm light from the fireplaces / furnace, a brazier in the hall
     for (const f of ROOMS[kind].furn) if (['fu_fireplace', 'fu_furnace', 'fu_cauldron'].includes(f.k)) this.lamps.push(this.add.image(f.x, f.y - 20, 'td_glow').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990).setScale(1.6));
     if (kind === 'hall') for (const x of [40, MW - 40]) fx2(this, 'fx_brazier', x, 140, 140);
+    if (kind === 'barn') for (const [k, x, y] of [['an3', 200, 200], ['an2', 270, 250], ['an5', 150, 270], ['an4', 320, 270]] as [string, number, number][]) if (this.textures.exists(`c_${k}_idle`)) { const a = this.add.sprite(x, y, `c_${k}_idle`).setDepth(y); setIdle(a, k, Math.floor(Math.random() * 8)); this.contact(x, y, 22, 8, 0.4); }
     const t = this.add.text(MW / 2, 14, `${ROOMS[kind].name}${g ? ` • ${g.name}` : ''}`, { fontFamily: 'sans-serif', fontSize: '8px', color: '#ffe7a0', stroke: '#0b0f0c', strokeThickness: 3, resolution: 8 }).setOrigin(0.5, 0).setDepth(99995);
     void t;
   }
   /** use a piece of furniture */
   useHot(a: HotAct) {
     const ui = this.ui; if (!ui) return;
-    if ('tab' in a) ui.panels.openGuild(a.tab);
+    if ('collect' in a) {
+      const r = act('guildCollect', { type: a.collect });
+      if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'cap' ? 'คลังหมู่บ้านเต็ม — อัปโกดังเพื่อขยาย' : 'ยังไม่มีของให้เก็บ', '#ff8a8a'); }
+      else { sfx.coin(); this.combat.float(this.hero.x, this.hero.y - 50, `+${r.amount} ${r.res === 'wood' ? '🪵' : r.res === 'stone' ? '🪨' : '🍖'} เข้าคลังหมู่บ้าน`, '#9fffb0', 10); bus.emit(EV.STATE_CHANGED); }
+    }
+    else if ('tab' in a) ui.panels.openGuild(a.tab);
     else if ('plot' in a) ui.panels.openPlot(PLOT_OF[a.plot]);
     else if ('sleep' in a) {
       const r = act('sleep', {});
@@ -771,7 +789,7 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.spawnMap(this.stageN, spot, boss ? { x: boss.x, y: boss.y } : null);
   }
 
-  addPortal(x: number, y: number, to: number | 'select' | 'starter' | 'guild' | 'out', text: string) {
+  addPortal(x: number, y: number, to: number | 'select' | 'starter' | 'guild' | 'out' | 'leave', text: string) {
     // the PixelLab dimension gate (loops); a soft glow under it; gates home / to the villages are tinted green
     const home = to === 0 || to === 'starter' || to === 'guild' || to === 'out';
     const gate = to === 'out' ? null : fx2(this, 'fx_portal', x, y + 6, y + 6, 0.62);
@@ -1046,6 +1064,7 @@ export class TopDownScene extends Phaser.Scene {
   stageTitle() { if (this.wild) return `🌿 ป่าดงดิบ ห้อง ${this.room} • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
+    if (this.raid) return this.raid.title();
     const g = guildOf(S()); if (this.inside >= 0) return `🏠 ${this.roomKind === 'house' ? 'บ้านของฉัน' : ROOMS[this.roomKind ?? 'hall'].name} • ${g?.name ?? ''}`;
     return this.gv && g ? `🏛 หมู่บ้านกิลด์ ${g.name}` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
@@ -1295,7 +1314,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN) { const b0 = best as { label: string; cb: () => void } | null; ui.setAction(b0?.label ?? null, b0?.cb); return; }
     if (this.gv) {
       for (const p of this.hot) { const d = Math.hypot(p.x - h.x, (p.y - h.y) * 1.3); if (d < 44) offer(d, p.label, () => this.useHot(p.act)); }
-      this.town?.offers(h, offer, (what, arg) => this.townAct(what, arg));
+      if (!this.raid) this.town?.offers(h, offer, (what, arg) => this.townAct(what, arg));
       const b1 = best as { label: string; cb: () => void } | null; ui.setAction(b1?.label ?? null, b1?.cb); return;
     }
     for (const n of this.village?.npcs ?? []) {
@@ -1505,6 +1524,7 @@ export class TopDownScene extends Phaser.Scene {
     playAnim(h, F.key, this.swing, this.dir, false);
     this.time.delayedCall(Math.max(60, hitMs(F.key, this.swing, 210) - 90), () => sfx.swing());   // the whoosh just before the weapon lands
     if (this.stageN) this.combat.heroAttack(F.key);
+    else if (this.raid) this.raid.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }
 
@@ -1548,7 +1568,7 @@ export class TopDownScene extends Phaser.Scene {
     h.setDepth(h.y);
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
-    this.town?.update(time, dt);
+    if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
 // never embedded: a forced move (skill, knockback) must not leave the hero where the collision test fails in every direction
     if (!this.dead && time > this.unstuckT && !this.tweens.isTweening(this.hero)) {
       this.unstuckT = time + 300;
@@ -1564,6 +1584,7 @@ export class TopDownScene extends Phaser.Scene {
       if (p.to === 'select') this.stageSelect();
       else if (p.to === WILD) { const u = this.ui; u?.panels.open('rooms'); this.portalCool = time + 600; }
       else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }
+      else if (p.to === 'leave') { this.portalCool = time + 99999; this.raid?.finish('leave'); }
       else if (p.to === 'starter' || p.to === 'out' || (p.to === 'guild' && guildOf(S()))) {
         const data = p.to === 'starter' ? { stage: 0, guild: false } : p.to === 'out' ? { stage: 0, guild: true, at: this.inside } : { stage: 0, guild: true };
         this.portalCool = time + 99999; this.cameras.main.fadeOut(200); this.time.delayedCall(210, () => showWait()); this.time.delayedCall(240, () => this.scene.restart(data));
@@ -1573,7 +1594,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
-      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
+      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN || this.raid ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
       const st = this.stageN && !this.wild && !this.dungeon ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }

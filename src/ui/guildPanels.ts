@@ -19,6 +19,7 @@ import {
   GUILD_UNLOCK_LV, GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, GUARDS, guardCap, type DefenseId, type GuardType,
 } from '../data/guild';
 
+import { DEV_TOOLS } from '../server/config';
 export type GuildTab = 'home' | 'members' | 'donate' | 'build' | 'defense' | 'guards' | 'goals' | 'shop' | 'raid' | 'log';
 const TABS: [GuildTab, string][] = [['home', '🏛 ภาพรวม'], ['members', '👥 สมาชิก'], ['donate', '🎁 บริจาค'], ['build', '🏗 อาคาร'], ['defense', '🛡 ป้อม'], ['guards', '💂 ทหาร'], ['goals', '📜 ภารกิจ'], ['shop', '🛒 ร้าน'], ['raid', '⚔ ปล้น'], ['log', '📖 บันทึก']];
 const RES_ICON: Record<string, string> = { gold: '💰', wood: '🪵', stone: '🪨', food: '🍖' };
@@ -69,6 +70,11 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
       T(L + 8, top + 72, 'ข่าวล่าสุดในกิลด์', 9, '#ffd84a');
       g0.log.slice(0, 7).forEach((l, i) => T(L + 12, top + 88 + i * 15, `${new Date(l.t).toLocaleTimeString().slice(0, 5)}  ${l.text}`, 8, '#e8dcc0', CW - 24));
       T(L + 8, top + H - 80, 'บริจาคเข้าคลัง → หัวหน้าอัปอาคาร/ป้อม • ของส่วนตัวไม่โดนปล้น แต่คลังหมู่บ้านโดน', 7.5, '#a89878', CW - 16);
+      if (DEV_TOOLS) ([['🧪 เติมคลังเต็ม', 'guildFill'], ['🧪 ข้ามเวลา 12 ชม.', 'guildTime'], ['🧪 ศัตรูบุกตอนนี้', 'guildAttack']] as const).forEach(([lb, op], i) => c.add(k.button(L + 8 + i * ((CW - 16) / 3), top + H - 102, (CW - 16) / 3 - 6, 18, lb, () => {
+        const r = act('dev', { op }); if (refused(r)) { fail(r); return; }
+        for (const m of r.got) bus.emit(EV.TOAST, m, m.startsWith('⚔') ? '#ff9a7a' : '#9fffb0');
+        sfx.levelUp(); bus.emit(EV.STATE_CHANGED); h.rebuild();
+      }, { size: 7.5, color: 0x2a3a5a })));
       break;
     }
     case 'members': {
@@ -217,7 +223,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
         T(L + 14, by + 4, `⚔ ${r.name}`, 10, '#ffd84a');
         T(L + 14, by + 22, `หอกิลด์ Lv${r.hall} • ป้อม ${r.defenses.length} • ทหาร ${r.guards} • อาคาร ${st.length - r.defenses.length}`, 8, '#e8dcc0');
         T(L + 14, by + 38, `คลัง: ${rich > 60000 ? 'ร่ำรวย 💰💰💰' : rich > 25000 ? 'ปานกลาง 💰💰' : 'น้อย 💰'}`, 8, '#c8e8b0');
-        c.add(k.button(R - 120, by + 16, 104, 26, '⚔ บุกปล้น', () => { bus.emit(EV.TOAST, 'ฉากบุกปล้นกำลังสร้าง — เปิดในอัปเดตถัดไป', '#ffd84a'); }, { size: 10, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
+        c.add(k.button(R - 120, by + 16, 104, 26, '⚔ บุกปล้น', () => { const rr = act('raidStart', { id: r.id }); if (refused(rr)) { fail(rr); return; } h.close(); bus.emit('td:raid', rr); }, { size: 10, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
       });
       if (!rivals(s).length) T(L + 12, top + 60, 'วันนี้ไม่มีเป้าหมายเหลือแล้ว พรุ่งนี้มาใหม่', 9, '#a89878');
       if (!off) T(L + 8, top + H - 80, 'เฉพาะหัวหน้า/รองหัวหน้าที่สั่งบุกได้', 8, '#ffb080');

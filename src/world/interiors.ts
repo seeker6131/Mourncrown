@@ -3,9 +3,9 @@
 // The room itself (floor, walls, door) is drawn in code.
 import type { GuildTab } from '../ui/guildPanels';
 
-export type RoomKind = 'hall' | 'warehouse' | 'barracks' | 'forge' | 'kitchen' | 'tavern' | 'market' | 'house';
+export type RoomKind = 'hall' | 'warehouse' | 'barracks' | 'forge' | 'kitchen' | 'tavern' | 'market' | 'lumber' | 'quarry' | 'barn' | 'house';
 /** what a hotspot does: a guild window tab, one of the existing windows, or a house action */
-export type HotAct = { tab: GuildTab } | { panel: 'smith' | 'shop' | 'market' | 'wardrobe' | 'alchemy' | 'stash' | 'trophy' } | { plot: 'forge' | 'kitchen' } | { sleep: true };
+export type HotAct = { collect: 'lumber' | 'quarry' | 'barn' } | { tab: GuildTab } | { panel: 'smith' | 'shop' | 'market' | 'wardrobe' | 'alchemy' | 'stash' | 'trophy' } | { plot: 'forge' | 'kitchen' } | { sleep: true };
 export interface Furn { k: string; x: number; y: number; label?: string; act?: HotAct; sc?: number }
 export interface Room { name: string; floor: 'plank' | 'stone'; wall: 'wood' | 'stone'; furn: Furn[]; win?: number[] }
 
@@ -14,7 +14,7 @@ export interface Room { name: string; floor: 'plank' | 'stone'; wall: 'wood' | '
 export const RW = 448, RH = 320, WALL = 96;
 export const DOOR = { x: RW / 2, y: RH - 14 };
 /** which tileset each room uses (floor / wall look) */
-export const ROOM_SET: Record<RoomKind, string> = { hall: 'rt_stone', warehouse: 'rt_stone', barracks: 'rt_stone', forge: 'rt_stone', kitchen: 'rt_woodstone', tavern: 'rt_woodstone', market: 'rt_woodstone', house: 'rt_wood' };
+export const ROOM_SET: Record<RoomKind, string> = { hall: 'rt_stone', warehouse: 'rt_stone', barracks: 'rt_stone', forge: 'rt_stone', kitchen: 'rt_woodstone', tavern: 'rt_woodstone', market: 'rt_woodstone', lumber: 'rt_wood', quarry: 'rt_stone', barn: 'rt_wood', house: 'rt_wood' };
 
 export const ROOMS: Record<RoomKind, Room> = {
   hall: { name: 'หอกิลด์', floor: 'stone', wall: 'stone', win: [128], furn: [
@@ -65,6 +65,21 @@ export const ROOMS: Record<RoomKind, Room> = {
     { k: 'fu_goods', x: 340, y: 112 },
     { k: 'fu_desk', x: 224, y: 190, label: '💰 ร้านค้า', act: { panel: 'shop' } },
     { k: 'fu_sacks', x: 58, y: 252 }, { k: 'crate_0', x: 396, y: 230 }, { k: 'crate_2', x: 404, y: 262 }, { k: 'barrel_1', x: 60, y: 200 },
+  ] },
+  lumber: { name: 'โรงไม้กิลด์', floor: 'plank', wall: 'wood', win: [224], furn: [
+    { k: 'dc_woodpile', x: 110, y: 120, label: '📦 เก็บไม้เข้าคลังหมู่บ้าน', act: { collect: 'lumber' } },
+    { k: 'logs_2', x: 330, y: 116 }, { k: 'logs_3', x: 376, y: 120 }, { k: 'logs_4', x: 56, y: 200 }, { k: 'logs_1', x: 400, y: 200 },
+    { k: 'stump_1', x: 200, y: 210, label: '🏗 อาคารหมู่บ้าน', act: { tab: 'build' } }, { k: 'stump_2', x: 250, y: 236 }, { k: 'crate_1', x: 60, y: 270 }, { k: 'barrel_2', x: 404, y: 270 },
+  ] },
+  quarry: { name: 'เหมืองหินกิลด์', floor: 'stone', wall: 'stone', win: [224], furn: [
+    { k: 'ore_2', x: 110, y: 120, label: '📦 เก็บหินเข้าคลังหมู่บ้าน', act: { collect: 'quarry' } },
+    { k: 'rock_3', x: 330, y: 118 }, { k: 'rock_5', x: 370, y: 124 }, { k: 'ore_4', x: 56, y: 200 }, { k: 'rock_1', x: 400, y: 196 },
+    { k: 'fu_anvil', x: 214, y: 204, label: '🏗 อาคารหมู่บ้าน', act: { tab: 'build' } }, { k: 'cart_1', x: 300, y: 250 }, { k: 'crate_2', x: 60, y: 272 }, { k: 'fu_sacks', x: 400, y: 272 },
+  ] },
+  barn: { name: 'คอกสัตว์กิลด์', floor: 'plank', wall: 'wood', win: [110, 338], furn: [
+    { k: 'hay_2', x: 224, y: 118, label: '📦 เก็บอาหารเข้าคลังหมู่บ้าน', act: { collect: 'barn' } },
+    { k: 'hay_0', x: 64, y: 120 }, { k: 'hay_1', x: 92, y: 126 }, { k: 'dc_trough', x: 330, y: 196 }, { k: 'barrel_0', x: 404, y: 130 },
+    { k: 'cart_0', x: 90, y: 250, label: '🏗 อาคารหมู่บ้าน', act: { tab: 'build' } }, { k: 'fu_sacks', x: 404, y: 270 }, { k: 'hay_0', x: 380, y: 250 },
   ] },
   house: { name: 'บ้านของฉัน', floor: 'plank', wall: 'wood', win: [412], furn: [
     { k: 'fu_bed', x: 66, y: 140, label: '🛏 นอนพัก (สะสมพลังพักผ่อน)', act: { sleep: true } },

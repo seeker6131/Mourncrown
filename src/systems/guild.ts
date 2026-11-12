@@ -486,4 +486,25 @@ export function raidResult(s: GameState, rv: Rival, destroyed: string[], now = D
   log(g, 'raid', `${meOf(s)!.name} ปล้น${rv.name} ${'⭐'.repeat(stars) || 'ไม่ได้ดาว'} ได้ 💰${gain.gold} 🪵${gain.wood} 🪨${gain.stone} 🍖${gain.food}`, now);
   return { stars, gain, pts, destroyed: set.size, total: all.length };
 }
+/** test buttons (DEV_TOOLS only, refused by the server for OBT): fill the treasury, skip 12 hours, an enemy raid right now */
+export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAttack', now = Date.now(), rnd: () => number = Math.random): string[] {
+  const g = guildOf(s); if (!g) return ['ยังไม่มีกิลด์'];
+  if (op === 'guildFill') {
+    const cap = tCap(s); for (const k of RES) g.treasury[k] = cap;
+    const ids = new Set<string>(); for (const d of [...Object.values(GUILD_BLD).map(b => b.costs), ...Object.values(DEFENSES).map(d => d.costs)]) for (const c of d) for (const id of Object.keys(c.items ?? {})) ids.add(id);
+    for (const id of ids) g.treasury.items[id] = 99;
+    return ['เติมคลังหมู่บ้านเต็ม + วัตถุดิบอัปขั้นสูง'];
+  }
+  if (op === 'guildTime') {
+    const H = 12 * 3600000;
+    for (const b of g.buildings) { b.done = undefined; b.last -= H; }
+    for (const q of g.defenses) q.done = undefined;
+    const me = meOf(s); if (me) me.houseDone = undefined;
+    g.simAt -= H; guildTick(s, now, rnd);
+    return ['ข้ามเวลา 12 ชม. — สร้างเสร็จหมด อาคารผลิตของ สมาชิกช่วยบริจาค ทหารกินอาหาร', ...g.unread.splice(0)];
+  }
+  g.shieldUntil = 0; g.incomingAt = 0; let first = true;
+  simIncoming(s, now, () => { if (first) { first = false; return 0.1; } return rnd(); });
+  return g.unread.splice(0);
+}
 export const raidsLeft = (s: GameState, now = Date.now()) => { const g = guildOf(s)!; return g.raids.day === dayKey(now) ? Math.max(0, RAIDS_PER_DAY - g.raids.used) : RAIDS_PER_DAY; };
