@@ -154,6 +154,25 @@ function surface(x: number, y: number) {
   return 'grass';
 }
 
+/** queue the files a TopDown scene waits for, on any scene's loader (textures are shared by the whole game, so the title
+ *  screen can fetch the village while the player is still on it — director: 'please wait' after start was too long).
+ *  form = the player's own hero form (null: every form — guild village, test bots, no state yet) */
+export function queueTd(sc: Phaser.Scene, o: { gv: boolean; stageN: number; st: ReturnType<typeof stageOf> | null; boss: boolean; mount: boolean; form: string | null }) {
+  for (const [p, u] of Object.entries(VFX_FILES)) { const k = 'px_' + p.split('/').pop()!.replace('.png', ''); if (!sc.textures.exists(k)) sc.load.image(k, u); }   // PixelLab skill effects
+  loadAtlas(sc, 'obj');   // every map object in one page (tools/pack_atlas.py)
+  preloadFx2(sc, o.stageN || o.gv ? 'first' : 'village');   // guild village: raids / defence fight at once if (o.mount) preloadMounts(sc);
+  if (o.gv) for (const [p, u] of Object.entries(ROOM_PNG)) if (!sc.textures.exists(baseName(p))) sc.load.image(baseName(p), u);
+  const tiles: [string, string][] = [['td_tl1', tl1Wang], ['td_tl2', tl2Wang], ['td_tl3', tl3Wang], ['td_ft2', ft2Wang], ['td_ft3', ft3Wang], ['td_tl5', tl5Wang], ['td_tl6', tl6Wang], ['td_tl7', tl7Wang], ['td_tl8', tl8Wang]];
+  for (const [k, u] of tiles) if (!sc.textures.exists(k)) sc.load.image(k, u);
+  // only the characters this scene shows: hero forms always; villagers + animals in the village;
+  // the land's monsters, its boss (boss stages) and the wild game in a stage
+  const all = ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
+  const heroes = o.form ? [...new Set(['hero', 'hg', o.form])] : all;
+  const keys = o.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : o.st ? [...heroes, ...o.st.land.mobs.map(m => m.key), ...(o.boss ? [o.st.land.boss.key] : [])]
+    : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
+  preloadChars(sc, keys);
+}
+
 export class TopDownScene extends Phaser.Scene {
   hero!: Phaser.GameObjects.Sprite;
   shadow!: Phaser.GameObjects.Image;
@@ -219,28 +238,16 @@ export class TopDownScene extends Phaser.Scene {
   constructor() { super('TopDown'); }
 
   preload() {
-    for (const [p, u] of Object.entries(VFX_FILES)) this.load.image('px_' + p.split('/').pop()!.replace('.png', ''), u);   // PixelLab skill effects
-    loadAtlas(this, 'obj');   // every map object in one page (tools/pack_atlas.py)
     const st0 = runtime.state;   // (not there yet on the very first boot)
-    preloadFx2(this, 'first'); if (st0 && mountOn(st0)) preloadMounts(this);
-    if (this.gv) for (const [p, u] of Object.entries(ROOM_PNG)) this.load.image(baseName(p), u);
-    this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
-    // only the characters this scene shows: hero forms always; villagers + animals in the village;
-    // the land's monsters, its boss (boss stages) and the wild game in a stage
-    // hero forms: only the player's own one first, unless the scene shows other players (guild village, test bots)
-    const all = ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
-    const heroes = this.gv || testBots.n || !st0 ? all : [...new Set(['hero', 'hg', this.F.key])];
-    const st = this.stageN && this.stageN !== WILD ? this.st : null;
-    const keys = this.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss || this.dungeon ? [st.land.boss.key] : [])]
-      : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
-    preloadChars(this, keys);
+    queueTd(this, { gv: this.gv, stageN: this.stageN, st: this.stageN && this.stageN !== WILD ? this.st : null, boss: !!(this.st?.boss || this.dungeon),
+      mount: !!(st0 && mountOn(st0)), form: this.gv || testBots.n || !st0 ? null : this.F.key });
   }
 
   /** what the scene did not wait for: the other hero forms, the remaining effects, mounts and riding poses — loaded behind
    *  the running game (director: shorter 'please wait'); animations are made as soon as they arrive */
   loadLater() {
     if (!this.sys.isActive()) return;
-    preloadFx2(this, 'later'); preloadMounts(this);
+    preloadFx2(this, 'all'); preloadMounts(this);   // ('all' skips what is already here)
     preloadChars(this, ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))]);
     if (!this.load.list.size) return;
     this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (!this.sys.isActive()) return; createFx2Anims(this); createMountAnims(this); createCharAnims(this); });
@@ -579,19 +586,32 @@ export class TopDownScene extends Phaser.Scene {
     const S: string[] = new Array(MW * MH);
     this.surf = S;
     const BRS = this.stageN ? [] : this.gv ? gvBridges() : [roadY(930), road2Y(930)].map(cy => ({ x0: riverX(cy) - 46, x1: riverX(cy) + 46, y0: cy - 15, y1: cy + 15 }));
-    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
-      const cx = Math.min(NX - 1, Math.floor(x / T)), cy = Math.min(NY - 1, Math.floor(y / T));
-      const fx = (x - cx * T + 0.5) / T, fy = (y - cy * T + 0.5) / T;
-      const c = [vAt(cx, cy), vAt(cx + 1, cy), vAt(cx, cy + 1), vAt(cx + 1, cy + 1)];
-      const wt = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
-      const sum = (f: (t: Ter) => boolean) => c.reduce((a, t, i) => a + (f(t) ? wt[i] : 0), 0);
-      let v = 'grass';
-      if (BRS.some(BR => x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1)) v = 'bridge';
-      else if (sum(t => t === 'w') > 0.5) v = 'water';
-      else if (sum(t => t === 'c' || t === 'd') > 0.5) v = 'cobble';
-      if (LS && (land === 'haunt' || land === 'snow') && v === 'water') v = 'grass';
-      S[y * MW + x] = v;
-      if (v === 'water') this.block(x, y);
+    // one 16px cell at a time: a cell whose four corners agree is one surface throughout (most of the map), only the
+    // cells on an edge are worked out per pixel — same result as per-pixel everywhere, a fraction of the work (load time)
+    const dryWater = !!LS && (land === 'haunt' || land === 'snow');
+    const kind = (t: Ter) => t === 'w' ? 2 : t === 'c' || t === 'd' ? 1 : 0;
+    const NAME = ['grass', 'cobble', dryWater ? 'grass' : 'water'];
+    for (let cy = 0; cy < NY; cy++) for (let cx = 0; cx < NX; cx++) {
+      const k0 = kind(vAt(cx, cy)), k1 = kind(vAt(cx + 1, cy)), k2 = kind(vAt(cx, cy + 1)), k3 = kind(vAt(cx + 1, cy + 1));
+      const x0 = cx * T, y0 = cy * T;
+      const brs = BRS.filter(BR => BR.x1 >= x0 && BR.x0 <= x0 + T - 1 && BR.y1 >= y0 && BR.y0 <= y0 + T - 1);
+      if (k0 === k1 && k1 === k2 && k2 === k3 && !brs.length) {
+        const v = NAME[k0], wet = v === 'water';
+        for (let y = y0; y < y0 + T; y++) { const row = y * MW; for (let x = x0; x < x0 + T; x++) { S[row + x] = v; if (wet) this.block(x, y); } }
+        continue;
+      }
+      const w0 = k0 === 2 ? 1 : 0, w1 = k1 === 2 ? 1 : 0, w2 = k2 === 2 ? 1 : 0, w3 = k3 === 2 ? 1 : 0;
+      const p0 = k0 === 1 ? 1 : 0, p1 = k1 === 1 ? 1 : 0, p2 = k2 === 1 ? 1 : 0, p3 = k3 === 1 ? 1 : 0;
+      for (let y = y0; y < y0 + T; y++) for (let x = x0; x < x0 + T; x++) {
+        const fx = (x - x0 + 0.5) / T, fy = (y - y0 + 0.5) / T;
+        const a = (1 - fx) * (1 - fy), b = fx * (1 - fy), c = (1 - fx) * fy, d = fx * fy;
+        let v = 'grass';
+        if (brs.length && brs.some(BR => x >= BR.x0 && x <= BR.x1 && y >= BR.y0 && y <= BR.y1)) v = 'bridge';
+        else if (w0 * a + w1 * b + w2 * c + w3 * d > 0.5) v = NAME[2];
+        else if (p0 * a + p1 * b + p2 * c + p3 * d > 0.5) v = 'cobble';
+        S[y * MW + x] = v;
+        if (v === 'water') this.block(x, y);
+      }
     }
     // wooden bridge over the river (drawn planks, walkable)
     for (const BR of BRS) {

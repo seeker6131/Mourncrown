@@ -47,3 +47,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 300));
 
 (window as unknown as { __game: Phaser.Game }).__game = game;
 installDebug(game);
+
+// keep the built pictures / code on the phone between visits (public/sw.js): later starts skip the downloads
+if (import.meta.env.PROD && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

@@ -6,6 +6,13 @@ import { UIKit } from '../ui/kit';
 import { hasSave, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
 import { unlockAudio, audioState, setMusic } from '../audio/sfx';
+import { newGameState } from '../core/state';
+import { queueTd } from './TopDownScene';
+import { loadAtlas } from '../world/atlas';
+import { formKeyOf } from '../world/chars';
+import { activeTier } from '../systems/stats';
+import { guildOf } from '../systems/guild';
+import { mountOn } from '../systems/mounts';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -54,7 +61,9 @@ export class TitleScene extends Phaser.Scene {
       runtime.state = st;
       audioState.sfx = st.sfx; setMusic(st.music);
       this.cameras.main.fadeOut(250, 0, 0, 0);
-      this.time.delayedCall(260, () => { showWait(); this.time.delayedCall(30, () => this.scene.start('TopDown')); });
+      // the village files were already coming in behind the title: let them finish here (the next scene finds them)
+      const go = () => this.time.delayedCall(30, () => this.scene.start('TopDown'));
+      this.time.delayedCall(260, () => { showWait(); if (this.load.isLoading()) this.load.once(Phaser.Loader.Events.COMPLETE, go); else go(); });
     };
     let by = art ? 248 : 150;
     if (hasSave()) { this.add.existing(k.button(cx - 80, by, 160, 30, '▶ เล่นต่อ', () => start(false), { size: 12, color: 0x1f4a2a })); by += 38; }
@@ -64,5 +73,16 @@ export class TitleScene extends Phaser.Scene {
     // language switch (English by default on the first visit)
     this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));
     this.cameras.main.fadeIn(400);
+    this.prefetch();
+  }
+
+  /** fetch what the first scene (the village, or the guild village) waits for while the player looks at the title */
+  prefetch() {
+    try {
+      const s = loadGame() ?? newGameState();
+      queueTd(this, { gv: !!guildOf(s), stageN: 0, st: null, boss: false, mount: !!mountOn(s), form: formKeyOf(s.cls, activeTier(s), s.look) });
+      loadAtlas(this, 'skill'); loadAtlas(this, 'icon');   // the HUD's icons (TdUIScene)
+      if (this.load.list.size) this.load.start();
+    } catch { /* the scene loads what is missing itself */ }
   }
 }
