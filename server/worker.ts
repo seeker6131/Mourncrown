@@ -12,7 +12,7 @@ interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<D1Result<T>> }
 interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[] }
 interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(r: Request): Promise<Response> } }
-interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; ROOM: DONamespace; PLAYER: DONamespace }
+interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
 declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
 type WSX = WebSocket & { serializeAttachment(v: unknown): void; deserializeAttachment(): unknown; accept?: () => void };
 
@@ -269,6 +269,9 @@ export class Room {
 // server's dice and clock, and the answer carries what changed. What is valuable (level, gold, items, resources,
 // buildings, diamonds, VIP...) is written ONLY here; the game's own save can only bring the harmless fields below.
 const MARKET = new Set(['marketList', 'marketCancel', 'marketBrowse', 'marketBuy']);
+/** actions that change the guild itself: run by the guild's own object on the one shared copy (all members see it) */
+const GUILD_ACTS = new Set(['guildSync', 'guildUpgrade', 'guildCollect', 'guildFlag', 'guildRole', 'guildKick', 'guildShop', 'guildInvite', 'donate', 'houseBuild', 'houseRepair', 'bldRepair', 'hireGuard', 'dismissGuard', 'defBuild', 'defUpgrade', 'defRepair', 'defRemove', 'seasonClaim', 'raidStart', 'raidEnd', 'warStart', 'warSync', 'warHit', 'warKill', 'warEnd', 'warDone']);
+const GUILD_CAP = 30;
 const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name']);
 type St = Record<string, unknown>;
 interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
@@ -297,13 +300,58 @@ export class Player {
     if (!(this.env.ADMINS ?? '').split(',').includes(this.id)) delete st.tdUnlockAll;
     const before = new Map<string, string>(); for (const k of Object.keys(st)) if (!CLIENT_KEYS.has(k)) before.set(k, JSON.stringify(st[k]));
     useMem(this.mem);
+    const realG = (st as { guildId?: string }).guildId ? st.guild : undefined;
     let r: unknown; try { r = fn(st, args ?? {}, { now: Date.now(), rnd: Math.random }); } catch (e) { r = { refused: 'error', detail: String(e).slice(0, 120) }; }
+    if (realG !== undefined) st.guild = realG;   // (a real guild changes only through its own object)
     const own: St = {}; for (const k of Object.keys(st)) if (!CLIENT_KEYS.has(k) && before.get(k) !== JSON.stringify(st[k])) own[k] = st[k];
     return { r, own };
   }
   private send(o: unknown) { const t = JSON.stringify(o); for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } } }
   private snap() { const b = new Map<string, string>(); for (const k of Object.keys(this.st!)) if (!CLIENT_KEYS.has(k)) b.set(k, JSON.stringify(this.st![k])); return b; }
   private diff(b: Map<string, string>) { const own: St = {}; for (const k of Object.keys(this.st!)) if (!CLIENT_KEYS.has(k) && b.get(k) !== JSON.stringify(this.st![k])) own[k] = this.st![k]; return own; }
+  private gstub(gid: string) { return this.env.GUILD.get(this.env.GUILD.idFromName(gid)); }
+  /** an action on the shared guild: the guild's object runs it with this character, sends back both */
+  private async guildAct(gid: string, name: string, args: unknown): Promise<{ r: unknown; own: St }> {
+    const b = this.snap(), player: St = { ...this.st! }; delete player.guild;
+    const res = await (await this.gstub(gid).fetch(new Request('https://g/act', { method: 'POST', body: JSON.stringify({ pid: this.id, name, args, player }) }))).json() as { r: unknown; player?: St; guild?: St | null };
+    if (res.player) for (const [k, v] of Object.entries(res.player)) if (!CLIENT_KEYS.has(k) && k !== 'guild' && k !== 'guildId') this.st![k] = v;
+    if (res.guild === null) { delete this.st!.guild; delete this.st!.guildId; } else if (res.guild) this.st!.guild = res.guild;
+    return { r: res.r, own: this.diff(b) };
+  }
+  /** found / find / join / leave a real guild */
+  private async guildMeta(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
+    const DB = this.env.DB, now = Date.now(), b = this.snap(), st = this.st as St & { guild?: St & { id: string; name: string; members: { id: string; name: string }[] }; guildId?: string; name?: string };
+    if (name === 'guildBrowse') {
+      const rows = (await DB.prepare('SELECT id, name, leader, members, hall FROM guilds WHERE members < ? ORDER BY members DESC, at DESC LIMIT 20').bind(GUILD_CAP).all<{ id: string; name: string; leader: string; members: number; hall: number }>()).results;
+      return { r: { list: rows }, own: {} };
+    }
+    if (name === 'guildCreate') {
+      if (st.guild) return { r: { refused: 'member' }, own: {} };
+      const out = this.run('guildCreate', a); const g = st.guild; if (!g || (out.r as { refused?: string })?.refused) return out;
+      for (const mm of g.members) if (mm.id === 'me') mm.id = this.id;
+      try { await DB.prepare('INSERT INTO guilds (id, name, name_key, leader, members, hall, at) VALUES (?, ?, ?, ?, 1, 1, ?)').bind(g.id, g.name, g.name.toLowerCase(), String(st.name ?? ''), now).run(); }
+      catch { delete st.guild; return { r: { refused: 'taken' }, own: this.diff(b) }; }   // (another guild has that name)
+      const view = await (await this.gstub(g.id).fetch(new Request('https://g/init', { method: 'POST', body: JSON.stringify({ g, pid: this.id }) }))).json() as St;
+      st.guild = view as never; st.guildId = g.id;
+      return { r: out.r, own: this.diff(b) };
+    }
+    if (name === 'guildJoinReal') {
+      if (st.guild) return { r: { refused: 'member' }, own: {} };
+      if (Number(st.level) < 20) return { r: { refused: 'level' }, own: {} };
+      const id = String(a.id ?? ''); if (!/^[a-z0-9]{1,24}$/.test(id)) return { r: { refused: 'target' }, own: {} };
+      const res = await (await this.gstub(id).fetch(new Request('https://g/join', { method: 'POST', body: JSON.stringify({ pid: this.id, name: st.name ?? 'ผู้เล่น', cls: st.cls, lv: st.level }) }))).json() as { refused?: string; guild?: St };
+      if (res.refused || !res.guild) return { r: { refused: res.refused ?? 'target' }, own: {} };
+      st.guild = res.guild as never; st.guildId = id;
+      return { r: { ok: true }, own: this.diff(b) };
+    }
+    if (name === 'guildLeave') {
+      if (!st.guild) return { r: { refused: 'guild' }, own: {} };
+      if (st.guildId) await this.gstub(st.guildId).fetch(new Request('https://g/leave', { method: 'POST', body: JSON.stringify({ pid: this.id }) }));
+      delete st.guild; delete st.guildId;
+      return { r: { ok: true }, own: this.diff(b) };
+    }
+    return { r: { refused: 'action' }, own: {} };
+  }
   /** what the market owes this player: gold for sold listings, items back from expired ones */
   private async claim(): Promise<{ own: St; text: string }> {
     if (!this.st) return { own: {}, text: '' };
@@ -376,9 +424,16 @@ export class Player {
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
       if (this.st) { const c = await this.claim(); if (c.text) server.send(JSON.stringify({ t: 'note', own: c.own, text: c.text })); }   // sold while away
+      const gid = (this.st as { guildId?: string } | null)?.guildId;
+      if (gid) { const v = await (await this.gstub(gid).fetch(new Request('https://g/view?pid=' + this.id))).json() as St | null; if (v) this.st!.guild = v; else { delete this.st!.guild; delete this.st!.guildId; } this.dirty = true; server.send(JSON.stringify({ t: 'note', own: { guild: this.st!.guild ?? null }, text: '' })); }
       return new Response(null, { status: 101, webSocket: client } as ResponseInit);
     }
     if (u.pathname === '/save') return new Response(JSON.stringify(this.st ? { rev: this.rev, at: this.at, data: this.st } : { rev: 0, at: 0, data: null }));
+    if (u.pathname === '/gnote') {   // the guild changed (another member did something): the game gets the new guild
+      const v = JSON.parse(await req.text()) as St | null;
+      if (this.st) { if (v) this.st.guild = v; else { delete this.st.guild; delete this.st.guildId; } this.dirty = true; this.send({ t: 'note', own: { guild: v }, text: '' }); }
+      return new Response('{}');
+    }
     if (u.pathname === '/claim') { const c = await this.claim(); if (c.text) this.send({ t: 'note', own: c.own, text: c.text }); return new Response('{}'); }
     if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1 }));   // (rooms ask: the damage cap uses the server's level)
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
@@ -405,9 +460,65 @@ export class Player {
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
-    const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>) : this.run(m.name, m.args);
+    const gid = (this.st as { guildId?: string }).guildId;
+    const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>)
+      : ['guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave'].includes(m.name) ? await this.guildMeta(m.name, (m.args ?? {}) as Record<string, unknown>)
+      : gid && GUILD_ACTS.has(m.name) ? await this.guildAct(gid, m.name, m.args) : this.run(m.name, m.args);
     if (Object.keys(out.own).length) await this.later();
     ws.send(JSON.stringify({ t: 'r', q: m.q, ...out }));
   }
   async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); }
+}
+
+// ===== a real guild: one shared copy for every member =====
+// The same guild rules (src/systems/guild.ts through the handlers) run here on the one copy, with the acting member's
+// character alongside; the answer carries both. Other online members are told so their games show the change.
+type G = St & { id: string; name: string; me?: string; members: { id: string; name: string; role: string; cls?: string; lv?: number; house: number; houseLv: number; pts: number; joined: number; sim?: boolean }[]; buildings: { type: string; level: number }[]; log: { t: number; kind: string; text: string }[] };
+export class Guild {
+  g: G | null = null; loaded = false; mems = new Map<string, Mem>();
+  constructor(private state: DOState & { storage: { get(k: string): Promise<unknown>; put(k: string, v: unknown): Promise<void> } }, private env: Env) {}
+  private async load() { if (!this.loaded) { this.g = (await this.state.storage.get('g') as G | undefined) ?? null; this.loaded = true; } }
+  private view(pid: string) { return this.g ? { ...this.g, me: pid } : null; }
+  private async save(except?: string) {
+    if (!this.g) return;
+    await this.state.storage.put('g', this.g);
+    const hall = this.g.buildings.find(b => b.type === 'hall')?.level ?? 1, lead = this.g.members.find(m => m.role === 'leader')?.name ?? '';
+    await this.env.DB.prepare('UPDATE guilds SET members = ?, hall = ?, leader = ? WHERE id = ?').bind(this.g.members.length, hall, lead, this.g.id).run();
+    await Promise.allSettled(this.g.members.filter(m => m.id !== except && !m.sim).map(m =>   // the others' games show the change
+      this.env.PLAYER.get(this.env.PLAYER.idFromName(m.id)).fetch(new Request('https://p/gnote?id=' + m.id, { method: 'POST', body: JSON.stringify(this.view(m.id)) }))));
+  }
+  async fetch(req: Request) {
+    await this.load(); const u = new URL(req.url), body = req.method === 'POST' ? JSON.parse(await req.text()) : {};
+    if (u.pathname === '/init') { if (!this.g) { this.g = body.g as G; delete this.g.me; await this.state.storage.put('g', this.g); } return new Response(JSON.stringify(this.view(body.pid))); }
+    if (u.pathname === '/view') { const pid = u.searchParams.get('pid') ?? ''; return new Response(JSON.stringify(this.g?.members.some(m => m.id === pid) ? this.view(pid) : null)); }
+    if (!this.g) return new Response(JSON.stringify({ refused: 'target' }));
+    if (u.pathname === '/join') {
+      if (this.g.members.some(m => m.id === body.pid)) return new Response(JSON.stringify({ guild: this.view(body.pid) }));
+      if (this.g.members.length >= GUILD_CAP) return new Response(JSON.stringify({ refused: 'full' }));
+      const house = [...Array(GUILD_CAP).keys()].find(i => !this.g!.members.some(m => m.house === i)) ?? this.g.members.length;
+      this.g.members.push({ id: body.pid, name: String(body.name ?? 'ผู้เล่น').slice(0, 16), role: 'member', pts: 0, house, houseLv: 0, cls: body.cls, lv: body.lv, joined: Date.now() });
+      this.g.log.unshift({ t: Date.now(), kind: 'join', text: `${body.name} เข้าร่วมกิลด์` }); this.g.log = this.g.log.slice(0, 60);
+      await this.save(body.pid); return new Response(JSON.stringify({ guild: this.view(body.pid) }));
+    }
+    if (u.pathname === '/leave') {
+      const me = this.g.members.find(m => m.id === body.pid); if (!me) return new Response('{}');
+      this.g.members = this.g.members.filter(m => m.id !== body.pid);
+      this.g.log.unshift({ t: Date.now(), kind: 'join', text: `${me.name} ออกจากกิลด์` });
+      if (!this.g.members.length) { await this.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(this.g.id).run(); this.g = null; await this.state.storage.put('g', null); return new Response('{}'); }
+      if (me.role === 'leader') { const next = this.g.members.find(m => m.role === 'deputy') ?? [...this.g.members].sort((a, b) => a.joined - b.joined)[0]; next.role = 'leader'; }   // the guild goes on
+      await this.save(body.pid); return new Response('{}');
+    }
+    if (u.pathname === '/act') {
+      const pid = String(body.pid); if (!this.g.members.some(m => m.id === pid)) return new Response(JSON.stringify({ r: { refused: 'guild' }, guild: null }));
+      const fn = (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[body.name]; if (!fn) return new Response(JSON.stringify({ r: { refused: 'action' } }));
+      const st: St = { ...(body.player as St), guild: { ...this.g, me: pid } };
+      let m = this.mems.get(pid); if (!m) { m = newMem(); this.mems.set(pid, m); } useMem(m);
+      const before = JSON.stringify(this.g);
+      let r: unknown; try { r = fn(st, body.args ?? {}, { now: Date.now(), rnd: Math.random }); } catch (e) { r = { refused: 'error', detail: String(e).slice(0, 120) }; }
+      const ng = st.guild as G | undefined; delete st.guild;
+      if (ng) { delete ng.me; this.g = ng; if (JSON.stringify(this.g) !== before) await this.save(pid); }
+      return new Response(JSON.stringify({ r, player: st, guild: this.view(pid) }));
+    }
+    return new Response('{}', { status: 404 });
+  }
 }

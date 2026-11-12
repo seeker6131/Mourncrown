@@ -259,6 +259,11 @@ export const handlers = {
   },
   guildCreate: (s: GameState, a: { name: string }, c: Ctx) => createGuild(s, a.name, c.now, c.rnd),
   guildJoin: (s: GameState, a: { id: string }, c: Ctx) => joinGuild(s, a.id, c.now, c.rnd),
+  /** real guilds live on the game server (server/worker.ts Guild): offline there is no list to browse / join */
+  guildBrowse: (_s: GameState, _a: object) => no('offline') as Refused | { list: { id: string; name: string; leader: string; members: number; hall: number }[] },
+  guildJoinReal: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true },
+  /** leave the guild (offline: the pretend guild is simply left) */
+  guildLeave: (s: GameState, _a: object) => { const g = guildOf(s); if (!g) return no('guild'); delete (s as { guild?: unknown }).guild; return { ok: true } as const; },
   guildUpgrade: (s: GameState, a: { type: GuildBld }, c: Ctx) => upgradeVillage(s, a.type, c.now),
   guildCollect: (s: GameState, a: { type: GuildBld }, c: Ctx) => collectVillage(s, a.type, c.now),
   /** mounts: buy the horse with gold, choose what you ride (the dragon only comes from playing) */

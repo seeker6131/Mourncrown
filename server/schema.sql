@@ -28,3 +28,5 @@ CREATE INDEX IF NOT EXISTS market_open ON market (status, type, price);
 CREATE INDEX IF NOT EXISTS market_seller ON market (seller, status);
 CREATE TABLE IF NOT EXISTS market_pay (listing TEXT PRIMARY KEY, seller TEXT NOT NULL, gold INTEGER NOT NULL, at INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS market_pay_seller ON market_pay (seller, done);
+-- real guilds: a directory for finding / joining (the guild itself lives in its own Durable Object)
+CREATE TABLE IF NOT EXISTS guilds (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, leader TEXT, members INTEGER NOT NULL, hall INTEGER NOT NULL, at INTEGER NOT NULL);

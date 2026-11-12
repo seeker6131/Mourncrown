@@ -2,7 +2,7 @@
 // (private chest, trophy shelf). Every change goes through act() -> server rules in src/systems/guild.ts.
 import Phaser from 'phaser';
 import { S, bus, EV } from '../core/events';
-import { act, refused } from '../net/client';
+import { act, actServer, isOnline, refused } from '../net/client';
 import { sfx } from '../audio/sfx';
 import { GOLD_D } from './kit';
 import type { UIKit } from './kit';
@@ -82,6 +82,11 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
         c.add(k.button(R - 116, top + 50, 108, 18, '🔧 ซ่อมบ้าน', () => { const r = act('houseRepair', {}); if (refused(r)) fail(r); else done(h, '🔧 ซ่อมบ้านแล้ว'); }, { size: 8, color: 0x7a3a10, disabled: (rc.wood ?? 0) > s.res.wood || (rc.stone ?? 0) > s.res.stone }));
       }
       T(L + 8, top + 72, 'ข่าวล่าสุดในกิลด์', 9, '#ffd84a');
+      c.add(k.button(R - 232, top + 70, 108, 17, '🚪 ออกจากกิลด์', () => {
+        if (typeof window !== 'undefined' && !window.confirm(`ออกจาก ${g0.name}? (แต้มบุญจะหายครึ่งหนึ่ง)`)) return;
+        const after = (r: ReturnType<typeof act<'guildLeave'>>) => { if (refused(r)) fail(r); else { realList = null; h.close(); bus.emit(EV.TOAST, `ออกจาก ${g0.name} แล้ว`, '#ffd8a0'); bus.emit(EV.STATE_CHANGED); } };
+        if (isOnline()) actServer('guildLeave', {}).then(after); else after(act('guildLeave', {}));
+      }, { size: 8, color: 0x5a1a1a }));
       c.add(k.button(R - 116, top + 70, 108, 17, '🚩 ธงกิลด์', () => { h.guildTab = 'flag'; fd.px = ''; h.rebuild(); }, { size: 8, color: 0x3a2a5a }));
       g0.log.slice(0, 7).forEach((l, i) => T(L + 12, top + 88 + i * 15, `${new Date(l.t).toLocaleTimeString().slice(0, 5)}  ${l.text}`, 8, '#e8dcc0', CW - 24));
       T(L + 8, top + H - 80, 'บริจาคเข้าคลัง → หัวหน้าอัปอาคาร/ป้อม • ของส่วนตัวไม่โดนปล้น แต่คลังหมู่บ้านโดน', 7.5, '#a89878', CW - 16);
@@ -291,6 +296,8 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
   }
 }
 
+/** (online) real guilds that still take members — loaded when the window opens */
+let realList: { id: string; name: string; leader: string; members: number; hall: number }[] | null = null, realBusy = false;
 /** not in a guild yet: found one (Lv20+) or join one of the guilds looking for members */
 function buildNoGuild(h: GuildHost, c: Phaser.GameObjects.Container, x: number, y: number, W: number, H: number, g: Phaser.GameObjects.Graphics) {
   const s = S(), k = h.k, L = x + 12, top = y + 30, CW = W - 24;
@@ -305,9 +312,23 @@ function buildNoGuild(h: GuildHost, c: Phaser.GameObjects.Container, x: number, 
   T(L + 10, top + 44, '👑 ก่อตั้งกิลด์ใหม่ (คุณเป็นหัวหน้า • หมู่บ้านใหม่ อาคาร Lv1 • ได้ทุนตั้งต้นในคลัง • โล่ 3 วัน)', 8.5, '#9fffb0');
   c.add(k.button(L + 10, top + 62, 180, 24, '🏰 ก่อตั้งกิลด์', () => {
     const nm = (typeof window !== 'undefined' ? window.prompt('ตั้งชื่อกิลด์ (2-24 ตัวอักษร)', `กิลด์ของ${s.name || 'ฉัน'}`) : null); if (!nm) return;
-    const r = act('guildCreate', { name: nm }); if (refused(r)) fail(r); else { done(h, `ก่อตั้ง ${nm} แล้ว! ไปหมู่บ้านกิลด์ได้ที่ประตูหมู่บ้าน`); bus.emit('td:guildHome'); }
+    const after = (r: ReturnType<typeof act<'guildCreate'>>) => { if (refused(r)) { if (r.refused === 'taken') bus.emit(EV.TOAST, 'ชื่อกิลด์นี้มีคนใช้แล้ว', '#ff8a6a'); else fail(r); } else { done(h, `ก่อตั้ง ${nm} แล้ว! ไปหมู่บ้านกิลด์ได้ที่ประตูหมู่บ้าน`); bus.emit('td:guildHome'); } };
+    if (isOnline()) actServer('guildCreate', { name: nm }).then(after); else after(act('guildCreate', { name: nm }));
   }, { size: 10, color: 0x6a4a1a }));
-  T(L + 10, top + 100, '🤝 หรือเข้าร่วมกิลด์ที่กำลังหาสมาชิก (จำลอง — รอเซิร์ฟจริง)', 8.5, '#9ad8ff');
+  if (isOnline()) {   // real guilds from the server
+    T(L + 10, top + 100, '🤝 หรือเข้าร่วมกิลด์ของผู้เล่นจริงที่ยังรับสมาชิก', 8.5, '#9ad8ff');
+    if (!realList) { if (!realBusy) { realBusy = true; actServer('guildBrowse', {}).then(r => { realBusy = false; realList = refused(r) ? [] : r.list; h.rebuild(); }); } T(L + 16, top + 124, 'กำลังโหลดรายชื่อกิลด์...', 9, '#c8b898'); return; }
+    if (!realList.length) T(L + 16, top + 124, 'ยังไม่มีกิลด์ — ก่อตั้งกิลด์แรกของเซิร์ฟเลย!', 9, '#ffd84a');
+    realList.slice(0, 4).forEach((o, i) => {
+      const by = top + 120 + i * 40;
+      g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(L + 8, by, CW - 16, 34, 4);
+      T(L + 16, by + 4, `🏛 ${o.name}`, 9.5, '#ffd84a');
+      T(L + 16, by + 19, `หัวหน้า ${o.leader || '-'} • สมาชิก ${o.members}/30 • หอกิลด์ Lv${o.hall}`, 8, '#e8dcc0');
+      c.add(k.button(L + CW - 104, by + 6, 88, 22, 'เข้าร่วม', () => actServer('guildJoinReal', { id: o.id }).then(r => { if (refused(r)) { bus.emit(EV.TOAST, r.refused === 'full' ? 'กิลด์เต็มแล้ว' : r.refused === 'level' ? `ต้องเลเวล ${GUILD_UNLOCK_LV}` : 'เข้าร่วมไม่ได้', '#ff8a6a'); realList = null; h.rebuild(); } else { realList = null; done(h, `เข้าร่วม ${o.name} แล้ว!`); bus.emit('td:guildHome'); } }), { size: 9, color: 0x1f4a2a }));
+    });
+    return;
+  }
+  T(L + 10, top + 100, '🤝 หรือเข้าร่วมกิลด์ที่กำลังหาสมาชิก (จำลอง — ออฟไลน์)', 8.5, '#9ad8ff');
   guildOffers(s).forEach((o, i) => {
     const by = top + 120 + i * 40;
     g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(L + 8, by, CW - 16, 34, 4);
