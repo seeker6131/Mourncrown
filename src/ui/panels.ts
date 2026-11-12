@@ -41,6 +41,8 @@ import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListing
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
 import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../systems/potions';
+import { farmGoal, setFarmGoal, farmDone, FARM_KEYS, FARM_NAMES, FARM_STEPS } from '../systems/farm';
+import { energyLeft } from '../systems/economy';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, audioState } from '../audio/sfx';
@@ -48,7 +50,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -141,6 +143,7 @@ export class Panels implements GuildHost {
       case 'uiopt': this.buildUiOpt(c); break;
       case 'stages': this.buildStages(c); break;
       case 'potion': this.buildPotion(c); break;
+      case 'farm': this.buildFarm(c); break;
       case 'premium': this.buildPremium(c); break;
       case 'market': this.buildMarket(c); break;
       case 'alchemy': this.buildAlchemy(c); break;
@@ -853,7 +856,7 @@ export class Panels implements GuildHost {
   // ---------------- POTION SETTINGS (the ⚙ beside the potion buttons) ----------------
   buildPotion(c: Phaser.GameObjects.Container) {
     const s = S(), k = this.k, p = potOf(s);
-    const W = Math.min(440, this.ui.VW - 20), H = 236;
+    const W = Math.min(460, this.ui.VW - 20), H = 312, vip = vipActive(s);
     const { x, y, g } = this.window(c, W, H, '🧪 ตั้งค่าการใช้ยา');
     const set = (ch: Partial<PotSet>) => { sfx.click(); setPot(s, ch); saveGame(s); this.rebuild(); };
     const lx = x + 16, bx = x + 176, bw = (W - 176 - 16 - 3 * 4) / 4;
@@ -869,8 +872,43 @@ export class Panels implements GuildHost {
     row(2, 'ใช้ยา HP ไหนก่อน', [['ยาใหญ่ก่อน', p.big, () => set({ big: true })], ['ยาเล็กก่อน', !p.big, () => set({ big: false })]]);
     row(3, '💧 ดื่มยา MP อัตโนมัติ', [['เปิด', p.mpAuto, () => set({ mpAuto: true })], ['ปิด', !p.mpAuto, () => set({ mpAuto: false })]], !p.auto);
     row(4, 'ดื่มเมื่อ MP ต่ำกว่า', MP_STEPS.map(v => [`${v}%`, p.mp === v, () => set({ mp: v })] as [string, boolean, () => void]), !p.auto || !p.mpAuto);
-    c.add(k.text(x + W / 2, y + H - 46, `มียา ❤ ${potCount(s, 'hp')}  •  💧 ${potCount(s, 'mp')}  —  ซื้อเพิ่มที่ร้านค้า${vipActive(s) ? '  •  👑 VIP: ยา HP หมดระบบซื้อให้เอง' : ''}`, 8, '#ffd8a0').setOrigin(0.5, 0));
+    // VIP: buy potions here, away from the shop — and whether the system buys one by itself when out
+    const vy = y + 186;
+    g.fillStyle(vip ? 0x3a2a08 : 0x1a1612, 0.6).fillRoundedRect(x + 10, vy - 4, W - 20, 64, 5).lineStyle(1, vip ? 0xd9b45a : 0x4a3a2a, 1).strokeRoundedRect(x + 10, vy - 4, W - 20, 64, 5);
+    c.add(k.text(lx, vy + 2, vip ? '👑 VIP: ยาหมดให้ระบบซื้อให้เอง' : '👑 VIP เท่านั้น: ซื้อยาได้ทุกที่ ไม่ต้องกลับบ้าน', 9, vip ? '#ffe7a0' : '#8a7a60'));
+    if (vip) [['ซื้อให้เอง', p.vipAuto, () => set({ vipAuto: true })], ['ฉันซื้อเอง', !p.vipAuto, () => set({ vipAuto: false })]].forEach(([t, on, cb], j) =>
+      c.add(k.button(bx + j * (bw * 2 + 8), vy - 1, bw * 2 + 4, 20, t as string, cb as () => void, { size: 8.5, color: on ? 0x1f5a2a : 0x3a3a3a })));
+    const buys: [string, string, number][] = [['hp_potion', '❤ เล็ก', 5], ['hp_potion', '❤ เล็ก', 20], ['hp_potion_l', '❤ ใหญ่', 5], ['mp_potion', '💧 MP', 5]];
+    const pw = (W - 32 - 3 * 6) / 4;
+    buys.forEach(([id, nm, q], j) => {
+      const cost = itemDef(id).price * q;
+      c.add(k.button(x + 16 + j * (pw + 6), vy + 26, pw, 26, `${nm} x${q}  💰${cost}`, () => {
+        const r = act('vipBuyPotion', { id, qty: q });
+        if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'gold' ? 'ทองไม่พอ' : r.refused === 'bag' ? 'กระเป๋าเต็ม' : 'เฉพาะ VIP', '#ff8a6a'); return; }
+        sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${itemDef(id).name} x${q} แล้ว (-${cost}💰)`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+      }, { size: 8, color: 0x2a4a5a, disabled: !vip || s.gold < cost }));
+    });
+    c.add(k.text(x + W / 2, y + H - 44, `มียา ❤ ${potCount(s, 'hp')}  •  💧 ${potCount(s, 'mp')}  •  💰 ${s.gold.toLocaleString()}`, 8, '#ffd8a0').setOrigin(0.5, 0));
     c.add(k.text(x + W / 2, y + H - 30, 'ใช้ได้ทั้งตอนเปิดและปิด AUTO • กดปุ่มยาข้างสกิลเพื่อดื่มเองได้ทุกเมื่อ', 7.5, '#c8b898').setOrigin(0.5, 0));
+  }
+
+  // ---------------- DEEPWILD AUTO FARM (AUTO in the Deepwild) ----------------
+  buildFarm(c: Phaser.GameObjects.Container) {
+    const s = S(), k = this.k, goal = farmGoal(s);
+    const W = Math.min(460, this.ui.VW - 20), H = 238;
+    const { x, y, g } = this.window(c, W, H, '👑 ฟาร์มทรัพยากรออโต้ (VIP)');
+    c.add(k.text(x + W / 2, y + 30, 'เลือกว่าจะเก็บอะไร เท่าไร แล้วกดเริ่ม — ครบแล้วหยุดเอง', 8.5, '#c8b898').setOrigin(0.5, 0));
+    const bx = x + 130, bw = (W - 130 - 16 - 4 * 4) / 5;
+    FARM_KEYS.forEach((key, i) => {
+      const ry = y + 50 + i * 30, have = key === 'ore' ? '' : `มี ${s.res[key].toLocaleString()}`;
+      g.fillStyle(0x0a0705, 0.45).fillRoundedRect(x + 10, ry - 3, W - 20, 26, 4);
+      c.add(k.text(x + 18, ry + 1, FARM_NAMES[key], 10, '#f3e6c4'));
+      if (have) c.add(k.text(x + 18, ry + 13, have, 7, '#9a8a70'));
+      FARM_STEPS.forEach((v, j) => c.add(k.button(bx + j * (bw + 4), ry, bw, 20, v ? String(v) : 'ไม่เอา', () => { sfx.click(); setFarmGoal(s, { [key]: v }); saveGame(s); this.rebuild(); }, { size: 8.5, color: goal[key] === v ? 0x1f5a2a : 0x3a3a3a })));
+    });
+    const en = energyLeft(s);
+    c.add(k.text(x + W / 2, y + H - 52, `⚡ แรงวันนี้เหลือ ${en}  •  แร่ต้องมีเลเวลถึงเหมืองนั้น  •  ขยับเองเมื่อไหร่ก็ควบคุมได้ทันที`, 7.5, '#ffd8a0').setOrigin(0.5, 0));
+    c.add(k.button(x + W / 2 - 90, y + H - 34, 180, 26, '▶ เริ่มฟาร์มออโต้', () => { this.close(); (this.ui as unknown as { td: { startFarm(): void } }).td.startFarm(); }, { size: 11, color: 0x1f4a2a, disabled: farmDone(goal) || en <= 0 || !vipActive(s) }));
   }
 
   // ---------------- STAGE SELECT ----------------

@@ -44,6 +44,8 @@ import type { BuildingId, MealId } from '../data/buildings';
 import type { ClassId } from '../data/classes';
 
 export interface Ctx { now: number; rnd: () => number }
+/** potions a VIP can buy away from the shop */
+const VIP_POTIONS = ['hp_potion', 'hp_potion_l', 'mp_potion'];
 export type Refused = { refused: string };
 const no = (why: string): Refused => ({ refused: why });
 
@@ -147,8 +149,7 @@ export const handlers = {
     let restExp = 0; const hm0 = homeOf(s);
     if (!base.animal && hm0.rest > 0 && r.exp > 0) { restExp = Math.round(r.exp * REST_EXP / 100); hm0.rest--; r.levels += gainExp(s, restExp); }
     goalProgress(s, base.animal ? 'animal' : 'kill', 1, c.now);
-    const junk = vipActive(s, c.now) && s.inventory.length >= invSize(s) - 2 ? sellJunk(s, 1) : null;   // VIP auto-sell
-    return { ...r, junk, drops, restExp };
+    return { ...r, drops, restExp };   // (VIP auto-sell removed — director 2026-11-12)
   },
   /** pick up a drop from the ground (first come, first served) */
   pickup(s: GameState, a: { did: number }, c: Ctx) {
@@ -213,8 +214,20 @@ export const handlers = {
     s.gold -= def.price; if (a.id === 'mana_shard') sd.shopDay.shards++;
     return { ok: true };
   },
-  /** VIP perk: buy a potion automatically when low */
-  autoPotion(s: GameState, _a: object, c: Ctx) { if (!vipActive(s, c.now) || s.gold < 25 || !addItem(s, 'hp_potion', 1)) return no('vip'); s.gold -= 25; return { ok: true }; },
+  /** VIP perk: buy a potion when out, by itself (the player's choice in the potion settings) */
+  autoPotion(s: GameState, a: { id?: string }, c: Ctx) {
+    const id = VIP_POTIONS.includes(a?.id ?? '') ? a.id! : 'hp_potion', price = itemDef(id).price;
+    if (!vipActive(s, c.now) || s.gold < price || !addItem(s, id, 1)) return no('vip'); s.gold -= price; return { ok: true };
+  },
+  /** VIP perk: buy potions anywhere (no trip home) — shop price, up to 20 at a time */
+  vipBuyPotion(s: GameState, a: { id: string; qty: number }, c: Ctx) {
+    if (!vipActive(s, c.now)) return no('vip');
+    if (!VIP_POTIONS.includes(a.id)) return no('item');
+    const qty = Math.max(1, Math.min(20, Math.floor(a.qty) || 1)), cost = itemDef(a.id).price * qty;
+    if (s.gold < cost) return no('gold');
+    if (!addItem(s, a.id, qty)) return no('bag');
+    s.gold -= cost; return { ok: true, qty, cost };
+  },
   sell: (s: GameState, a: { uid: number; qty: number }) => sellUid(s, a.uid, Math.max(1, Math.floor(a.qty))),
   sellJunk: (s: GameState, a: { maxRar: number }) => sellJunk(s, Math.min(2, a.maxRar)),
   upgradeItem: (s: GameState, a: { uid: number }, c: Ctx) => tryUpgrade(s, a.uid, c.rnd),

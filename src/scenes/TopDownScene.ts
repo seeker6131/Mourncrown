@@ -32,6 +32,7 @@ import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { potOf, pickPotion, POT_CD } from '../systems/potions';
+import { farmGoal, farmLeft, farmDone, FARM_KEYS, FARM_NAMES, type FarmGoal } from '../systems/farm';
 import { accountName } from '../net/cloud';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
@@ -304,7 +305,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
-    this.crowd = undefined; this.grid = undefined; this.path = null; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
+    this.crowd = undefined; this.farm = null; this.grid = undefined; this.path = null; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
@@ -1390,7 +1391,7 @@ export class TopDownScene extends Phaser.Scene {
     if (now < (kind === 'hp' ? this.potT : this.mpT)) return false;
     if (kind === 'hp' ? s.hp >= d.maxHp : s.mp >= d.maxMp) { if (manual) bus.emit(EV.TOAST, kind === 'hp' ? 'HP เต็มแล้ว' : 'MP เต็มแล้ว', '#c8d8c0'); return false; }
     let it = pickPotion(s, kind);
-    if (!it && kind === 'hp' && vipActive(s) && !refused(act('autoPotion', {}))) it = pickPotion(s, 'hp');   // VIP: auto-buy
+    if (!it && vipActive(s) && potOf(s).vipAuto && !refused(act('autoPotion', { id: kind === 'mp' ? 'mp_potion' : potOf(s).big ? 'hp_potion_l' : 'hp_potion' }))) it = pickPotion(s, kind);   // VIP: buys one by itself (if chosen)
     if (!it) { if (manual) { sfx.error(); bus.emit(EV.TOAST, kind === 'hp' ? 'ยา HP หมด — ซื้อที่ร้านค้า' : 'ยา MP หมด — ซื้อที่ร้านค้า', '#ff8a6a'); } return false; }
     const r = act('useItem', { uid: it.uid }) as { heal: number; mana: number } | null; if (!r) return false;
     if (kind === 'hp') this.potT = now + POT_CD; else this.mpT = now + POT_CD;
@@ -1408,8 +1409,54 @@ export class TopDownScene extends Phaser.Scene {
   autoStuck = { x: 0, y: 0, t: 0 };
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
+  /** Deepwild auto farm session: the order and what has come in since it started */
+  farm: { goal: FarmGoal; got: FarmGoal; base: { wood: number; stone: number; food: number } } | null = null;
+  startFarm() {
+    const s = S(), goal = farmGoal(s);
+    if (!vipActive(s)) return;
+    if (farmDone(goal)) { bus.emit(EV.TOAST, 'เลือกของที่จะฟาร์มอย่างน้อย 1 อย่าง', '#ff8a6a'); return; }
+    this.farm = { goal, got: { wood: 0, stone: 0, ore: 0, food: 0 }, base: { wood: s.res.wood, stone: s.res.stone, food: s.res.food } };
+    s.auto = true; this.autoBad.clear(); saveGame(s);
+    bus.emit(EV.TOAST, `🌿 เริ่มฟาร์มออโต้: ${FARM_KEYS.filter(k => goal[k]).map(k => `${FARM_NAMES[k]} ${goal[k]}`).join(' • ')}`, '#9fffb0');
+    bus.emit(EV.STATE_CHANGED);
+  }
+  stopFarm(why: string) {
+    const s = S(), f = this.farm; s.auto = false; this.farm = null; this.autoBad.clear(); saveGame(s);
+    const got = f ? FARM_KEYS.filter(k => f.got[k] > 0).map(k => `${FARM_NAMES[k]} +${f.got[k]}`).join(' • ') : '';
+    bus.emit(EV.TOAST, got ? `${why} — ได้ ${got}` : why, '#ffd8a0'); bus.emit(EV.STATE_CHANGED);
+  }
+  /** the farm's next job in the Deepwild: the nearest tree / rock / ore vein / animal still wanted */
+  farmStep(time: number): [number, number] {
+    const s = S(), f = this.farm!, h = this.hero;
+    f.got.wood = Math.max(f.got.wood, s.res.wood - f.base.wood); f.got.stone = Math.max(f.got.stone, s.res.stone - f.base.stone); f.got.food = Math.max(f.got.food, s.res.food - f.base.food);
+    const left = farmLeft(f.goal, f.got);
+    if (farmDone(left)) { sfx.levelUp(); this.stopFarm('✔ ฟาร์มครบตามที่สั่งแล้ว'); return [0, 0]; }
+    const cap = resCap(s), now = this.time.now, bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
+    for (const k of ['wood', 'stone', 'food'] as const) if (left[k] > 0 && s.res[k] >= cap) { f.goal[k] = f.got[k]; bus.emit(EV.TOAST, `📦 คลัง${FARM_NAMES[k]}เต็ม — ข้ามไป`, '#ffd8a0'); }
+    type T = { x: number; y: number; reach: number; obj: object };
+    const cands: T[] = [];
+    for (const n of this.nodes) {
+      if (n.until > now || bad(n)) continue;
+      const want = n.kind === 'wood' ? left.wood > 0 : n.vein ? left.ore > 0 && s.level >= n.vein.req : left.stone > 0;
+      if (want) cands.push({ x: n.x, y: n.y, reach: 26, obj: n });
+    }
+    if (left.food > 0) for (const m of this.combat.alive()) if (m.animal && !bad(m)) cands.push({ x: m.x, y: m.y, reach: 20 + m.m.size * 0.25, obj: m });
+    const t = cands.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
+    if (!t) return [0, 0];
+    const isAnimal = !(this.nodes as object[]).includes(t.obj);
+    if (s.outfit !== 'gather' && !isAnimal) s.outfit = 'gather';
+    const dx = t.x - h.x, dy = t.y - h.y, dist = Math.hypot(dx, dy * (isAnimal ? 1 : 1.3));
+    if (dist <= t.reach) { this.dir = (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8; this.path = null; this.attack(); return [0, 0]; }
+    return this.steer(t.obj, t.x, t.y, time) ?? [0, 0];
+  }
   toggleAuto() {
-    const s = S(); s.auto = !s.auto; this.autoBad.clear(); saveGame(s);
+    const s = S();
+    if (this.wild && !s.auto) {   // the Deepwild: VIP only (director) — choose what to gather first
+      if (!vipActive(s)) { sfx.error(); bus.emit(EV.TOAST, '👑 ฟาร์มทรัพยากรออโต้ เฉพาะ VIP — ผู้เล่นทั่วไปเก็บเองด้วยมือ', '#ffd84a'); return; }
+      this.ui?.panels.open('farm'); return;
+    }
+    if (this.wild && s.auto) { this.stopFarm('⏹ หยุดฟาร์มออโต้'); return; }
+    s.auto = !s.auto; this.autoBad.clear(); saveGame(s);
     // director: auto fights monsters and guild battles (each player chooses: watch their hero fight, or play by hand);
     // gathering in the Deepwild is always by hand
     const battle = !!this.raid || !!this.defense;
@@ -1435,6 +1482,7 @@ export class TopDownScene extends Phaser.Scene {
       }
       tx = f.x; ty = f.y; reach = f.reach; target = f.obj;
     } else {
+      if (this.wild) { if (this.farm && vipActive(s)) return this.farmStep(time); if (this.farm) this.stopFarm('👑 VIP หมดอายุ — หยุดฟาร์มออโต้'); s.auto = false; return [0, 0]; }
       if (!this.stageN || this.wild) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง', '#e8c872'); } return [0, 0]; }
       // pick up loot lying close by before the next fight
       const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));
@@ -1698,12 +1746,14 @@ export class TopDownScene extends Phaser.Scene {
       this.attacking = false; setIdle(h, key, this.dir);
       const s = S(), r = act('gather', { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold });
       if (!refused(r)) this.tutGathered = true;
+      if (refused(r) && r.refused === 'tired' && this.farm) this.stopFarm('⚡ วันนี้เหนื่อยแล้ว — หยุดฟาร์มออโต้');
       if (refused(r) && r.refused === 'tired') { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 6000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว เก็บของต่อไม่ไหว พรุ่งนี้มาใหม่ (ยังล่ามอน/ทำอย่างอื่นได้)', '#ffb080'); } return; }
       if (refused(r)) { if (r.refused === 'level') bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein?.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); return; }
       fx2(this, n.kind === 'wood' ? 'fx_chop' : 'fx_mine', n.x + (h.x < n.x ? -8 : 8), n.y - 14, 99952, 0.9);
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);
       if (s.res[n.kind] >= resCap(s) && this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 8000; bus.emit(EV.TOAST, '📦 คลังเต็ม! ของล้นทิ้ง — อัปเกรดโกดังหรือใช้ทรัพยากรก่อน', '#ff8a6a'); }
       if (r.ore) this.combat.float(n.x + 10, n.y - 42, `+${r.oreQty} ${itemDef(r.ore).name}`, '#c8e8ff', 9);
+      if (this.farm && n.vein) this.farm.got.ore += r.oreQty ?? 0;
       if (r.gold) this.combat.float(n.x - 10, n.y - 52, `💰 +${r.gold}G`, '#ffd84a', 10);
       if (r.gem) { fx2(this, 'fx_ore_rare', n.x, n.y - 24, 99953, 1.1); this.combat.vfx.star(n.x, n.y - 20, 0xff9cff, 1.6); this.combat.float(n.x, n.y - 62, `💎 ${itemDef(r.gem).name}!`, '#ff9cff', 12); bus.emit(EV.TOAST, `พบแร่หายาก! ${itemDef(r.gem).name}`, '#ff9cff'); bus.emit('loot:popup', { id: r.gem, rar: itemDef(r.gem).rarity }); saveGame(s); }
       this.tweens.add({ targets: n.im, x: n.im.x + 2, duration: 40, yoyo: true, repeat: 2 });

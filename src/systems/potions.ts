@@ -13,8 +13,10 @@ export interface PotSet {
   mp: number;
   /** big HP potions first (else small first) */
   big: boolean;
+  /** VIP: buy a potion by itself when out (else buy by hand with the VIP buttons) */
+  vipAuto: boolean;
 }
-export const POT_DEFAULT: PotSet = { auto: true, hp: 35, mpAuto: false, mp: 20, big: true };
+export const POT_DEFAULT: PotSet = { auto: true, hp: 35, mpAuto: false, mp: 20, big: true, vipAuto: true };
 export const HP_STEPS = [20, 35, 50, 70], MP_STEPS = [10, 20, 35, 50];
 export const POT_CD = 2500;   // ms between two potions of one kind
 
