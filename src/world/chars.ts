@@ -46,6 +46,20 @@ export function hitMs(k: string, a: string, fallback: number) {
   const h = CH[k]?.anims[a]?.hit;
   return h ? Math.round(h * 1000 / rateOf(k, a)) : fallback;
 }
+/** how far above the feet the top of the head is, in sprite pixels (top opaque row of the front-facing idle frame, cached per form) */
+const HEAD = new Map<string, number>();
+export function headH(sc: Phaser.Scene, k: string): number {
+  const hit = HEAD.get(k); if (hit !== undefined) return hit;
+  const c = CH[k]; if (!c || !sc.textures.exists(`c_${k}_idle`)) return 34;
+  try {
+    const tex = sc.textures.get(`c_${k}_idle`), fr = tex.get(Math.max(0, c.dirs.indexOf('south'))), src = tex.getSourceImage() as HTMLImageElement;
+    const cv = document.createElement('canvas'); cv.width = fr.cutWidth; cv.height = fr.cutHeight; const x = cv.getContext('2d', { willReadFrequently: true })!;
+    x.drawImage(src, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, fr.cutWidth, fr.cutHeight);
+    const p = x.getImageData(0, 0, cv.width, cv.height).data; let top = -1;
+    outer: for (let y = 0; y < cv.height; y++) for (let i = 0; i < cv.width; i++) if (p[(y * cv.width + i) * 4 + 3] > 60) { top = y; break outer; }
+    const h = top < 0 ? 34 : Math.max(8, c.idleFoot - top); HEAD.set(k, h); return h;
+  } catch { return 34; }
+}
 export function setIdle(sp: Phaser.GameObjects.Sprite, k: string, d: number) {
   const c = CH[k]; sp.anims.stop();
   sp.setTexture(`c_${k}_idle`, c.dirs.indexOf(near(c.dirs, d))).setOrigin(0.5, c.idleFoot / c.idleFs);

@@ -1,7 +1,7 @@
 // Other real players in this map (net/room.ts): their own hero form, name over the head with the HP bar under it, the
 // VIP aura by card, a chat bubble when they talk. Positions are smoothed between the updates the server relays.
 import Phaser from 'phaser';
-import { CH, setIdle, playAnim, hasAnim } from './chars';
+import { CH, setIdle, playAnim, hasAnim, headH } from './chars';
 import { hpBar } from './hpBar';
 import { pxShadow } from './pxShadow';
 import { VIP_AURA } from '../systems/premium';
@@ -45,10 +45,11 @@ export class OtherPlayers {
       }
       v.sp.setPosition(Math.round(o.x), Math.round(o.y)).setDepth(o.y);
       v.sh.setPosition(Math.round(o.x), Math.round(o.y));
-      const by = o.y - 36;
-      hpBar(this.bars, o.x, by, o.hp / 100, 22);
-      v.tag.setText(o.name).setPosition(Math.round(o.x), Math.round(by - 2));
-      if (v.bubble) { if (now > v.bubbleT) { v.bubble.destroy(); v.bubble = undefined; } else v.bubble.setPosition(Math.round(o.x), Math.round(by - 12)); }
+      // the top of the head: the name sits on it; the HP bar only on monster maps / the Deepwild (villages: the name only)
+      const fight = /^[mw]/.test(this.link.room), head = o.y - headH(this.sc, form) * v.sp.scaleY;
+      if (fight) hpBar(this.bars, o.x, head - 5, o.hp / 100, 22);
+      v.tag.setText(o.name).setPosition(Math.round(o.x), Math.round(head - (fight ? 6 : 1)));
+      if (v.bubble) { if (now > v.bubbleT) { v.bubble.destroy(); v.bubble = undefined; } else v.bubble.setPosition(Math.round(o.x), Math.round(head - (fight ? 16 : 12))); }
       // the VIP aura by card
       if (o.a !== v.aura) {
         if (v.glow) { v.sp.preFX?.remove(v.glow); v.glow = undefined; }

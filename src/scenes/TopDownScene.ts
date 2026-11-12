@@ -42,7 +42,7 @@ import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
-import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, hitMs, formKeyOf } from '../world/chars';
+import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, hitMs, formKeyOf, headH } from '../world/chars';
 import objMeta from '../assets/td/obj/objs.json';
 import { GuildTown, gvTerrain, gvBridges } from '../world/guildTown';
 import { pxShadow } from '../world/pxShadow';
@@ -283,6 +283,8 @@ export class TopDownScene extends Phaser.Scene {
   heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text;
   link?: RoomLink; peers?: OtherPlayers; heroBubble?: Phaser.GameObjects.Text; heroBubbleT = 0;
   /** which shared room this scene is (null = alone): village, guild village, monster map n, the Deepwild */
+  /** a map with fighting (monster maps, the Deepwild, dungeons, raids, war): HP bars over heads show only here */
+  fightMap() { return !!(this.stageN || this.wild || this.dungeon || this.raid || this.defense || this.raidMode || this.warSide); }
   roomId(): string | null {
     if (this.dungeon || this.raid || this.defense || this.raidMode || this.warSide || this.inside >= 0) return null;
     if (this.wild) return 'w';
@@ -1996,12 +1998,14 @@ export class TopDownScene extends Phaser.Scene {
       this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: (s0 as { auraOff?: boolean }).auraOff ? 0 : vipTier(s0), r: this.riding?.id ?? '', lv: s0.level });
       this.peers?.update(dt);
     }
-    if (this.heroBubble) { if (this.time.now > this.heroBubbleT) { this.heroBubble.destroy(); this.heroBubble = undefined; } else this.heroBubble.setPosition(Math.round(h.x), Math.round((this.riding ? this.riding.headY() : h.y - 36) - 12)); }
-    if (this.heroBar) {   // the name over the head, the HP bar just under it (director)
-      const s0 = S(), by = this.riding ? this.riding.headY() : h.y - 36; this.heroBar.clear();
-      if (h.visible) hpBar(this.heroBar, h.x, by, s0.hp / Math.max(1, derive(s0).maxHp), 24);
+    // the top of the head (director: the name sits ON the head, never over the face); the HP bar only where there is fighting
+    const head = this.riding ? this.riding.headY() : h.y - headH(this, this.F.key) * h.scaleY, fight = this.fightMap();
+    if (this.heroBubble) { if (this.time.now > this.heroBubbleT) { this.heroBubble.destroy(); this.heroBubble = undefined; } else this.heroBubble.setPosition(Math.round(h.x), Math.round(head - (fight ? 16 : 12))); }
+    if (this.heroBar) {   // the name over the head, the HP bar between them (monster maps only)
+      const s0 = S(); this.heroBar.clear();
+      if (h.visible && fight) hpBar(this.heroBar, h.x, head - 5, s0.hp / Math.max(1, derive(s0).maxHp), 24);
       const nm = accountName(); if (nm && s0.name !== nm) s0.name = nm;   // the server's name (it can arrive after the scene opened)
-      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); this.heroTag.setPosition(Math.round(h.x), Math.round(by - 2)).setVisible(h.visible || !!this.riding); }
+      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); this.heroTag.setPosition(Math.round(h.x), Math.round(head - (fight ? 6 : 1))).setVisible(h.visible || !!this.riding); }
     }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);
