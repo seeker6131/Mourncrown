@@ -995,5 +995,67 @@
   "walk": "done",
   "attack": "done",
   "zip": 1
+ },
+ "mt_horse": {
+  "cid": "b502ea34-783c-4b3a-a4ce-9da5e5d8a1bb"
+ },
+ "mt_dragon": {
+  "cid": "eab037c8-a66e-4110-bb4e-6df44fe14627"
+ },
+ "hr2_ride": {
+  "cid": "4f0a9d42-ce56-4871-a915-5bcfa5bd759b",
+  "src": "hr2"
+ },
+ "hero_ride": {
+  "cid": "60bb3423-69ea-4c2e-a335-9f9fc0f1095d",
+  "src": "hero"
+ },
+ "heroF_ride": {
+  "cid": "6696a630-90eb-4a72-b6fc-c738e590b0b5",
+  "src": "heroF"
+ },
+ "hr1_ride": {
+  "cid": "cf40b568-3fe3-4206-8e37-444ef593e53f",
+  "src": "hr1"
+ },
+ "hr3_ride": {
+  "cid": "35cec5a3-0fc7-4d01-85c9-2f3e3e2eb1d7",
+  "src": "hr3"
+ },
+ "hr4_ride": {
+  "cid": "68bba057-78be-4f00-81fe-55fed619df0c",
+  "src": "hr4"
+ },
+ "hr5_ride": {
+  "cid": "efcad086-2e30-4cca-8e48-597f692a0f30",
+  "src": "hr5"
+ },
+ "hr6_ride": {
+  "cid": "8d311ed0-e66e-4b74-af00-7129c9735b2b",
+  "src": "hr6"
+ },
+ "hr7_ride": {
+  "cid": "df6ddd55-d4a0-49aa-8a4c-b61455713892",
+  "src": "hr7"
+ },
+ "hr8_ride": {
+  "cid": "06e9d4e3-0b61-4d07-b92b-8f13b02704b0",
+  "src": "hr8"
+ },
+ "hr9_ride": {
+  "cid": "ed25fb0c-5cd7-4a8f-916d-f7f07ef22b50",
+  "src": "hr9"
+ },
+ "hr10_ride": {
+  "cid": "551884cd-441d-4f8b-9219-ac37f08ab702",
+  "src": "hr10"
+ },
+ "hr11_ride": {
+  "cid": "7fdb3046-8f0d-4ee0-a4db-77e36beedf71",
+  "src": "hr11"
+ },
+ "hr12_ride": {
+  "cid": "752ce0a4-70ff-439f-8576-99ff2f5d140f",
+  "src": "hr12"
  }
 }

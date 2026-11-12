@@ -601,7 +601,8 @@ export class Combat {
     if (!this.dungeon && !m.bounty) this.respawn(m);
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
-    const bty = (r as { bounty?: { gold: number; name: string } }).bounty;
+    const bty = (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty;
+    if (bty?.dragon) { bus.emit(EV.TOAST, '🐉✦ ลิมิเต็ด! ได้ "มังกรเพลิงนิรันดร์" — สัตว์ขี่ในตำนาน! (เมนู → 🐎 สัตว์ขี่)', '#ff9a3a'); fx2(this.s, 'fx_drop_sl', m.x, m.y, m.y + 2, 1.2); this.s.cameras.main.flash(300, 255, 140, 40); }
     if (bty) { bus.emit(EV.TOAST, `👑 ปราบ ${bty.name}! ได้ค่าหัว 💰${bty.gold} + แก่นโบราณ`, '#ffb04a'); fx2(this.s, 'fx_raid_victory', m.x, m.y - 30, 99995, 1.3); }
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
     if (r.drops?.length) this.dropLoot(m.x, m.y, r.drops);

@@ -25,6 +25,9 @@ import { activeQuest, nextAvailable, refreshCollect } from '../systems/quests';
 import { SKILL_BY_ID } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
+import { MOUNTS, MOUNT_ORDER } from '../data/mounts';
+import { DEV_TOOLS } from '../server/config';
+import { mountOn, hasMount } from '../systems/mounts';
 
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
@@ -44,7 +47,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -147,6 +150,7 @@ export class Panels implements GuildHost {
       case 'stash': buildStash(this, c); break;
       case 'trophy': buildTrophy(this, c); break;
       case 'bounty': this.buildBounty(c); break;
+      case 'mounts': this.buildMounts(c); break;
     }
   }
 
@@ -374,6 +378,28 @@ export class Panels implements GuildHost {
     c.add(k.text(x + 130, y + 104, `ค่าหัว: 💰${b.gold.toLocaleString()} + แก่นโบราณ 1 + ของดรอประดับบอส (Rare ขึ้นไป + ชิ้นส่วนเซ็ต)`, 8, '#9ad8ff', { wordWrap: { width: W - 160 } }));
     c.add(k.text(x + 130, y + 140, 'ตัวใหญ่ เลือดเยอะ ตีแรง — ชวนเพื่อนไปด้วยได้ • ค่าหัวใหม่ทุก 20 นาที', 7.5, '#a89878', { wordWrap: { width: W - 160 } }));
     c.add(k.button(x + W / 2 - 90, y + H - 50, 180, 26, b.killed ? 'รอรอบถัดไป' : `⚔ ไปแผนที่ ${b.n}`, () => { this.close(); bus.emit('td:goStage', b.n); }, { size: 10, color: 0x7a3a10, disabled: b.killed || s.level < st.req }));
+  }
+  /** mounts: the horse for gold, the limited fire dragon from playing; choose what you ride */
+  buildMounts(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, on = mountOn(s);
+    const W = Math.min(560, ui.VW - 16), H = 270, { x, y, g } = this.window(c, W, H, '🐎 สัตว์ขี่');
+    c.add(k.text(x + 16, y + 30, 'ขี่แล้ววิ่งเร็วขึ้น • ฮีโร่ทุกร่างขึ้นขี่ได้ • ตี/ใช้สกิล/เก็บของ = ลงจากหลังชั่วครู่ แล้วขึ้นขี่ต่อเอง • ในอาคารลงเดิน', 8, '#9ad8ff', { wordWrap: { width: W - 32 } }));
+    const cw = (W - 44) / 2;
+    MOUNT_ORDER.forEach((id, i) => {
+      const d = MOUNTS[id], cx = x + 16 + i * (cw + 12), cy = y + 54, ch = H - 70, own = hasMount(s, id), riding = on === id;
+      g.fillStyle(d.limited ? 0x2a1210 : 0x2a1d12, 0.95).fillRoundedRect(cx, cy, cw, ch, 6).lineStyle(d.limited ? 2 : 1, d.limited ? 0xff7a3a : GOLD_D, 1).strokeRoundedRect(cx, cy, cw, ch, 6);
+      const tk = `m_${d.key}_idle`;
+      if (ui.textures.exists(tk)) { const im = ui.add.image(cx + cw / 2, cy + 74, tk, 1).setOrigin(0.5, 0.75); im.setScale(Math.min(1.25, 110 / im.width)); c.add(im); }
+      if (d.limited) c.add(k.text(cx + cw - 8, cy + 6, '✦ LIMITED ✦', 8, '#ffb04a').setOrigin(1, 0));
+      c.add(k.text(cx + 10, cy + 96, `${d.name}`, 11, d.limited ? '#ffb04a' : '#ffe7a0'));
+      c.add(k.text(cx + 10, cy + 114, `💨 วิ่งเร็วขึ้น ${Math.round((d.speed - 1) * 100)}%`, 9, '#9fffb0'));
+      c.add(k.text(cx + 10, cy + 130, own ? (riding ? '✅ กำลังใช้อยู่' : '✔ เป็นของคุณแล้ว') : d.price ? `ราคา 💰${d.price.gold.toLocaleString()} • ต้อง Lv${d.price.lv}` : `ได้จาก: ${d.limited}`, 8, own ? '#9fffb0' : '#e8dcc0', { wordWrap: { width: cw - 20 } }));
+      const bx = cx + 10, by = cy + ch - 34, bw = cw - 20;
+      if (own) c.add(k.button(bx, by, bw, 24, riding ? '🚶 ลงเดิน' : '🐎 ขี่ตัวนี้', () => { act('mountSelect', { id: riding ? null : id }); sfx.click(); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 9.5, color: riding ? 0x3a2a2a : 0x1f4a2a }));
+      else if (d.price) c.add(k.button(bx, by, bw, 24, `🛒 ซื้อ 💰${d.price.gold.toLocaleString()}`, () => { const r = act('mountBuy', { id }); if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'gold' ? 'ทองไม่พอ' : r.refused === 'level' ? `ต้องเลเวล ${d.price!.lv}` : 'ซื้อไม่ได้', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, `🐎 ได้ ${d.name} แล้ว! ขึ้นขี่เลย`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 9.5, color: 0x4a3a10, disabled: s.gold < d.price.gold || s.level < d.price.lv }));
+      else c.add(k.text(cx + cw / 2, by + 6, '🔒 ยังไม่ได้รับ — ซื้อด้วยเงินจริงไม่ได้', 8, '#a89878').setOrigin(0.5, 0));
+      if (!own && DEV_TOOLS && d.limited) c.add(k.button(bx, by - 26, bw, 20, '🧪 ทดสอบ: รับมังกร', () => { act('dev', { op: 'mountDragon' }); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, { size: 8, color: 0x2a3a5a }));
+    });
   }
   /** the guild window on a tab (and a defense slot picked) */
   openGuild(tab: GuildTab, slot = -1) { this.guildTab = tab; if (slot >= 0) this.guildSlot = slot; this.guildPick = null; this.open('guild'); }
@@ -635,6 +661,7 @@ export class Panels implements GuildHost {
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
+    b('🐎 สัตว์ขี่', () => this.open('mounts'), 0x4a3a10);
     b(`🧪 จำลองผู้เล่นบอท: ${testBots.n} คน (แตะเพื่อเพิ่ม)`, () => { testBots.n = BOT_STEPS[(BOT_STEPS.indexOf(testBots.n) + 1) % BOT_STEPS.length]; bus.emit('td:bots'); bus.emit(EV.TOAST, testBots.n ? `🤖 จำลองผู้เล่น ${testBots.n} คน (แผนที่มอน + ป่าดงดิบ) — ดู FPS บนแถบชื่อแผนที่` : '🤖 ปิดผู้เล่นบอท', '#9ad8ff'); this.rebuild(); }, 0x2a3a5a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);

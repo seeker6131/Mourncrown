@@ -333,7 +333,7 @@ if __name__ == '__main__':
     alt = set(SRC.values())
     for f in sorted(os.listdir(cd)) if os.path.isdir(cd) else []:
         k = f[:-4]
-        if f.endswith('.zip') and not f.startswith('hero_') and k not in alt: build(k, [os.path.join(cd, SRC.get(k, k) + '.zip')], man)
+        if f.endswith('.zip') and not f.startswith(('hero_', 'mt_')) and k not in alt:   # mounts: tools/import_mounts.py build(k, [os.path.join(cd, SRC.get(k, k) + '.zip')], man)
     json.dump(man, open(os.path.join(OUT, 'chars.json'), 'w'), indent=0)
     # sheets of animations that no longer exist (renamed / merged groups) are removed so the game never loads them
     want = {f'{k}_idle.webp' for k in man} | {f'{k}_{a}.webp' for k, v in man.items() for a in v['anims']}

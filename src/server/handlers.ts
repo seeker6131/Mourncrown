@@ -8,6 +8,8 @@ import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
 import { fillRooms, pickRoom } from '../systems/rooms';
 import { startWar, warTick, warHit, warKill, warEnd, warDone } from '../systems/war';
+import { buyMount, selectMount, grantMount, hasMount } from '../systems/mounts';
+import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
@@ -124,7 +126,11 @@ export const handlers = {
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
     const bounty = sp.bounty !== undefined && bountyOf(s, c.now).slot === sp.bounty;
     const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss || bounty, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
-    if (bounty) { const b = bountyOf(s, c.now); s.gold += b.gold; give('ancient_core', 1); markBounty(s, b.slot); (r as { bounty?: { gold: number; name: string } }).bounty = { gold: b.gold, name: b.name }; }
+    if (bounty) {
+      const b = bountyOf(s, c.now); s.gold += b.gold; give('ancient_core', 1); markBounty(s, b.slot);
+      const dragon = !hasMount(s, 'dragon') && c.rnd() < DRAGON_BOUNTY && grantMount(s, 'dragon');   // the limited dragon: very rare, never shown as a rate
+      (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty = { gold: b.gold, name: b.name, dragon };
+    }
     if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
     if (base.animal) {   // meat and hides follow the daily hunting energy
       const hm = huntMult(s, c.now); energy(s, c.now).hunt++;
@@ -227,6 +233,9 @@ export const handlers = {
   guildJoin: (s: GameState, a: { id: string }, c: Ctx) => joinGuild(s, a.id, c.now, c.rnd),
   guildUpgrade: (s: GameState, a: { type: GuildBld }, c: Ctx) => upgradeVillage(s, a.type, c.now),
   guildCollect: (s: GameState, a: { type: GuildBld }, c: Ctx) => collectVillage(s, a.type, c.now),
+  /** mounts: buy the horse with gold, choose what you ride (the dragon only comes from playing) */
+  mountBuy: (s: GameState, a: { id: MountId }) => buyMount(s, a.id),
+  mountSelect: (s: GameState, a: { id: MountId | null }) => selectMount(s, a.id),
   /** guild war (mixed): the server runs the whole war; heroes add hits / kills (systems/war.ts) */
   warStart(s: GameState, a: { id: string }, c: Ctx) { const r = startWar(s, a.id, c.now); if (!('refused' in r)) { mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; } return r; },
   warSync: (s: GameState, _a: object, c: Ctx) => ({ war: warTick(s, c.now) }),
@@ -321,8 +330,9 @@ export const handlers = {
   /** daily login calendar: one claim per day */
   loginClaim: (s: GameState, _a: object, c: Ctx) => claimLogin(s, c.now) ?? no('claimed'),
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
-  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend'; n?: number; name?: string; wreck?: Wreck }, c: Ctx): Refused | { got: string[] } {
+  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend' | 'mountDragon'; n?: number; name?: string; wreck?: Wreck }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');
+    if (a.op === 'mountDragon') { grantMount(s, 'dragon'); return { got: ['🐉 ได้มังกรเพลิง (ทดสอบ)'] }; }
     if (a.op === 'guildFill' || a.op === 'guildTime' || a.op === 'guildAttack' || a.op === 'guildDefend') return { got: devGuild(s, a.op, c.now, c.rnd, a.n, a.name, a.op === 'guildDefend' ? cleanWreck(a.wreck) : undefined) };
     if (a.op === 'kit') return { got: giveTestKit(s, 5, c.rnd) };
     if (a.op === 'level') testLevelUp(s, a.n ?? 10);

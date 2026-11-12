@@ -8,6 +8,7 @@ import type { GameState, InvItem } from '../core/state';
 import { invSize } from '../core/state';
 import { BUILDINGS, levelCost, type Cost } from '../data/buildings';
 import { isFlag } from '../data/flag';
+import { grantMount } from './mounts';
 import {
   GUILD_UNLOCK_LV, GUILD_MAX, DEPUTY_MAX, HOUSE_SLOTS, treasuryCap, vaultShare, RAID_TAKE, RAID_GAIN, RAID_STORED, SHIELD_H, RAIDS_PER_DAY,
   REST_PER_HOUR, restCap, stashSlots, trophySlots, defSlots, CONTRIB, itemContrib, DEFENSES, DEF_ORDER, defStat, GUILD_SHOP, GOAL_POOL,
@@ -615,16 +616,17 @@ export const SEASON_REWARD = [
   { pts: 150, cores: 0, gold: 2000 }, { pts: 150, cores: 0, gold: 2000 }, { pts: 150, cores: 0, gold: 2000 },
 ];
 /** last week's reward, once: guild points + ancient cores for you, gold for the treasury (rank against the other guilds) */
-export function seasonClaim(s: GameState, now = Date.now()): R | { rank: number; pts: number; cores: number; gold: number } {
+export function seasonClaim(s: GameState, now = Date.now()): R | { rank: number; pts: number; cores: number; gold: number; dragon: boolean } {
   const g = guildOf(s); if (!g) return no('guild');
   const se = season(s, now); if (!se.prev || se.prev.score <= 0) return no('none');
   if (se.claimed === se.prev.week) return no('claimed');
   const rank = seasonBoard(s, now, se.prev.week, se.prev.score).findIndex(e => e.me) + 1;
   const rw = SEASON_REWARD[rank - 1] ?? { pts: 60, cores: 0, gold: 500 };
   meOf(s)!.pts += rw.pts; if (rw.cores) addItem(s, 'ancient_core', rw.cores);
+  const dragon = rank === 1 && grantMount(s, 'dragon');   // the limited dragon for the season's best guild
   g.treasury.gold = Math.min(tCap(s), g.treasury.gold + rw.gold);
   se.claimed = se.prev.week;
   log(g, 'goal', `🏆 ฤดูกาลกิลด์วอร์จบ: อันดับ ${rank} — แต้มบุญ +${rw.pts}`, now);
-  return { rank, ...rw };
+  return { rank, ...rw, dragon };
 }
 export const raidsLeft = (s: GameState, now = Date.now()) => { const g = guildOf(s)!; return g.raids.day === dayKey(now) ? Math.max(0, RAIDS_PER_DAY - g.raids.used) : RAIDS_PER_DAY; };

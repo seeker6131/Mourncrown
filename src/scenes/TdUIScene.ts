@@ -21,6 +21,7 @@ import { saveGame } from '../core/save';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
 import { WC } from '../world/warClient';
+import { mountOn, mountsOf, nextRide } from '../systems/mounts';
 import { vipActive } from '../systems/premium';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
@@ -48,6 +49,7 @@ export class TdUIScene extends Phaser.Scene {
   toasts: Phaser.GameObjects.Text[] = [];
   lastKey = ''; refreshT = 0;
   mpText!: Phaser.GameObjects.Text;
+  rideBtn?: Phaser.GameObjects.Container; rideBg?: Phaser.GameObjects.Graphics; rideTx?: Phaser.GameObjects.Text; rideOn?: boolean;
   warBtn?: Phaser.GameObjects.Container; warBg?: Phaser.GameObjects.Graphics; warTx?: Phaser.GameObjects.Text;
   autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
@@ -176,6 +178,11 @@ export class TdUIScene extends Phaser.Scene {
       this.warBtn = this.add.container(x - 28, y - 34); this.warBg = this.add.graphics(); this.warTx = k.text(0, 0, '', 8.5, '#ffffff').setOrigin(0.5);
       const wz = this.add.zone(0, 0, 110, 26).setInteractive(); wz.on('pointerup', () => { sfx.click(); bus.emit('td:warSwap'); });
       this.warBtn.add([this.warBg, this.warTx, wz]); this.root.add(this.warBtn); this.warBtn.setVisible(false);
+      // ride / get off (or open the mounts window when you have none yet)
+      this.rideBtn = this.add.container(x - 64, y); this.rideBg = this.add.graphics(); this.rideTx = k.text(0, 0, '🐎', 12, '#ffffff').setOrigin(0.5);
+      const rz = this.add.zone(0, 0, 40, 26).setInteractive();
+      rz.on('pointerup', () => { sfx.click(); const st = S(); if (!mountsOf(st).length) { this.panels.open('mounts'); return; } act('mountSelect', { id: nextRide(st) }); saveGame(st); });
+      this.rideBtn.add([this.rideBg, this.rideTx, rz]); this.root.add(this.rideBtn);
     }
 
     // quest tracker under the status box: tap to claim when done
@@ -294,6 +301,11 @@ export class TdUIScene extends Phaser.Scene {
     }
     { const el = activeElixir(s); this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}` + (el ? `  ✨${el.name} ${Math.ceil((el.until - Date.now()) / 60000)} นาที` : '')); }
     this.formBtn.setVisible(nextForm(s) !== null && !this.panels.isOpen);
+    if (this.rideBtn && this.rideBg) {
+      const on = !!mountOn(s);
+      this.rideBtn.setVisible(s.level >= 10 && !this.panels.isOpen);
+      if (on !== this.rideOn) { this.rideOn = on; this.rideBg.clear().fillStyle(on ? 0x6a4a10 : 0x1a140e, 0.92).fillRoundedRect(-20, -11, 40, 22, 6).lineStyle(1.5, on ? 0xffd84a : 0x8a6a40, 1).strokeRoundedRect(-20, -11, 40, 22, 6); }
+    }
     if (this.warBtn && this.warBg && this.warTx) {
       const on = !!WC.war && !WC.war.over && !this.panels.isOpen;
       this.warBtn.setVisible(on);

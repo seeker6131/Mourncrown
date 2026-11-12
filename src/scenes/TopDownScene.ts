@@ -54,6 +54,9 @@ import { DefenseBattle } from '../world/defense';
 import { Hunters } from '../world/hunters';
 import { hpBar } from '../world/hpBar';
 import { makeRuin } from '../world/ruin';
+import { preloadMounts, createMountAnims, Riding, mountReady } from '../world/mount';
+import { mountOn } from '../systems/mounts';
+import { MOUNTS } from '../data/mounts';
 import { WC, syncWar, newFeed, warLine } from '../world/warClient';
 import { rivalStructs } from '../systems/guild';
 import { testBots } from '../core/testBots';
@@ -218,7 +221,7 @@ export class TopDownScene extends Phaser.Scene {
   preload() {
     for (const [p, u] of Object.entries(VFX_FILES)) this.load.image('px_' + p.split('/').pop()!.replace('.png', ''), u);   // PixelLab skill effects
     for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
-    preloadFx2(this);
+    preloadFx2(this); preloadMounts(this);
     if (this.gv) for (const [p, u] of Object.entries(ROOM_PNG)) this.load.image(baseName(p), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
     // only the characters this scene shows: hero forms always; villagers + animals in the village;
@@ -253,6 +256,8 @@ export class TopDownScene extends Phaser.Scene {
   hunters?: Hunters;
   heroBar?: Phaser.GameObjects.Graphics;
   heroRing?: Phaser.GameObjects.Sprite | null;
+  /** riding a mount (world/mount.ts); fighting / gathering gets off for a moment */
+  riding?: Riding; rideBlockT = 0; heroMoving = false;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -288,7 +293,7 @@ export class TopDownScene extends Phaser.Scene {
     this.shadow = this.contact(sp0.x, sp0.y, 24, 9, 0.5);
     this.time.delayedCall(250, () => sfx.door());   // arriving on a map
     this.hero = this.add.sprite(sp0.x, sp0.y, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, this.inside >= 0 ? 4 : 0);
-    createFx2Anims(this);
+    createFx2Anims(this); createMountAnims(this);
     this.town = this.gv && this.inside < 0 ? new GuildTown(this as never) : undefined; this.hot = [];
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);
@@ -331,6 +336,7 @@ export class TopDownScene extends Phaser.Scene {
     bus.on('td:bots', onBots); this.events.once('shutdown', () => bus.off('td:bots', onBots));
     this.hunters = undefined;
     this.heroBar = this.add.graphics().setDepth(99991);
+    this.riding = undefined; this.rideBlockT = 0;
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -1424,6 +1430,7 @@ export class TopDownScene extends Phaser.Scene {
   /** skill button i (0-2): pay MP / check cooldown in systems, then play it */
   castSkill(i: number) {
     if (this.dead || this.ui?.panels.isOpen || this.selectUi) return;
+    this.rideBlockT = this.time.now + 2500;
     const s = S(), id = currentSkills(s)[i]; if (!id) return;
     const r = beginCast(s, id, this.time.now, this.skillReady);
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
@@ -1720,6 +1727,7 @@ export class TopDownScene extends Phaser.Scene {
   }
   attack() {
     if (this.time.now < this.stunUntil) return;
+    this.rideBlockT = this.time.now + 2500;   // off the mount to fight / gather
     this.tutAttacked = true;
     if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi) return;
     const node = this.nearNode();
@@ -1759,10 +1767,11 @@ export class TopDownScene extends Phaser.Scene {
     if (mx || my) this.manualT = time;
     if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.ui?.panels.isOpen && !this.selectUi) [mx, my] = this.autoStep(time);
     const len = Math.hypot(mx, my);
-    const h = this.hero;
+    const h = this.hero; this.heroMoving = false;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
-      const sp = 108 * dt / 1000;   // director: a little faster (was 92)
+      const sp = 108 * (this.riding ? MOUNTS[this.riding.id].speed : 1) * dt / 1000;   // director: a little faster (was 92); a mount faster still (dragon > horse)
+      this.heroMoving = true;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
       const ok = (x: number, y: number) => this.canStand(x, y);
       if (ok(nx, h.y)) h.x = nx;
@@ -1779,7 +1788,13 @@ export class TopDownScene extends Phaser.Scene {
     this.crowd?.update(time, dt);
     this.hunters?.update(time, dt);
     if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead).setPosition(h.x, h.y + 1).setDepth(h.y - 3); }
-    if (this.heroBar) { const s0 = S(); this.heroBar.clear(); if (h.visible) hpBar(this.heroBar, h.x, h.y - 36, s0.hp / Math.max(1, derive(s0).maxHp), 24); }
+    { // riding: on when a mount is chosen, outdoors, not in a fight / at work (attacks and gathering get off for 2.5 s)
+      const want = mountOn(S()), can = !!want && this.inside < 0 && !this.dead && time > this.rideBlockT && mountReady(this, want);
+      if (can && (!this.riding || this.riding.id !== want)) { this.riding?.destroy(); this.riding = new Riding(this, want!, h.x, h.y); this.combat.vfx.dust(h.x, h.y, 6, 16); }
+      else if (!can && this.riding) { this.riding.destroy(); this.riding = undefined; this.combat.vfx.dust(h.x, h.y, 6, 16); if (h.alpha === 0) h.setAlpha(1); }
+      if (this.riding) { this.riding.update(h.x, h.y, this.dir, this.heroMoving, this.F.key, h.scaleX, time); h.setAlpha(0); }
+    }
+    if (this.heroBar) { const s0 = S(); this.heroBar.clear(); if (h.visible) hpBar(this.heroBar, h.x, this.riding ? this.riding.headY() : h.y - 36, s0.hp / Math.max(1, derive(s0).maxHp), 24); }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);
     if (this.gv && this.inside < 0 && time > this.warT && (this.warSide || WC.war || guildOf(S())?.war)) { this.warT = time + 1000; this.warStep(); }
