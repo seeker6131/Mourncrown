@@ -56,7 +56,7 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 
 ## 4. ชั้นเซิร์ฟ (สำคัญมาก)
 - UI/ฉาก **ห้าม** import ฟังก์ชันที่เปลี่ยนค่าจาก `systems/*` ตรงๆ → เรียก `act()` เท่านั้น → `server/handlers.ts` ตัดสิน (เช็คเลเวล แผนที่ มอนต้อง spawn จริง ดาเมจต่อวินาที อัตราการกด สุ่มของที่เซิร์ฟ)
-- ตอนนี้ handlers รันในเครื่องผู้เล่น (ยังโกงได้) → ขั้นต่อไป: ย้าย `src/server` + `systems` ไปรันบน **Cloudflare Workers + Durable Objects** (1 ห้องป่าดงดิบ = 1 DO), เซฟใน D1, ล็อกอิน Google, ตรวจใบเสร็จ Google Play ที่เซิร์ฟ — ผู้ใช้ต้องสมัคร Cloudflare ก่อน (API token ใส่เป็น secret/env ของเครื่องที่รัน ห้ามให้วางในแชตและห้าม commit)
+- ตอนนี้ handlers รันในเครื่องผู้เล่น (ยังโกงได้) → ขั้นต่อไป: ย้าย `src/server` + `systems` ไปรันบน **Cloudflare Workers + Durable Objects** (1 ห้องป่าดงดิบ = 1 DO), เซฟใน D1, ล็อกอิน Google, รับเงินผ่าน payment gateway บนเว็บ (ไม่ลง Play Store/App Store — ผู้กำกับ 2026-11-12) — ผู้ใช้ต้องสมัคร Cloudflare ก่อน (API token ใส่เป็น secret/env ของเครื่องที่รัน ห้ามให้วางในแชตและห้าม commit)
 - ก่อน OBT: `DEV_TOOLS=false`, ตั้ง repo เป็น private (อัตราดรอปอยู่ในโค้ด), ลบ `window.__tdS`/`__game` debug
 
 ## 5. ระบบที่มีแล้ว (ย่อ)
