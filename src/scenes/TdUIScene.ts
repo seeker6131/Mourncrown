@@ -20,6 +20,8 @@ import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { potCount, POT_CD } from '../systems/potions';
 import { askChat } from '../net/chatInput';
+import { play } from '../net/play';
+import { accountToken } from '../net/cloud';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
 import { WC } from '../world/warClient';
@@ -59,6 +61,7 @@ export class TdUIScene extends Phaser.Scene {
   warBtn?: Phaser.GameObjects.Container; warBg?: Phaser.GameObjects.Graphics; warTx?: Phaser.GameObjects.Text;
   autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
+  offText?: Phaser.GameObjects.Text; offSince = 0;
   chatLines: { line: string; t: number }[] = []; chatText?: Phaser.GameObjects.Text;
   /** the last chat lines (fade 15 s after the newest) */
   drawChat() { if (!this.chatText) return; const live = this.chatLines.filter(l => this.time.now - l.t < 15000); this.chatText.setText(live.map(l => l.line).join('\n')).setAlpha(live.length ? 1 : 0); }
@@ -130,6 +133,7 @@ export class TdUIScene extends Phaser.Scene {
   }
   updateSkills(now: number) {
     const s = S();
+    { const off = !!accountToken() && !play.online; if (!off) this.offSince = 0; else if (!this.offSince) this.offSince = now; this.offText?.setVisible(off && now - this.offSince > 4000); }
     if (this.chatLines.length && (Math.floor(now / 500) % 2 === 0)) this.drawChat();
     for (const b of this.potBtns) {
       if (!b.r) continue;
@@ -237,6 +241,9 @@ export class TdUIScene extends Phaser.Scene {
       if (q) { bus.emit('td:fx', 'fx_quest'); sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
     });
     this.root.add([this.questG, this.questText, this.questZone]);
+    // offline (signed up but not connected): what is won now is not kept — say so plainly
+    this.offText = k.text(this.VW / 2, 34, '⚠ ออฟไลน์ — กำลังเชื่อมต่อเซิร์ฟ... ของที่ได้ตอนนี้จะไม่ถูกบันทึก', 8, '#ffd0c0', { backgroundColor: 'rgba(110,20,20,0.85)', padding: { x: 6, y: 3 } }).setOrigin(0.5, 0).setVisible(false);
+    this.root.add(this.offText); this.offSince = 0;
     // chat with the players in this map (net/room.ts): 💬 opens the typing box, the last lines show under it
     this.chatLines = [];
     { const cb = k.button(8, 94, 30, 20, '💬', () => { const link = (this.td as unknown as { link?: { chat(t: string): void; online: boolean } }).link; if (!link?.online) { this.toast('ยังไม่ได้เชื่อมต่อเซิร์ฟ (เล่นออฟไลน์อยู่)', '#c8b89a'); return; } askChat(t => link.chat(t)); }, { size: 10, color: 0x2a4a5a }); this.root.add(cb); }

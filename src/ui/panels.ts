@@ -782,6 +782,17 @@ export class Panels implements GuildHost {
   premPage = 0;
 
   // ---------------- 🏪 PLAYER MARKET ----------------
+  mkKey = ''; mkLoaded: { list: import('../systems/market').Listing[]; total: number } | null = null;
+  /** buy a real player's listing (the server checks and takes it off the market in one step) */
+  marketBuy(id: string) {
+    if (this.busyAct) return; this.busyAct = true;
+    actServer('marketBuy', { id }).then(r => {
+      this.busyAct = false;
+      if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, ({ gone: 'มีคนซื้อไปแล้ว / หมดเวลา', gold: 'ทองไม่พอ', bag: 'กระเป๋าเต็ม', own: 'เป็นของที่คุณลงขายเอง' } as Record<string, string>)[r.refused] ?? 'ซื้อไม่ได้', '#ff8a6a'); }
+      else { sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${itemDef(r.id).name}${r.qty > 1 ? ' x' + r.qty : ''} แล้ว (-${r.price.toLocaleString()} 💰)`, '#9fffb0'); saveGame(S()); bus.emit(EV.STATE_CHANGED); }
+      this.mkKey = ''; if (this.cur === 'market') this.rebuild();
+    });
+  }
   mkTab: 'buy' | 'sell' | 'mine' = 'buy'; mkType = 0; mkRar = -1; mkPage = 0; mkPrice = 0; mkSel: string | null = null;
   buildMarket(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
@@ -797,9 +808,15 @@ export class Panels implements GuildHost {
       const TYPES: [string, (t: string) => boolean][] = [['ทั้งหมด', () => true], ['อาวุธ', t => t === 'weapon'], ['เกราะ', t => t === 'armor'], ['เครื่องประดับ', t => t === 'accessory'], ['ของใช้/วัตถุดิบ', t => t === 'consumable' || t === 'material']];
       TYPES.forEach(([n], i) => c.add(k.button(x + 14 + i * 74, top, 70, 18, n, () => { this.mkType = i; this.mkPage = 0; this.rebuild(); }, { size: 7.5, color: this.mkType === i ? 0x4a3a10 : 0x1a140e })));
       c.add(k.button(x + 14 + 5 * 74 + 6, top, 104, 18, this.mkRar < 0 ? 'ทุกระดับ' : RARITY_NAMES[this.mkRar] + '+', () => { this.mkRar = this.mkRar >= 5 ? -1 : this.mkRar + 1; this.mkPage = 0; this.rebuild(); }, { size: 7.5 }));
-      const list = sampleListings().filter(l => TYPES[this.mkType][1](itemDef(l.item.id).type) && (this.mkRar < 0 || (l.item.rar ?? 0) >= this.mkRar)).sort((a, b) => a.price - b.price);
-      const per = 7, pages = Math.max(1, Math.ceil(list.length / per)); this.mkPage = Math.min(this.mkPage, pages - 1);
-      list.slice(this.mkPage * per, this.mkPage * per + per).forEach((l, i) => {
+      // online: real players' listings from the server (one page at a time); offline: the sample market
+      const online = isOnline(), key = `${this.mkType}/${this.mkRar}/${this.mkPage}`;
+      if (online && this.mkKey !== key) { this.mkKey = key; this.mkLoaded = null; actServer('marketBrowse', { type: this.mkType, rar: this.mkRar, page: this.mkPage }).then(r => { if (this.mkKey !== key) return; this.mkLoaded = refused(r) ? { list: [], total: 0 } : r; if (this.cur === 'market') this.rebuild(); }); }
+      const sample = sampleListings().filter(l => TYPES[this.mkType][1](itemDef(l.item.id).type) && (this.mkRar < 0 || (l.item.rar ?? 0) >= this.mkRar)).sort((a, b) => a.price - b.price);
+      const per = 7, total = online ? this.mkLoaded?.total ?? 0 : sample.length, pages = Math.max(1, Math.ceil(total / per)); if (!online) this.mkPage = Math.min(this.mkPage, pages - 1);
+      const shown = online ? this.mkLoaded?.list ?? [] : sample.slice(this.mkPage * per, this.mkPage * per + per);
+      if (online && !this.mkLoaded) c.add(k.text(x + W / 2, top + 110, 'กำลังโหลดตลาด...', 10, '#c8b898').setOrigin(0.5));
+      else if (online && !shown.length) c.add(k.text(x + W / 2, top + 110, 'ยังไม่มีใครลงขายของประเภทนี้', 10, '#8a7a60').setOrigin(0.5));
+      shown.forEach((l, i) => {
         const ry = top + 24 + i * 30, d = itemDef(l.item.id), rr = l.item.rar ?? d.rarity;
         g.fillStyle(this.mkSel === l.id ? 0x3a2a10 : 0x1a140e, 0.9).fillRoundedRect(x + 14, ry, W - 28, 27, 3).lineStyle(1, RARITY_COLORS[rr], 0.5).strokeRoundedRect(x + 14, ry, W - 28, 27, 3);
         c.add(this.ico(x + 28, ry + 13, `icon_${d.icon}`, 26));
@@ -807,10 +824,10 @@ export class Panels implements GuildHost {
         c.add(k.text(x + 44, ry + 15, [isGear(d) ? RARITY_NAMES[rr] : '', ...statLines(d, fakeInv(l.item)).slice(0, 2), (l.item.aff?.length ? `✦${l.item.aff.length} ค่าพิเศษ` : '')].filter(Boolean).join('  •  '), 6.8, '#c8b898'));
         c.add(k.text(x + W - 200, ry + 8, l.seller, 7.5, '#9ad8ff'));
         c.add(k.text(x + W - 110, ry + 7, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
-        c.add(k.button(x + W - 98, ry + 3, 78, 21, 'ซื้อ', () => bus.emit(EV.TOAST, 'ตัวอย่างตลาด — ซื้อขายกับผู้เล่นจริงได้เมื่อระบบออนไลน์เปิด', '#ffd84a'), { size: 8.5, color: 0x1f4a2a }));
+        c.add(k.button(x + W - 98, ry + 3, 78, 21, 'ซื้อ', () => { if (!online) { bus.emit(EV.TOAST, 'ตัวอย่างตลาด — ซื้อขายกับผู้เล่นจริงได้เมื่อเชื่อมต่อเซิร์ฟ', '#ffd84a'); return; } this.marketBuy(l.id); }, { size: 8.5, color: 0x1f4a2a }));
       });
       c.add(k.button(x + 14, y + H - 30, 30, 18, '◀', () => { this.mkPage = (this.mkPage + pages - 1) % pages; this.rebuild(); }, { size: 8 }));
-      c.add(k.text(x + 60, y + H - 27, `${this.mkPage + 1}/${pages}  •  ${list.length} รายการ  •  ตัวอย่างจากผู้เล่นจำลอง`, 7.5, '#c8b898'));
+      c.add(k.text(x + 60, y + H - 27, `${this.mkPage + 1}/${pages}  •  ${total} รายการ  •  ${online ? 'จากผู้เล่นจริง' : 'ตัวอย่างจากผู้เล่นจำลอง (ออฟไลน์)'}`, 7.5, online ? '#9fffb0' : '#c8b898'));
       c.add(k.button(x + 290, y + H - 30, 30, 18, '▶', () => { this.mkPage = (this.mkPage + 1) % pages; this.rebuild(); }, { size: 8 }));
     } else if (this.mkTab === 'sell') {
       const cols = 7, cs = 30;
@@ -858,7 +875,7 @@ export class Panels implements GuildHost {
         c.add(k.text(x + 42, ry + 6, `${d.name}${l.item.upg ? ' +' + l.item.upg : ''}${l.item.qty > 1 ? ' x' + l.item.qty : ''}`, 8.5, rcol(rr)));
         c.add(k.text(x + W - 260, ry + 6, left > 0 ? `เหลือ ${Math.floor(left / 3600000)} ชม. • รอผู้ซื้อ (เมื่อออนไลน์)` : 'หมดเวลา', 7.5, '#c8b898'));
         c.add(k.text(x + W - 100, ry + 5, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
-        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { if (act('marketCancel', { id: l.id })) { bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); } else bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a6a'); this.rebuild(); }, { size: 8, color: 0x5a1a1a }));
+        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { const done = (ok: boolean) => { if (ok) bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); else bus.emit(EV.TOAST, isOnline() ? 'ขายไปแล้ว / กระเป๋าเต็ม' : 'กระเป๋าเต็ม', '#ff8a6a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }; if (isOnline()) actServer('marketCancel', { id: l.id }).then(r => done(r === true)); else done(act('marketCancel', { id: l.id }) === true); }, { size: 8, color: 0x5a1a1a }));
       });
     }
   }

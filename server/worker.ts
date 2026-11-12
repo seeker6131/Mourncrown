@@ -1,6 +1,10 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD } from '../src/world/stages';
+import { itemDef, ITEMS } from '../src/data/items';
+import { invSize, type GameState } from '../src/core/state';
+import { addItem } from '../src/systems/inventory';
+import { MARKET_FEE, type Listing } from '../src/systems/market';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -169,7 +173,7 @@ export default {
 // ===== a map room: the players in one map see each other and talk =====
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
-interface Who { id: string; room: string; name: string; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
+interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
 interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number>; key: string; kind: string; elite: boolean; join: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
@@ -221,7 +225,11 @@ export class Room {
       this.others(ws, JSON.stringify({ t: 'ms', a: out }));
     } else if (m.t === 'dmg') {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
       const r = this.mons.get(Number(m.sid)); if (!r || !r.alive) return;
-      const lv = Math.max(1, Math.min(999, Number((me.p as { lv?: number } | undefined)?.lv) || 1)), cap = (lv * 30 + 100) * 10;   // damage per second, generous
+      if (!me.lv || now - (me.lvT ?? 0) > 60000) {   // the level from the player's character on the server (not what the game says), once a minute
+        try { me.lv = ((await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/lv?id=' + me.id))).json()) as { lv: number }).lv; } catch { me.lv = me.lv ?? 1; }
+        me.lvT = now;
+      }
+      const lv = Math.max(1, Math.min(999, me.lv ?? 1)), cap = (lv * 30 + 100) * 10;   // damage per second, generous
       me.bud = Math.min(cap * 4, me.bud + (now - me.budT) / 1000 * cap); me.budT = now;
       const n = Math.max(0, Math.min(Math.round(Number(m.n) || 0), me.bud)); if (!n) { (ws as WSX).serializeAttachment(me); return; }
       me.bud -= n; (ws as WSX).serializeAttachment(me);
@@ -260,6 +268,7 @@ export class Room {
 // Holds the real character: every action the game sends runs the same rules (src/server/handlers.ts) here with the
 // server's dice and clock, and the answer carries what changed. What is valuable (level, gold, items, resources,
 // buildings, diamonds, VIP...) is written ONLY here; the game's own save can only bring the harmless fields below.
+const MARKET = new Set(['marketList', 'marketCancel', 'marketBrowse', 'marketBuy']);
 const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name']);
 type St = Record<string, unknown>;
 interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
@@ -293,6 +302,70 @@ export class Player {
     return { r, own };
   }
   private send(o: unknown) { const t = JSON.stringify(o); for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } } }
+  private snap() { const b = new Map<string, string>(); for (const k of Object.keys(this.st!)) if (!CLIENT_KEYS.has(k)) b.set(k, JSON.stringify(this.st![k])); return b; }
+  private diff(b: Map<string, string>) { const own: St = {}; for (const k of Object.keys(this.st!)) if (!CLIENT_KEYS.has(k) && b.get(k) !== JSON.stringify(this.st![k])) own[k] = this.st![k]; return own; }
+  /** what the market owes this player: gold for sold listings, items back from expired ones */
+  private async claim(): Promise<{ own: St; text: string }> {
+    if (!this.st) return { own: {}, text: '' };
+    const DB = this.env.DB, now = Date.now(), b = this.snap(), st = this.st as St & { myListings?: Listing[]; gold: number };
+    const paid = (await DB.prepare('SELECT listing, gold FROM market_pay WHERE seller = ? AND done = 0').bind(this.id).all<{ listing: string; gold: number }>()).results;
+    let gold = 0; const sold: string[] = [];
+    for (const p of paid) { gold += p.gold; sold.push(p.listing); await DB.prepare('UPDATE market_pay SET done = 1 WHERE listing = ?').bind(p.listing).run(); }
+    if (gold) { st.gold += gold; st.myListings = (st.myListings ?? []).filter(l => !sold.includes(l.id)); }
+    const late = (await DB.prepare("SELECT id FROM market WHERE seller = ? AND status = 'open' AND until < ?").bind(this.id, now).all<{ id: string }>()).results;
+    let back = 0;
+    for (const l of late) {
+      useMem(this.mem); const ok = (handlers as unknown as { marketCancel(s: unknown, a: { id: string }): boolean }).marketCancel(st, { id: l.id });
+      if (ok) { back++; await DB.prepare("UPDATE market SET status = 'expired' WHERE id = ?").bind(l.id).run(); }
+    }
+    const own = this.diff(b); if (Object.keys(own).length) await this.later();
+    return { own, text: [gold ? `🏪 ขายของในตลาดได้ ${sold.length} ชิ้น +${gold.toLocaleString()} 💰` : '', back ? `🏪 ของหมดเวลาขาย ${back} ชิ้น คืนเข้ากระเป๋าแล้ว` : ''].filter(Boolean).join(' • ') };
+  }
+  /** the players' market (shared by everyone, in the database) */
+  private async market(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
+    const DB = this.env.DB, now = Date.now(), st = this.st as St & GameState;
+    if (name === 'marketList') {
+      const out = this.run('marketList', a), l = out.r as Listing;
+      if (l && typeof l === 'object' && l.id) { const d = itemDef(l.item.id);
+        await DB.prepare('INSERT INTO market (id, seller, seller_name, item, type, rar, price, until, status, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(l.id, this.id, String(st.name ?? ''), JSON.stringify(l.item), d.type, l.item.rar ?? d.rarity, l.price, l.until, 'open', now).run(); }
+      return out;
+    }
+    if (name === 'marketCancel') {   // only while nobody has bought it
+      const u = await DB.prepare("UPDATE market SET status = 'cancel' WHERE id = ? AND seller = ? AND status = 'open'").bind(String(a.id), this.id).run() as { meta?: { changes?: number } };
+      if (!u.meta?.changes) { const c = await this.claim(); return { r: false, own: c.own }; }
+      const out = this.run('marketCancel', a);
+      if (out.r !== true) await DB.prepare("UPDATE market SET status = 'open' WHERE id = ?").bind(String(a.id)).run();   // (bag full: still for sale)
+      return out;
+    }
+    if (name === 'marketBrowse') {
+      const type = Number(a.type) || 0, rar = Number(a.rar ?? -1), page = Math.max(0, Number(a.page) || 0), T = ['', 'weapon', 'armor', 'accessory'];
+      let where = "status = 'open' AND until > ? AND seller != ?"; const bind: unknown[] = [now, this.id];
+      if (type >= 1 && type <= 3) { where += ' AND type = ?'; bind.push(T[type]); } else if (type === 4) where += " AND type NOT IN ('weapon', 'armor', 'accessory')";
+      if (rar >= 0) { where += ' AND rar >= ?'; bind.push(rar); }
+      const total = (await DB.prepare(`SELECT COUNT(*) AS n FROM market WHERE ${where}`).bind(...bind).first<{ n: number }>())?.n ?? 0;
+      const rows = (await DB.prepare(`SELECT id, seller_name, item, price, until FROM market WHERE ${where} ORDER BY price ASC LIMIT 7 OFFSET ?`).bind(...bind, page * 7).all<{ id: string; seller_name: string; item: string; price: number; until: number }>()).results;
+      return { r: { list: rows.map(r => ({ id: r.id, seller: r.seller_name || 'ผู้เล่น', item: JSON.parse(r.item), price: r.price, until: r.until })), total }, own: {} };
+    }
+    if (name === 'marketBuy') {   // checked, then taken off the market in one step (two buyers can never get the same piece)
+      const row = await DB.prepare("SELECT * FROM market WHERE id = ? AND status = 'open' AND until > ?").bind(String(a.id), now).first<{ id: string; seller: string; item: string; price: number }>();
+      if (!row) return { r: { refused: 'gone' }, own: {} };
+      if (row.seller === this.id) return { r: { refused: 'own' }, own: {} };
+      if (st.gold < row.price) return { r: { refused: 'gold' }, own: {} };
+      const it = JSON.parse(row.item) as { id: string; qty: number; upg: number; rar?: number; aff?: unknown; set?: string };
+      const stack = !!ITEMS[it.id]?.stack && st.inventory.some(i => i.id === it.id);
+      if (st.inventory.length >= invSize(st) && !stack) return { r: { refused: 'bag' }, own: {} };
+      const u = await DB.prepare("UPDATE market SET status = 'sold', buyer = ?, at = ? WHERE id = ? AND status = 'open'").bind(this.id, now, row.id).run() as { meta?: { changes?: number } };
+      if (!u.meta?.changes) return { r: { refused: 'gone' }, own: {} };
+      const b = this.snap();
+      st.gold -= row.price; addItem(st, it.id, it.qty, it.upg, { rar: it.rar, aff: it.aff as never, set: it.set } as never);
+      const pay = row.price - Math.ceil(row.price * MARKET_FEE);   // 8% market tax (a gold sink)
+      await DB.prepare('INSERT INTO market_pay (listing, seller, gold, at) VALUES (?, ?, ?, ?)').bind(row.id, row.seller, pay, now).run();
+      try { await this.env.PLAYER.get(this.env.PLAYER.idFromName(row.seller)).fetch(new Request('https://p/claim?id=' + row.seller)); } catch { /* paid when they come back */ }
+      await this.later();
+      return { r: { ok: true, id: it.id, qty: it.qty, price: row.price }, own: this.diff(b) };
+    }
+    return { r: { refused: 'action' }, own: {} };
+  }
   async fetch(req: Request) {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? ''; await this.load(id);
     if (u.pathname === '/ws') {
@@ -302,9 +375,12 @@ export class Player {
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
+      if (this.st) { const c = await this.claim(); if (c.text) server.send(JSON.stringify({ t: 'note', own: c.own, text: c.text })); }   // sold while away
       return new Response(null, { status: 101, webSocket: client } as ResponseInit);
     }
     if (u.pathname === '/save') return new Response(JSON.stringify(this.st ? { rev: this.rev, at: this.at, data: this.st } : { rev: 0, at: 0, data: null }));
+    if (u.pathname === '/claim') { const c = await this.claim(); if (c.text) this.send({ t: 'note', own: c.own, text: c.text }); return new Response('{}'); }
+    if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1 }));   // (rooms ask: the damage cap uses the server's level)
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
       const body = JSON.parse(await req.text()) as { data?: St };
       if (!body.data || typeof body.data !== 'object' || typeof body.data.version !== 'number') return new Response(JSON.stringify({ error: 'data' }), { status: 400 });
@@ -329,7 +405,7 @@ export class Player {
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
-    const out = this.run(m.name, m.args);
+    const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>) : this.run(m.name, m.args);
     if (Object.keys(out.own).length) await this.later();
     ws.send(JSON.stringify({ t: 'r', q: m.q, ...out }));
   }

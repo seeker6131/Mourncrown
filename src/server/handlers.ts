@@ -331,6 +331,9 @@ export const handlers = {
   /** list an item on the market: in the village — VIP anywhere (director) */
   marketList: (s: GameState, a: { uid: number; qty: number; price: number }, c: Ctx) => (mem.map !== 0 && !vipActive(s, c.now) ? 'away' as const : listItem(s, a.uid, a.qty, a.price, c.now)),
   marketCancel: (s: GameState, a: { id: string }) => cancelListing(s, a.id),
+  /** the players' market lives on the game server (server/worker.ts Player): offline there is nothing to browse or buy */
+  marketBrowse: (_s: GameState, _a: { type: number; rar: number; page: number }) => no('offline') as Refused | { list: import('../systems/market').Listing[]; total: number },
+  marketBuy: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true; id: string; qty: number; price: number },
   buyDiamond: (s: GameState, a: { id: string }, c: Ctx) => buyDiamondItem(s, a.id, c.now),
   vipGift: (s: GameState, _a: object, c: Ctx) => claimVipGift(s, c.now),
   claimTdQuest: (s: GameState, _a: object) => claimTdQuest(s),

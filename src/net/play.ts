@@ -17,6 +17,7 @@ class PlayLink {
       if (m.t === 'hi') { this.apply(m.own); this.ready = !!m.has; this.delay = 1000; if (!m.has) setTimeout(() => this.retry(), 4000); return; }   // (no save on the server yet: the first upload seeds it)
       if (m.t === 'r') { this.apply(m.own); const f = this.wait.get(m.q!); this.wait.delete(m.q!); f?.({ r: m.r, own: m.own ?? {} }); return; }
       if (m.t === 'pay') { this.apply(m.own); bus.emit('net:pay', { sid: m.sid, r: m.r }); }
+      if (m.t === 'note') { this.apply(m.own); const text = (m as { text?: string }).text; if (text) bus.emit(EV.TOAST, text, '#ffd84a'); }   // e.g. something sold on the market
     };
     ws.onclose = () => { if (this.ws === ws) { this.ws = null; this.ready = false; } for (const f of this.wait.values()) f({ r: { refused: 'offline' }, own: {} }); this.wait.clear(); setTimeout(() => this.open(), this.delay); this.delay = Math.min(15000, this.delay * 2); };
   }

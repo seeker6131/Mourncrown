@@ -22,3 +22,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS accounts_name ON accounts (name_key);
 -- suspicious saves for the admin (anti-cheat log)
 CREATE TABLE IF NOT EXISTS flags (id TEXT NOT NULL, at INTEGER NOT NULL, what TEXT NOT NULL, detail TEXT);
 CREATE INDEX IF NOT EXISTS flags_id ON flags (id, at);
+-- the players' market: listings (open / sold / cancel / expired) and what sellers are owed
+CREATE TABLE IF NOT EXISTS market (id TEXT PRIMARY KEY, seller TEXT NOT NULL, seller_name TEXT, item TEXT NOT NULL, type TEXT NOT NULL, rar INTEGER NOT NULL, price INTEGER NOT NULL, until INTEGER NOT NULL, status TEXT NOT NULL, buyer TEXT, at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS market_open ON market (status, type, price);
+CREATE INDEX IF NOT EXISTS market_seller ON market (seller, status);
+CREATE TABLE IF NOT EXISTS market_pay (listing TEXT PRIMARY KEY, seller TEXT NOT NULL, gold INTEGER NOT NULL, at INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS market_pay_seller ON market_pay (seller, done);
