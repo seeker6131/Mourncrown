@@ -20,12 +20,12 @@ import { sellJunk } from '../systems/inventory';
 import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
-import { CH, playAnim, setIdle, hasAnim, hitMs } from './chars';
+import { CH, playAnim, setIdle, hasAnim, hitMs, animMs } from './chars';
 import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean; chT?: number; chargeT?: number; stepT?: number; stepN?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -620,7 +620,7 @@ export class Combat {
       const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;
       let moving = false;
       // stand still while swinging / casting (no sliding across the ground with an attack pose)
-      const busy = time - m.atkT < (m.boss ? 750 : 500) || time - (m.spT ?? -1e9) < 1300;
+      const busy = time - m.atkT < (m.boss ? Math.max(750, animMs(m.m.key, 'attack')) : 500) || time - (m.spT ?? -1e9) < 1300 || (m.chargeT ?? 0) > time;
       if (!angry && !busy) {
         let tx = 0, ty = 0;
         const fleeing = m.animal && (m.fleeT ?? 0) > time;
@@ -668,7 +668,30 @@ export class Combat {
           }
         });
       }
-      if (angry && !this.s.dead && dist <= reach && time - m.last > base.attackCooldown) {
+      // a boss charges in when the hero keeps out of reach: it flares red for a moment, then rushes at where the hero stood
+      if (angry && m.boss && !this.s.dead && !busy && time - (m.spT ?? -1e9) > 1500 && dist > reach + 40 && dist < 230 && time - (m.chT ?? 0) > 5500) {
+        m.chT = time; m.chargeT = time + 900; const tx = h.x, ty = h.y; m.dir = dirOf(dx, dy);
+        setIdle(m.sp, m.m.key, m.dir);
+        m.sp.setTint(0xff5a4a); this.s.tweens.add({ targets: m.sp, alpha: { from: 1, to: 0.75 }, duration: 110, yoyo: true, repeat: 1 });
+        this.s.time.delayedCall(380, () => {
+          if (!m.alive) return; m.sp.clearTint();
+          if (CH[m.m.key] && hasAnim(m.m.key, 'walk')) playAnim(m.sp, m.m.key, 'walk', m.dir);
+          const ax = tx - m.x, ay = ty - m.y, ad = Math.max(1, Math.hypot(ax, ay)), go = Math.min(ad - reach * 0.6, 150);
+          let gx = m.x, gy = m.y;   // last spot that was not inside a wall / tree
+          const tw = this.s.tweens.add({ targets: m, x: m.x + ax / ad * go, y: m.y + ay / ad * go, duration: 420, ease: 'Quad.easeIn',
+            onUpdate: () => { if (this.s.isBlocked(m.x, m.y)) { m.x = gx; m.y = gy; tw.complete(); return; } gx = m.x; gy = m.y; if (Math.random() < 0.35) this.vfx.dust(m.x, m.y, 2, 10); },
+            onComplete: () => {
+              if (!m.alive) return; this.vfx.dust(m.x, m.y, 8, 22);
+              if (!this.s.dead && Math.hypot(h.x - m.x, h.y - m.y) < reach + 18) {
+                const r = calcDamage(m.atk * 1.3, d.def, 1, 0, Math.random, d.evade); s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+                this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff4a3a', 12);
+                if (!r.miss) { sfx.hurt(); h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
+                if (s.hp <= 0) this.s.heroDie();
+              }
+            } });
+        });
+      }
+      if (angry && !this.s.dead && dist <= reach && time - m.last > base.attackCooldown && !((m.chargeT ?? 0) > time)) {
         m.last = time; m.atkT = time; m.dir = dirOf(dx, dy);
         if (CH[m.m.key] && hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
         if (m.boss) { const lx = dx / dist * 14, ly = dy / dist * 9; this.s.tweens.add({ targets: m, x: m.x + lx, y: m.y + ly, duration: 140, yoyo: true, ease: 'Quad.easeOut' }); }   // a heavy lunge at the hero
@@ -692,10 +715,18 @@ export class Combat {
         } else this.s.time.delayedCall(hitMs(m.m.key, 'attack', 220), land);   // the hit lands on the frame the claw / weapon strikes
       }
       if (CH[m.m.key]) {
-        const attacking = time - m.atkT < 600;
+        const attacking = time - m.atkT < (m.boss ? animMs(m.m.key, 'attack') + 60 : 600) || (m.chargeT ?? 0) > time;
         if (!attacking) { if (moving) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }
       }
-      m.sp.setPosition(m.x, m.y).setDepth(m.y);
+      // a boss walks with heavy stomps: its body rises and falls with each step, dust puffs from its feet
+      let bob = 0;
+      if (m.boss && moving && !((m.chargeT ?? 0) > time)) {
+        m.stepT = (m.stepT ?? 0) + dt; const ph = m.stepT / 260;
+        bob = -Math.abs(Math.sin(ph * Math.PI)) * 4;
+        m.sp.setAngle(Math.sin(ph * Math.PI) * 2.2);
+        if (Math.floor(ph) !== (m.stepN ?? -1)) { m.stepN = Math.floor(ph); this.vfx.dust(m.x + (m.stepN % 2 ? 10 : -10), m.y, 3, 8); }
+      } else if (m.boss && m.sp.angle) m.sp.setAngle(0);
+      m.sp.setPosition(m.x, m.y + bob).setDepth(m.y);
       (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
       (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.setPosition(m.x, m.y + 2).setDepth(m.y + 1);
       (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);

@@ -21,12 +21,16 @@ export function preloadChars(scene: Phaser.Scene, keys?: string[]) {
 }
 
 const RATE: Record<string, number> = { walk: 10, attack: 18, special: 12, die: 10, chop: 14, mine: 14, hunt: 16 };
+/** bosses swing slower: a heavy wind-up and a strike you can see (director: the attack must read, not blink) */
+export const rateOf = (k: string, a: string) => k.startsWith('bs') && a === 'attack' ? 9 : RATE[a] ?? 10;
+/** how long one play of an animation takes (ms) */
+export const animMs = (k: string, a: string) => { const i = CH[k]?.anims[a]; return i ? Math.round(i.n * 1000 / rateOf(k, a)) : 0; };
 export function createCharAnims(scene: Phaser.Scene) {
   for (const [k, c] of Object.entries(CH)) for (const [a, i] of Object.entries(c.anims)) {
     if (!scene.textures.exists(`c_${k}_${a}`)) continue;
     i.dirs.forEach((d, r) => {
       const key = `c_${k}_${a}_${d}`;
-      if (!scene.anims.exists(key)) scene.anims.create({ key, frames: scene.anims.generateFrameNumbers(`c_${k}_${a}`, { start: r * i.n, end: r * i.n + i.n - 1 }), frameRate: RATE[a] ?? 10, repeat: a === 'walk' ? -1 : 0 });
+      if (!scene.anims.exists(key)) scene.anims.create({ key, frames: scene.anims.generateFrameNumbers(`c_${k}_${a}`, { start: r * i.n, end: r * i.n + i.n - 1 }), frameRate: rateOf(k, a), repeat: a === 'walk' ? -1 : 0 });
     });
   }
 }
@@ -40,7 +44,7 @@ export const hasAnim = (k: string, a: string) => !!CH[k]?.anims[a];
 /** ms from the start of an attack / work animation to the frame where the weapon lands (found by tools/import_chars.py) */
 export function hitMs(k: string, a: string, fallback: number) {
   const h = CH[k]?.anims[a]?.hit;
-  return h ? Math.round(h * 1000 / (RATE[a] ?? 10)) : fallback;
+  return h ? Math.round(h * 1000 / rateOf(k, a)) : fallback;
 }
 export function setIdle(sp: Phaser.GameObjects.Sprite, k: string, d: number) {
   const c = CH[k]; sp.anims.stop();
