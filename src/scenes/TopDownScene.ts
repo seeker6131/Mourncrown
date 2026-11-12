@@ -422,11 +422,11 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
     if (!this.stageN && !this.gv) {
-      this.addPortal(PLAZA.x + 6, 26, 'select', 'ประตูแผนที่ ▲'); this.addPortal(70, roadY(70), WILD, '◀ ป่าดงดิบ');
+      this.addPortal(PLAZA.x + 6, 72, 'select', 'ประตูแผนที่ ▲'); this.addPortal(70, roadY(70), WILD, '◀ ป่าดงดิบ');
       if (S().level >= GUILD_UNLOCK_LV || guildOf(S())) this.addPortal(MW - 40, roadY(MW - 40), 'guild', guildOf(S()) ? 'หมู่บ้านกิลด์ ▶' : '🏛 กิลด์ ▶');
     }
-    if (this.raid) this.addPortal(GV.SOUTH_GATE.x, GV.VH - 22, 'leave', '🏳 ถอนทัพ ▼');
-    else if (this.town) { this.addPortal(GV.NORTH_GATE.x, 30, 'select', 'ประตูแผนที่ ▲'); this.addPortal(GV.WEST_EXIT.x + 6, GV.WEST_EXIT.y, WILD, '◀ ป่าดงดิบ'); this.addPortal(GV.SOUTH_GATE.x, GV.VH - 22, 'starter', 'หมู่บ้านเริ่มต้น ▼'); }
+    if (this.raid) this.addPortal(GV.SOUTH_GATE.x, GV.VH - 40, 'leave', '🏳 ถอนทัพ ▼');
+    else if (this.town) { this.addPortal(GV.NORTH_GATE.x, 64, 'select', 'ประตูแผนที่ ▲'); this.addPortal(GV.WEST_EXIT.x + 6, GV.WEST_EXIT.y, WILD, '◀ ป่าดงดิบ'); this.addPortal(GV.SOUTH_GATE.x, GV.VH - 40, 'starter', 'หมู่บ้านเริ่มต้น ▼'); }
     if (this.inside >= 0) this.addPortal(DOOR.x, DOOR.y, 'out', 'ออกไปข้างนอก ▼');
 
     const cam = this.cameras.main;
@@ -944,7 +944,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     for (const c of this.ponds) for (let k = 0; k < 10; k++) { const a = rnd() * 6.28, x = c.x + Math.cos(a) * (c.r + 6), y = c.y + Math.sin(a) * (c.r / 1.3 + 4); if (free(x, y, 4)) this.add.image(x, y, 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y); }
     const gy = this.trailMain(30);
-    this.addPortal(30, gy, 0, 'กลับหมู่บ้าน');
+    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน');
     this.hero.setPosition(64, this.trailMain(64));
     // herds of deer and boar graze the meadows and the jungle edges
     const spot = () => {
@@ -996,7 +996,7 @@ export class TopDownScene extends Phaser.Scene {
       void im;
     }
     const gy = this.trailMain(24);
-    this.addPortal(24, gy, 0, 'กลับหมู่บ้าน');
+    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน');
     this.hero.setPosition(56, this.trailMain(56));
     // monsters appear anywhere walkable, away from the gate and out of the hero's sight
     const spot = () => {
@@ -1015,14 +1015,15 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   addPortal(x: number, y: number, to: number | 'select' | 'starter' | 'guild' | 'out' | 'leave', text: string) {
-    // the PixelLab dimension gate (loops); a soft glow under it; gates home / to the villages are tinted green
+    // the warp point: a magic circle flat on the ground (PixelLab, fits the top-down view) — step on it and you go;
+    // gates home / to the villages are tinted green
     const home = to === 0 || to === 'starter' || to === 'guild' || to === 'out';
-    const gate = to === 'out' ? null : fx2(this, 'fx_portal', x, y + 6, y + 6, 0.62);
-    if (gate && home) gate.setTint(0xb8ffd8);
-    const g = this.add.image(x, y - 6, 'td_glow').setTint(home ? 0x9affc8 : 0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(99985).setScale(gate ? 0.9 : 1.2).setAlpha(0.6);
-    this.tweens.add({ targets: g, alpha: { from: 0.35, to: 0.75 }, duration: 900, yoyo: true, repeat: -1 });
+    const gate = to === 'out' ? null : fx2(this, 'fx_warp2', x, y, 2, 0.8);
+    if (gate) { gate.setBlendMode(Phaser.BlendModes.ADD); if (home) gate.setTint(0xb8ffd0); }
+    const g = this.add.image(x, y - 2, 'td_glow').setTint(home ? 0x9affc8 : 0x9ad8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(1.9).setScale(gate ? 1.1 : 1.2, gate ? 0.45 : 1.2).setAlpha(0.5);
+    this.tweens.add({ targets: g, alpha: { from: 0.3, to: 0.6 }, duration: 900, yoyo: true, repeat: -1 });
     if (!gate) { const ring = this.add.ellipse(x, y, 30, 12).setStrokeStyle(2, 0xbfeaff, 0.9).setDepth(2); this.tweens.add({ targets: ring, scaleX: 1.25, scaleY: 1.25, alpha: 0.4, duration: 900, yoyo: true, repeat: -1 }); }
-    const label = this.add.text(x, y - 52, text, { fontFamily: 'sans-serif', fontSize: '8px', color: '#e8f8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99999);
+    const label = this.add.text(x, y - 30, text, { fontFamily: 'sans-serif', fontSize: '8px', color: '#e8f8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99999);
     this.portals.push({ x, y, to, label });
   }
 
@@ -2024,8 +2025,10 @@ export class TopDownScene extends Phaser.Scene {
     if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; const r = act('wildRooms', { bots: testBots.n }); this.room = r.room; this.online = r.players; }
     else this.village?.update(time, dt);
     // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
-    if (!this.portalArmed && this.portals.every(p => Math.hypot(p.x - h.x, p.y - h.y) > 30)) this.portalArmed = true;
-    for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && Math.hypot(p.x - h.x, p.y - h.y) < 16 && time > this.portalCool) {
+    // (the circle lies flat: a wide, low ellipse — touching any of it is enough, no hunting for the middle)
+    const onGate = (p: { x: number; y: number }, k: number) => Math.hypot((p.x - h.x) / 32, (p.y - h.y) / 18) < k;
+    if (!this.portalArmed && this.portals.every(p => !onGate(p, 1.5))) this.portalArmed = true;
+    for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && onGate(p, 1) && time > this.portalCool) {
       this.portalArmed = false;
       if (p.to === 'select') this.stageSelect();
       else if (p.to === WILD) this.enterStage(WILD);

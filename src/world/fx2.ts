@@ -6,15 +6,15 @@ const PNG = import.meta.glob('../assets/td/fx/*.png', { eager: true, query: '?ur
 const JSON_ = import.meta.glob('../assets/td/fx/*.json', { eager: true, import: 'default' }) as Record<string, FxSheet>;
 interface FxSheet { frames: { filename: string; duration: number; frame: { w: number; h: number } }[]; meta: { anchor?: { x: number; y: number } } }
 /** effects that loop (the others play once) */
-const LOOP = new Set(['fx_brazier', 'fx_fountain', 'fx_shield', 'fx_build', 'fx_portal', 'fx_drop_epic', 'fx_drop_legend', 'fx_drop_sl', 'fx_elite_aura', 'fx_bld_fire', 'fx_smoke', 'fx_ruin_fire', 'fx_ring_hero', 'fx_ring_mon', 'fx_boss_aura']);
+const LOOP = new Set(['fx_brazier', 'fx_fountain', 'fx_shield', 'fx_build', 'fx_warp2', 'fx_drop_epic', 'fx_drop_legend', 'fx_drop_sl', 'fx_elite_aura', 'fx_bld_fire', 'fx_smoke', 'fx_ruin_fire', 'fx_ring_hero', 'fx_ring_mon', 'fx_boss_aura']);
 const name = (p: string) => p.split('/').pop()!.replace(/\.(png|json)$/, '');
 const sheets: Record<string, FxSheet> = Object.fromEntries(Object.entries(JSON_).map(([p, j]) => [name(p), j]));
 
 /** effects placed while a scene is being built (they must exist before it shows); everything else loads behind the game */
-const FIRST = new Set(['fx_portal', 'fx_ring_hero', 'fx_ring_mon', 'fx_boss_aura', 'fx_brazier', 'fx_fountain', 'fx_elite_aura', 'fx_golden_spawn', 'fx_boss_spawn',
+const FIRST = new Set(['fx_warp2', 'fx_ring_hero', 'fx_ring_mon', 'fx_boss_aura', 'fx_brazier', 'fx_fountain', 'fx_elite_aura', 'fx_golden_spawn', 'fx_boss_spawn',
   'fx_bld_fire', 'fx_smoke', 'fx_ruin_fire', 'fx_build', 'fx_hit_sword', 'fx_hit_arrow', 'fx_hit_magic', 'fx_hit_punch', 'fx_hit_holy', 'fx_hit_crit', 'fx_mon_death']);
 /** the village (and guild village) shows no monsters at first: only these must be there before it opens */
-const VILLAGE = new Set(['fx_portal', 'fx_ring_hero', 'fx_brazier', 'fx_fountain', 'fx_bld_fire', 'fx_smoke', 'fx_ruin_fire', 'fx_build']);
+const VILLAGE = new Set(['fx_warp2', 'fx_ring_hero', 'fx_brazier', 'fx_fountain', 'fx_bld_fire', 'fx_smoke', 'fx_ruin_fire', 'fx_build']);
 /** first = only the effects a scene needs at once; village = the village's few; later = the rest (call after the scene is up) */
 export function preloadFx2(scene: Phaser.Scene, part: 'first' | 'village' | 'later' | 'all' = 'all') {
   for (const [p, url] of Object.entries(PNG)) {

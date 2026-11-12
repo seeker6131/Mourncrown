@@ -248,18 +248,21 @@ export class Room {
         const sid = Number(e[0]); if (!sid) continue;
         const ex = Math.max(0, Math.min(4000, Number(e[5]) || 0)), ey = Math.max(0, Math.min(4000, Number(e[6]) || 0));
         let r = this.mons.get(sid);
-        if (!r) {   // a new monster: it must belong to this map, with at least the HP such a monster has
-          // the host's own server says what it handed out (golden or not is the server's roll, never the host's word)
-          if (now - (this.asked.get(sid) ?? 0) < 1000) continue; this.asked.set(sid, now); if (this.asked.size > 300) this.asked.clear();
-          let sp: { key: string; elite: boolean; boss: boolean; bounty: boolean } | null = null;
-          try { sp = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request(`https://p/spawned?id=${me.id}&sid=${sid}`))).json(); } catch { /* ask again next time */ }
-          if (!sp) continue;   // not yet (the spawn may still be on its way to the server)
-          const key = String(e[1]).slice(0, 12), kind = String(e[2]).slice(0, 16), boss = sp.boss, elite = sp.elite;
-          if (sp.key !== key) { this.strike(now); continue; }
-          const lo = this.minHp(me.room ?? '', key, kind, boss, elite, lv); if (lo === null) { this.strike(now); continue; }
-          const max = Math.max(lo, Math.min(lo * (sp.bounty ? 43 : 1.12), Number(e[10]) || 0));
-          r = { hp: max, max, alive: true, boss, dmg: {}, key, kind, elite, join: now, x: ex, y: ey, t: now, atk: 0 }; this.mons.set(sid, r);
-        } else {   // it moves no faster than a monster can (a boss's charge is the fastest: ~360 px/s)
+        if (!r) {   // a new monster: it must belong to this map; a boss only by its picture; never golden on the host's word
+          const key = String(e[1]).slice(0, 12), kind = String(e[2]).slice(0, 16), n0 = parseInt((me.room ?? '').slice(1), 10) || 0;
+          const boss = !(me.room ?? '').startsWith('w') && STAGES[n0 - 1]?.land.boss.key === key;
+          const lo = this.minHp(me.room ?? '', key, kind, boss, false, lv); if (lo === null) { this.strike(now); continue; }
+          const max = Math.max(lo, Math.min(lo * 43, Number(e[10]) || 0));   // (a bounty lord has 40x)
+          r = { hp: max, max, alive: true, boss, dmg: {}, key, kind, elite: false, join: now, x: ex, y: ey, t: now, atk: 0 }; this.mons.set(sid, r);
+        }
+        if (e[4] && !r.elite && r.alive && now - (this.asked.get(sid) ?? 0) > 1000) {   // the host says golden: its own server rolled that, or not
+          this.asked.set(sid, now); if (this.asked.size > 300) this.asked.clear();
+          try {
+            const sp = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request(`https://p/spawned?id=${me.id}&sid=${sid}`))).json() as { key: string; elite: boolean } | null;
+            if (sp?.elite && sp.key === r.key) { r.elite = true; r.hp += r.max * 4; r.max *= 5; }
+          } catch { /* ask again next time */ }
+        }
+        if (r.t !== now) {   // it moves no faster than a monster can (a boss's charge is the fastest: ~360 px/s)
           const dt = Math.min(2, (now - r.t) / 1000), lim = 420 * dt + 24, dx = ex - r.x, dy = ey - r.y, d = Math.hypot(dx, dy);
           if (d > lim) { r.x += dx / d * lim; r.y += dy / d * lim; this.strike(now); } else { r.x = ex; r.y = ey; }
           r.t = now;
@@ -508,7 +511,7 @@ export class Player {
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
       const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number };
       const st = p.n === WILD ? null : STAGES[p.n - 1], L = st?.land, mob = L ? [...L.mobs, L.boss].find(m => m.key === p.key) : null;
-      this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now(); }
+      this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }   // (memory lost / just arrived: a fresh 10 s of damage, never zero)
       const out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });
       await this.later(); this.send({ t: 'pay', sid: p.sid, ...out });
       return new Response('{}');
