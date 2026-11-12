@@ -54,6 +54,8 @@ import { DefenseBattle } from '../world/defense';
 import { Hunters } from '../world/hunters';
 import { hpBar } from '../world/hpBar';
 import { makeRuin } from '../world/ruin';
+import { WC, syncWar, newFeed, warLine } from '../world/warClient';
+import { rivalStructs } from '../systems/guild';
 import { testBots } from '../core/testBots';
 /** the raid the guild window just started (the scene restarts into the rival village) */
 let RAID_DATA: RaidStart | null = null;
@@ -254,12 +256,15 @@ export class TopDownScene extends Phaser.Scene {
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
-  init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number; raid?: boolean }) {
+  warSide: null | 'home' | 'enemy' = null; warT = 0; warShown = false;
+  init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number; raid?: boolean; war?: 'home' | 'enemy' }) {
     this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
     const st0 = runtime.state;
     this.gv = !this.stageN && (data?.guild ?? !!(st0 && guildOf(st0)));
     this.inside = this.gv ? data?.inside ?? -1 : -1; this.arriveAt = data?.at ?? -1;
-    this.raidMode = this.gv && !!(data as { raid?: boolean })?.raid && !!RAID_DATA;
+    this.warSide = this.gv && data?.war && WC.war && !WC.war.over ? data.war : null; WC.side = this.warSide; this.warShown = false; this.warT = 0;
+    if (this.warSide === 'enemy' && WC.war) RAID_DATA = { rival: WC.war.rival, structs: rivalStructs(WC.war.rival), secs: Math.max(1, Math.round((WC.war.end - Date.now()) / 1000)), war: true };
+    this.raidMode = this.gv && (!!(data as { raid?: boolean })?.raid || this.warSide === 'enemy') && !!RAID_DATA;
     this.defendNext = this.gv && !!(data as { defend?: boolean })?.defend; this.defense = undefined;
     if (this.raidMode) this.inside = -1;
     if (this.gv) { MW = this.inside >= 0 ? RW : GV.VW; MH = this.inside >= 0 ? RH : GV.VH; }
@@ -307,6 +312,15 @@ export class TopDownScene extends Phaser.Scene {
       this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true, defend: true }));
     };
     bus.on('td:defend', goDefend); this.events.once('shutdown', () => bus.off('td:defend', goDefend));
+    // guild war: watch / fight on either side (the server runs the war; switching sides reloads the village)
+    const goWar = (side?: 'home' | 'enemy') => {
+      const w = WC.war ?? syncWar(); if (!w || w.over) return;
+      const to = side ?? (this.warSide === 'enemy' ? 'home' : 'enemy');
+      this.portalCool = this.time.now + 99999; sfx.door(); this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait());
+      this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true, war: to }));
+    };
+    const swap = () => goWar(); bus.on('td:war', goWar); bus.on('td:warSwap', swap);
+    this.events.once('shutdown', () => { bus.off('td:war', goWar); bus.off('td:warSwap', swap); });
     const goStage = (n: number) => { if (this.stageN === n) { bus.emit(EV.TOAST, 'คุณอยู่ในแผนที่นี้แล้ว — ตามหาบอส 👑', '#ffb04a'); return; } this.enterStage(n); };
     bus.on('td:goStage', goStage); this.events.once('shutdown', () => bus.off('td:goStage', goStage));
     const onBots = () => {
@@ -325,8 +339,16 @@ export class TopDownScene extends Phaser.Scene {
     this.plotViews = []; this.heroKeyNow = this.F.key;
     if (this.wild) { const r = act('wildRooms', { bots: testBots.n }); this.room = r.room; this.online = r.players; this.onlineT = this.time.now + 30000; }
     if (!this.stageN && !this.gv) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
-    if (this.raidMode && RAID_DATA) { this.raid = new RaidBattle(this as never, RAID_DATA); RAID_DATA = null; this.raid.build(); bus.emit(EV.TOAST, `⚔ บุกหมู่บ้าน ${this.raid.data.rival.name}! ทำลายอาคาร/ป้อมใน ${this.raid.data.secs / 60} นาที`, '#ffd84a'); }
-    else { this.raid = undefined; if (this.town) { this.town.render(); this.town.sync(); if (this.defendNext) this.time.delayedCall(800, () => bus.emit('td:defend')); } }
+    if (this.raidMode && RAID_DATA) {
+      this.raid = new RaidBattle(this as never, RAID_DATA); RAID_DATA = null; this.raid.build();
+      if (this.raid.data.war && WC.war) { this.raid.applyWar(WC.war, true); bus.emit(EV.TOAST, `⚔ หมู่บ้าน ${this.raid.data.rival.name}: กองทัพเรากำลังบุก! ลงไปช่วยตีอาคารได้เลย`, '#ffd84a'); }
+      else bus.emit(EV.TOAST, `⚔ บุกหมู่บ้าน ${this.raid.data.rival.name}! ทำลายอาคาร/ป้อมใน ${this.raid.data.secs / 60} นาที`, '#ffd84a');
+    }
+    else {
+      this.raid = undefined;
+      if (this.town) { this.town.render(); this.town.sync(); if (this.defendNext) this.time.delayedCall(800, () => bus.emit('td:defend')); }
+      if (this.town && this.warSide === 'home' && WC.war) { const w = WC.war; this.time.delayedCall(400, () => { if (this.town && !this.defense) { this.defense = new DefenseBattle(this as never, this.town, w); this.defense.start(); } }); }
+    }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
     if (!this.stageN && !this.gv) {
@@ -1199,7 +1221,21 @@ export class TopDownScene extends Phaser.Scene {
     const mr = this.mapRoom, rm = this.wild ? '' : ` • ห้องนี้ ${mr.players}/${mr.cap} คน (ระบบแบ่ง ${mr.rooms} ห้อง)`;
     return `${t} • 🤖 บอท ${testBots.n}${rm} • มอน ${this.combat.mons.filter(m => m.alive && !m.boss).length} • FPS ${Math.round(this.game.loop.actualFps)}`;
   }
-  stageTitle0() { if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
+  /** one second of the guild war: the server's numbers into the view, the news feed, the end */
+  warStep() {
+    const w = syncWar(); if (!w) return;
+    if (this.warSide === 'enemy') this.raid?.applyWar(w); else if (this.warSide === 'home') this.defense?.applyWar(w);
+    for (const f of newFeed(w).slice(-2)) bus.emit(EV.TOAST, f.text, f.us ? '#9fffb0' : '#ff9a7a');
+    if (w.over && !this.warShown) {
+      this.warShown = true; const o = w.over;
+      for (const m of o.got) bus.emit(EV.TOAST, m, m.startsWith('🏆') ? '#ffd84a' : m.startsWith('🏳') ? '#ffb080' : '#9fffb0');
+      if (o.win) { fx2(this, 'fx_raid_victory', this.hero.x, this.hero.y - 20, 99995, 1.5); sfx.levelUp(); } else sfx.error();
+      saveGame(S()); bus.emit(EV.STATE_CHANGED);
+      this.time.delayedCall(4500, () => { act('warDone', {}); WC.war = null; WC.side = null; saveGame(S()); if (this.warSide) { this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => this.scene.restart({ stage: 0, guild: true })); } else this.town?.render(); });
+    }
+  }
+  stageTitle0() {
+    if (this.gv && WC.war && !WC.war.over) return warLine(WC.war) + (this.warSide === 'enemy' ? ' • 👁 หมู่บ้านศัตรู' : this.warSide === 'home' ? ' • 👁 หมู่บ้านเรา' : ' • กด ⚔ ดูสงคราม'); if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
     if (this.raid) return this.raid.title();
@@ -1718,6 +1754,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.heroBar) { const s0 = S(); this.heroBar.clear(); if (h.visible) hpBar(this.heroBar, h.x, h.y - 36, s0.hp / Math.max(1, derive(s0).maxHp), 24); }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);
+    if (this.gv && this.inside < 0 && time > this.warT && (this.warSide || WC.war || guildOf(S())?.war)) { this.warT = time + 1000; this.warStep(); }
 // never embedded: a forced move (skill, knockback) must not leave the hero where the collision test fails in every direction
     if (!this.dead && time > this.unstuckT && !this.tweens.isTweening(this.hero)) {
       this.unstuckT = time + 300;

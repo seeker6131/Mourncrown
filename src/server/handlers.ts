@@ -7,6 +7,7 @@
 import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
 import { fillRooms, pickRoom } from '../systems/rooms';
+import { startWar, warTick, warHit, warKill, warEnd, warDone } from '../systems/war';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
@@ -226,6 +227,19 @@ export const handlers = {
   guildJoin: (s: GameState, a: { id: string }, c: Ctx) => joinGuild(s, a.id, c.now, c.rnd),
   guildUpgrade: (s: GameState, a: { type: GuildBld }, c: Ctx) => upgradeVillage(s, a.type, c.now),
   guildCollect: (s: GameState, a: { type: GuildBld }, c: Ctx) => collectVillage(s, a.type, c.now),
+  /** guild war (mixed): the server runs the whole war; heroes add hits / kills (systems/war.ts) */
+  warStart(s: GameState, a: { id: string }, c: Ctx) { const r = startWar(s, a.id, c.now); if (!('refused' in r)) { mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; } return r; },
+  warSync: (s: GameState, _a: object, c: Ctx) => ({ war: warTick(s, c.now) }),
+  warHit(s: GameState, a: { id: string; dmg: number }, c: Ctx) {
+    const dps = dpsOf(s), dmg = Math.max(0, Number(a.dmg) || 0);
+    mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;   // a hero can only hit so hard per second
+    if (!DEV_TOOLS && mem.dmg < dmg) return no('dps');
+    mem.dmg = Math.max(0, mem.dmg - dmg);
+    return warHit(s, String(a.id), dmg, c.now);
+  },
+  warKill(s: GameState, _a: object, c: Ctx) { if (!rateOk('warKill', 6, c.now)) return no('rate'); return warKill(s, c.now); },
+  warEnd: (s: GameState, _a: object, c: Ctx) => ({ war: warEnd(s, c.now) }),
+  warDone: (s: GameState, _a: object) => ({ over: warDone(s) }),
   /** repair a burnt guild building from the treasury (any member) / your own house from your own stock */
   bldRepair: (s: GameState, a: { t: GuildBld }, c: Ctx) => GUILD_BLD[a.t] ? bldRepair(s, a.t, c.now) : no('building'),
   houseRepair: (s: GameState, _a: object) => houseRepair(s),

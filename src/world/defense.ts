@@ -17,6 +17,7 @@ import { fx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import { burnFx, fireKey, type GuildTown } from './guildTown';
 import { makeRuin, charTint } from './ruin';
+import type { War } from '../systems/war';
 
 export interface DefHost extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; dead: boolean; canStand(x: number, y: number): boolean;
@@ -36,7 +37,31 @@ export class DefenseBattle {
   end = 0; over = false; enemy = RIVAL_NAMES[Math.floor(Math.random() * RIVAL_NAMES.length)];
   heroDownUntil = 0;
   waves = 0;
-  constructor(public sc: DefHost, public town: GuildTown) {}
+  raider = { hp: 0, atk: 0, forms: [] as string[], spawnT: 0 };
+  constructor(public sc: DefHost, public town: GuildTown, public war: War | null = null) { if (war) this.enemy = war.rival.name; }
+
+  // ---------------------------------------------------------------- guild war view (the server runs the fight)
+  /** the server's numbers: our buildings burn / fall as the war goes; the raiders on the field match their squad */
+  applyWar(w: War, quiet = false) {
+    for (const b of this.blds) {
+      const q = w.ours.blds.find(x => x.id === b.id); if (!q) continue;
+      if (q.hp < b.hp - 0.5) {
+        this.liveImg(b); b.hp = q.hp; this.burn(b);
+        if (b.hp <= 0 && b.alive) { b.alive = false; if (!quiet) { fx2(this.sc, 'fx_collapse', b.x, b.y + 4, b.y + 5, b.kind === 'defense' ? 0.8 : 1.5); this.sc.combat.vfx.dust(b.x, b.y, 14, b.rx); bus.emit(EV.TOAST, `💥 ${this.enemy} ทำลาย ${b.name}!`, '#ff9a7a'); } }
+      }
+    }
+    const want = Math.min(10, Math.ceil(w.theirs.troops)), alive = this.units.filter(u => u.side === 'atk' && u.alive).length;
+    const now = this.sc.time.now;
+    if (alive < want && now > this.raider.spawnT) {
+      this.raider.spawnT = now + 1500;
+      const gates = [{ x: L.NORTH_GATE.x, y: 70 }, { x: L.WEST_EXIT.x + 40, y: L.WEST_EXIT.y }, { x: L.SOUTH_GATE.x, y: L.SOUTH_GATE.y - 30 }];
+      for (let i = 0; i < Math.min(2, want - alive); i++) {
+        const gt = gates[Math.floor(Math.random() * gates.length)], k = this.raider.forms[Math.floor(Math.random() * this.raider.forms.length)];
+        this.add('atk', k, `⚔ ${this.enemy}`, gt.x + (Math.random() - 0.5) * 40, gt.y + Math.random() * 20, this.raider.hp, this.raider.atk, 70);
+        fx2(this.sc, 'fx_boss_spawn', gt.x, gt.y + 6, gt.y, 0.9);
+      }
+    }
+  }
 
   start() {
     const sc = this.sc, s = S(), g = guildOf(s); if (!g) return;
@@ -46,12 +71,13 @@ export class DefenseBattle {
     for (const t of GUILD_BLD_ORDER) {
       const b = g.buildings.find(q => q.type === t)!, P = L.PLOTS[L.PLOT_OF[t]], img = this.town.views.get('b:' + t)?.objs[0] as Phaser.GameObjects.Image | undefined;
       if (isRuin(b)) continue;   // already a ruin: nothing left to burn
+      if (this.war && !this.war.ours.blds.some(q => q.id === 'b:' + t)) continue;
       const max = bldHp(t, b.level), d0 = b.dmg ?? 0;
       this.blds.push({ id: 'b:' + t, name: `${GUILD_BLD[t as GuildBld].icon} ${GUILD_BLD[t as GuildBld].name}`, kind: t === 'hall' ? 'hall' : 'building', x: P.x, y: P.y, rx: t === 'hall' ? 84 : 70, hp: max * (1 - d0), max, alive: true, img: img?.setTint ? img : undefined, dmg0: d0, fk: fireKey(d0) });
     }
     { // our own house burns too (it is not counted for the enemy's stars)
       const me = meOf(s), m = me && g.members.find(q => q.id === g.me);
-      if (m && m.houseLv > 0 && !(m.houseDmg && m.houseDmg >= 1)) {
+      if (!this.war && m && m.houseLv > 0 && !(m.houseDmg && m.houseDmg >= 1)) {
         const P = L.PLOTS[L.housePlot(m.house)], img = this.town.views.get('h:' + m.house)?.objs.find(o => (o as Phaser.GameObjects.Image).setTint) as Phaser.GameObjects.Image | undefined, max = 500 + 300 * m.houseLv, d0 = m.houseDmg ?? 0;
         this.blds.push({ id: 'house', name: '🏠 บ้านของคุณ', kind: 'house', x: P.x, y: P.y, rx: 44, hp: max * (1 - d0), max, alive: true, img, dmg0: d0, fk: fireKey(d0) });
       }
@@ -65,8 +91,9 @@ export class DefenseBattle {
     const gates = [{ x: L.NORTH_GATE.x, y: 70 }, { x: L.WEST_EXIT.x + 40, y: L.WEST_EXIT.y }, { x: L.SOUTH_GATE.x, y: L.SOUTH_GATE.y - 30 }];
     // three waves through the three gates, ~12 s apart, so the fight lasts and the player matters
     const n = Math.min(15, 6 + hl * 2), per = Math.ceil(n / 3);
-    this.waves = 3;
-    for (let w = 0; w < 3; w++) sc.time.delayedCall(w * 12000, () => {
+    this.raider = { hp: heroHit * 6, atk: d.maxHp / 20, forms, spawnT: 0 };
+    this.waves = this.war ? 0 : 3;
+    if (!this.war) for (let w = 0; w < 3; w++) sc.time.delayedCall(w * 12000, () => {
       if (this.over) return;
       for (let i = w * per; i < Math.min(n, (w + 1) * per); i++) {
         const gt = gates[i % gates.length], k = forms[i % forms.length];
@@ -90,6 +117,7 @@ export class DefenseBattle {
       this.add('def', fk, m.name, w?.sp.x ?? L.doorOf(L.housePlot(m.house)).x, w?.sp.y ?? L.doorOf(L.housePlot(m.house)).y + 16, heroHit * 5, heroHit * 0.9, 102);
     }
     sfx.cast(); sc.cameras.main.flash(250, 255, 60, 40);
+    if (this.war) { this.applyWar(this.war, true); bus.emit(EV.TOAST, `🛡 หมู่บ้านเรา: ${this.enemy} กำลังบุก! ฆ่าทหารศัตรู = กองทัพศัตรูอ่อนลง`, '#ff8a6a'); return; }
     bus.emit(EV.TOAST, `⚠ ${this.enemy} บุกหมู่บ้าน! ทหารและเพื่อนกิลด์วิ่งไปป้องกัน — ช่วยกันสู้!`, '#ff8a6a');
   }
   private add(side: 'atk' | 'def', key: string, name: string, x: number, y: number, hp: number, atk: number, speed: number) {
@@ -107,7 +135,7 @@ export class DefenseBattle {
     this.sc.time.delayedCall(hitMs(form, 'attack', ranged ? 260 : 120), () => {
       const t = this.units.filter(u => u.side === 'atk' && u.alive && Math.hypot(u.x - h.x, u.y - h.y) < reach).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y))[0];
       if (!t || this.over) return;
-      const r = calcDamage(magic ? d.matk : d.atk, 6, 1, d.crit), land = () => { if (!t.alive) return; fx2(this.sc, r.crit ? 'fx_hit_crit' : magic ? 'fx_hit_magic' : ranged ? 'fx_hit_arrow' : 'fx_hit_sword', t.x, t.y - 18, 99952, 0.85); this.sc.combat.float(t.x, t.y - 40, `${r.dmg}`, r.crit ? '#ffcf3a' : '#ffffff', r.crit ? 14 : 10); this.hurt(t, r.dmg); };
+      const r = calcDamage(magic ? d.matk : d.atk, 6, 1, d.crit), land = () => { if (!t.alive) return; fx2(this.sc, r.crit ? 'fx_hit_crit' : magic ? 'fx_hit_magic' : ranged ? 'fx_hit_arrow' : 'fx_hit_sword', t.x, t.y - 18, 99952, 0.85); this.sc.combat.float(t.x, t.y - 40, `${r.dmg}`, r.crit ? '#ffcf3a' : '#ffffff', r.crit ? 14 : 10); this.hurt(t, r.dmg, true); };
       if (ranged) this.sc.combat.vfx.bolt(h.x, h.y - 18, t.x, t.y - 18, magic ? 0xc08aff : 0xffe8a0, 1, 900, land, !magic); else land();
     });
   }
@@ -117,21 +145,23 @@ export class DefenseBattle {
     const R = far ? 170 : (sk.radius ?? sk.range ?? 50) + 12, mult = sk.power * skillMult(s, sk.id) * (far ? 1 : Math.max(1, sk.count ?? 1));
     this.sc.time.delayedCall(sk.kind === 'leap' ? 360 : 260, () => {
       const tg = this.units.filter(u => u.side === 'atk' && u.alive && Math.hypot(u.x - h.x, u.y - h.y) < R);
-      for (const u of far ? tg.slice(0, sk.count ?? 1) : tg) { const r = calcDamage(sk.stat === 'matk' ? d.matk : d.atk, 6, mult, d.crit); this.sc.combat.float(u.x, u.y - 40, `${r.dmg}`, '#ffcf3a', 12); this.hurt(u, r.dmg); }
+      for (const u of far ? tg.slice(0, sk.count ?? 1) : tg) { const r = calcDamage(sk.stat === 'matk' ? d.matk : d.atk, 6, mult, d.crit); this.sc.combat.float(u.x, u.y - 40, `${r.dmg}`, '#ffcf3a', 12); this.hurt(u, r.dmg, true); }
     });
   }
-  hurt(u: Unit, dmg: number) {
+  hurt(u: Unit, dmg: number, byHero = false) {
     if (!u.alive) return;
     u.hp -= dmg; u.sp.setTintFill(0xffffff); this.sc.time.delayedCall(60, () => u.sp.clearTint());
     if (u.hp > 0) return;
     u.alive = false; u.bar.clear(); u.tag.destroy(); u.sh.destroy();
     fx2(this.sc, 'fx_mon_death', u.x, u.y - 6, u.y + 1, 0.9);
     this.sc.tweens.add({ targets: u.sp, alpha: 0, angle: u.side === 'atk' ? 80 : -80, duration: 500, onComplete: () => u.sp.destroy() });
+    if (this.war) { if (u.side === 'atk' && byHero) act('warKill', {}); return; }
     if (u.side === 'atk' && this.waves <= 0 && this.units.every(q => q.side !== 'atk' || !q.alive)) this.finish();
   }
   hurtBld(b: Bld, dmg: number) {
     if (!b.alive) return;
     this.liveImg(b);
+    if (this.war) { if (b.img) { b.img.setTintFill(0xffb0a0); this.sc.time.delayedCall(60, () => b.img?.active && b.img.setTint(charTint(b.fk === 'ruin' ? 0 : Math.max(0, 1 - b.hp / b.max)))); } return; }   // the server owns the damage
     b.hp -= dmg; if (b.img) { b.img.setTintFill(0xffb0a0); this.sc.time.delayedCall(60, () => b.img?.active && b.img.setTint(charTint(b.fk === 'ruin' ? 0 : Math.max(0, 1 - b.hp / b.max)))); }
     this.burn(b);
     if (b.hp > 0) return;
@@ -169,7 +199,7 @@ export class DefenseBattle {
 
   update(time: number, dt: number) {
     if (this.over) return;
-    if (time > this.end) { this.finish(); return; }
+    if (!this.war && time > this.end) { this.finish(); return; }
     const h = this.sc.hero, heroUp = time > this.heroDownUntil;
     for (const u of this.units) {
       if (!u.alive) continue;
@@ -182,7 +212,7 @@ export class DefenseBattle {
         if (Math.min(dh, dn) < 90) { if (dh < dn) { tx = h.x; ty = h.y; hit = () => this.hitHero(u.atk); } else { tx = near!.x; ty = near!.y; const n2 = near!; hit = () => this.hurt(n2, u.atk); } }
         else {
           const b = this.blds.filter(q => q.alive).sort((a, c) => Math.hypot(a.x - u.x, a.y + 20 - u.y) - Math.hypot(c.x - u.x, c.y + 20 - u.y))[0];
-          if (!b) { this.finish(); return; }
+          if (!b) { if (!this.war) { this.finish(); return; } continue; }
           tx = b.x + Math.max(-b.rx * 0.6, Math.min(b.rx * 0.6, u.x - b.x)); ty = b.y + 18; reach = u.ranged ? u.range : 26; const b2 = b; hit = () => this.hurtBld(b2, b2.max / (b2.kind === 'hall' ? 30 : b2.kind === 'defense' ? 10 : 18));   // ~18 hits a building, ~30 the hall
         }
       } else {

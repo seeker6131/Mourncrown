@@ -36,6 +36,8 @@ export interface GuildState {
   simAt: number; incomingAt: number; rivals: { day: string; list: Rival[] }; unread: string[]; hungry?: boolean;
   /** the guild flag: 256 hex pixels (data/flag.ts); missing = one the game makes from the name */
   flag?: string;
+  /** a guild war in progress (systems/war.ts) */
+  war?: import('./war').War;
   /** weekly guild war season: points this week, last week's result, the week whose reward was claimed */
   season?: { week: number; score: number; prev?: { week: number; score: number }; claimed?: number };
 }
@@ -69,6 +71,7 @@ export const guildHouseLv = (s: GameState, now = Date.now()) => { const m = meOf
 /** the house the bed / chest / trophy shelf belong to: the guild house, or the old one in the starter village */
 export const houseLv = (s: GameState, now = Date.now()) => { const b = s.buildings.find(q => q.type === 'home'); const old = b ? (b.done && now < b.done ? b.level - 1 : b.level) : 0; return Math.max(old, guildHouseLv(s, now)); };
 const log = (g: GuildState, kind: GLog['kind'], text: string, now: number) => { g.log.unshift({ t: now, kind, text }); if (g.log.length > 40) g.log.length = 40; };
+export const guildLog = log;
 
 // ---------------------------------------------------------------- founding / joining
 function newGuild(id: string, name: string, now: number): GuildState {

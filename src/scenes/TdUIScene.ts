@@ -20,6 +20,7 @@ import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
+import { WC } from '../world/warClient';
 import { vipActive } from '../systems/premium';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
@@ -47,6 +48,7 @@ export class TdUIScene extends Phaser.Scene {
   toasts: Phaser.GameObjects.Text[] = [];
   lastKey = ''; refreshT = 0;
   mpText!: Phaser.GameObjects.Text;
+  warBtn?: Phaser.GameObjects.Container; warBg?: Phaser.GameObjects.Graphics; warTx?: Phaser.GameObjects.Text;
   autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
   skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number; r: number }[] = [];
@@ -170,6 +172,10 @@ export class TdUIScene extends Phaser.Scene {
       const z = this.add.zone(0, 0, 54, 26).setInteractive();
       z.on('pointerup', () => { sfx.click(); this.td.toggleAuto(); });
       this.autoBtn.add([this.autoBg, this.autoTx, z]); this.root.add(this.autoBtn);
+      // guild war: switch between watching / fighting in our village and the enemy's (shown only while a war is on)
+      this.warBtn = this.add.container(x - 28, y - 34); this.warBg = this.add.graphics(); this.warTx = k.text(0, 0, '', 8.5, '#ffffff').setOrigin(0.5);
+      const wz = this.add.zone(0, 0, 110, 26).setInteractive(); wz.on('pointerup', () => { sfx.click(); bus.emit('td:warSwap'); });
+      this.warBtn.add([this.warBg, this.warTx, wz]); this.root.add(this.warBtn); this.warBtn.setVisible(false);
     }
 
     // quest tracker under the status box: tap to claim when done
@@ -224,7 +230,7 @@ export class TdUIScene extends Phaser.Scene {
 
     const st = S();
     // daily login calendar pops up in the village once a day (after the tutorial)
-    if (st.introSeen && !tutActive(st) && loginInfo(st).ready && !(this.td as unknown as { stageN: number }).stageN) this.time.delayedCall(1200, () => { if (!this.panels.isOpen) this.panels.open('login'); });
+    if (st.introSeen && !tutActive(st) && loginInfo(st).ready && !(this.td as unknown as { stageN: number }).stageN && !WC.side) this.time.delayedCall(1200, () => { if (!this.panels.isOpen) this.panels.open('login'); });
     if (!st.introSeen) {
       st.introSeen = true;
       this.time.delayedCall(800, () => this.panels.openDialog('elder', 'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูแผนที่ทางเหนือ ล่ามอนสเตอร์ เก็บเหรียญและไอเทม ส่วนไม้ หิน แร่ อาหาร ไปหาที่ป่าดงดิบทางประตูซ้าย ยิ่งเลเวลสูงยิ่งไปแผนที่ที่ไกลขึ้นได้ ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!'));
@@ -288,6 +294,11 @@ export class TdUIScene extends Phaser.Scene {
     }
     { const el = activeElixir(s); this.stageText.setText(`${this.td.stageTitle()} • ร่าง ${formName(s.cls, activeTier(s))}` + (el ? `  ✨${el.name} ${Math.ceil((el.until - Date.now()) / 60000)} นาที` : '')); }
     this.formBtn.setVisible(nextForm(s) !== null && !this.panels.isOpen);
+    if (this.warBtn && this.warBg && this.warTx) {
+      const on = !!WC.war && !WC.war.over && !this.panels.isOpen;
+      this.warBtn.setVisible(on);
+      if (on) { const lb = WC.side === 'enemy' ? '🏠 กลับป้องกันบ้าน' : WC.side === 'home' ? '⚔ ไปบุกศัตรู' : '⚔ ดูสงคราม'; if (this.warTx.text !== lb) { this.warTx.setText(lb); this.warBg.clear().fillStyle(0x7a1a10, 0.95).fillRoundedRect(-55, -12, 110, 24, 6).lineStyle(1.5, 0xffb080, 1).strokeRoundedRect(-55, -12, 110, 24, 6); } }
+    }
     if (this.autoBg) {
       const on = !!s.auto, w = 54, h2 = 22;
       this.autoBg.clear().fillStyle(on ? 0x1f6a2a : 0x1a140e, 0.92).fillRoundedRect(-w / 2, -h2 / 2, w, h2, 6).lineStyle(1.5, on ? 0x9fffb0 : 0x8a6a40, 1).strokeRoundedRect(-w / 2, -h2 / 2, w, h2, 6);

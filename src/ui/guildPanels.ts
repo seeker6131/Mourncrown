@@ -22,11 +22,13 @@ import {
 import { DEV_TOOLS } from '../server/config';
 import { PALETTE, PATTERNS, PATTERN_NAMES, ICONS, ICON_NAMES, FLAG_W, FLAG_H, renderTpl, randomTpl, flagFor, type FlagTpl } from '../data/flag';
 import { flagStill } from '../world/flag';
+import { pctLeft, type War } from '../systems/war';
+import { WC } from '../world/warClient';
 
 /** the flag being designed (kept while the window rebuilds; saved only with the save button) */
 const fd = { px: '', mode: 'tpl' as 'tpl' | 'draw', tpl: { bg: 'cross', c1: 1, c2: 12, icon: 'crown', ic: 12 } as FlagTpl, color: 14, tool: 'pen' as 'pen' | 'fill', guild: '' };
 export type GuildTab = 'home' | 'members' | 'donate' | 'build' | 'defense' | 'guards' | 'goals' | 'shop' | 'raid' | 'season' | 'log' | 'flag';
-const TABS: [GuildTab, string][] = [['home', '🏛 ภาพรวม'], ['members', '👥 สมาชิก'], ['donate', '🎁 บริจาค'], ['build', '🏗 อาคาร'], ['defense', '🛡 ป้อม'], ['guards', '💂 ทหาร'], ['goals', '📜 ภารกิจ'], ['shop', '🛒 ร้าน'], ['raid', '⚔ ปล้น'], ['season', '🏆 ฤดูกาล']];   // the log: guild hall fireplace / warehouse ledger
+const TABS: [GuildTab, string][] = [['home', '🏛 ภาพรวม'], ['members', '👥 สมาชิก'], ['donate', '🎁 บริจาค'], ['build', '🏗 อาคาร'], ['defense', '🛡 ป้อม'], ['guards', '💂 ทหาร'], ['goals', '📜 ภารกิจ'], ['shop', '🛒 ร้าน'], ['raid', '⚔ สงคราม'], ['season', '🏆 ฤดูกาล']];   // the log: guild hall fireplace / warehouse ledger
 const RES_ICON: Record<string, string> = { gold: '💰', wood: '🪵', stone: '🪨', food: '🍖' };
 const WHY: Record<string, string> = {
   role: 'เฉพาะหัวหน้า/รองหัวหน้า', treasury: 'คลังหมู่บ้านไม่พอ — ชวนสมาชิกบริจาค', hall: 'ต้องอัปหอกิลด์ก่อน', busy: 'กำลังก่อสร้างอยู่', max: 'เลเวลสูงสุดแล้ว',
@@ -236,15 +238,28 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
     }
     case 'raid': {
       const sh = g0.shieldUntil - now;
+      if (g0.war && !g0.war.over) {   // a war is on: its score and where to watch / fight
+        const w = (act('warSync', {}) as { war: War }).war, l = Math.max(0, Math.ceil((w.end - now) / 1000));
+        T(L + 8, top + 8, `⚔ สงครามกับ ${w.rival.name} • เหลือ ${Math.floor(l / 60)}:${String(l % 60).padStart(2, '0')}`, 11, '#ffd84a');
+        const bar = (by: number, label: string, f: number, col: number) => { T(L + 12, by, label, 9, '#e8dcc0'); g.fillStyle(0x0b0805, 1).fillRect(L + 150, by + 2, CW - 180, 10).fillStyle(col, 1).fillRect(L + 150, by + 2, (CW - 180) * f, 10); T(R - 26, by, `${Math.round(f * 100)}%`, 8.5, '#ffffff'); };
+        bar(top + 34, '🏠 หมู่บ้านเราเหลือ', pctLeft(w.ours), 0x4ad86a); bar(top + 52, `⚔ ${w.rival.name} เหลือ`, pctLeft(w.theirs), 0xd83a2a);
+        T(L + 12, top + 72, `กองทัพเรา ${Math.round(w.ours.troops * 10)}% • กองทัพศัตรู ${Math.round(w.theirs.troops * 10)}% • คุณช่วยตี ${num(Math.round(w.hero.dmg))} • ฆ่าศัตรู ${w.hero.kills}`, 8, '#9ad8ff', CW - 24);
+        T(L + 12, top + 90, 'ระบบสู้ให้ทั้งสองฝั่งอยู่แล้ว — ลงไปช่วยได้: ตีอาคารศัตรู = ดาเมจเพิ่ม • ฆ่าทหารที่บุกบ้านเรา = กองทัพศัตรูอ่อนลง • จบแล้วฝั่งที่หมู่บ้านเหลือมากกว่าชนะ', 7.5, '#a89878', CW - 24);
+        c.add(k.button(L + 10, top + 124, (CW - 30) / 2, 28, '⚔ ไปหมู่บ้านศัตรู (บุก)', () => { h.close(); bus.emit('td:war', 'enemy'); }, { size: 9.5, color: 0x7a1a10 }));
+        c.add(k.button(L + 20 + (CW - 30) / 2, top + 124, (CW - 30) / 2, 28, '🏠 ไปหมู่บ้านเรา (ป้องกัน)', () => { h.close(); bus.emit('td:war', 'home'); }, { size: 9.5, color: 0x1f4a2a }));
+        c.add(k.button(L + 10, top + 160, 160, 20, '🏳 ยุติสงครามตอนนี้', () => { act('warEnd', {}); h.rebuild(); }, { size: 8, color: 0x3a2a2a, disabled: !off }));
+        break;
+      }
       T(L + 8, top + 6, `ปล้นได้อีกวันนี้ ${raidsLeft(s)} ครั้ง • ${sh > 0 ? `โล่ของเรายังอยู่ ${hrs(sh)} (ไปปล้น = โล่หาย)` : 'ไม่มีโล่'} • ระบบจับคู่หมู่บ้านพลังใกล้กันให้ 3 แห่งต่อวัน`, 8, '#ffe7a0', CW - 16);
-      T(L + 8, top + 22, 'เข้าไปทำลายอาคาร/ป้อมใน 3 นาที • ⭐ ทำลายครึ่งหนึ่ง หรือหอกิลด์ • ⭐⭐ หอกิลด์+ครึ่งหนึ่ง • ⭐⭐⭐ ทั้งหมด • ของที่ได้เข้าคลังหมู่บ้านเรา', 7.5, '#9ad8ff', CW - 16);
+      T(L + 8, top + 22, '⚔ สงคราม: ระบบสู้ให้ 4 นาที กองเราบุกเขา–กองเขาบุกเรา พร้อมกัน ดูสด/ลงไปช่วยได้ทั้งสองฝั่ง ฝั่งที่หมู่บ้านเหลือมากกว่าชนะ • 🗡 ปล้นเดี่ยว: เข้าไปตีเอง 3 นาที', 7.5, '#9ad8ff', CW - 16);
       rivals(s).forEach((r, i) => {
         const by = top + 50 + i * 64, st = rivalStructs(r), rich = r.treasury.gold + r.treasury.wood + r.treasury.stone;
         g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(L + 6, by, CW - 12, 58, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(L + 6, by, CW - 12, 58, 4);
         T(L + 14, by + 4, `⚔ ${r.name}`, 10, '#ffd84a');
         T(L + 14, by + 22, `หอกิลด์ Lv${r.hall} • ป้อม ${r.defenses.length} • ทหาร ${r.guards} • อาคาร ${st.length - r.defenses.length}`, 8, '#e8dcc0');
         T(L + 14, by + 38, `คลัง: ${rich > 60000 ? 'ร่ำรวย 💰💰💰' : rich > 25000 ? 'ปานกลาง 💰💰' : 'น้อย 💰'}`, 8, '#c8e8b0');
-        c.add(k.button(R - 120, by + 16, 104, 26, '⚔ บุกปล้น', () => { const rr = act('raidStart', { id: r.id }); if (refused(rr)) { fail(rr); return; } h.close(); bus.emit('td:raid', rr); }, { size: 10, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
+        c.add(k.button(R - 128, by + 6, 116, 26, '⚔ ประกาศสงคราม', () => { const rr = act('warStart', { id: r.id }); if (refused(rr)) { fail(rr); return; } WC.war = rr.war; WC.seen = 0; h.close(); bus.emit(EV.TOAST, `⚔ ประกาศสงครามกับ ${r.name}! กองทัพทั้งสองฝ่ายออกรบแล้ว`, '#ffd84a'); bus.emit('td:war', 'enemy'); }, { size: 9.5, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
+        c.add(k.button(R - 128, by + 36, 116, 17, '🗡 ปล้นเดี่ยว', () => { const rr = act('raidStart', { id: r.id }); if (refused(rr)) { fail(rr); return; } h.close(); bus.emit('td:raid', rr); }, { size: 7.5, color: 0x3a1a10, disabled: !off || raidsLeft(s) <= 0 }));
       });
       if (!rivals(s).length) T(L + 12, top + 60, 'วันนี้ไม่มีเป้าหมายเหลือแล้ว พรุ่งนี้มาใหม่', 9, '#a89878');
       if (!off) T(L + 8, top + H - 80, 'เฉพาะหัวหน้า/รองหัวหน้าที่สั่งบุกได้', 8, '#ffb080');
