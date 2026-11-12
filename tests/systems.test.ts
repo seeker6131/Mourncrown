@@ -235,3 +235,17 @@ describe('VIP card tiers (aura colour)', () => {
     grantVip(s, 7, later); expect(vipTier(s, later)).toBe(2);
   });
 });
+
+import { listItem, priceRange, DAILY_LISTINGS } from '../src/systems/market';
+describe('market: anti gold-laundering', () => {
+  it('a price must stay between 30% and 5x the fair price; at most 20 listings a day', () => {
+    const s = startNewGame(), now = 1_800_000_000_000, it = s.inventory.find(i => i.id === 'hp_potion')!;
+    const r = priceRange(it, 1);
+    expect(listItem(s, it.uid, 1, r.max + 1, now)).toBe('price');
+    expect(listItem(s, it.uid, 1, Math.max(0, r.min - 1), now)).toBe('price');
+    expect(typeof listItem(s, it.uid, 1, r.min, now)).toBe('object');
+    (s as unknown as { mkDay: { d: number; n: number } }).mkDay.n = DAILY_LISTINGS;
+    const it2 = s.inventory.find(i => i.id === 'mp_potion')!;
+    expect(listItem(s, it2.uid, 1, priceRange(it2, 1).min, now)).toBe('daily');
+  });
+});

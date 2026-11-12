@@ -16,14 +16,22 @@ export const feeOf = (price: number) => Math.ceil(price * MARKET_FEE);
 /** a fair player-market price: from the item's value and rarity (not the low NPC buy price) */
 export function suggestPrice(it: Omit<InvItem, 'uid'>) { const d = itemDef(it.id), r = d.rarity; return Math.max(10, Math.round(d.price * 0.5 * (1 + it.upg * 0.3) * (1 + Math.pow(r, 1.8)) / 10) * 10); }
 export const myListings = (s: GameState) => (s as MS).myListings ?? [];
+/** anti gold-laundering (moving gold between one's own accounts through silly prices): a price must stay between 30% and
+ *  5x the fair price, and each player lists at most 20 pieces a day */
+export const DAILY_LISTINGS = 20;
+export function priceRange(it: Omit<InvItem, 'uid'>, qty: number) { const f = suggestPrice(it) * Math.max(1, qty); return { min: Math.max(1, Math.floor(f * 0.3)), max: Math.max(10, Math.ceil(f * 5)) }; }
+const dayOf = (now: number) => Math.floor((now + 7 * 3600000) / 86400000);   // (Thai day)
+export function listedToday(s: GameState, now = Date.now()) { const d = (s as MS & { mkDay?: { d: number; n: number } }).mkDay; return d && d.d === dayOf(now) ? d.n : 0; }
 
-export function listItem(s: GameState, uid: number, qty: number, price: number, now = Date.now()): Listing | 'equipped' | 'missing' | 'full' | 'price' {
+export function listItem(s: GameState, uid: number, qty: number, price: number, now = Date.now()): Listing | 'equipped' | 'missing' | 'full' | 'price' | 'daily' {
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return 'missing';
   if (isEquipped(s, uid)) return 'equipped';
   if (myListings(s).length >= MAX_LISTINGS) return 'full';
-  if (!(price >= 1)) return 'price';
-  const n = Math.max(1, Math.min(qty, it.qty));
+  if (listedToday(s, now) >= DAILY_LISTINGS) return 'daily';
+  const n = Math.max(1, Math.min(qty, it.qty)), pr = priceRange(it, n);
+  if (!(price >= pr.min && price <= pr.max)) return 'price';
+  (s as MS & { mkDay?: { d: number; n: number } }).mkDay = { d: dayOf(now), n: listedToday(s, now) + 1 };
   const l: Listing = { id: `L${now}${uid}`, seller: 'คุณ', item: { id: it.id, qty: n, upg: it.upg, rar: it.rar, aff: it.aff }, price: Math.round(price), until: now + LISTING_HOURS * 3600000 };
   removeUid(s, uid, n);
   (s as MS).myListings = [...myListings(s), l];
