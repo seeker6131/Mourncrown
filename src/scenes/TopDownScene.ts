@@ -1328,8 +1328,10 @@ export class TopDownScene extends Phaser.Scene {
   autoTarget: object | null = null;
   toggleAuto() {
     const s = S(); s.auto = !s.auto; this.autoBad.clear(); saveGame(s);
-    // director: auto is for monsters only — gathering in the Deepwild is always by hand
-    bus.emit(EV.TOAST, s.auto ? (!this.stageN || this.wild ? 'ออโต้เปิดแล้ว — ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน (ป่าดงดิบต้องเก็บเอง)' : 'ออโต้: ตีมอนเอง') : 'ปิดออโต้', s.auto ? '#9fffb0' : '#e8c872');
+    // director: auto fights monsters and guild battles (each player chooses: watch their hero fight, or play by hand);
+    // gathering in the Deepwild is always by hand
+    const battle = !!this.raid || !!this.defense;
+    bus.emit(EV.TOAST, s.auto ? (battle ? 'ออโต้: ฮีโร่สู้เอง — นั่งดูได้เลย (กดเดิน/ตีเมื่อไหร่ก็ควบคุมเองทันที)' : !this.stageN || this.wild ? 'ออโต้เปิดแล้ว — ทำงานในแผนที่มอน/ดันเจี้ยน และสงคราม/ปล้น/ป้องกันหมู่บ้าน (ป่าดงดิบต้องเก็บเอง)' : 'ออโต้: ตีมอนเอง') : 'ปิดออโต้ — ควบคุมเอง', s.auto ? '#9fffb0' : '#e8c872');
     bus.emit(EV.STATE_CHANGED);
   }
   /** returns the direction to walk this frame (or 0,0) and attacks / casts / gathers when in reach */
@@ -1343,7 +1345,19 @@ export class TopDownScene extends Phaser.Scene {
     const bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
     const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
     let tx: number, ty: number, reach: number, target: object;
-    {
+    const ranged = ['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9'].includes(this.F.key);
+    if (this.raid || this.defense) {   // guild battles: guards near the hero first, then the nearest building (enemy village) / raider (home)
+      const f = this.battleFoe(ranged, bad); if (!f) return [0, 0];
+      if (f.d < 150) for (let i = 0; i < 3; i++) {
+        const id = currentSkills(s)[i], sk = id ? SKILL_BY_ID[id] : null;
+        if (!sk || (this.skillReady[id] ?? 0) > this.time.now || (s.mp ?? 0) < sk.mp) continue;
+        if (sk.kind === 'heal' && s.hp > d.maxHp * 0.6) continue;
+        if (sk.kind === 'shield' && s.hp > d.maxHp * 0.85) continue;
+        if (sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff' && f.d > (sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain' ? 150 : 60)) continue;
+        this.castSkill(i); return [0, 0];
+      }
+      tx = f.x; ty = f.y; reach = f.reach; target = f.obj;
+    } else {
       if (!this.stageN || this.wild) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง', '#e8c872'); } return [0, 0]; }
       // pick up loot lying close by before the next fight
       const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));
@@ -1362,7 +1376,6 @@ export class TopDownScene extends Phaser.Scene {
         if (sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff' && dist > (sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain' ? 150 : 60)) continue;
         this.castSkill(i); return [0, 0];
       }
-      const ranged = ['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9'].includes(this.F.key);
       tx = m.x; ty = m.y; reach = ranged ? 120 : 20 + m.m.size * 0.25; target = m;
     }
     const dx = tx - h.x, dy = ty - h.y, dist = Math.hypot(dx, dy);
@@ -1371,6 +1384,21 @@ export class TopDownScene extends Phaser.Scene {
       this.path = null; this.attack(); return [0, 0];
     }
     return this.steer(target, tx, ty, time) ?? [0, 0];
+  }
+  /** the auto hero's next foe in a guild battle: where to stand, how close is close enough */
+  battleFoe(ranged: boolean, bad: (o: object) => boolean): { x: number; y: number; reach: number; d: number; obj: object } | null {
+    const h = this.hero, dd = (x: number, y: number) => Math.hypot(x - h.x, y - h.y);
+    if (this.defense) {
+      const u = this.defense.units.filter(q => q.side === 'atk' && q.alive && !bad(q)).sort((a, b) => dd(a.x, a.y) - dd(b.x, b.y))[0];
+      return u ? { x: u.x, y: u.y, reach: ranged ? 120 : 34, d: dd(u.x, u.y), obj: u } : null;
+    }
+    const r = this.raid!;
+    const g = r.guards.filter(q => q.alive && !bad(q) && dd(q.x, q.y) < 200).sort((a, b) => dd(a.x, a.y) - dd(b.x, b.y))[0];
+    if (g) return { x: g.x, y: g.y, reach: ranged ? 120 : 34, d: dd(g.x, g.y), obj: g };
+    const t = r.targets.filter(q => q.alive && !bad(q)).sort((a, b) => r.dist(a, h.x, h.y) - r.dist(b, h.x, h.y))[0];
+    if (!t) return null;
+    const x = t.x + Math.max(-t.rx * 0.6, Math.min(t.rx * 0.6, h.x - t.x)), y = t.y + 16;
+    return { x, y, reach: ranged ? 110 : 12, d: r.dist(t, h.x, h.y), obj: t };
   }
   // ---------- path following (A* around trees, rocks and water) ----------
   grid?: PathGrid;
