@@ -227,7 +227,7 @@ HIT = {'np8': {'attack': 4}, 'np10': {'attack': 5}}
 # {key: {animation: {direction: [frame numbers of the clip as generated, 0 = the idle picture]}}}
 DROP = {}
 # Frames with a stray speck the AI left beside the body (same numbering): every detached piece under 40 px is wiped.
-SPECKS = {'hr1': {'attack': {'south': [6]}}}
+SPECKS = {'hr1': {'attack': {'south': [6]}}, 'heroF': {'attack': {'south': [0, 1]}}}
 
 
 def build(key, zips, man):
@@ -248,7 +248,7 @@ def build(key, zips, man):
                 if e in dd and w not in dd: dd[w] = [im.transpose(Image.FLIP_LEFT_RIGHT) for im in dd[e]]
     dirs = [d for d in DIRS if d in rot and d in IDLE_DIRS.get(key, DIRS)]
     w0 = rot[dirs[0]].width
-    human = key in ('hero', 'hg') or key.startswith(('hr', 'np'))
+    human = key in ('hero', 'heroF', 'hg') or key.startswith(('hr', 'np'))
     foot0 = foot([rot[d] for d in dirs])     # the ground line PixelLab drew the character on (canvas w0)
     if key.startswith(('mo', 'an')) and 'walk' in anims: anims['walk'] = fit_creature_walk(rot, anims['walk'], w0)
     for a, src in COPY.get(key, {}).items():

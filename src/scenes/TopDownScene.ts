@@ -214,7 +214,7 @@ export class TopDownScene extends Phaser.Scene {
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
     // only the characters this scene shows: hero forms always; villagers + animals in the village;
     // the land's monsters, its boss (boss stages) and the wild game in a stage
-    const heroes = ['hero', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
+    const heroes = ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
     const st = this.stageN && this.stageN !== WILD ? this.st : null;
     const keys = this.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss || this.dungeon ? [st.land.boss.key] : [])]
       : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
@@ -676,11 +676,62 @@ export class TopDownScene extends Phaser.Scene {
     };
     this.trailOff = (x, y) => Math.min(Math.abs(y - main(x)), ...segs.map(q => seg(x, y, q)));
   }
+  wildProps?: () => void;
+  /** village dressing: produce crates, pumpkins, flower barrels, haystacks, an apple tree... beside the roads, never on a plot */
+  villageProps(rnd: () => number, free: (x: number, y: number, r: number) => boolean, roadOff: (x: number, y: number) => number) {
+    const ks = ['produce', 'pumpkins', 'flowerbarrel', 'wheelbarrow', 'haystack', 'coop', 'sacks', 'firepit', 'bench', 'appletree'].map(k => 'pp_vil_' + k).filter(k => OM[k]);
+    if (!ks.length) return;
+    const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
+    for (let n = 0, k = 0; k < 800 && n < 26; k++) {
+      const x = 60 + rnd() * (MW - 120), y = 120 + rnd() * (MH - 180), o = roadOff(x, y);
+      if (o < 30 || o > 110 || near(x, y) || !free(x, y, 22)) continue;
+      const key = ks[Math.floor(rnd() * ks.length)];
+      if (key === 'pp_vil_appletree' && (o < 60 || !free(x, y, 40))) continue;
+      this.obj(key, x, y, key === 'pp_vil_appletree' ? 0.22 : 0.6, key === 'pp_vil_appletree' ? 14 : 5, true, key === 'pp_vil_appletree' ? 0.85 : 1);
+      if (key === 'pp_vil_firepit') this.campfire(x, y - 4);
+      n++;
+    }
+  }
+  /** themed props per land (tools/gen_props2.py, pp_<land>_*): big ones away from the paths, middle ones along them
+   *  (so they are seen), small ones anywhere; lights get a warm glow */
+  placeLandProps(land: string, rnd: () => number, free: (x: number, y: number, r: number) => boolean, pathOff: (x: number, y: number) => number, keepOut: (x: number, y: number) => boolean) {
+    const L: Record<string, [string[], string[], string[]]> = {
+      forest: [['birch', 'willow'], ['log', 'boulder', 'ruin', 'stumpshroom', 'berry', 'rockpile'], ['shrooms', 'flowers']],
+      haunt: [['tree'], ['grave1', 'grave2', 'crypt', 'skulls', 'lantern', 'fence', 'coffin', 'scarecrow', 'web'], ['glowshroom']],
+      lava: [['tree', 'pillar'], ['spike', 'vent', 'boulder', 'bones'], ['crystal']],   // (the beast ribcage reads like a monster: not scattered)
+      snow: [['pine', 'pine2', 'statue'], ['boulder', 'snowman', 'bush', 'spike', 'log'], ['crystal']],
+      dung: [['pillar', 'torch'], ['chains', 'cage', 'rubble', 'bones', 'spike', 'barrel', 'rack', 'altar'], []],
+      wild: [['bamboo', 'totem'], ['vinerock', 'hollowlog', 'bush', 'flower'], ['shroomring']],
+    };
+    const set = L[land]; if (!set) return;
+    const pre = `pp_${land}_`, ok = (k: string) => !!OM[pre + k];
+    const [big, mid, small] = set.map(a => a.filter(ok));
+    const area = (MW * MH) / (1280 * 800), LIGHT = new Set(['pp_haunt_lantern', 'pp_dung_torch', 'pp_lava_vent', 'pp_lava_crystal']);
+    const put = (k: string, x: number, y: number, fw: number, fd: number) => {
+      const im = this.obj(k, x, y, fw, fd, true); if (!im) return;
+      if (land === 'snow') im.setTint(0xa8c8ff);   // the colour reference warms whites to pink: cool the snow back down
+      if (LIGHT.has(k)) { const l = this.add.image(x, y - (OM[k].foot - OM[k].top) * 0.7, 'td_glow').setTint(k.includes('haunt') ? 0x8affc8 : 0xffa04a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99990).setScale(0.8); this.lamps.push(l); }
+    };
+    for (let n = 0, k = 0; k < 400 && n < (land === 'dung' ? 26 : 34) * area; k++) {   // big
+      const x = 20 + rnd() * (MW - 40), y = 60 + rnd() * (MH - 70); if (!big.length || pathOff(x, y) < 80 || keepOut(x, y) || !free(x, y, 40)) continue;
+      put(pre + big[Math.floor(rnd() * big.length)], x, y, 0.3, 12); n++;
+    }
+    for (let n = 0, k = 0; k < 900 && n < 60 * area; k++) {   // along the paths
+      const x = 20 + rnd() * (MW - 40), y = 40 + rnd() * (MH - 50), o = pathOff(x, y); if (!mid.length || o < 34 || o > 150 || keepOut(x, y) || !free(x, y, 18)) continue;
+      put(pre + mid[Math.floor(rnd() * mid.length)], x, y, 0.6, 5); n++;
+    }
+    for (let n = 0, k = 0; k < 600 && n < 70 * area; k++) {   // small, no collision
+      const x = 10 + rnd() * (MW - 20), y = 30 + rnd() * (MH - 40); if (!small.length || pathOff(x, y) < 22 || !free(x, y, 6)) continue;
+      const kk = pre + small[Math.floor(rnd() * small.length)], m = OM[kk];
+      const si = this.add.image(Math.round(x), Math.round(y), 'o_' + kk).setOrigin(0.5, m.foot / m.h).setDepth(y); if (land === 'snow') si.setTint(0xa8c8ff); n++;
+    }
+  }
   placeWild(rnd: () => number, pick: (k: string, n: number) => string, free: (x: number, y: number, r: number) => boolean) {
     const has = (k: string) => !!OM[k];
     const jungle = ['jtree_0', 'jtree_1', 'jtree_2', 'palm_0'].filter(has);
     const area = (MW * MH) / (1280 * 800);
     const open = (x: number, y: number, pad: number) => this.pits.some(c => Math.hypot(x - c.x, (y - c.y) * 1.25) < c.r + pad) || this.clearings.some(c => Math.hypot(x - c.x, y - c.y) < c.r);
+    this.wildProps = () => this.placeLandProps('wild', rnd, free, (x, y) => this.trailOff(x, y), (x, y) => open(x, y, 30));
     // mine pits: quarry art at the rim, ore rocks across the floor, glowing rare veins and a gold vein in the middle
     const COL = [0xffffff, 0xf0f4ff, 0x9a7aaa, 0xb8e8ff, 0xa8ffe8];
     for (const p of this.pits) {
@@ -768,6 +819,7 @@ export class TopDownScene extends Phaser.Scene {
       const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
       void o;
     }
+    this.placeLandProps(g, rnd, free, (x, y) => this.trailOff(x, y), inClear);
     for (let k = 0; k < 220 * area; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 8)) continue;
@@ -932,10 +984,10 @@ export class TopDownScene extends Phaser.Scene {
     let seed = 1;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const pick = (k: string, n: number) => `${k}_${Math.floor(rnd() * n)}`;
-    if (this.wild) { this.placeWild(rnd, pick, free); return; }
+    if (this.wild) { this.placeWild(rnd, pick, free); this.wildProps?.(); return; }
     if (this.stageN) { this.placeStage(rnd, pick, free); return; }
     if (this.inside >= 0) { this.placeRoom(); return; }
-    if (this.town) { this.town.place(rnd, pick, free); return; }
+    if (this.town) { this.town.place(rnd, pick, free); this.villageProps(rnd, free, (x, y) => GV.laneDist(x, y)); return; }
     // village buildings (level art from PixelLab Objects)
     for (const [n, x, y] of HOUSES) {
       const m = OM[n]; this.obj(n, x, y, 0.82, Math.round((m.foot - m.top) * 0.42));
@@ -1003,6 +1055,7 @@ export class TopDownScene extends Phaser.Scene {
       else if (r < 0.85) this.obj(pick('rock', 8), x, y, 0.6, 4);
       else this.obj(pick('stump', 5), x, y, 0.5, 3);
     }
+    this.villageProps(rnd, free, (x, y) => Math.min(Math.abs(y - roadY(x)), Math.abs(y - road2Y(x))));
     // campfires: flickering warm light + rising embers
     for (const [x, y] of [[300, 560]]) this.campfire(x, y);
     // ground decals: pebbles/leaves along the road edges, flowers and tufts in the grass, reeds on the banks
@@ -1059,7 +1112,7 @@ export class TopDownScene extends Phaser.Scene {
     return { key: this.inside >= 0 ? `room${this.inside}` : this.gv ? 'guild' : String(this.stageN), w: MW, h: MH, hero: { x: this.hero.x, y: this.hero.y, dir: this.dir }, exits, marks, dots };
   }
   /** in the Deepwild the gathering outfit is the empty-handed villager 'hg' (axe / pickaxe / spear only when working) */
-  get F() { const s = S(); const t = activeTier(s); if (this.wild && s.outfit === 'gather' && CH.hg) return { key: 'hg', name: formName(s.cls, 0) }; return { key: formKeyOf(s.cls, t), name: formName(s.cls, t) }; }
+  get F() { const s = S(); const t = activeTier(s); if (this.wild && s.outfit === 'gather' && CH.hg && s.look !== 'f') return { key: 'hg', name: formName(s.cls, 0) }; return { key: formKeyOf(s.cls, t, s.look), name: formName(s.cls, t) }; }
   /** the swing used to hit: the gathering villager hunts with a spear (axe = trees, pickaxe = rocks, spear = animals) */
   get swing() { return this.F.key !== 'hg' ? 'attack' : hasAnim('hg', 'hunt') ? 'hunt' : 'chop'; }
   get ui() { const u = this.scene.get('TdUI') as TdUIScene; return u?.sys.isActive() && u.panels ? u : null; }

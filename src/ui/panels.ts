@@ -543,7 +543,7 @@ export class Panels implements GuildHost {
     tiers.forEach((t, i) => {
       const bx = x + 14 + i * (bw + 8), by = top + 120, on = activeTier(s) === t;
       g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(bx, by, bw, 128, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(bx, by, bw, 128, 4);
-      const pk = `c_${formKeyOf(s.cls, t)}_idle`;
+      const pk = `c_${formKeyOf(s.cls, t, s.look)}_idle`;
       if (ui.textures.exists(pk)) { const im = ui.add.image(bx + bw / 2, by + 44, pk, 0); im.setScale(70 / Math.max(im.width, im.height)); c.add(im); }
       c.add(k.text(bx + bw / 2, by + 84, formName(s.cls, t) + (on ? ' ✔' : ''), 9.5, on ? '#ffd84a' : '#f3e6c4').setOrigin(0.5, 0));
       c.add(k.text(bx + bw / 2, by + 100, classSkills(s.cls, t).map(q => SKILL_BY_ID[q].name).join(' • '), 6.5, '#9ad8ff', { align: 'center', wordWrap: { width: bw - 8 } }).setOrigin(0.5, 0));
@@ -551,6 +551,11 @@ export class Panels implements GuildHost {
       z.on('pointerup', () => { s.useTier = t; sfx.levelUp(); bus.emit(EV.TOAST, `สวมร่าง ${formName(s.cls, t)}`, '#ffd84a'); this.close(); bus.emit(EV.STATE_CHANGED); });
       c.add(z);
     });
+    // the first form's look (free to change any time)
+    c.add(k.text(x + 16, y + H - 46, 'รูปลักษณ์ร่างแรก (ชาวบ้าน)', 9, '#ffe7a0'));
+    ([['m', '👨 ชาวบ้านชาย'], ['f', '👩 ชาวบ้านหญิง']] as const).forEach(([lk, label], i) => c.add(k.button(x + 16 + i * 128, y + H - 30, 120, 20, label + ((s.look ?? 'm') === lk ? ' ✔' : ''), () => {
+      s.look = lk; sfx.cloth(); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+    }, { size: 8.5, color: (s.look ?? 'm') === lk ? 0x6a4a10 : 0x2a1d12 })));
     if (s.cls === 'novice') c.add(k.text(x + 180, top + 170, `ถึง Lv${FORM_LEVEL[1]} แล้วไปคุยกับผู้เฒ่าเพื่อเลือกสายอาชีพ`, 9, '#a89878'));
   }
 
@@ -856,7 +861,7 @@ export class Panels implements GuildHost {
     const s = S(), ui = this.ui, k = this.k, d = derive(s), ps = pstats(s);
     const W = Math.min(640, ui.VW - 12), H = 340;
     const { x, y, g } = this.window(c, W, H, '👤 โปรไฟล์');
-    const t = s.tier ?? 0, key = formKeyOf(s.cls, t), sx = x + 14, sy = y + 32, cw = 190;
+    const t = s.tier ?? 0, key = formKeyOf(s.cls, t, s.look), sx = x + 14, sy = y + 32, cw = 190;
     // left: the hero
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(sx, sy, cw, H - 44, 5);
     if (ui.textures.exists(`c_${key}_idle`)) { const im = ui.add.image(sx + cw / 2, sy + 116, `c_${key}_idle`, 0).setOrigin(0.5, 1); im.setScale(104 / im.height); c.add(im); }

@@ -18,7 +18,7 @@ def main():
     for f in sorted(os.listdir(SRC)):
         name, ext = os.path.splitext(f)
         if ext != '.png': continue
-        if not name.startswith(('def_', 'fu_', 'dc_')): continue
+        if not name.startswith(('def_', 'fu_', 'dc_', 'pp_')): continue
         im = Image.open(os.path.join(SRC, f)).convert('RGBA')
         bb = im.getchannel('A').point(lambda a: 255 if a > 24 else 0).getbbox()
         if not bb: print('empty', f); continue

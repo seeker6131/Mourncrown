@@ -48,6 +48,8 @@ export interface GameState {
   cls: 'novice' | 'sword' | 'archer' | 'mage' | 'cleric';
   tier: number;
   outfit: 'hunt' | 'gather';
+  /** look of the first (villager) form: m = the male villager, f = the female villager 'heroF' (wardrobe, free) */
+  look?: 'm' | 'f';
   useTier?: number;
   dayTime: number;
   map?: string;
