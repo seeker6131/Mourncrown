@@ -3,6 +3,7 @@
 // stick up out of the gap and a heap of the game's own rubble props piles up in front. Fire and smoke on top come from
 // PixelLab effects (fx_ruin_fire, fx_smoke). Built once per picture on a canvas and kept as a texture.
 import type Phaser from 'phaser';
+import { framePixels } from './atlas';
 
 const RUBBLE = ['o_pp_dung_rubble', 'o_pp_forest_rockpile'];
 
@@ -10,7 +11,7 @@ const RUBBLE = ['o_pp_dung_rubble', 'o_pp_forest_rockpile'];
 const BOX = new Map<string, { top: number; bot: number; x0: number; x1: number }>();
 export function opaqueBox(sc: Phaser.Scene, key: string) {
   const hit = BOX.get(key); if (hit) return hit;
-  const img = sc.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement, W = img.width, H = img.height;
+  const img = framePixels(sc, key), W = img.width, H = img.height;
   const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d')!; x.drawImage(img, 0, 0);
   const p = x.getImageData(0, 0, W, H).data; let top = H, bot = 0, x0 = W, x1 = 0;
   for (let y = 0; y < H; y++) for (let i = 0; i < W; i++) if (p[(y * W + i) * 4 + 3] > 20) { if (y < top) top = y; if (y > bot) bot = y; if (i < x0) x0 = i; if (i > x1) x1 = i; }
@@ -31,7 +32,7 @@ function seeded(str: string) { let a = 0; for (const ch of str) a = (a * 31 + ch
 export function makeRuin(sc: Phaser.Scene, src: string, dst: string): boolean {
   if (sc.textures.exists(dst)) return true;
   if (!sc.textures.exists(src)) return false;
-  const img = sc.textures.get(src).getSourceImage() as HTMLImageElement | HTMLCanvasElement, W = img.width, H = img.height;
+  const img = framePixels(sc, src), W = img.width, H = img.height;
   const ct = sc.textures.createCanvas(dst, W, H); if (!ct) return false;
   const ctx = ct.getContext(); ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0);
   const id = ctx.getImageData(0, 0, W, H), p = id.data, rnd = seeded(src);
@@ -69,7 +70,7 @@ export function makeRuin(sc: Phaser.Scene, src: string, dst: string): boolean {
   const props = RUBBLE.filter(k => sc.textures.exists(k));
   const n = Math.max(3, Math.round((x1 - x0) / 26));
   for (let k = 0; k < n && props.length; k++) {
-    const r = sooty(sc.textures.get(props[k % props.length]).getSourceImage() as HTMLImageElement), sz = 0.7 + rnd() * 0.5;
+    const r = sooty(framePixels(sc, props[k % props.length])), sz = 0.7 + rnd() * 0.5;
     const w = r.width * sz, h = r.height * sz, cx = x0 + (x1 - x0) * ((k + 0.5) / n) + (rnd() - 0.5) * 10;
     ctx.drawImage(r, Math.round(cx - w / 2), Math.round(bot - h + 4 - rnd() * 8), Math.round(w), Math.round(h));
   }

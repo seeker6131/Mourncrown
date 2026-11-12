@@ -10,8 +10,16 @@ const LOOP = new Set(['fx_brazier', 'fx_fountain', 'fx_shield', 'fx_build', 'fx_
 const name = (p: string) => p.split('/').pop()!.replace(/\.(png|json)$/, '');
 const sheets: Record<string, FxSheet> = Object.fromEntries(Object.entries(JSON_).map(([p, j]) => [name(p), j]));
 
-export function preloadFx2(scene: Phaser.Scene) {
-  for (const [p, url] of Object.entries(PNG)) { const k = name(p); if (sheets[k] && !scene.textures.exists('fx2_' + k)) scene.load.atlas('fx2_' + k, url, sheets[k] as never); }
+/** effects placed while a scene is being built (they must exist before it shows); everything else loads behind the game */
+const FIRST = new Set(['fx_portal', 'fx_ring_hero', 'fx_ring_mon', 'fx_boss_aura', 'fx_brazier', 'fx_fountain', 'fx_elite_aura', 'fx_golden_spawn', 'fx_boss_spawn',
+  'fx_bld_fire', 'fx_smoke', 'fx_ruin_fire', 'fx_build', 'fx_hit_sword', 'fx_hit_arrow', 'fx_hit_magic', 'fx_hit_punch', 'fx_hit_holy', 'fx_hit_crit', 'fx_mon_death']);
+/** first = only the effects a scene needs at once; later = the rest (call after the scene is up) */
+export function preloadFx2(scene: Phaser.Scene, part: 'first' | 'later' | 'all' = 'all') {
+  for (const [p, url] of Object.entries(PNG)) {
+    const k = name(p); if (!sheets[k] || scene.textures.exists('fx2_' + k)) continue;
+    if (part === 'first' && !FIRST.has(k)) continue; if (part === 'later' && FIRST.has(k)) continue;
+    scene.load.atlas('fx2_' + k, url, sheets[k] as never);
+  }
 }
 export function createFx2Anims(scene: Phaser.Scene) {
   for (const [k, j] of Object.entries(sheets)) {

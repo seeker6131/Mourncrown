@@ -25,7 +25,7 @@ import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type 
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean; chT?: number; chargeT?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -670,8 +670,8 @@ export class Combat {
       if (!busy && !this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 120) {
         // director: a monster that gets hit charges straight in for a moment (faster than the hero), then chases a bit
         // slower than the hero (108 px/s) so the player can still get away
-        const rush = time - m.hitT < 1600;
-        const sp = (rush ? Math.min((base.speed + 20) * 2.2, 150) : Math.min((base.speed + 8) * 1.35, 96)) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
+        const rush = time - m.hitT < 1600;   // (a boss is heavy: it charges, it does not sprint)
+        const sp = (rush ? (m.boss ? Math.min((base.speed + 20) * 1.4, 72) : Math.min((base.speed + 20) * 2.2, 150)) : Math.min((base.speed + 8) * 1.35, 96)) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
         if (!this.s.isBlocked(nx, m.y)) m.x = nx;
         if (!this.s.isBlocked(m.x, ny)) m.y = ny;
         m.dir = dirOf(dx, dy); moving = true;
@@ -745,6 +745,9 @@ export class Combat {
           this.s.time.delayedCall(hitMs(m.m.key, 'attack', 260), () => { if (m.alive && !this.s.dead) this.vfx.bolt(m.x, m.y - m.m.size * 0.45, h.x, h.y - 16, col, 0.8, 300, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin'); });
         } else this.s.time.delayedCall(hitMs(m.m.key, 'attack', 220), land);   // the hit lands on the frame the claw / weapon strikes
       }
+      // legs keep up with the ground: the walk plays faster the faster the creature really moves (no sliding / floating)
+      { const v = Math.hypot(m.x - (m.px ?? m.x), m.y - (m.py ?? m.y)) / Math.max(1, dt) * 1000; m.px = m.x; m.py = m.y;
+        const walking = !!m.sp.anims.currentAnim?.key.includes('_walk_'); m.sp.anims.timeScale = walking ? Math.max(0.9, Math.min(2.6, v / 38)) : 1; }
       if (CH[m.m.key]) {
         const attacking = time - m.atkT < (m.boss ? animMs(m.m.key, 'attack') + 60 : 600) || (m.chargeT ?? 0) > time;
         if (!attacking) { if (moving) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }

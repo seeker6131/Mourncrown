@@ -54,6 +54,7 @@ import { DefenseBattle } from '../world/defense';
 import { Hunters } from '../world/hunters';
 import { hpBar } from '../world/hpBar';
 import { makeRuin } from '../world/ruin';
+import { loadAtlas, unpackAtlas } from '../world/atlas';
 import { preloadMounts, createMountAnims, Riding, mountReady } from '../world/mount';
 import { mountOn } from '../systems/mounts';
 import { MOUNTS } from '../data/mounts';
@@ -65,7 +66,6 @@ let RAID_DATA: RaidStart | null = null;
 /** the bounty slot already announced (survives scene restarts) */
 let BOUNTY_SEEN = -1;
 const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OM = objMeta as unknown as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number; chim?: [number, number] }>;
 import tl1Wang from '../assets/td/tl1_wang.png';
 import tl2Wang from '../assets/td/tl2_wang.png';
@@ -220,19 +220,32 @@ export class TopDownScene extends Phaser.Scene {
 
   preload() {
     for (const [p, u] of Object.entries(VFX_FILES)) this.load.image('px_' + p.split('/').pop()!.replace('.png', ''), u);   // PixelLab skill effects
-    for (const [p, u] of Object.entries(OBJ_FILES)) this.load.image('o_' + p.split('/').pop()!.replace('.png', ''), u);
-    preloadFx2(this); preloadMounts(this);
+    loadAtlas(this, 'obj');   // every map object in one page (tools/pack_atlas.py)
+    const st0 = runtime.state;   // (not there yet on the very first boot)
+    preloadFx2(this, 'first'); if (st0 && mountOn(st0)) preloadMounts(this);
     if (this.gv) for (const [p, u] of Object.entries(ROOM_PNG)) this.load.image(baseName(p), u);
     this.load.image('td_tl1', tl1Wang); this.load.image('td_tl2', tl2Wang); this.load.image('td_tl3', tl3Wang); this.load.image('td_ft2', ft2Wang); this.load.image('td_ft3', ft3Wang); this.load.image('td_tl5', tl5Wang); this.load.image('td_tl6', tl6Wang); this.load.image('td_tl7', tl7Wang); this.load.image('td_tl8', tl8Wang);
     // only the characters this scene shows: hero forms always; villagers + animals in the village;
     // the land's monsters, its boss (boss stages) and the wild game in a stage
-    const heroes = ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
+    // hero forms: only the player's own one first, unless the scene shows other players (guild village, test bots)
+    const all = ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))];
+    const heroes = this.gv || testBots.n || !st0 ? all : [...new Set(['hero', 'hg', this.F.key])];
     const st = this.stageN && this.stageN !== WILD ? this.st : null;
     const keys = this.stageN === WILD ? [...heroes, 'hg', 'mo16', 'mo17'] : st ? [...heroes, ...st.land.mobs.map(m => m.key), ...(st.boss || this.dungeon ? [st.land.boss.key] : [])]
       : [...heroes, ...Array.from({ length: 10 }, (_, i) => 'np' + (i + 1)), ...Array.from({ length: 5 }, (_, i) => 'an' + (i + 1))];
     preloadChars(this, keys);
   }
 
+  /** what the scene did not wait for: the other hero forms, the remaining effects, mounts and riding poses — loaded behind
+   *  the running game (director: shorter 'please wait'); animations are made as soon as they arrive */
+  loadLater() {
+    if (!this.sys.isActive()) return;
+    preloadFx2(this, 'later'); preloadMounts(this);
+    preloadChars(this, ['hero', 'heroF', ...Array.from({ length: 12 }, (_, i) => 'hr' + (i + 1))]);
+    if (!this.load.list.size) return;
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => { if (!this.sys.isActive()) return; createFx2Anims(this); createMountAnims(this); createCharAnims(this); });
+    this.load.start();
+  }
   stageN = 0;
   hudT = 0;
   regenT = 0;
@@ -278,6 +291,7 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   create() {
+    unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     (window as unknown as { __tdS: typeof S }).__tdS = S;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
@@ -294,6 +308,7 @@ export class TopDownScene extends Phaser.Scene {
     this.time.delayedCall(250, () => sfx.door());   // arriving on a map
     this.hero = this.add.sprite(sp0.x, sp0.y, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, this.inside >= 0 ? 4 : 0);
     createFx2Anims(this); createMountAnims(this);
+    this.time.delayedCall(300, () => this.loadLater());
     this.town = this.gv && this.inside < 0 ? new GuildTown(this as never) : undefined; this.hot = [];
     { const s0 = S(), d0 = derive(s0); if (s0.hp <= 0) s0.hp = d0.maxHp; }
     this.titleTx = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffd84a', stroke: '#1a1208', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99995);

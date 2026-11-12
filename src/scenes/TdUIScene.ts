@@ -21,6 +21,9 @@ import { saveGame } from '../core/save';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
 import { WC } from '../world/warClient';
+import { loadAtlas, unpackAtlas } from '../world/atlas';
+/** the PixelLab item icons have been loaded and swapped in (they stay for the whole session) */
+let ICONS_SWAPPED = false;
 import { mountOn, mountsOf, nextRide } from '../systems/mounts';
 import { vipActive } from '../systems/premium';
 import { skillIconKey } from '../ui/skin';
@@ -57,14 +60,13 @@ export class TdUIScene extends Phaser.Scene {
   skillSet = '';
 
   preload() {
-    const files = import.meta.glob('../assets/skills/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-    for (const [p, u] of Object.entries(files)) { const k = 'sk_' + p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists(k)) this.load.image(k, u); }
-    const icons = import.meta.glob('../assets/icons/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+    // skill and item icons come in one atlas page each (tools/pack_atlas.py)
     // PixelLab item icons replace the code-drawn fallback icons made at boot
-    for (const [p, u] of Object.entries(icons)) { const n = p.split('/').pop()!.replace('.webp', ''); if (!this.textures.exists('pl_icon_' + n)) this.load.image('pl_icon_' + n, u); }
-    this.load.once('complete', () => {
-      for (const k of this.textures.getTextureKeys()) if (k.startsWith('pl_icon_')) { const t = k.slice(3); if (this.textures.exists(t)) this.textures.remove(t); this.textures.renameTexture(k, t); }
-    });
+    // (once per session: after the swap the 'pl_' keys are gone, so without this every scene change downloaded them all again)
+    if (!ICONS_SWAPPED) {
+      loadAtlas(this, 'skill'); loadAtlas(this, 'icon');
+      this.load.once('complete', () => { unpackAtlas(this, 'skill', 'sk_'); unpackAtlas(this, 'icon', 'icon_', true); ICONS_SWAPPED = true; });
+    }
   }
 
   /** three skill buttons around the attack button (stages only) */
