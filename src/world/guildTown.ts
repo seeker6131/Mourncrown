@@ -10,6 +10,8 @@ import * as L from './villageLayout';
 import { Village, type Step } from './npcs';
 import { fx2 } from './fx2';
 import { opaqueBox, charTint } from './ruin';
+import { flagPole } from './flag';
+import { flagFor } from '../data/flag';
 import { formKeyOf } from './chars';
 
 type Ter = 'g' | 'd' | 'c' | 'w';
@@ -74,7 +76,6 @@ export class GuildTown {
   guards?: Village;
   guardKey = '';
   t = 0; syncT = 0;
-  dome?: Phaser.GameObjects.Sprite | null;
   constructor(public sc: TownHost) {}
 
   // ---------------------------------------------------------------- static dressing
@@ -144,7 +145,6 @@ export class GuildTown {
       else if (r < 0.2) sc.add.image(Math.round(x), Math.round(y), 'o_' + (r < 0.1 ? pick('flower', 5) : r < 0.16 ? pick('tuft', 2) : pick('leaf', 3))).setOrigin(0.5, 0.8).setDepth(y);
     }
     // the guild banner before the hall
-    for (const dx of [-120, 120]) sc.obj('def_banner', L.PLOTS[L.HALL_PLOT].x + dx, L.PLOTS[L.HALL_PLOT].y + 30, 0.3, 2, true, 0.8);
   }
 
   // ---------------------------------------------------------------- live parts (rebuilt when the guild state changes)
@@ -167,6 +167,9 @@ export class GuildTown {
   render(now = Date.now()) {
     const g = guildOf(S()); if (!g) return;
     const sc = this.sc;
+    // the guild's own flag on two poles before the hall
+    const fpx = flagFor(g.name, g.flag), HP = L.PLOTS[L.HALL_PLOT];
+    this.view('flag', fpx, () => [...flagPole(sc, HP.x - 120, HP.y + 30, fpx, 2, 66), ...flagPole(sc, HP.x + 120, HP.y + 30, fpx, 2, 66)]);
     for (const t of GUILD_BLD_ORDER) {
       const b = g.buildings.find(q => q.type === t)!, P = L.PLOTS[L.PLOT_OF[t]], busy = !!b.done && now < b.done;
       const art = busy ? 'site_0' : `${ART[t]}_${artLv(b.level)}`;
@@ -264,10 +267,6 @@ export class GuildTown {
     if (time - this.syncT > 60000) { this.syncT = time; this.sync(); }
     const now = Date.now();
     this.render(now);
-    // the shield dome over the guild hall while enemies cannot raid us
-    const shielded = g.shieldUntil > now;
-    if (shielded && !this.dome) { const P = L.PLOTS[L.HALL_PLOT]; this.dome = fx2(this.sc, 'fx_shield', P.x, P.y + 30, P.y + 30, 3.2); this.dome?.setAlpha(0.45); }
-    else if (!shielded && this.dome) { this.dome.destroy(); this.dome = null; }
     for (const t of GUILD_BLD_ORDER) {
       const v = this.views.get('b:' + t), b = g.buildings.find(q => q.type === t)!, d = GUILD_BLD[t], P = L.PLOTS[L.PLOT_OF[t]];
       if (!v) continue;

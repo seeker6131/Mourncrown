@@ -89,7 +89,6 @@ export class DefenseBattle {
       const fk = formKeyOf(m.cls, m.lv >= 80 ? 3 : m.lv >= 40 ? 2 : m.lv >= 10 ? 1 : 0), w = walkers.find(q => q.name.includes(m.name));
       this.add('def', fk, m.name, w?.sp.x ?? L.doorOf(L.housePlot(m.house)).x, w?.sp.y ?? L.doorOf(L.housePlot(m.house)).y + 16, heroHit * 5, heroHit * 0.9, 102);
     }
-    this.town.dome?.setVisible(false);   // the simulated raid ignores the shield
     sfx.cast(); sc.cameras.main.flash(250, 255, 60, 40);
     bus.emit(EV.TOAST, `⚠ ${this.enemy} บุกหมู่บ้าน! ทหารและเพื่อนกิลด์วิ่งไปป้องกัน — ช่วยกันสู้!`, '#ff8a6a');
   }
@@ -245,7 +244,6 @@ export class DefenseBattle {
       for (const b of this.blds) { b.fx?.forEach(o => o.destroy()); if (b.img?.active) { if (b.orig) b.img.setTexture(b.orig); b.img.clearTint(); b.img.setAlpha(1); } }
       this.town.render();   // the village now shows what really burned (fires / ruins from the saved state)
       for (const w of this.town.guards?.npcs ?? []) { w.sp.setVisible(true); w.shadow.setVisible(true); w.tag.setVisible(true); }
-      this.town.dome?.setVisible(true);
       this.units = []; (this.sc as unknown as { defense?: DefenseBattle }).defense = undefined;
     });
   }

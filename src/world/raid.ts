@@ -17,6 +17,8 @@ import { fx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import { burnFx, fireKey } from './guildTown';
 import { makeRuin, charTint } from './ruin';
+import { flagPole } from './flag';
+import { flagFor } from '../data/flag';
 
 export interface RaidStart { rival: Rival; structs: RivalStruct[]; secs: number }
 /** what the battle needs from the top-down scene */
@@ -53,6 +55,7 @@ export class RaidBattle {
       } else {
         const t = st.type as GuildBld, P = L.PLOTS[L.PLOT_OF[t]];
         const img = sc.obj(`${ART[t]}_${artLv(st.level)}`, P.x, P.y, 0.82, 50, true, t === 'hall' ? 1.1 : 1);
+        if (t === 'hall') { const fpx = flagFor(this.data.rival.name); flagPole(sc, P.x - 120, P.y + 30, fpx, 2, 66); flagPole(sc, P.x + 120, P.y + 30, fpx, 2, 66); }   // the enemy guild's flag
         this.add(st, `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${st.level}`, P.x, P.y, t === 'hall' ? 84 : 70, 46, img);
       }
     }

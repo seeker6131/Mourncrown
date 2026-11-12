@@ -268,3 +268,21 @@ describe('burnt buildings and repairs', () => {
     expect(g.buildings.find(b => b.type === 'lumber')!.dmg).toBe(1);
   });
 });
+
+import { setFlag } from '../src/systems/guild';
+import { renderTpl, randomTpl, flagFor, isFlag, PATTERNS, ICONS, FLAG_LEN } from '../src/data/flag';
+describe('guild flag', () => {
+  it('every template makes a valid 16x16 flag; random flags use two colours', () => {
+    for (const bg of PATTERNS) for (const icon of ICONS) expect(isFlag(renderTpl({ bg, c1: 1, c2: 12, icon, ic: 7 }))).toBe(true);
+    for (let i = 0; i < 50; i++) { const t = randomTpl(rnd); expect(t.c1).not.toBe(t.c2); expect(renderTpl(t).length).toBe(FLAG_LEN); }
+    expect(flagFor('หมาป่า')).toBe(flagFor('หมาป่า'));   // the default flag comes from the name, the same everywhere
+  });
+  it('leader / deputy set it; members cannot; junk and blank flags are refused', () => {
+    const { s, g } = village();
+    const px = renderTpl({ bg: 'cross', c1: 1, c2: 12, icon: 'wolf', ic: 7 });
+    expect(setFlag(s, 'xyz', T0)).toEqual({ refused: 'flag' });
+    expect(setFlag(s, '0'.repeat(FLAG_LEN), T0)).toEqual({ refused: 'blank' });
+    expect(setFlag(s, px, T0)).toEqual({ ok: true }); expect(g.flag).toBe(px); expect(flagFor(g.name, g.flag)).toBe(px);
+    meOf(s)!.role = 'member'; expect(setFlag(s, renderTpl(randomTpl(rnd)), T0)).toEqual({ refused: 'role' });
+  });
+});

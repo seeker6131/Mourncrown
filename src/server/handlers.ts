@@ -23,7 +23,7 @@ import { build, upgrade, collect, craft, cook } from '../systems/settlement';
 import {
   guildOf, homeOf, donate, upgradeVillage, collectVillage, setRole, simInvite, kick, defBuild, defUpgrade, defRepair, defRemove, createGuild, joinGuild,
   houseBuild, hireGuard, dismissGuard, sleep, wake, trophyPut, trophyTake, stashPut, stashTake, shopBuy as guildShopBuy, goals, goalProgress, guildTick, rivals,
-  rivalStructs, canRaid, raidResult, devGuild, seasonClaim, bldRepair, houseRepair, type Rival, type Wreck,
+  rivalStructs, canRaid, raidResult, devGuild, seasonClaim, bldRepair, houseRepair, setFlag, type Rival, type Wreck,
 } from '../systems/guild';
 import { RAID_SECS, REST_EXP, GUILD_BLD, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
 import { gainExp } from '../systems/stats';
@@ -229,6 +229,7 @@ export const handlers = {
   /** repair a burnt guild building from the treasury (any member) / your own house from your own stock */
   bldRepair: (s: GameState, a: { t: GuildBld }, c: Ctx) => GUILD_BLD[a.t] ? bldRepair(s, a.t, c.now) : no('building'),
   houseRepair: (s: GameState, _a: object) => houseRepair(s),
+  guildFlag: (s: GameState, a: { px: string }, c: Ctx) => setFlag(s, a.px, c.now),
   houseBuild: (s: GameState, _a: object, c: Ctx) => houseBuild(s, c.now),
   seasonClaim: (s: GameState, _a: object, c: Ctx) => seasonClaim(s, c.now),
   hireGuard: (s: GameState, a: { type: GuardType }, c: Ctx) => hireGuard(s, a.type, c.now),

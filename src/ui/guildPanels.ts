@@ -20,7 +20,12 @@ import {
 } from '../data/guild';
 
 import { DEV_TOOLS } from '../server/config';
-export type GuildTab = 'home' | 'members' | 'donate' | 'build' | 'defense' | 'guards' | 'goals' | 'shop' | 'raid' | 'season' | 'log';
+import { PALETTE, PATTERNS, PATTERN_NAMES, ICONS, ICON_NAMES, FLAG_W, FLAG_H, renderTpl, randomTpl, flagFor, type FlagTpl } from '../data/flag';
+import { flagStill } from '../world/flag';
+
+/** the flag being designed (kept while the window rebuilds; saved only with the save button) */
+const fd = { px: '', mode: 'tpl' as 'tpl' | 'draw', tpl: { bg: 'cross', c1: 1, c2: 12, icon: 'crown', ic: 12 } as FlagTpl, color: 14, tool: 'pen' as 'pen' | 'fill', guild: '' };
+export type GuildTab = 'home' | 'members' | 'donate' | 'build' | 'defense' | 'guards' | 'goals' | 'shop' | 'raid' | 'season' | 'log' | 'flag';
 const TABS: [GuildTab, string][] = [['home', '🏛 ภาพรวม'], ['members', '👥 สมาชิก'], ['donate', '🎁 บริจาค'], ['build', '🏗 อาคาร'], ['defense', '🛡 ป้อม'], ['guards', '💂 ทหาร'], ['goals', '📜 ภารกิจ'], ['shop', '🛒 ร้าน'], ['raid', '⚔ ปล้น'], ['season', '🏆 ฤดูกาล']];   // the log: guild hall fireplace / warehouse ledger
 const RES_ICON: Record<string, string> = { gold: '💰', wood: '🪵', stone: '🪨', food: '🍖' };
 const WHY: Record<string, string> = {
@@ -58,7 +63,9 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
   const tr = g0.treasury, cap = tCap(s);
   const treasuryLine = (ty: number) => { T(L + 8, ty, `คลังหมู่บ้าน  ${RES_ICON.gold}${num(tr.gold)}  ${RES_ICON.wood}${num(tr.wood)}  ${RES_ICON.stone}${num(tr.stone)}  ${RES_ICON.food}${num(tr.food)}   (เพดาน ${num(cap)}/อย่าง)`, 8.5, '#ffe7a0'); };
 
+  { const fk = flagStill(ui, flagFor(g0.name, g0.flag)); c.add(ui.add.image(x + 10, y + 4, fk).setOrigin(0).setScale(1)); }
   switch (h.guildTab) {
+    case 'flag': buildFlag(h, c, g, L, top, CW, H, off, flagFor(g0.name, g0.flag), g0.name); break;
     case 'home': {
       treasuryLine(top + 6);
       T(L + 8, top + 22, `ตำแหน่งของคุณ: ${me.role === 'leader' ? '👑 หัวหน้า' : me.role === 'deputy' ? '⭐ รองหัวหน้า' : 'สมาชิก'}   •   แต้มบุญ ${num(me.pts)}   •   สมาชิก ${g0.members.length}/${GUILD_MAX}   •   หอกิลด์ Lv${hallLv(s)}`, 8.5, '#9fffb0');
@@ -73,6 +80,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
         c.add(k.button(R - 116, top + 50, 108, 18, '🔧 ซ่อมบ้าน', () => { const r = act('houseRepair', {}); if (refused(r)) fail(r); else done(h, '🔧 ซ่อมบ้านแล้ว'); }, { size: 8, color: 0x7a3a10, disabled: (rc.wood ?? 0) > s.res.wood || (rc.stone ?? 0) > s.res.stone }));
       }
       T(L + 8, top + 72, 'ข่าวล่าสุดในกิลด์', 9, '#ffd84a');
+      c.add(k.button(R - 116, top + 70, 108, 17, '🚩 ธงกิลด์', () => { h.guildTab = 'flag'; fd.px = ''; h.rebuild(); }, { size: 8, color: 0x3a2a5a }));
       g0.log.slice(0, 7).forEach((l, i) => T(L + 12, top + 88 + i * 15, `${new Date(l.t).toLocaleTimeString().slice(0, 5)}  ${l.text}`, 8, '#e8dcc0', CW - 24));
       T(L + 8, top + H - 80, 'บริจาคเข้าคลัง → หัวหน้าอัปอาคาร/ป้อม • ของส่วนตัวไม่โดนปล้น แต่คลังหมู่บ้านโดน', 7.5, '#a89878', CW - 16);
       if (DEV_TOOLS) c.add(k.button(L + 8, top + H - 124, CW - 16, 18, '🧪 จำลองกิลด์ศัตรู (บอท) บุกหมู่บ้านเรา — สู้จริง', () => { h.close(); bus.emit('td:defend'); }, { size: 8, color: 0x7a1a10 }));
@@ -345,4 +353,83 @@ export function buildTrophy(h: GuildHost, c: Phaser.GameObjects.Container) {
   });
   if (!pool.length) c.add(k.text(L + 4, top + 118, 'ยังไม่มีของ Super Rare ขึ้นไป — ล่าบอส/มอนทอง/ดันเจี้ยน', 8.5, '#a89878'));
   c.add(k.text(L, top + H - 50, `🛏 พลังพักผ่อนตอนนี้ ${num(hm.rest)}/${num(restCap(lv))} ตัว (EXP +${REST_EXP}%) — นอนที่เตียงก่อนออกเกม`, 8, '#9ad8ff'));
+}
+
+/** the guild flag workshop: templates, a random roll, or drawing it pixel by pixel (leader / deputy save it) */
+function buildFlag(h: GuildHost, c: Phaser.GameObjects.Container, g: Phaser.GameObjects.Graphics, L: number, top: number, CW: number, H: number, off: boolean, cur: string, name: string) {
+  const ui = h.scene, k = h.k;
+  if (!fd.px || fd.guild !== name) { fd.px = cur; fd.guild = name; }
+  const T = (tx: number, ty: number, t: string, size = 8.5, col = '#e8dcc0') => { const o = k.text(tx, ty, t, size, col); c.add(o); return o; };
+  // preview (big) + live redraw for drawing without rebuilding the window
+  const PS = 7, px0 = L + 10, py0 = top + 22, prev = ui.add.graphics(); c.add(prev);
+  const drawPrev = () => { prev.clear(); for (let i = 0; i < fd.px.length; i++) prev.fillStyle(PALETTE[parseInt(fd.px[i], 16)], 1).fillRect(px0 + (i % FLAG_W) * PS, py0 + Math.floor(i / FLAG_W) * PS, PS, PS); };
+  g.fillStyle(0x3a2616, 1).fillRect(px0 - 6, py0 - 6, 4, FLAG_H * PS + 40).fillStyle(0xd8a032, 1).fillRect(px0 - 7, py0 - 10, 6, 5);
+  T(L + 8, top + 4, off ? '🚩 ออกแบบธงกิลด์ — กดบันทึกเมื่อพอใจ' : '🚩 ธงกิลด์ (เฉพาะหัวหน้า/รองที่เปลี่ยนได้ — ลองออกแบบดูได้)', 8.5, off ? '#ffd84a' : '#ffb080');
+  drawPrev();
+  const by = py0 + FLAG_H * PS + 8, bw = FLAG_W * PS / 3 - 3;
+  ([['📐 แม่แบบ', 'tpl'], ['🎲 สุ่ม', 'rnd'], ['✏️ วาดเอง', 'draw']] as const).forEach(([lb, m], i) => c.add(k.button(px0 + i * (bw + 4), by, bw, 18, lb, () => {
+    if (m === 'rnd') { fd.tpl = randomTpl(Math.random); fd.px = renderTpl(fd.tpl); fd.mode = 'tpl'; } else fd.mode = m;
+    sfx.click(); h.rebuild();
+  }, { size: 7.5, color: fd.mode === m ? 0x6a4a1a : 0x2a1d12 })));
+  c.add(k.button(px0, by + 22, FLAG_W * PS / 2 - 2, 18, '💾 บันทึกธง', () => { const r = act('guildFlag', { px: fd.px }); if (refused(r)) fail(r); else done(h, '🚩 ธงกิลด์ใหม่โบกสะบัดแล้ว!'); }, { size: 8, color: 0x1f4a2a, disabled: !off }));
+  c.add(k.button(px0 + FLAG_W * PS / 2 + 2, by + 22, FLAG_W * PS / 2 - 2, 18, '↩ กลับ', () => { h.guildTab = 'home'; fd.px = ''; h.rebuild(); }, { size: 8, color: 0x2a1d12 }));
+  const RX = L + 140, RW = L + CW - 8 - RX;
+  const swatches = (sy: number, label: string, sel: number, pick: (i: number) => void, size = 13) => {
+    T(RX, sy, label, 8, '#ffe7a0');
+    PALETTE.forEach((col, i) => {
+      const sx = RX + 70 + i * (size + 2);
+      g.fillStyle(col, 1).fillRect(sx, sy, size, size).lineStyle(sel === i ? 2 : 1, sel === i ? 0xffd84a : 0x0a0705, 1).strokeRect(sx, sy, size, size);
+      const z = ui.add.zone(sx, sy, size, size).setOrigin(0).setInteractive(); z.on('pointerup', () => { sfx.click(); pick(i); }); c.add(z);
+    });
+  };
+  if (fd.mode === 'tpl') {
+    const t = fd.tpl, apply = () => { fd.px = renderTpl(fd.tpl); h.rebuild(); };
+    T(RX, top + 24, 'ลายพื้น', 8, '#ffe7a0');
+    const pw = (RW - 70) / 5 - 3;
+    PATTERNS.forEach((p, i) => c.add(k.button(RX + 70 + (i % 5) * (pw + 3), top + 20 + Math.floor(i / 5) * 19, pw, 17, PATTERN_NAMES[p], () => { t.bg = p; apply(); }, { size: 7, color: t.bg === p ? 0x6a4a1a : 0x2a1d12 })));
+    swatches(top + 64, 'สีพื้น 1', t.c1, i => { t.c1 = i; apply(); });
+    swatches(top + 82, 'สีพื้น 2', t.c2, i => { t.c2 = i; apply(); });
+    T(RX, top + 104, 'สัญลักษณ์', 8, '#ffe7a0');
+    const iw = (RW - 70) / 5 - 3;
+    ICONS.forEach((ic, i) => c.add(k.button(RX + 70 + (i % 5) * (iw + 3), top + 100 + Math.floor(i / 5) * 19, iw, 17, ICON_NAMES[ic], () => { t.icon = ic; apply(); }, { size: 7, color: t.icon === ic ? 0x6a4a1a : 0x2a1d12 })));
+    swatches(top + 162, 'สีสัญลักษณ์', t.ic, i => { t.ic = i; apply(); });
+    T(RX, top + 184, 'อยากแต่งต่อทีละจุด? เลือกแม่แบบแล้วกด ✏️ วาดเอง — ภาพนี้จะเป็นจุดเริ่มต้น', 7.5, '#a89878');
+    return;
+  }
+  // drawing: a 16x16 grid, a palette, pen / bucket, fill all
+  const CS = Math.min(12, Math.floor((H - 110) / FLAG_H)), gx = RX, gy = top + 22, grid = ui.add.graphics(); c.add(grid);
+  const drawGrid = () => {
+    grid.clear();
+    for (let i = 0; i < fd.px.length; i++) grid.fillStyle(PALETTE[parseInt(fd.px[i], 16)], 1).fillRect(gx + (i % FLAG_W) * CS, gy + Math.floor(i / FLAG_W) * CS, CS, CS);
+    grid.lineStyle(1, 0x000000, 0.25); for (let i = 0; i <= FLAG_W; i++) { grid.lineBetween(gx + i * CS, gy, gx + i * CS, gy + FLAG_H * CS); grid.lineBetween(gx, gy + i * CS, gx + FLAG_W * CS, gy + i * CS); }
+  };
+  const set = (i: number, v: number) => { fd.px = fd.px.slice(0, i) + v.toString(16) + fd.px.slice(i + 1); };
+  const fill = (i0: number) => {   // bucket: every touching pixel of the same colour
+    const from = fd.px[i0], to = fd.color.toString(16); if (from === to) return;
+    const st = [i0], arr = [...fd.px];
+    while (st.length) { const i = st.pop()!; if (arr[i] !== from) continue; arr[i] = to; const x = i % FLAG_W, y = Math.floor(i / FLAG_W); if (x > 0) st.push(i - 1); if (x < FLAG_W - 1) st.push(i + 1); if (y > 0) st.push(i - FLAG_W); if (y < FLAG_H - 1) st.push(i + FLAG_W); }
+    fd.px = arr.join('');
+  };
+  drawGrid();
+  const z = ui.add.zone(gx, gy, FLAG_W * CS, FLAG_H * CS).setOrigin(0).setInteractive(); c.add(z);
+  const paint = (lx: number, ly: number, down: boolean) => {
+    const cx = Math.floor(lx / CS), cy = Math.floor(ly / CS); if (cx < 0 || cy < 0 || cx >= FLAG_W || cy >= FLAG_H) return;
+    const i = cy * FLAG_W + cx;
+    if (fd.tool === 'fill') { if (down) fill(i); } else set(i, fd.color);
+    drawGrid(); drawPrev();
+  };
+  z.on('pointerdown', (_p: Phaser.Input.Pointer, lx: number, ly: number) => paint(lx, ly, true));
+  z.on('pointermove', (p: Phaser.Input.Pointer, lx: number, ly: number) => { if (p.isDown && fd.tool === 'pen') paint(lx, ly, false); });
+  const tx = gx + FLAG_W * CS + 12, tw = L + CW - 8 - tx;
+  T(tx, gy, 'สี', 8, '#ffe7a0');
+  PALETTE.forEach((col, i) => {
+    const sx = tx + (i % 4) * 22, sy = gy + 14 + Math.floor(i / 4) * 22;
+    g.fillStyle(col, 1).fillRect(sx, sy, 19, 19).lineStyle(fd.color === i ? 2 : 1, fd.color === i ? 0xffd84a : 0x0a0705, 1).strokeRect(sx, sy, 19, 19);
+    const zz = ui.add.zone(sx, sy, 19, 19).setOrigin(0).setInteractive(); zz.on('pointerup', () => { fd.color = i; sfx.click(); h.rebuild(); }); c.add(zz);
+  });
+  const ty = gy + 108;
+  c.add(k.button(tx, ty, Math.min(90, tw), 18, '✏️ ปากกา', () => { fd.tool = 'pen'; h.rebuild(); }, { size: 7.5, color: fd.tool === 'pen' ? 0x6a4a1a : 0x2a1d12 }));
+  c.add(k.button(tx, ty + 21, Math.min(90, tw), 18, '🪣 ถังสี', () => { fd.tool = 'fill'; h.rebuild(); }, { size: 7.5, color: fd.tool === 'fill' ? 0x6a4a1a : 0x2a1d12 }));
+  c.add(k.button(tx, ty + 42, Math.min(90, tw), 18, '🧽 เทสีทั้งผืน', () => { fd.px = fd.color.toString(16).repeat(FLAG_W * FLAG_H); h.rebuild(); }, { size: 7.5, color: 0x3a1a1a }));
+  c.add(k.button(tx, ty + 63, Math.min(90, tw), 18, '↺ ธงเดิม', () => { fd.px = cur; h.rebuild(); }, { size: 7.5, color: 0x2a1d12 }));
 }

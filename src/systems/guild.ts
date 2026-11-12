@@ -7,6 +7,7 @@
 import type { GameState, InvItem } from '../core/state';
 import { invSize } from '../core/state';
 import { BUILDINGS, levelCost, type Cost } from '../data/buildings';
+import { isFlag } from '../data/flag';
 import {
   GUILD_UNLOCK_LV, GUILD_MAX, DEPUTY_MAX, HOUSE_SLOTS, treasuryCap, vaultShare, RAID_TAKE, RAID_GAIN, RAID_STORED, SHIELD_H, RAIDS_PER_DAY,
   REST_PER_HOUR, restCap, stashSlots, trophySlots, defSlots, CONTRIB, itemContrib, DEFENSES, DEF_ORDER, defStat, GUILD_SHOP, GOAL_POOL,
@@ -33,6 +34,8 @@ export interface GuildState {
   shieldUntil: number; raids: { day: string; used: number }; log: GLog[];
   goals: { day: string; list: Goal[] }; shop: { day: string; bought: Record<string, number> };
   simAt: number; incomingAt: number; rivals: { day: string; list: Rival[] }; unread: string[]; hungry?: boolean;
+  /** the guild flag: 256 hex pixels (data/flag.ts); missing = one the game makes from the name */
+  flag?: string;
   /** weekly guild war season: points this week, last week's result, the week whose reward was claimed */
   season?: { week: number; score: number; prev?: { week: number; score: number }; claimed?: number };
 }
@@ -240,6 +243,17 @@ export function houseBuild(s: GameState, now = Date.now()): R | { level: number 
   if (!pay(s, houseCost(me.houseLv + 1))) return no('cost');
   me.houseLv++; me.houseDone = now + buildTime(me.houseLv);
   return { level: me.houseLv };
+}
+
+// ---------------------------------------------------------------- the guild flag
+/** leader / deputy set the flag (from a template, a random roll or their own drawing — all the same pixels) */
+export function setFlag(s: GameState, px: string, now = Date.now()): R | { ok: true } {
+  const g = guildOf(s); if (!g) return no('guild');
+  if (!isOfficer(s)) return no('role');
+  if (!isFlag(px)) return no('flag');
+  if (new Set(px).size < 2) return no('blank');   // a flag needs at least two colours
+  g.flag = px; log(g, 'role', `🚩 ${meOf(s)!.name} เปลี่ยนธงกิลด์`, now);
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------- fire damage & repairs (docs/GUILD_WAR.md 13.3)
