@@ -40,6 +40,7 @@ import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats } from '../data/ach
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
+import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../systems/potions';
 import { lang, setLang } from '../core/i18n';
 import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
 import { sfx, audioState } from '../audio/sfx';
@@ -47,7 +48,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -139,6 +140,7 @@ export class Panels implements GuildHost {
       case 'smith': this.buildSmith(c); break;
       case 'uiopt': this.buildUiOpt(c); break;
       case 'stages': this.buildStages(c); break;
+      case 'potion': this.buildPotion(c); break;
       case 'premium': this.buildPremium(c); break;
       case 'market': this.buildMarket(c); break;
       case 'alchemy': this.buildAlchemy(c); break;
@@ -846,6 +848,29 @@ export class Panels implements GuildHost {
         c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { if (act('marketCancel', { id: l.id })) { bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); } else bus.emit(EV.TOAST, 'กระเป๋าเต็ม', '#ff8a6a'); this.rebuild(); }, { size: 8, color: 0x5a1a1a }));
       });
     }
+  }
+
+  // ---------------- POTION SETTINGS (the ⚙ beside the potion buttons) ----------------
+  buildPotion(c: Phaser.GameObjects.Container) {
+    const s = S(), k = this.k, p = potOf(s);
+    const W = Math.min(440, this.ui.VW - 20), H = 236;
+    const { x, y, g } = this.window(c, W, H, '🧪 ตั้งค่าการใช้ยา');
+    const set = (ch: Partial<PotSet>) => { sfx.click(); setPot(s, ch); saveGame(s); this.rebuild(); };
+    const lx = x + 16, bx = x + 176, bw = (W - 176 - 16 - 3 * 4) / 4;
+    const row = (i: number, label: string, opts: [string, boolean, () => void][], dim = false) => {
+      const ry = y + 34 + i * 30;
+      g.fillStyle(0x0a0705, 0.45).fillRoundedRect(x + 10, ry - 3, W - 20, 26, 4);
+      c.add(k.text(lx, ry + 4, label, 9, dim ? '#7a6a58' : '#f3e6c4'));
+      const w = opts.length === 2 ? bw * 2 + 4 : bw;
+      opts.forEach(([t, on, cb], j) => c.add(k.button(bx + j * (w + 4), ry, w, 20, t, cb, { size: 8.5, color: on ? 0x1f5a2a : 0x3a3a3a, disabled: dim })));
+    };
+    row(0, '❤ ดื่มยา HP อัตโนมัติ', [['เปิด', p.auto, () => set({ auto: true })], ['ปิด', !p.auto, () => set({ auto: false })]]);
+    row(1, 'ดื่มเมื่อ HP ต่ำกว่า', HP_STEPS.map(v => [`${v}%`, p.hp === v, () => set({ hp: v })] as [string, boolean, () => void]), !p.auto);
+    row(2, 'ใช้ยา HP ไหนก่อน', [['ยาใหญ่ก่อน', p.big, () => set({ big: true })], ['ยาเล็กก่อน', !p.big, () => set({ big: false })]]);
+    row(3, '💧 ดื่มยา MP อัตโนมัติ', [['เปิด', p.mpAuto, () => set({ mpAuto: true })], ['ปิด', !p.mpAuto, () => set({ mpAuto: false })]], !p.auto);
+    row(4, 'ดื่มเมื่อ MP ต่ำกว่า', MP_STEPS.map(v => [`${v}%`, p.mp === v, () => set({ mp: v })] as [string, boolean, () => void]), !p.auto || !p.mpAuto);
+    c.add(k.text(x + W / 2, y + H - 46, `มียา ❤ ${potCount(s, 'hp')}  •  💧 ${potCount(s, 'mp')}  —  ซื้อเพิ่มที่ร้านค้า${vipActive(s) ? '  •  👑 VIP: ยา HP หมดระบบซื้อให้เอง' : ''}`, 8, '#ffd8a0').setOrigin(0.5, 0));
+    c.add(k.text(x + W / 2, y + H - 30, 'ใช้ได้ทั้งตอนเปิดและปิด AUTO • กดปุ่มยาข้างสกิลเพื่อดื่มเองได้ทุกเมื่อ', 7.5, '#c8b898').setOrigin(0.5, 0));
   }
 
   // ---------------- STAGE SELECT ----------------

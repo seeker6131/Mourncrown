@@ -31,6 +31,7 @@ import { vipActive } from '../systems/premium';
 import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
+import { potOf, pickPotion, POT_CD } from '../systems/potions';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -1378,7 +1379,29 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   // ---------- auto farm: hunt monsters (hunting outfit) or chop/mine (gathering outfit) ----------
-  manualT = 0; potT = 0; autoTipT = 0;
+  manualT = 0; potT = 0; mpT = 0; autoTipT = 0;
+  /** drink a potion (the button, or by itself): the kind's cooldown, the settings' order; VIP buys a small HP potion
+   *  when out. Returns false when nothing was drunk. */
+  usePotion(kind: 'hp' | 'mp', manual: boolean) {
+    const s = S(), d = derive(s), now = this.time.now, h = this.hero;
+    if (now < (kind === 'hp' ? this.potT : this.mpT)) return false;
+    if (kind === 'hp' ? s.hp >= d.maxHp : s.mp >= d.maxMp) { if (manual) bus.emit(EV.TOAST, kind === 'hp' ? 'HP เต็มแล้ว' : 'MP เต็มแล้ว', '#c8d8c0'); return false; }
+    let it = pickPotion(s, kind);
+    if (!it && kind === 'hp' && vipActive(s) && !refused(act('autoPotion', {}))) it = pickPotion(s, 'hp');   // VIP: auto-buy
+    if (!it) { if (manual) { sfx.error(); bus.emit(EV.TOAST, kind === 'hp' ? 'ยา HP หมด — ซื้อที่ร้านค้า' : 'ยา MP หมด — ซื้อที่ร้านค้า', '#ff8a6a'); } return false; }
+    const r = act('useItem', { uid: it.uid }) as { heal: number; mana: number } | null; if (!r) return false;
+    if (kind === 'hp') this.potT = now + POT_CD; else this.mpT = now + POT_CD;
+    this.combat.float(h.x, h.y - 44, kind === 'hp' ? `+${r.heal}` : `+${r.mana} MP`, kind === 'hp' ? '#7aff8a' : '#8fc8ff', 11);
+    sfx.click(); bus.emit(EV.STATE_CHANGED);
+    return true;
+  }
+  /** the settings' automatic drinking (battle maps, guild battles) — with or without AUTO fighting */
+  potionStep() {
+    const s = S(), p = potOf(s); if (!p.auto || this.dead) return;
+    const d = derive(s);
+    if (s.hp < d.maxHp * p.hp / 100) this.usePotion('hp', false);
+    if (p.mpAuto && (s.mp ?? 0) < d.maxMp * p.mp / 100) this.usePotion('mp', false);
+  }
   autoStuck = { x: 0, y: 0, t: 0 };
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
@@ -1393,11 +1416,6 @@ export class TopDownScene extends Phaser.Scene {
   /** returns the direction to walk this frame (or 0,0) and attacks / casts / gathers when in reach */
   autoStep(time: number): [number, number] {
     const s = S(), h = this.hero, d = derive(s);
-    if (s.hp < d.maxHp * 0.35 && time > this.potT) {
-      let it = s.inventory.find(i => i.id === 'hp_potion_l') ?? s.inventory.find(i => i.id === 'hp_potion');
-      if (!it && vipActive(s) && !refused(act('autoPotion', {}))) it = s.inventory.find(i => i.id === 'hp_potion');   // VIP: auto-buy
-      if (it) { const r = act('useItem', { uid: it.uid }); this.potT = time + 2500; if (r) this.combat.float(h.x, h.y - 44, `+${r.heal}`, '#7aff8a', 11); }
-    }
     const bad = (o: object) => (this.autoBad.get(o) ?? 0) > time;
     const near = <T extends { x: number; y: number }>(list: T[]) => list.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
     let tx: number, ty: number, reach: number, target: object;
@@ -1806,6 +1824,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.wild) this.updateNodeTimers(time);
     this.updatePlots(time); this.updateAction(time); this.updateGuide(time); this.updateOcclusion(time);
     if (this.stageN && !this.wild && !this.dungeon && time > this.supT) { this.supT = time + 15000; this.supplyStep(); }
+    if ((this.stageN && !this.wild) || this.raid || this.defense) this.potionStep();
     if (!this.stageN && !this.gv) { const h = isHungry(s1); if (h && !this.hungryWarned) bus.emit(EV.TOAST, 'ชาวบ้านหิว! อาหารหมดคลัง อาคารผลิตได้แค่ครึ่งเดียว — ไปล่าสัตว์ที่ป่าดงดิบ', '#ff8a6a'); this.hungryWarned = h; }
     if (this.ui?.panels.isOpen) { this.resetJoy(); }
     const k = this.keys;

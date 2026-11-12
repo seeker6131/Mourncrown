@@ -18,6 +18,7 @@ import { SKILL_BY_ID } from '../data/skills';
 import { tdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
+import { potCount, POT_CD } from '../systems/potions';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
 import { WC } from '../world/warClient';
@@ -36,6 +37,7 @@ const VH = 400;
 export interface TdHost extends Phaser.Scene {
   heroKey(): string; levelUpFx(): void; resetJoy(): void; stageTitle(): string;
   castSkill(i: number): void; skillReady: Record<string, number>; stageN: number; toggleAuto(): void;
+  usePotion(kind: 'hp' | 'mp', manual: boolean): boolean; potT: number; mpT: number;
 }
 
 export class TdUIScene extends Phaser.Scene {
@@ -56,6 +58,7 @@ export class TdUIScene extends Phaser.Scene {
   warBtn?: Phaser.GameObjects.Container; warBg?: Phaser.GameObjects.Graphics; warTx?: Phaser.GameObjects.Text;
   autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
+  potBtns: { kind: 'hp' | 'mp'; c: Phaser.GameObjects.Container; n: Phaser.GameObjects.Text; cd: Phaser.GameObjects.Graphics; r: number }[] = [];
   skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number; r: number }[] = [];
   skillSet = '';
 
@@ -72,8 +75,10 @@ export class TdUIScene extends Phaser.Scene {
   /** three skill buttons around the attack button (stages only) */
   buildSkills() {
     this.skillBtns.forEach(b => b.c.destroy()); this.skillBtns = [];
+    this.potBtns.forEach(b => b.c.destroy()); this.potBtns = [];
     const ids = currentSkills(S()); this.skillSet = ids.join(',');
     if (!this.td.stageN) return;
+    this.buildPotions();
     const bs = uiOpt(S()).btn, R9 = this.VH / 9 * bs, ax = this.VW - R9 * 1.3, ay = this.VH - R9 * 1.3;
     const pos = [[-78, 10], [-64, -50], [-12, -80]].map(([a, b]) => [a * bs * this.VH / 400, b * bs * this.VH / 400]);
     ids.slice(0, 3).forEach((id, i) => {
@@ -95,8 +100,39 @@ export class TdUIScene extends Phaser.Scene {
       this.skillBtns.push({ id, icon, cd, cdText, mp, c, x, y, r: R });
     });
   }
+  /** two potion buttons left of the skills (HP, MP) with the count; tap = drink, the small ⚙ = potion settings */
+  buildPotions() {
+    const bs = uiOpt(S()).btn, u = bs * this.VH / 400, R9 = this.VH / 9 * bs, ax = this.VW - R9 * 1.3, ay = this.VH - R9 * 1.3, R = 14 * u;
+    ([['hp', -124, 26, 'icon_potion_hp', 0xc83a3a], ['mp', -112, -30, 'icon_potion_mp', 0x3a6ac8]] as const).forEach(([kind, dx, dy, key, col]) => {
+      const c = this.add.container(ax + dx * u, ay + dy * u);
+      const bg = this.add.circle(0, 0, R + 2, 0x0b0806, 0.8).setStrokeStyle(2, col, 1);
+      const ic = this.textures.exists(key) ? this.add.image(0, 0, key) : this.add.text(0, 0, kind === 'hp' ? '❤' : '💧', { fontSize: R + 'px' }).setOrigin(0.5);
+      if (ic instanceof Phaser.GameObjects.Image) ic.setScale((R * 1.7) / Math.max(ic.width, ic.height));
+      const cd = this.add.graphics();
+      const n = this.kit.text(R * 0.7, R * 0.45, '', 7, '#ffffff', { stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5);
+      const z = this.add.zone(0, 0, R * 2 + 6, R * 2 + 6).setInteractive();
+      z.on('pointerdown', () => { c.setScale(0.9); this.td.usePotion(kind, true); });
+      z.on('pointerup', () => c.setScale(1)); z.on('pointerout', () => c.setScale(1));
+      c.add([bg, ic, cd, n, z]); this.root.add(c);
+      this.potBtns.push({ kind, c, n, cd, r: R });
+    });
+    // settings
+    const gc = this.add.container(ax - 140 * u, ay - 4 * u);
+    const gb = this.add.circle(0, 0, 9 * u, 0x0b0806, 0.75).setStrokeStyle(1.5, 0x8a6a40, 1);
+    const gt = this.kit.text(0, 0, '⚙', 9, '#e8dcc0').setOrigin(0.5);
+    const gz = this.add.zone(0, 0, 22 * u, 22 * u).setInteractive(); gz.on('pointerup', () => this.panels.open('potion'));
+    gc.add([gb, gt, gz]); this.root.add(gc);
+    this.potBtns.push({ kind: 'hp', c: gc, n: gt, cd: this.add.graphics(), r: 0 });   // (kept with the buttons so it is rebuilt with them)
+  }
   updateSkills(now: number) {
     const s = S();
+    for (const b of this.potBtns) {
+      if (!b.r) continue;
+      const left = (b.kind === 'hp' ? this.td.potT : this.td.mpT) - this.td.time.now, n = potCount(s, b.kind);
+      b.n.setText(n > 99 ? '99+' : String(n)).setColor(n ? '#ffffff' : '#ff8a6a');
+      b.cd.clear(); if (left > 0) b.cd.fillStyle(0x000000, 0.6).slice(0, 0, b.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / POT_CD, false).fillPath();
+      b.c.setAlpha(n ? 1 : 0.55);
+    }
     if (currentSkills(s).join(',') !== this.skillSet) this.buildSkills();
     for (const b of this.skillBtns) {
       const sk = SKILL_BY_ID[b.id], left = (this.td.skillReady[b.id] ?? 0) - now, R = b.r;
