@@ -1007,7 +1007,7 @@ export class TopDownScene extends Phaser.Scene {
   bountyT = 0;
 
   /** the stage select is a TdUI panel (same skin as the other windows) */
-  stageSelect() { const u = this.ui; if (u) { u.panels.land = -1; u.panels.open('stages'); } this.portalCool = this.time.now + 600; }
+  stageSelect() { const u = this.ui; if (u) { u.panels.stSel = 0; u.panels.open('stages'); } this.portalCool = this.time.now + 600; }
   selectUi: Phaser.GameObjects.GameObject[] | null = null;
   makingUi = false;
   uiCam!: Phaser.Cameras.Scene2D.Camera;

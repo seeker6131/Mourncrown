@@ -849,7 +849,9 @@ export class Panels implements GuildHost {
   }
 
   // ---------------- STAGE SELECT ----------------
-  land = -1;
+  // A compact card carousel (director: the old full-screen grid was too big): the chosen map sits in the middle, larger
+  // and lit, its neighbours shrink and fade to the sides. ◀ ▶ or a swipe moves one map; the land pills jump between lands.
+  stSel = 0; stDir = 0;
   buildStages(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     // maps unlock by hero level; the 'recommended' map is the highest one the hero can enter
@@ -857,69 +859,98 @@ export class Panels implements GuildHost {
     const canEnter = (st: (typeof STAGES)[number]) => all || s.level >= st.req;
     const best = [...STAGES].reverse().find(canEnter)?.n ?? 1;
     const bossDone = (s as unknown as { tdCleared?: number }).tdCleared ?? 0;
-    if (this.land < 0) this.land = Math.floor((best - 1) / 10);
-    const W = Math.min(620, ui.VW - 16), H = 336;
-    const { x, y, g } = this.window(c, W, H, 'เลือกแผนที่');
-    { const di = act('dungeonInfo', {}); c.add(k.button(x + 14, y + 4, 140, 20, `⚔ ดันเจี้ยนรายวัน ${di.max - di.used}/${di.max}`, () => this.open('dungeon'), { size: 8.5, color: 0x6a2a10 })); }
+    if (this.stSel < 1 || this.stSel > STAGES.length) this.stSel = best;
     const COL = [0x2e5a3a, 0x4a3a6a, 0x7a3a1a, 0x3a5a7a, 0x3a3a40], HI = ['#9fe0a0', '#c8a8ff', '#ffb080', '#a8d8ff', '#c8c8d0'];
-    // previews of this land's monsters and boss (idle sheets load on demand)
-    const L = LANDS[this.land];
-    if (loadIdle(ui, [...L.mobs.map(m => m.key), L.boss.key], () => { if (this.cur === 'stages') this.rebuild(); })) { /* rebuilt when loaded */ }
-    // land tabs
-    const tx = x + 12, tw = 118, th = 46, ty0 = y + 34;
-    LANDS.forEach((ld, i) => {
-      const first = STAGES[i * 10], open = canEnter(first), ty = ty0 + i * (th + 6), sel = i === this.land;
-      g.fillStyle(open ? COL[i] : 0x1a1612, sel ? 1 : 0.55).fillRoundedRect(tx, ty, tw, th, 5);
-      g.lineStyle(sel ? 2 : 1, sel ? 0xffd84a : 0x5a4a3a, 1).strokeRoundedRect(tx, ty, tw, th, 5);
-      c.add(k.text(tx + 8, ty + 6, ld.name, 9.5, open ? '#ffffff' : '#6a6050'));
-      c.add(k.text(tx + 8, ty + 24, open ? `มอน Lv${first.level}-${STAGES[i * 10 + 9].level}` : `🔒 Lv${first.req}`, 8, open ? HI[i] : '#6a6050'));
-      c.add(k.text(tx + tw - 6, ty + 6, '💰🎁', 8).setOrigin(1, 0));
-      const z = ui.add.zone(tx, ty, tw, th).setOrigin(0).setInteractive();
-      z.on('pointerup', () => { sfx.click(); this.land = i; this.rebuild(); });
+    const sel = STAGES[this.stSel - 1], li = Math.floor((sel.n - 1) / 10), L = LANDS[li];
+    const W = Math.min(600, ui.VW - 20), H = 236;
+    const { x, y, g } = this.window(c, W, H, 'เลือกแผนที่');
+    // this land's monsters + boss, and the next land's, load on demand (card portraits)
+    const near = [li, Math.min(LANDS.length - 1, li + 1), Math.max(0, li - 1)].flatMap(i => [...LANDS[i].mobs.map(m => m.key), LANDS[i].boss.key]);
+    loadIdle(ui, [...new Set(near)], () => { if (this.cur === 'stages') this.rebuild(); });
+    const go = (n: number) => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(n); };
+    const step = (d: number) => { const n = Math.max(1, Math.min(STAGES.length, this.stSel + d)); if (n === this.stSel) return; sfx.click(); this.stDir = d; this.stSel = n; this.rebuild(); };
+
+    // top row: the Deepwild and the daily dungeon on the left, the five lands as pills on the right
+    const ty = y + 28;
+    c.add(k.button(x + 12, ty, 92, 20, '🌿 ป่าดงดิบ', () => go(WILD), { size: 8.5, color: 0x1f5a2a }));
+    { const di = act('dungeonInfo', {}); c.add(k.button(x + 108, ty, 104, 20, `⚔ ดันเจี้ยน ${di.max - di.used}/${di.max}`, () => this.open('dungeon'), { size: 8.5, color: 0x6a2a10 })); }
+    const pw = 22, px0 = x + W - 14 - LANDS.length * (pw + 5);
+    LANDS.forEach((_, i) => {
+      const open = canEnter(STAGES[i * 10]), on = i === li, px = px0 + i * (pw + 5);
+      g.fillStyle(open ? COL[i] : 0x1a1612, on ? 1 : 0.6).fillRoundedRect(px, ty + 2, pw, 16, 8);
+      if (on) g.lineStyle(2, 0xffd84a, 1).strokeRoundedRect(px, ty + 2, pw, 16, 8);
+      c.add(k.text(px + pw / 2, ty + 4, open ? String(i + 1) : '🔒', 8, open ? '#ffffff' : '#6a6050').setOrigin(0.5, 0));
+      const z = ui.add.zone(px, ty, pw, 20).setOrigin(0).setInteractive({ useHandCursor: true });
+      z.on('pointerup', () => { const target = i === Math.floor((best - 1) / 10) ? best : i * 10 + 1; step(target - this.stSel); });
       c.add(z);
     });
-    // the Deepwild: one big shared gathering map (no monsters)
+    // the land's name over the cards
+    c.add(k.text(x + W / 2, y + 54, `${L.name}`, 11, HI[li], { fontStyle: 'bold' }).setOrigin(0.5, 0));
+    c.add(k.text(x + W / 2, y + 69, `มอน Lv${STAGES[li * 10].level}-${STAGES[li * 10 + 9].level}  •  แผนที่ ${li * 10 + 1}-${li * 10 + 10}`, 7.5, '#c8b898').setOrigin(0.5, 0));
+
+    // the carousel
+    const cy = y + 140, slots = W >= 520 ? 2 : 1, gap = 8;
+    const card = (st: (typeof STAGES)[number], off: number) => {
+      const big = off === 0, cw = big ? 92 : 74 - (Math.abs(off) - 1) * 8, ch = big ? 104 : 84 - (Math.abs(off) - 1) * 10;
+      const open = canEnter(st), stL = LANDS[Math.floor((st.n - 1) / 10)], lc = COL[Math.floor((st.n - 1) / 10)];
+      const ox = off === 0 ? 0 : Math.sign(off) * (46 + gap + 37 + (Math.abs(off) - 1) * (74 + gap - 4));
+      const box = ui.add.container(x + W / 2 + ox, cy); box.setAlpha(big ? 1 : Math.abs(off) === 1 ? 0.78 : 0.45);
+      const cg = ui.add.graphics();
+      cg.fillStyle(0x000000, 0.35).fillRoundedRect(-cw / 2 + 3, -ch / 2 + 4, cw, ch, 8);                    // drop shadow
+      cg.fillStyle(open ? (st.boss ? 0x4a1a14 : lc) : 0x15120e, 1).fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 8);
+      cg.fillStyle(0xffffff, open ? 0.08 : 0.03).fillRoundedRect(-cw / 2 + 3, -ch / 2 + 3, cw - 6, ch * 0.42, 6);   // glassy top
+      cg.lineStyle(big ? 2.5 : 1.5, !open ? 0x3a3228 : st.boss ? 0xff6a3a : big ? 0xffd84a : 0x8a7a5a, 1).strokeRoundedRect(-cw / 2, -ch / 2, cw, ch, 8);
+      box.add(cg);
+      const who = st.boss ? stL.boss.key : stL.mobs[(st.n - 1) % stL.mobs.length].key;
+      if (ui.textures.exists(`c_${who}_idle`)) {
+        const im = ui.add.image(0, ch / 2 - 18, `c_${who}_idle`, 0).setOrigin(0.5, 1); im.setScale((big ? 58 : 44) / im.height * (st.boss ? 1.15 : 1));
+        if (!open) im.setTint(0x101010); box.add(im);
+      }
+      box.add(k.text(-cw / 2 + 7, -ch / 2 + 4, String(st.n), big ? 17 : 13, open ? '#ffffff' : '#5a5040', { fontStyle: 'bold' }));
+      if (st.boss) box.add(k.text(cw / 2 - 6, -ch / 2 + 5, '👑', big ? 12 : 9).setOrigin(1, 0));
+      if (st.boss && st.n <= bossDone) box.add(k.text(cw / 2 - 6, -ch / 2 + 22, '✔', 9, '#9fffb0').setOrigin(1, 0));
+      if (st.n === best && open && !big) box.add(k.text(cw / 2 - 6, -ch / 2 + 5, '★', 10, '#ffd84a').setOrigin(1, 0));
+      box.add(k.text(0, ch / 2 - 15, open ? `Lv${st.level}` : `🔒 Lv${st.req}`, big ? 8.5 : 7.5, open ? '#e8dcc0' : '#8a7a60').setOrigin(0.5, 0));
+      c.add(box);
+      if (this.stDir) { box.x += this.stDir * 40; box.alpha *= 0.4; ui.tweens.add({ targets: box, x: box.x - this.stDir * 40, alpha: box.alpha / 0.4, duration: 170, ease: 'Cubic.easeOut' }); }
+      return { ox, cw };
+    };
+    const shown: { n: number; ox: number; cw: number }[] = [];
+    for (const off of [-slots, ...(slots > 1 ? [-1] : []), 1, ...(slots > 1 ? [slots] : []), 0]) {   // the middle card last = on top
+      const n = this.stSel + off; if (n < 1 || n > STAGES.length) continue;
+      shown.push({ n, ...card(STAGES[n - 1], off) });
+    }
+    this.stDir = 0;
+    // arrows
+    const ah = 44, aw = 30;
+    c.add(k.button(x + 10, cy - ah / 2, aw, ah, '◀', () => step(-1), { size: 14, color: 0x2a2018, disabled: this.stSel <= 1 }));
+    c.add(k.button(x + W - 10 - aw, cy - ah / 2, aw, ah, '▶', () => step(1), { size: 14, color: 0x2a2018, disabled: this.stSel >= STAGES.length }));
+    // swipe / tap over the cards: a swipe moves, a tap on a side card picks it, a tap on the middle card goes
     {
-      const wy = ty0 + LANDS.length * (th + 6), wh = y + H - 10 - wy;
-      g.fillStyle(0x1f5a2a, 1).fillRoundedRect(tx, wy, tw, wh, 5).lineStyle(2, 0x9fe0a0, 1).strokeRoundedRect(tx, wy, tw, wh, 5);
-      c.add(k.text(tx + 6, wy + 3, '🌿 ป่าดงดิบ', 9.5, '#ffffff'));
-      c.add(k.text(tx + tw - 5, wy + 4, '⛏🍖💰', 8).setOrigin(1, 0));
-      const z = ui.add.zone(tx, wy, tw, wh).setOrigin(0).setInteractive();
-      z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(WILD); });
+      const zx = x + 10 + aw + 4, zw = W - 2 * (10 + aw + 4), z = ui.add.zone(zx, cy - 56, zw, 112).setOrigin(0).setInteractive();
+      let downX = 0;
+      z.on('pointerdown', (p: Phaser.Input.Pointer) => { downX = p.x; });
+      z.on('pointerup', (p: Phaser.Input.Pointer) => {
+        const dx = p.x - downX;
+        if (Math.abs(dx) > 26) { step(dx < 0 ? 1 : -1); return; }
+        const hit = shown.find(h => Math.abs(p.x - (x + W / 2 + h.ox)) <= h.cw / 2);
+        if (!hit) return;
+        if (hit.n === this.stSel) { if (canEnter(sel)) go(sel.n); else { sfx.error(); bus.emit(EV.TOAST, `ต้องเลเวล ${sel.req} ขึ้นไป`, '#ff8a6a'); } }
+        else step(hit.n - this.stSel);
+      });
       c.add(z);
     }
-    // stage cards
-    const gx = tx + tw + 12, gw = x + W - 14 - gx, cols = 5, cw = (gw - (cols - 1) * 6) / cols, ch = 92;
-    STAGES.slice(this.land * 10, this.land * 10 + 10).forEach((st, i) => {
-      const cx = gx + (i % cols) * (cw + 6), cy = y + 34 + Math.floor(i / cols) * (ch + 6);
-      const open = canEnter(st), food = stageFood(st.n);
-      g.fillStyle(open ? (st.boss ? 0x4a1a14 : 0x22301f) : 0x15120e, 0.95).fillRoundedRect(cx, cy, cw, ch, 5);
-      g.lineStyle(st.boss ? 2 : 1, !open ? 0x3a3228 : st.boss ? 0xff6a3a : st.n === best ? 0xffd84a : COL[this.land] + 0x303030, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
-      if (st.boss && ui.textures.exists(`c_${L.boss.key}_idle`)) {
-        const im = ui.add.image(cx + cw / 2, cy + ch - 18, `c_${L.boss.key}_idle`, 0).setOrigin(0.5, 1); im.setScale(52 / im.height); if (!open) im.setTint(0x202020); c.add(im);
-      }
-      c.add(k.text(cx + 6, cy + 4, String(st.n), st.boss ? 16 : 18, open ? '#ffffff' : '#5a5040', { fontStyle: 'bold' }));
-      if (st.boss) c.add(k.text(cx + cw - 6, cy + 6, '👑', 11).setOrigin(1, 0));
-      if (!st.boss) c.add(k.text(cx + cw / 2, cy + 40, open ? (st.n === best ? '▶' : '') : `🔒\nLv${st.req}`, open ? 18 : 9, '#ffd84a', { align: 'center' }).setOrigin(0.5));
-      else if (st.n <= bossDone) c.add(k.text(cx + cw - 6, cy + 24, '✔', 10, '#9fffb0').setOrigin(1, 0));
-      if (st.boss && !open) c.add(k.text(cx + cw / 2, cy + 40, `🔒 Lv${st.req}`, 9, '#ffd84a').setOrigin(0.5));
-      c.add(k.text(cx + 6, cy + ch - 28, `Lv${st.level}`, 8.5, open ? '#e8dcc0' : '#5a5040'));
-      c.add(k.text(cx + 6, cy + ch - 15, food ? `🍖${food}` : 'ฟรี', 8, open ? (s.res.food >= food ? '#ffd8a0' : '#ff8a6a') : '#5a5040'));
-      if (open) {
-        const z = ui.add.zone(cx, cy, cw, ch).setOrigin(0).setInteractive();
-        z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(st.n); });
-        c.add(z);
-      }
-    });
-    // who lives here
-    const my = y + 34 + 2 * (ch + 6) + 4;
-    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(gx, my, gw, y + H - 12 - my, 4);
-    c.add(k.text(gx + 8, my + 6, 'มอนในดินแดนนี้', 8.5, HI[this.land]));
-    c.add(k.text(gx + gw - 8, my + 6, '🌿 ป่าดงดิบ = แมพรวมทั้งเซิร์ฟ ไม่มีมอน ขุดแร่/ล่าสัตว์/ตัดไม้', 7.5, '#9fe0a0').setOrigin(1, 0));
-    L.mobs.forEach((m, i) => {
+
+    // the chosen map: what lives there, the food it costs, and the go button
+    const by = y + H - 36, open = canEnter(sel), food = stageFood(sel.n);
+    g.fillStyle(0x0a0705, 0.55).fillRoundedRect(x + 12, by - 4, W - 24, 30, 6);
+    L.mobs.slice(0, 5).forEach((m, i) => {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
-      const im = ui.add.image(gx + 30 + i * 52, y + H - 16, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(40 / im.height, 1.2)); c.add(im);
+      const im = ui.add.image(x + 30 + i * 26, by + 24, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(24 / im.height, 1)); c.add(im);
     });
+    const info = `แผนที่ ${sel.n}${sel.boss ? ' 👑 บอสดินแดน' : ''}  •  มอน Lv${sel.level}  •  ${food ? `🍖 ${food}` : 'เข้าฟรี'}`;
+    c.add(k.text(x + 30 + Math.min(5, L.mobs.length) * 26, by + 5, info, 8.5, open ? (s.res.food >= food ? '#ffe7a0' : '#ff8a6a') : '#8a7a60'));
+    c.add(k.button(x + W - 12 - 118, by - 2, 114, 26, open ? `▶ เข้าแผนที่ ${sel.n}` : `🔒 ต้อง Lv${sel.req}`, () => go(sel.n), { size: 10, color: sel.boss ? 0x7a2a14 : 0x1f4a2a, disabled: !open }));
   }
 
   // ---------------- PROFILE (tap the portrait) ----------------
