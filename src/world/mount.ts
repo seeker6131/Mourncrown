@@ -91,13 +91,14 @@ export class Riding {
     this.front.setTexture(this.back.texture.key, this.back.frame.name);
     // the body under the saddle is always nearer than the rider's lower legs (they hang down the far side / behind the
     // flank); with a riding pose the thighs stay on the saddle and legs spread wider than the body still show at the sides
-    const by = pose ? sy + 6 : sy + 1;
-    this.front.setVisible(true).setCrop(0, by, m.fs, m.fs - by);
-    // the head and neck when they are on the near side (facing us / to a side): the far leg must not hang over them
+    // with a riding pose the whole rider shows (legs included — director); only the animal's near-side parts cover it:
+    // the head / neck facing us or to a side (so the far leg never hangs over them), the rump from behind.
+    // Without a pose (fallback cut-off picture) everything under the seat hides the cut.
+    if (pose) this.front.setVisible(false); else this.front.setVisible(true).setCrop(0, sy + 1, m.fs, m.fs - sy - 1);
     const parts = pose ? def.front?.[dir] ?? [] : [];
     this.fronts.forEach((f, i) => {
       const r = parts[i]; if (!r) { f.setVisible(false); return; }
-      f.setTexture(this.back.texture.key, this.back.frame.name).setVisible(true).setCrop(r[0], r[2], r[1] - r[0], Math.max(0, by - r[2]));
+      f.setTexture(this.back.texture.key, this.back.frame.name).setVisible(true).setCrop(r[0], r[2], r[1] - r[0], m.fs - r[2]);
     });
     // gait: the rider rises and falls with the steps
     const bob = moving ? -Math.abs(Math.sin(time / 95)) * 1.6 : Math.sin(time / 600) * 0.5;
