@@ -44,7 +44,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -139,7 +139,6 @@ export class Panels implements GuildHost {
       case 'premium': this.buildPremium(c); break;
       case 'market': this.buildMarket(c); break;
       case 'alchemy': this.buildAlchemy(c); break;
-      case 'rooms': this.buildRooms(c); break;
       case 'login': this.buildLogin(c); break;
       case 'collection': this.buildCollection(c); break;
       case 'dungeon': this.buildDungeon(c); break;
@@ -839,7 +838,7 @@ export class Panels implements GuildHost {
       c.add(k.text(tx + 6, wy + 3, '🌿 ป่าดงดิบ', 9.5, '#ffffff'));
       c.add(k.text(tx + tw - 5, wy + 4, '⛏🍖💰', 8).setOrigin(1, 0));
       const z = ui.add.zone(tx, wy, tw, wh).setOrigin(0).setInteractive();
-      z.on('pointerup', () => { sfx.click(); this.open('rooms'); });
+      z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(WILD); });
       c.add(z);
     }
     // stage cards
@@ -1007,24 +1006,6 @@ export class Panels implements GuildHost {
       if (refused(r)) { sfx.error(); return; }
       sfx.levelUp(); bus.emit(EV.TOAST, `รับของล็อกอินวันที่ ${info.day + 1}: ${r.label}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
     }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));
-  }
-
-  // ---------------- DEEPWILD ROOMS (100 players each) ----------------
-  buildRooms(c: Phaser.GameObjects.Container) {
-    const ui = this.ui, k = this.k, info = act('wildRooms', {});
-    const W = Math.min(420, ui.VW - 20), H = 250;
-    const { x, y, g } = this.window(c, W, H, '🌿 ป่าดงดิบ — เลือกห้อง');
-    c.add(k.text(x + 16, y + 32, `${info.cap} คนต่อห้อง • ไม่มีมอน • ตัดไม้ ขุดแร่ ล่าสัตว์ • ใส่ชุดชาวบ้านให้อัตโนมัติ`, 8, '#9fe0a0', { wordWrap: { width: W - 32 } }));
-    const cols = 3, cw = (W - 32 - (cols - 1) * 8) / cols, ch = 70;
-    info.rooms.forEach((r, i) => {
-      const cx = x + 16 + (i % cols) * (cw + 8), cy = y + 60 + Math.floor(i / cols) * (ch + 8), full = r.count >= info.cap, cur = r.id === info.room;
-      g.fillStyle(full ? 0x2a1410 : 0x1f3a24, 0.95).fillRoundedRect(cx, cy, cw, ch, 5).lineStyle(cur ? 2 : 1, cur ? 0xffd84a : full ? 0x6a3a2a : 0x5a8a5a, 1).strokeRoundedRect(cx, cy, cw, ch, 5);
-      c.add(k.text(cx + 8, cy + 6, `ห้อง ${r.id}`, 11, full ? '#a88878' : '#ffffff', { fontStyle: 'bold' }));
-      const f = r.count / info.cap;
-      g.fillStyle(0x0b0805, 1).fillRect(cx + 8, cy + 30, cw - 16, 7).fillStyle(f >= 1 ? 0xff5a4a : f > 0.75 ? 0xffb040 : 0x5ad86a, 1).fillRect(cx + 8, cy + 30, (cw - 16) * Math.min(1, f), 7);
-      c.add(k.text(cx + 8, cy + 42, full ? `เต็ม ${r.count}/${info.cap}` : `👥 ${r.count}/${info.cap}`, 9, full ? '#ff8a6a' : '#c8e8c0'));
-      if (!full) { const z = ui.add.zone(cx, cy, cw, ch).setOrigin(0).setInteractive(); z.on('pointerup', () => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number, room?: number) => void }).enterStage?.(WILD, r.id); }); c.add(z); }
-    });
   }
 
   // ---------------- ALCHEMY (kitchen) ----------------

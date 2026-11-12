@@ -3,6 +3,7 @@
 // sends real player positions instead and this class only draws them.
 import Phaser from 'phaser';
 import { setIdle, playAnim } from './chars';
+import { hpBar } from './hpBar';
 
 const NAMES = ['Kaito', 'น้องมิ้น', 'Arden', 'ลุงหมี', 'Vexa', 'พี่ต้น', 'Mira_99', 'ขุดแร่ทั้งวัน', 'Thorn', 'NightOwl', 'แป้งร่ำ', 'Rook',
   'โจ้ไม้', 'Lyra', 'BigAxe', 'ฟ้าใส', 'Grimm', 'มะปราง', 'Soren', 'คนตัดไม้', 'Ivy.x', 'ไข่เจียว', 'Brakk', 'เหมืองเมฆ'];
@@ -15,6 +16,7 @@ interface P { name: string; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObject
 
 export class Crowd {
   list: P[] = [];
+  bars?: Phaser.GameObjects.Graphics;
   constructor(private sc: Phaser.Scene & Host, private k: string, private spots: () => Spot[], n: number, start: (i: number) => { x: number; y: number }) {
     for (let i = 0; i < n; i++) {
       const p0 = start(i);
@@ -35,6 +37,7 @@ export class Crowd {
     p.tx = s.x + (Math.random() - 0.5) * 8; p.ty = s.y + 14; p.anim = s.kind === 'wood' ? 'chop' : 'mine'; p.work = 0; p.until = time + 20000;
   }
   update(time: number, dt: number) {
+    const g = (this.bars ??= this.sc.add.graphics().setDepth(99989)); g.clear();
     for (const p of this.list) {
       if (p.work > 0) {                       // working at a node: swing a few times, then move on
         if (time > p.until) { p.work--; p.until = time + 900; if (!playAnim(p.sp, this.k, p.anim, p.dir, false)) playAnim(p.sp, this.k, 'attack', p.dir, false); if (p.work === 0) { setIdle(p.sp, this.k, p.dir); p.until = time + 1500 + Math.random() * 4000; p.tx = NaN; } }
@@ -53,5 +56,6 @@ export class Crowd {
       }
       p.sp.setPosition(p.x, p.y).setDepth(p.y); p.sh.setPosition(p.x, p.y - 1); p.tag.setPosition(p.x, p.y - 40);
     }
+    for (const p of this.list) hpBar(g, p.x, p.y - 34, 1);
   }
 }

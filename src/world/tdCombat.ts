@@ -3,6 +3,7 @@ import { fx2, hasFx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
+import { monTarget, respawnMs, lowWater } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
 import { saveGame } from '../core/save';
@@ -69,15 +70,21 @@ export class Combat {
 
   /** where a respawning monster may appear (set by the scene: a free spot away from the hero and the gate) */
   pickSpot: (() => { x: number; y: number }) | null = null;
+  /** players in this map's room (the hero + others): more players → more monsters, faster respawns (systems/spawnRate.ts) */
+  pop = 1;
+  baseCount = 0;
+  pending: { m: Mon; at: number }[] = [];
+  keepT = 0;
   bossSpot: { x: number; y: number } | null = null;
   /** Farming map: lots of monsters spread over the map; every kill respawns after a while, the boss every 5 minutes. */
   spawnMap(n: number, pick: () => { x: number; y: number }, bossSpot: { x: number; y: number } | null) {
     if (n === WILD) {   // the Deepwild: herds of game only, at the hero's level
       this.stage = wildStage(S().level); this.pickSpot = pick; this.bossSpot = null;
+      this.baseCount = 40; this.pending = [];
       for (let i = 0; i < 40; i++) { const p = pick(); this.spawn(GAME[i % 3 === 0 ? 1 : 0], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
       return;
     }
-    const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot;
+    const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
     this.spawnBounty(n);
@@ -178,17 +185,39 @@ export class Combat {
     if (!this.dungeon) this.respawn(m);
   }
   respawn(m: Mon) {
-    const delay = m.boss ? 300000 : m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000;
-    this.s.time.delayedCall(delay, () => {
-      if (!this.s.sys.isActive() || this.s.stageN !== this.stage?.n) return;
-      const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
-      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
-      const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
-      this.spawn(m.m, p.x, p.y, m.boss);
-      const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
+    if (!m.boss) { this.pending.push({ m, at: this.s.time.now + respawnMs(m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000, this.pop) }); return; }
+    this.s.time.delayedCall(300000, () => { if (this.s.sys.isActive() && this.s.stageN === this.stage?.n) this.revive(m); });
+  }
+  /** remove a dead monster's leftovers */
+  private dispose(m: Mon) {
+    const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
+    (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
+  }
+  private revive(m: Mon) {
+    this.dispose(m);
+    const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
+    this.spawn(m.m, p.x, p.y, m.boss);
+    const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
+    nm.sp.setAlpha(0); this.s.tweens.add({ targets: nm.sp, alpha: 1, duration: 600 });
+    if (m.boss) bus.emit(EV.TOAST, `${m.m.name} ปรากฏตัวอีกครั้ง!`, '#ff8a6a');
+  }
+  /** monsters keep up with the crowd: respawn on time, bring dead ones back early when the map runs low, add more
+   *  when more players arrive, let extras go when they leave (never in a dungeon) */
+  private keepUp(time: number) {
+    if (this.dungeon || !this.stage || !this.pickSpot) return;
+    const wild = this.stage.n === WILD, target = monTarget(this.baseCount, this.pop);
+    const common = this.mons.filter(m => !m.boss && !m.bounty), alive = common.filter(m => m.alive).length;
+    this.pending.sort((a, b) => a.at - b.at);
+    let early = alive < lowWater(target) ? 3 : 0, n = 0;
+    while (this.pending.length && n < 4 && (this.pending[0].at <= time || early-- > 0)) {
+      const { m } = this.pending.shift()!; n++;
+      if (common.length > target) { this.dispose(m); common.splice(common.indexOf(m), 1); } else this.revive(m);
+    }
+    for (let k = common.length; k < target && n < 4; k++, n++) {
+      const p = this.pickSpot(), mob = wild ? GAME[k % 3 === 0 ? 1 : 0] : this.stage.land.mobs[k % this.stage.land.mobs.length];
+      this.spawn(mob, p.x, p.y, false); const nm = this.mons[this.mons.length - 1]; nm.animal = wild;
       nm.sp.setAlpha(0); this.s.tweens.add({ targets: nm.sp, alpha: 1, duration: 600 });
-      if (m.boss) bus.emit(EV.TOAST, `${m.m.name} ปรากฏตัวอีกครั้ง!`, '#ff8a6a');
-    });
+    }
   }
 
   /** the wandering bounty lord, when this map is the bounty's map (systems/bounty.ts) */
@@ -579,6 +608,7 @@ export class Combat {
   update(time: number, dt: number) {
     const h = this.s.hero, s = S(), d = derive(s);
     this.updateLoot(time);
+    if (time > this.keepT) { this.keepT = time + 400; this.keepUp(time); }
     for (const m of this.mons) {
       if (!m.alive) continue;
       const dx = h.x - m.x, dy = h.y - m.y, dist = Math.hypot(dx, dy);

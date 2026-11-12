@@ -5,7 +5,8 @@
 // unchanged (no Phaser, pure rules) with the player's state loaded from the database, and the client copy is deleted.
 // Rules here: never trust numbers from the client — only ids; check everything; random rolls happen here.
 import type { GameState } from '../core/state';
-import { DEV_TOOLS, WILD_ROOM_CAP } from './config';
+import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
+import { fillRooms, pickRoom } from '../systems/rooms';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
@@ -164,14 +165,21 @@ export const handlers = {
     return r;
   },
   /** Deepwild rooms: 100 players each; until online the counts are simulated */
-  wildRooms(s: GameState, a: { pick?: number }, c: Ctx) {
+  /** the Deepwild: the system puts the player in the fullest room with space (no picking). `bots` = test players */
+  wildRooms(s: GameState, a: { bots?: number }, c: Ctx) {
     const hour = Math.floor(c.now / 600000);
-    const rooms = Array.from({ length: 6 }, (_, i) => ({ id: i + 1, count: Math.min(WILD_ROOM_CAP, Math.round(((Math.sin(hour * 1.7 + i * 2.3) + 1) / 2) * 90 + (i === 0 ? 10 : 0))) }));
+    const counts = a.bots ? fillRooms(a.bots + 1, WILD_ROOM_CAP) : Array.from({ length: 6 }, (_, i) => Math.min(WILD_ROOM_CAP - 1, Math.round(((Math.sin(hour * 1.7 + i * 2.3) + 1) / 2) * 90 + (i === 0 ? 10 : 0))));
     const sv = s as unknown as { wildRoom?: number };
-    let room = a.pick ?? sv.wildRoom ?? (rooms.find(r => r.count < WILD_ROOM_CAP)?.id ?? 1);
-    if (rooms[room - 1].count >= WILD_ROOM_CAP) { if (a.pick) return { refused: 'full', rooms, room: sv.wildRoom ?? 1, cap: WILD_ROOM_CAP }; room = rooms.find(r => r.count < WILD_ROOM_CAP)?.id ?? 1; }
+    const room = a.bots ? 1 : (sv.wildRoom && counts[sv.wildRoom - 1] < WILD_ROOM_CAP ? sv.wildRoom : pickRoom(counts, WILD_ROOM_CAP) + 1);
+    if (!a.bots && room > counts.length) counts.push(0);
+    if (!a.bots) counts[room - 1]++;
     sv.wildRoom = room;
-    return { rooms, room, cap: WILD_ROOM_CAP };
+    return { rooms: counts.map((count, i) => ({ id: i + 1, count })), room, cap: WILD_ROOM_CAP, players: counts[room - 1] };
+  },
+  /** monster map rooms (cap MAP_ROOM_CAP): the hero arrives first, test bots fill rooms after */
+  mapRoom(_s: GameState, a: { n: number; bots?: number }) {
+    const counts = fillRooms((a.bots ?? 0) + 1, MAP_ROOM_CAP);
+    return { room: 1, rooms: counts.length, players: counts[0], cap: MAP_ROOM_CAP, total: (a.bots ?? 0) + 1 };
   },
   brew(s: GameState, a: { out: string }) { const r = brew(s, a.out); if (r === 'ok') pstats(s).brews++; return r; },
   achClaim: (s: GameState, a: { id: string }) => claimAch(s, a.id),
