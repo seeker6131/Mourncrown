@@ -853,7 +853,18 @@
    "west"
   ],
   "walk8": "done",
-  "attack8": 8
+  "attack8": 8,
+  "walkfix_g": "6085dc94-51cd-4766-bccb-28ba64164ddd",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "an1": {
   "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e",

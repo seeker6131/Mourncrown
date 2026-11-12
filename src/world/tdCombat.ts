@@ -25,7 +25,7 @@ import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type 
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean; chT?: number; chargeT?: number; stepT?: number; stepN?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean; chT?: number; chargeT?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -179,7 +179,7 @@ export class Combat {
     if (!m.alive) return;
     m.alive = false; m.bar.clear();
     { const sh = m.sp.getData('sh') as Phaser.GameObjects.Image | undefined; if (sh) this.s.tweens.add({ targets: sh, alpha: 0, duration: 400 }); }
-    (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
+    (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); (m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined)?.destroy();
     this.s.burst(m.sp, 0xbfe8ff); m.sp.setVisible(false); fx2(this.s, 'fx_mon_death', m.x, m.y - 6, m.y + 1, 0.8);
     act('botKill', { sid: m.sid });
     if (!this.dungeon) this.respawn(m);
@@ -191,7 +191,7 @@ export class Combat {
   /** remove a dead monster's leftovers */
   private dispose(m: Mon) {
     const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
-    (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
+    (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); (m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
   }
   private revive(m: Mon) {
     this.dispose(m);
@@ -254,6 +254,13 @@ export class Combat {
       sc.tweens.add({ targets: au, alpha: { from: 0.45, to: 1 }, scale: { from: m.size / 44, to: m.size / 34 }, duration: 700, yoyo: true, repeat: -1 });
       sp.setData('aura', au);
       const ea = fx2(sc, 'fx_elite_aura', x, y + 2, y + 1, m.size / 40); if (ea) sp.setData('aura2', ea);
+    }
+    // a circle on the ground: a faint red ring under monsters (brighter once they fight), a big dark rune circle with rising
+    // flames under bosses so they stand out from everything else on the map
+    if (!base.animal) {
+      const rg = boss ? fx2(sc, 'fx_boss_aura', x, y + 1, y - 3, Math.max(0.8, m.size / 140))?.setOrigin(0.5, 0.64).setAlpha(0.95)
+        : fx2(sc, 'fx_ring_mon', x, y + 1, y - 3, Math.max(0.45, m.size / 70))?.setOrigin(0.5, 0.5).setAlpha(0.4);
+      if (rg) { rg.anims.setProgress(Math.random()); sp.setData('ring', rg); }
     }
     this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite });
   }
@@ -529,6 +536,27 @@ export class Combat {
     this.vfx.bolt(x, y, tx, ty, col, 1.1, 650, () => { if (!quiet) this.vfx.impact(tx, ty, col, true); });
   }
 
+  /** director: ranged heroes (mages, archers) must not win before monsters even reach them. A monster shot from afar
+   *  leaps at the hero (every 2.5 s), and the ones standing near it come along as a pack (the 4 nearest). */
+  answer(m: Mon, far: boolean) {
+    const now = this.s.time.now, h = this.s.hero;
+    if (!m.packed) {
+      m.packed = true;
+      this.mons.filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.bounty && now - o.hitT > 1600 && Math.hypot(o.x - m.x, o.y - m.y) < 150)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, 4)
+        .forEach((o, i) => this.s.time.delayedCall(120 + i * 140, () => { if (o.alive) { o.hitT = this.s.time.now; o.packed = true; } }));
+    }
+    if (!far || now - (m.leapT ?? 0) < 2500 || this.dungeon) return;
+    m.leapT = now; m.leapUntil = now + 380;
+    const ax = h.x - m.x, ay = h.y - m.y, ad = Math.max(1, Math.hypot(ax, ay)), go = Math.min(ad - 28, 150);
+    if (go <= 10) return;
+    let gx = m.x, gy = m.y;
+    if (CH[m.m.key] && hasAnim(m.m.key, 'walk')) playAnim(m.sp, m.m.key, 'walk', dirOf(ax, ay));
+    const tw = this.s.tweens.add({ targets: m, x: m.x + ax / ad * go, y: m.y + ay / ad * go, duration: 340, ease: 'Quad.easeOut',
+      onUpdate: () => { if (this.s.isBlocked(m.x, m.y)) { m.x = gx; m.y = gy; tw.complete(); return; } gx = m.x; gy = m.y; },
+      onComplete: () => { if (m.alive) this.vfx.dust(m.x, m.y, 4, 10); } });
+    this.s.tweens.add({ targets: m.sp, scaleY: { from: m.sp.scaleY * 0.85, to: m.sp.scaleY }, duration: 340, ease: 'Back.easeOut' });   // a crouch, then the jump
+  }
   hurtMon(m: Mon, dmg: number, crit: boolean, magic = false, fxDone = false) {
     if (!m.alive) return;
     m.hp -= dmg; m.hitT = this.s.time.now;
@@ -539,9 +567,10 @@ export class Combat {
     else if (!magic) this.vfx.impact(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xfff4dc, crit);
     else if (crit) this.vfx.star(m.x, m.y - m.m.size * 0.4, 0xff9cff, 1.4);
     m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
-    const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), kb = m.boss ? 1 : 6;
+    const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), far = Math.hypot(m.x - h.x, m.y - h.y) > 90, kb = m.boss ? 1 : far ? 0 : 6;   // shots from afar no longer push it back
     m.x += Math.cos(a) * kb; m.y += Math.sin(a) * kb;
     if (m.hp <= 0) { this.kill(m); return; }
+    if (!m.animal && !m.boss) this.answer(m, far);
     if (m.animal) {   // game never fights: it bolts a short way, and now and then kicks the hunter back (short stun)
       m.fleeT = this.s.time.now + 1100;
       const base = MONSTERS[m.m.kind];
@@ -567,6 +596,7 @@ export class Combat {
     const s = S();
     (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
     (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
+    { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) this.s.tweens.add({ targets: rg, alpha: 0, duration: 500, onComplete: () => rg.destroy() }); }
     const r = act('kill', { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
     if (!this.dungeon && !m.bounty) this.respawn(m);
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
@@ -620,7 +650,7 @@ export class Combat {
       const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;
       let moving = false;
       // stand still while swinging / casting (no sliding across the ground with an attack pose)
-      const busy = time - m.atkT < (m.boss ? Math.max(750, animMs(m.m.key, 'attack')) : 500) || time - (m.spT ?? -1e9) < 1300 || (m.chargeT ?? 0) > time;
+      const busy = time - m.atkT < (m.boss ? Math.max(750, animMs(m.m.key, 'attack')) : 500) || time - (m.spT ?? -1e9) < 1300 || (m.chargeT ?? 0) > time || (m.leapUntil ?? 0) > time;
       if (!angry && !busy) {
         let tx = 0, ty = 0;
         const fleeing = m.animal && (m.fleeT ?? 0) > time;
@@ -729,6 +759,7 @@ export class Combat {
       m.sp.setPosition(m.x, m.y + bob).setDepth(m.y);
       (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
       (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.setPosition(m.x, m.y + 2).setDepth(m.y + 1);
+      { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) { rg.setPosition(m.x, m.y + 1).setDepth(m.y - 3); if (!m.boss) rg.setAlpha(angry ? 0.95 : 0.4); } }
       (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
       const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
       if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);

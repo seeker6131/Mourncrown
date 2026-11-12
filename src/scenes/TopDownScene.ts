@@ -250,6 +250,7 @@ export class TopDownScene extends Phaser.Scene {
   defendNext = false;
   hunters?: Hunters;
   heroBar?: Phaser.GameObjects.Graphics;
+  heroRing?: Phaser.GameObjects.Sprite | null;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -316,6 +317,7 @@ export class TopDownScene extends Phaser.Scene {
     bus.on('td:bots', onBots); this.events.once('shutdown', () => bus.off('td:bots', onBots));
     this.hunters = undefined;
     this.heroBar = this.add.graphics().setDepth(99991);
+    this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
@@ -445,7 +447,8 @@ export class TopDownScene extends Phaser.Scene {
         const off = this.trailOff(x, y);
         if (this.ponds.some(c => Math.hypot(x - c.x, (y - c.y) * 1.3) < c.r)) t = 'w';
         else if (this.pits.some(c => Math.hypot(x - c.x, (y - c.y) * 1.25) < c.r)) t = 'c';
-        else if (off < 18) t = 'd';
+        else if (off < this.roadHalf(x, y)) t = 'd';
+        else if (this.plaza(x, y)) t = 'd';
         V[j * VW + i] = t; continue;
       }
       if (this.stageN) {   // wild stage: one winding trail from the west gate to the east gate, clearings along it, a pond
@@ -455,8 +458,8 @@ export class TopDownScene extends Phaser.Scene {
         if (off > 70 && this.ponds.some(c => Math.hypot(x - c.x, (y - c.y) * 1.3) < c.r)) t = 'w';
         else if (g0 === 'lava' && off > 80 && Math.abs(Math.sin(x / 130 + n) * Math.cos(y / 110 + n)) > 0.9) t = 'w';     // lava pools between the trails
         else if (g0 === 'dung' && off > 60 && (Math.abs(((x + n * 37) % 260) - 130) < 14 || Math.abs((y % 220) - 110) < 12)) t = 'w'; // sewer channels
-        else if (off < 20) t = 'd';
         else if (clr && (clr.boss || g0 === 'dung')) t = 'c';
+        else if (off < this.roadHalf(x, y) || this.plaza(x, y)) t = 'd';
         V[j * VW + i] = t; continue;
       }
       // organic layout: wobbly water edges with a rocky shore, stone yards under buildings, roads of uneven width,
@@ -646,6 +649,24 @@ export class TopDownScene extends Phaser.Scene {
   ponds: { x: number; y: number; r: number }[] = [];
   trailMain = (x: number) => x;
   trailOff = (_x: number, _y: number) => 1e9;
+  /** director: roads wider, their width wandering and their edges ragged like a trodden path (half width, px) */
+  roadHalf(x: number, y: number) { return 34 + (fbm(x / 90, y / 90) - 0.5) * 44 + (fbm(x / 17 + 3, y / 17 + 7) - 0.5) * 14; }
+  /** an open patch of trodden ground in the middle of a clearing, uneven in shape */
+  plaza(x: number, y: number) {
+    for (const c of this.clearings) { const k = Math.hypot(x - c.x, (y - c.y) * 1.25) / c.r; if (k < 0.66 + (fbm(x / 34 + 5, y / 34 + 1) - 0.5) * 0.5) return true; }
+    return false;
+  }
+  /** soften the road edges: grass tufts and pebbles strewn along both sides (small, no collision) */
+  roadEdges(rnd: () => number, tint = 0xffffff) {
+    const keys = ['tuft_0', 'tuft_1', 'tuft_2', 'pebble_0', 'pebble_1', 'pebble_2'].filter(k => OM[k]); if (!keys.length) return;
+    const area = (MW * MH) / (1280 * 800);
+    for (let n = 0, k = 0; k < 4000 && n < 170 * area; k++) {
+      const x = 10 + rnd() * (MW - 20), y = 20 + rnd() * (MH - 30), e = this.trailOff(x, y) - this.roadHalf(x, y);
+      if (Math.abs(e) > 9 || this.isBlocked(x, y)) continue;
+      const kk = keys[Math.floor(rnd() * keys.length)], m = OM[kk];
+      this.add.image(Math.round(x), Math.round(y), 'o_' + kk).setOrigin(0.5, m.foot / m.h).setDepth(y).setScale(0.7 + rnd() * 0.4).setTint(tint); n++;
+    }
+  }
   makeTrails(n: number) {
     const W = MW, H = MH;
     const wave = (x: number, base: number, ph: number) => base + Math.sin(x / 190 + ph) * 90 + Math.sin(x / 67 + ph * 2) * 18;
@@ -720,16 +741,30 @@ export class TopDownScene extends Phaser.Scene {
       n++;
     }
   }
+  /** director: one tree kind per map, in one tone, many sizes — and grouped into groves (big trees in the middle, smaller
+   *  ones at the edge, some lone trees between) instead of sprinkled evenly. `accept` places one and says if it fit. */
+  groves(rnd: () => number, total: number, accept: (x: number, y: number, scale: number) => boolean) {
+    let placed = 0;
+    for (let g = 0; g < 900 && placed < total; g++) {
+      const lone = rnd() < 0.18, cx = 20 + rnd() * (MW - 40), cy = 60 + rnd() * (MH - 70), R = lone ? 1 : 70 + rnd() * 120, n = lone ? 1 : 4 + Math.floor(rnd() * 9);
+      for (let i = 0, got = 0; i < n * 3 && got < n && placed < total; i++) {
+        const a = rnd() * Math.PI * 2, d = lone ? 0 : Math.sqrt(rnd()) * R, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * 0.75;
+        const sc = (lone ? 0.95 + rnd() * 0.2 : 1.18 - 0.42 * (d / R)) + (rnd() - 0.5) * 0.1;
+        if (accept(x, y, sc)) { placed++; got++; }
+      }
+    }
+    return placed;
+  }
   /** themed props per land (tools/gen_props2.py, pp_<land>_*): big ones away from the paths, middle ones along them
    *  (so they are seen), small ones anywhere; lights get a warm glow */
   placeLandProps(land: string, rnd: () => number, free: (x: number, y: number, r: number) => boolean, pathOff: (x: number, y: number) => number, keepOut: (x: number, y: number) => boolean) {
     const L: Record<string, [string[], string[], string[]]> = {
-      forest: [['birch', 'willow', 'oakyoung'], ['log', 'boulder', 'ruin', 'stumpshroom', 'berry', 'rockpile', 'shrine', 'beehive', 'well', 'cart'], ['shrooms', 'flowers', 'fern', 'lily']],
-      haunt: [['tree', 'tree2', 'angel', 'gallows'], ['grave1', 'grave2', 'grave3', 'crypt', 'skulls', 'lantern', 'fence', 'coffin', 'scarecrow', 'web', 'cauldron'], ['glowshroom', 'candles']],
-      lava: [['tree', 'pillar', 'obelisk', 'skullrock'], ['spike', 'vent', 'boulder', 'bones', 'geyser', 'cart'], ['crystal', 'ashbush']],   // (the beast ribcage reads like a monster: not scattered)
-      snow: [['pine', 'pine2', 'statue', 'frozenfall'], ['boulder', 'snowman', 'bush', 'spike', 'log', 'tent', 'sled', 'icebear', 'signpost'], ['crystal']],
+      forest: [['ruin', 'well', 'shrine'], ['log', 'boulder', 'ruin', 'stumpshroom', 'berry', 'rockpile', 'shrine', 'beehive', 'well', 'cart'], ['shrooms', 'flowers', 'fern', 'lily']],
+      haunt: [['angel', 'gallows', 'crypt'], ['grave1', 'grave2', 'grave3', 'crypt', 'skulls', 'lantern', 'fence', 'coffin', 'scarecrow', 'web', 'cauldron'], ['glowshroom', 'candles']],
+      lava: [['pillar', 'obelisk', 'skullrock'], ['spike', 'vent', 'boulder', 'bones', 'geyser', 'cart'], ['crystal', 'ashbush']],   // (the beast ribcage reads like a monster: not scattered)
+      snow: [['statue', 'frozenfall', 'tent'], ['boulder', 'snowman', 'bush', 'spike', 'log', 'tent', 'sled', 'icebear', 'signpost'], ['crystal']],
       dung: [['pillar', 'torch', 'statue'], ['chains', 'cage', 'rubble', 'bones', 'spike', 'barrel', 'rack', 'altar', 'coffin', 'irons', 'brazier', 'bookpile'], ['crystal']],
-      wild: [['bamboo', 'totem', 'ruinhead', 'bigshroom'], ['vinerock', 'hollowlog', 'bush', 'flower', 'nest', 'pitcher'], ['shroomring', 'waterlily']],
+      wild: [['totem', 'ruinhead', 'bigshroom'], ['vinerock', 'hollowlog', 'bush', 'flower', 'nest', 'pitcher'], ['shroomring', 'waterlily']],
     };
     const set = L[land]; if (!set) return;
     const pre = `pp_${land}_`, ok = (k: string) => !!OM[pre + k];
@@ -741,15 +776,15 @@ export class TopDownScene extends Phaser.Scene {
       if (LIGHT.has(k)) { const l = this.add.image(x, y - (OM[k].foot - OM[k].top) * 0.7, 'td_glow').setTint(k.includes('haunt') ? 0x8affc8 : 0xffa04a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99990).setScale(0.8); this.lamps.push(l); }
     };
     for (let n = 0, k = 0; k < 400 && n < (land === 'dung' ? 26 : 34) * area; k++) {   // big
-      const x = 20 + rnd() * (MW - 40), y = 60 + rnd() * (MH - 70); if (!big.length || pathOff(x, y) < 80 || keepOut(x, y) || !free(x, y, 40)) continue;
+      const x = 20 + rnd() * (MW - 40), y = 60 + rnd() * (MH - 70); if (!big.length || pathOff(x, y) < 96 || keepOut(x, y) || !free(x, y, 40)) continue;
       put(pre + big[Math.floor(rnd() * big.length)], x, y, 0.3, 12); n++;
     }
-    for (let n = 0, k = 0; k < 900 && n < 60 * area; k++) {   // along the paths
-      const x = 20 + rnd() * (MW - 40), y = 40 + rnd() * (MH - 50), o = pathOff(x, y); if (!mid.length || o < 34 || o > 150 || keepOut(x, y) || !free(x, y, 18)) continue;
+    for (let n = 0, k = 0; k < 900 && n < (land === 'wild' ? 24 : 42) * area; k++) {   // along the paths (calmer: fewer, director)
+      const x = 20 + rnd() * (MW - 40), y = 40 + rnd() * (MH - 50), o = pathOff(x, y); if (!mid.length || o < 60 || o > 170 || keepOut(x, y) || !free(x, y, 18)) continue;
       put(pre + mid[Math.floor(rnd() * mid.length)], x, y, 0.6, 5); n++;
     }
-    for (let n = 0, k = 0; k < 600 && n < 70 * area; k++) {   // small, no collision
-      const x = 10 + rnd() * (MW - 20), y = 30 + rnd() * (MH - 40); if (!small.length || pathOff(x, y) < 22 || !free(x, y, 6)) continue;
+    for (let n = 0, k = 0; k < 600 && n < (land === 'wild' ? 28 : 48) * area; k++) {   // small, no collision
+      const x = 10 + rnd() * (MW - 20), y = 30 + rnd() * (MH - 40); if (!small.length || pathOff(x, y) < 50 || !free(x, y, 6)) continue;
       const kk = pre + small[Math.floor(rnd() * small.length)], m = OM[kk];
       const si = this.add.image(Math.round(x), Math.round(y), 'o_' + kk).setOrigin(0.5, m.foot / m.h).setDepth(y); if (land === 'snow') si.setTint(0xa8c8ff); n++;
     }
@@ -759,7 +794,7 @@ export class TopDownScene extends Phaser.Scene {
     const jungle = ['jtree_0', 'jtree_1', 'jtree_2', 'palm_0'].filter(has);
     const area = (MW * MH) / (1280 * 800);
     const open = (x: number, y: number, pad: number) => this.pits.some(c => Math.hypot(x - c.x, (y - c.y) * 1.25) < c.r + pad) || this.clearings.some(c => Math.hypot(x - c.x, y - c.y) < c.r);
-    this.wildProps = () => this.placeLandProps('wild', rnd, free, (x, y) => this.trailOff(x, y), (x, y) => open(x, y, 30));
+    this.wildProps = () => { this.placeLandProps('wild', rnd, free, (x, y) => this.trailOff(x, y), (x, y) => open(x, y, 30)); this.roadEdges(rnd); };
     // mine pits: quarry art at the rim, ore rocks across the floor, glowing rare veins and a gold vein in the middle
     const COL = [0xffffff, 0xf0f4ff, 0x9a7aaa, 0xb8e8ff, 0xa8ffe8];
     for (const p of this.pits) {
@@ -785,19 +820,17 @@ export class TopDownScene extends Phaser.Scene {
       { const x = p.x, y = p.y + 4; const o = this.obj(has('vein_2') ? 'vein_2' : pick('ore', 7), x, y, 0.6, 4); if (!has('vein_2')) o?.setTint(0xffd84a); this.addNode(o, x, y, 'stone', { ...vein, gold: true }); }
     }
     // jungle: big trees everywhere off the trails, ferns and flowers underneath
-    for (let k = 0; k < 340 * area; k++) {
-      const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
-      const key = jungle.length && rnd() < 0.7 ? jungle[Math.floor(rnd() * jungle.length)] : rnd() < 0.6 ? pick('oak', 3) : pick('pine', 3);
-      const hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
-      if (this.trailOff(x, y) < 60 || this.trailOff(x, y - hgt * 0.5) < 44 || open(x, y, 40) || !free(x, y, 56)) continue;
+    const key = has('jtree_1') ? 'jtree_1' : jungle[0] ?? pick('oak', 3), hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
+    this.groves(rnd, 48 * area, (x, y, sc) => {
+      if (this.trailOff(x, y) < 82 || this.trailOff(x, y - hgt * 0.5 * sc) < 60 || open(x, y, 40) || !free(x, y, 52 * sc)) return false;
       // solid trunk + roots: jungle trees spread wide buttress roots, so their footprint is wider and deeper
-      const jt = key.startsWith('jtree');
-      this.addNode(this.obj(key, x, y, jt ? 0.28 : key.startsWith('palm') ? 0.18 : 0.22, jt ? 40 : 16, true), x, y, 'wood');
-    }
+      this.addNode(this.obj(key, x, y, 0.28, 40 * sc, true, sc), x, y, 'wood'); return true;
+    });
+    void pick;
     const ferns = ['fern_0', 'fern_1'].filter(has);
-    for (let k = 0; k < 260 * area; k++) {
+    for (let k = 0; k < 140 * area; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
-      if (this.trailOff(x, y) < 24 || !free(x, y, 6)) continue;
+      if (this.trailOff(x, y) < 50 || !free(x, y, 6)) continue;
       const r = rnd(), key = ferns.length && r < 0.4 ? ferns[Math.floor(rnd() * ferns.length)] : r < 0.6 ? pick('bush', 5) : r < 0.8 ? pick('flower', 5) : pick('tuft', 2);
       this.add.image(Math.round(x), Math.round(y), 'o_' + key).setOrigin(0.5, 0.85).setDepth(y).setScale(key.startsWith('fern') ? 0.55 : 1);
     }
@@ -830,24 +863,24 @@ export class TopDownScene extends Phaser.Scene {
     const g = st.land.ground;
     const area = (MW * MH) / (1280 * 800);
     const inClear = (x: number, y: number) => this.clearings.some(c => Math.hypot(x - c.x, (y - c.y) * 1.2) < c.r + 20);
-    const trees = g === 'haunt' || g === 'lava' ? ['dead', 2] as const : g === 'snow' ? ['pine', 3] as const : null;
-    for (let k = 0; k < (g === 'dung' ? 0 : g === 'lava' ? 160 : 520) * area; k++) {
-      const x = 10 + rnd() * (MW - 20), y = 60 + rnd() * (MH - 60);
-      const r = rnd(), key = trees ? pick(trees[0], trees[1]) : r < 0.45 ? pick('pine', 3) : r < 0.88 ? pick('oak', 3) : pick('dead', 2);
-      const hgt = (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0);
+    const TREE: Record<string, string> = { forest: 'oak_1', haunt: 'dead_0', lava: 'dead_1', snow: 'pine_1' };
+    const key = TREE[g], hgt = key ? (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0) : 0;
+    if (key) this.groves(rnd, (g === 'lava' ? 45 : 120) * area, (x, y, sc) => {
       // never hide a trail behind the crown, roots stay off it, clearings stay open
-      if (this.trailOff(x, y) < 70 || this.trailOff(x, y - hgt * 0.5) < 50 || this.trailOff(x, y - hgt) < 30 || inClear(x, y) || !free(x, y, 48)) continue;
-      const t = this.obj(key, x, y, 0.22, 16, true);
+      if (this.trailOff(x, y) < 88 || this.trailOff(x, y - hgt * 0.5 * sc) < 62 || this.trailOff(x, y - hgt * sc) < 40 || inClear(x, y) || !free(x, y, 46 * sc)) return false;
+      const t = this.obj(key, x, y, 0.22, 16, true, sc);
       if (t && g !== 'forest') t.setTint(tint[g]);
-      void t;
-    }
+      return true;
+    });
+    void pick;
     if (g === 'dung' || g === 'lava') for (let k = 0; k < 260 * area; k++) {   // boulders and ore instead of a forest
       const x = 10 + rnd() * (MW - 20), y = 40 + rnd() * (MH - 50);
-      if (this.trailOff(x, y) < 50 || inClear(x, y) || !free(x, y, 12)) continue;
+      if (this.trailOff(x, y) < 62 || inClear(x, y) || !free(x, y, 12)) continue;
       const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
       void o;
     }
     this.placeLandProps(g, rnd, free, (x, y) => this.trailOff(x, y), inClear);
+    if (g !== 'dung') this.roadEdges(rnd, g === 'snow' ? 0xc8dcff : g === 'lava' ? 0x9a7060 : g === 'haunt' ? 0xa898c8 : 0xffffff);
     for (let k = 0; k < 220 * area; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
       if (!free(x, y, 8)) continue;
@@ -1681,6 +1714,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
     this.hunters?.update(time, dt);
+    if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead).setPosition(h.x, h.y + 1).setDepth(h.y - 3); }
     if (this.heroBar) { const s0 = S(); this.heroBar.clear(); if (h.visible) hpBar(this.heroBar, h.x, h.y - 36, s0.hp / Math.max(1, derive(s0).maxHp), 24); }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);

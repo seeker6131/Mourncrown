@@ -1,0 +1,1067 @@
+{
+ "frames": [
+  {
+   "filename": "fx-boss-aura 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 1.png",
+   "frame": {
+    "x": 213,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 2.png",
+   "frame": {
+    "x": 426,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 3.png",
+   "frame": {
+    "x": 639,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 4.png",
+   "frame": {
+    "x": 852,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 5.png",
+   "frame": {
+    "x": 1065,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 6.png",
+   "frame": {
+    "x": 1278,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 7.png",
+   "frame": {
+    "x": 0,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 8.png",
+   "frame": {
+    "x": 213,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 9.png",
+   "frame": {
+    "x": 426,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 10.png",
+   "frame": {
+    "x": 639,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 11.png",
+   "frame": {
+    "x": 852,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 12.png",
+   "frame": {
+    "x": 1065,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 13.png",
+   "frame": {
+    "x": 1278,
+    "y": 106,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 14.png",
+   "frame": {
+    "x": 0,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 15.png",
+   "frame": {
+    "x": 213,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 16.png",
+   "frame": {
+    "x": 426,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 17.png",
+   "frame": {
+    "x": 639,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 18.png",
+   "frame": {
+    "x": 852,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 19.png",
+   "frame": {
+    "x": 1065,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 20.png",
+   "frame": {
+    "x": 1278,
+    "y": 212,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 21.png",
+   "frame": {
+    "x": 0,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 22.png",
+   "frame": {
+    "x": 213,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 23.png",
+   "frame": {
+    "x": 426,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 24.png",
+   "frame": {
+    "x": 639,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 25.png",
+   "frame": {
+    "x": 852,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 26.png",
+   "frame": {
+    "x": 1065,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 27.png",
+   "frame": {
+    "x": 1278,
+    "y": 318,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 28.png",
+   "frame": {
+    "x": 0,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 29.png",
+   "frame": {
+    "x": 213,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 30.png",
+   "frame": {
+    "x": 426,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 31.png",
+   "frame": {
+    "x": 639,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 32.png",
+   "frame": {
+    "x": 852,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 33.png",
+   "frame": {
+    "x": 1065,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 34.png",
+   "frame": {
+    "x": 1278,
+    "y": 424,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 35.png",
+   "frame": {
+    "x": 0,
+    "y": 530,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 36.png",
+   "frame": {
+    "x": 213,
+    "y": 530,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 37.png",
+   "frame": {
+    "x": 426,
+    "y": 530,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 38.png",
+   "frame": {
+    "x": 639,
+    "y": 530,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-aura 39.png",
+   "frame": {
+    "x": 852,
+    "y": 530,
+    "w": 213,
+    "h": 106
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 213,
+    "h": 106
+   },
+   "sourceSize": {
+    "w": 213,
+    "h": 106
+   },
+   "pivot": {
+    "x": 0.5117370892018779,
+    "y": 0.6415094339622641
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-boss-aura.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 1491,
+   "h": 636
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 109,
+   "y": 68
+  },
+  "frameTags": [
+   {
+    "name": "fx-boss-aura",
+    "from": 0,
+    "to": 39,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -645,8 +645,8 @@
 "hit": 3
 },
 "walk": {
-"fs": 180,
-"n": 9,
+"fs": 192,
+"n": 8,
 "dirs": [
 "south",
 "south-east",
@@ -657,7 +657,7 @@
 "west",
 "south-west"
 ],
-"foot": 153
+"foot": 159
 },
 "die": {
 "fs": 172,
@@ -680,6 +680,53 @@
 "west"
 ],
 "foot": 149
+}
+}
+},
+"heroF": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 48,
+"idleFoot": 47,
+"anims": {
+"attack": {
+"fs": 72,
+"n": 8,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 71,
+"hit": 3
+},
+"walk": {
+"fs": 50,
+"n": 8,
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"foot": 49
 }
 }
 },
@@ -1640,6 +1687,45 @@
 }
 }
 },
+"mo18": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 68,
+"idleFoot": 58,
+"anims": {
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 58,
+"hit": 6
+},
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 58
+}
+}
+},
 "mo2": {
 "dirs": [
 "south",
@@ -2387,92 +2473,6 @@
 "south-west"
 ],
 "foot": 33
-}
-}
-},
-"heroF": {
-"dirs": [
-"south",
-"south-east",
-"east",
-"north-east",
-"north",
-"north-west",
-"west",
-"south-west"
-],
-"idleFs": 48,
-"idleFoot": 47,
-"anims": {
-"attack": {
-"fs": 72,
-"n": 8,
-"dirs": [
-"south",
-"south-east",
-"east",
-"north-east",
-"north",
-"north-west",
-"west",
-"south-west"
-],
-"foot": 71,
-"hit": 3
-},
-"walk": {
-"fs": 50,
-"n": 8,
-"dirs": [
-"south",
-"south-east",
-"east",
-"north-east",
-"north",
-"north-west",
-"west",
-"south-west"
-],
-"foot": 49
-}
-}
-},
-"mo18": {
-"dirs": [
-"south",
-"south-east",
-"east",
-"north-east",
-"north",
-"north-west",
-"west",
-"south-west"
-],
-"idleFs": 68,
-"idleFoot": 58,
-"anims": {
-"attack": {
-"fs": 68,
-"n": 9,
-"dirs": [
-"south",
-"east",
-"north",
-"west"
-],
-"foot": 58,
-"hit": 6
-},
-"walk": {
-"fs": 68,
-"n": 9,
-"dirs": [
-"south",
-"east",
-"north",
-"west"
-],
-"foot": 58
 }
 }
 }

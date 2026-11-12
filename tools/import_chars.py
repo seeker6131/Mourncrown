@@ -10,6 +10,8 @@ DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'wes
 OLD = {'hero': ['hero_villager.zip', 'hero_villager_guard.zip', ('chars/hero_api.zip', {'attack'})], 'hr3': ['hr3_lordknight.zip', 'hr3_attack.zip'],
        'hr4': ['hr4_walk.zip', 'hr4_attack.zip'], 'hr9': ['hr9_walk.zip', 'hr9_attack.zip', ('chars/hr9_api.zip', {'attack'})]}
 ALIAS = {'walking': 'walk'}
+# animations made only to compare options (kept on PixelLab, never imported)
+TRIALS = {'bs5': ('stompa', 'stompb')}
 SRC = {'bs3': 'bs3b'}      # the remade Obsidian Serpent (big canvas, wings not cut) lives in chars/bs3b.zip
 MIRROR_W = {'bs3'}         # generated facing the east side only: west / south-west / north-west = east side flipped
 COPY = {'bs3': {'special': 'attack', 'attack': 'walk'}}   # animation not generated yet -> shown with another one
@@ -236,7 +238,8 @@ def build(key, zips, man):
         only = None
         if isinstance(zp, tuple): zp, only = zp
         if not os.path.exists(zp): continue
-        r, a, _ = frames_of(zipfile.ZipFile(zp), key.startswith('bs'), STATE.get(key, {}).get('walkfix_g'), TEXT_WALK.get(key, ()))
+        r, a, _ = frames_of(zipfile.ZipFile(zp), key.startswith('bs') and not STATE.get(key, {}).get('walkfix_g'), STATE.get(key, {}).get('walkfix_g'), TEXT_WALK.get(key, ()))   # a boss with a re-made skeleton walk (bs5: six arms kept) uses it
+        for tr in TRIALS.get(key, ()): a.pop(tr, None)   # trial clips that lost the comparison stay out of the game
         if only is None: rot.update(r); anims.update(a)
         else:
             for an in only:                      # take just these animations, direction by direction, from this zip
