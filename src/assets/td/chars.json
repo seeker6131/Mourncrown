@@ -2436,5 +2436,44 @@
 "foot": 49
 }
 }
+},
+"mo18": {
+"dirs": [
+"south",
+"south-east",
+"east",
+"north-east",
+"north",
+"north-west",
+"west",
+"south-west"
+],
+"idleFs": 68,
+"idleFoot": 58,
+"anims": {
+"attack": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 58,
+"hit": 6
+},
+"walk": {
+"fs": 68,
+"n": 9,
+"dirs": [
+"south",
+"east",
+"north",
+"west"
+],
+"foot": 58
+}
+}
 }
 }

@@ -18,7 +18,7 @@ export const LANDS: Land[] = [
   { id: 'snow', name: 'ภูเขาหิมะนิรันดร์', ground: 'snow', boss: M('bs4', 'frostgiant', 'ผู้คุมเหมันต์', 128),
     mobs: [M('mo14', 'icewolf', 'นักล่าเหมันต์'), M('mo15', 'yeti', 'ยักษ์หน้ากากน้ำแข็ง', 64)] },
   { id: 'dung', name: 'คุกใต้ดินเหวลึก', ground: 'dung', boss: M('bs5', 'skking', 'มงกุฎกลวง', 128),
-    mobs: [M('mo6', 'rat', 'หนูแทะซาก', 32), M('mo7', 'skeleton', 'อัศวินเปลือกกลวง'), M('mo9', 'ghost', 'วิญญาณผ้าคลุมหน้า'), M('mo10', 'spider', 'แมงมุมปากคน')] },
+    mobs: [M('mo6', 'rat', 'หนูแทะซาก', 32), M('mo7', 'skeleton', 'อัศวินเปลือกกลวง'), M('mo9', 'ghost', 'วิญญาณผ้าคลุมหน้า'), M('mo10', 'spider', 'แมงมุมปากคน'), M('mo18', 'jailer', 'ผู้คุมคุกโซ่ตรวน')] },
 ];
 export const STAGES: Stage[] = Array.from({ length: 50 }, (_, i) => {
   const n = i + 1, land = LANDS[Math.floor(i / 10)], boss = n % 10 === 0;

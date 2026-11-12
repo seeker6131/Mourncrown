@@ -222,7 +222,7 @@ def hit_frame(dd):
         hs.append(1 + int(np.argmax(ch)))
     return int(np.median(hs)) if hs else 0
 # hit frames checked by eye where the motion detector picks the wind-up instead of the release (bow draw, spear pull-back)
-HIT = {'np8': {'attack': 4}, 'np10': {'attack': 5}}
+HIT = {'np8': {'attack': 4}, 'np10': {'attack': 5}, 'mo18': {'attack': 6}}
 # Frames the AI got wrong (seen with tools/audit_dirs.py <out> <key> attack 1 --raw): they are removed before retiming.
 # {key: {animation: {direction: [frame numbers of the clip as generated, 0 = the idle picture]}}}
 DROP = {}

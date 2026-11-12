@@ -1,6 +1,6 @@
 export type MonsterKind = 'slime' | 'shroom' | 'wolf' | 'goblin' | 'wisp' | 'treant' | 'deer' | 'boar'
   | 'rat' | 'skeleton' | 'skarcher' | 'ghost' | 'spider' | 'imp' | 'golem' | 'salamander' | 'icewolf' | 'yeti'
-  | 'stag' | 'dragon' | 'frostgiant' | 'skking';
+  | 'stag' | 'dragon' | 'frostgiant' | 'skking' | 'jailer';
 
 export interface Drop { id: string; chance: number; min?: number; max?: number }
 
@@ -91,6 +91,7 @@ Object.assign(MONSTERS, {
   golem: R('golem', 'โกเลมลาวา', 58, { speed: 30, bodyRadius: 14 }),
   icewolf: R('icewolf', 'หมาป่าน้ำแข็ง', 63, { speed: 72, bodyRadius: 11 }),
   yeti: R('yeti', 'เยติ', 67, { speed: 36, bodyRadius: 13 }),
+  jailer: R('jailer', 'ผู้คุมคุกโซ่ตรวน', 85, { speed: 34, bodyRadius: 12 }),
   stag: R('stag', 'กวางยักษ์คำสาป', 30, { boss: true, hp: 26000, speed: 40, attackRange: 50, bodyRadius: 26, exp: 6000, gold: [1500, 2500] }),
   dragon: R('dragon', 'มังกรลาวา', 60, { boss: true, hp: 160000, speed: 34, attackRange: 70, bodyRadius: 40, exp: 40000, gold: [8000, 12000] }),
   frostgiant: R('frostgiant', 'ยักษ์น้ำแข็ง', 70, { boss: true, hp: 240000, speed: 30, attackRange: 60, bodyRadius: 30, exp: 60000, gold: [10000, 15000] }),

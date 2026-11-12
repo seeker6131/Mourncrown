@@ -43,7 +43,7 @@ const SPRITE_SCALE: Record<string, number> = { bs3: 0.62 };
 /** boss special per land, monsters that hit heavily, projectile colours */
 const BOSS_FX: Record<string, string> = { forest: 'earth-spike', haunt: 'grasping-hands', lava: 'flame-pillar', snow: 'ice-spikes', dung: 'necro-skulls' };
 export const MONSTER_PFX = (land: string) => ['claw-swipe', 'blunt-hit', 'crit-hit', 'hit-spark', BOSS_FX[land] ?? 'earth-spike'];
-const HEAVY = new Set(['golem', 'yeti', 'treant', 'stag', 'dragon', 'frostgiant', 'skking', 'skeleton']);
+const HEAVY = new Set(['jailer', 'golem', 'yeti', 'treant', 'stag', 'dragon', 'frostgiant', 'skking', 'skeleton']);
 const RANGED_COL: Record<string, number> = { wisp: 0x9affd8, ghost: 0x9ad8ff, skarcher: 0xe8dcc0, goblin: 0xe8dcc0, imp: 0xff8a3a };
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
 /** wild game that wanders every map (meat and hides) */
@@ -243,12 +243,24 @@ export class Combat {
       if (u[1] === 'land') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], h.x, h.y + 4, h.y + 2, 1.3));
       else this.nearest(230).slice(0, sk.count ?? 5).forEach((m, i) => this.s.time.delayedCall(u[2] + i * 90, () => fx2(this.s, u[0], m.x, m.y + 2, m.y + 2, 0.9)));
     }
+    // one designed PixelLab effect per skill (tools/gen_vfx2.py fx_sk_*): the old pixelfx layer and the code-drawn
+    // decorations stay quiet for this cast, so nothing stacks (projectiles still fly; they carry the hit)
+    const SK_AT: Record<string, 'hero' | 'front' | 'land' | 'target'> = { v_bash: 'front', s2_cleave: 'front', s2_whirl: 'hero', s2_guard: 'hero', s3_charge: 'land', s3_crusade: 'front', s3_valor: 'hero', s4_blades: 'hero', s4_aegis: 'hero', a2_double: 'target', a2_fan: 'target', a2_focus: 'hero', a3_pierce: 'target', a3_rain: 'target', a3_trap: 'hero', a4_spirit: 'target', a4_wind: 'hero', m2_bolt: 'target', m2_fire: 'target', m2_heal: 'hero', m3_chain: 'target', m3_arcane: 'hero', m3_volley: 'target', m4_void: 'target', m4_dread: 'hero', t2_slam: 'front', t2_wall: 'hero', t2_recover: 'hero', t3_quake: 'hero', t3_ram: 'land', t3_bulwark: 'hero', t4_fortress: 'hero', t4_lion: 'hero' };
+    const sfk = 'fx_sk_' + sk.id, designed = hasFx2(sfk);
+    if (designed || u) this.vfx.quietUntil = this.s.time.now + 1300;
+    if (designed) {
+      const at = SK_AT[sk.id] ?? 'hero';
+      if (at === 'hero') this.s.time.delayedCall(60, () => fx2(this.s, sfk, h.x, h.y + 4, h.y + 1, 1.1));
+      else if (at === 'front') fx2(this.s, sfk, h.x + fx * 24, h.y - 4 + fy * 14, h.y + 2, 1)?.setFlipX(fx < -0.2);
+      else if (at === 'land') this.s.time.delayedCall(sk.kind === 'leap' ? 340 : 210, () => fx2(this.s, sfk, h.x, h.y + 2, h.y + 2, 1.1));
+      else this.nearest(sk.kind === 'rain' ? 240 : 200).slice(0, Math.max(1, sk.count ?? 1)).forEach((m, i) => this.s.time.delayedCall((sk.kind === 'rain' ? 420 : 240) + i * 80, () => { if (m.alive) fx2(this.s, sfk, m.x, m.y - m.m.size * 0.3, m.y + 2, 0.95); }));
+    }
     this.float(h.x, h.y - 56, sk.name, '#' + col.toString(16).padStart(6, '0'), 10);
     const times = (n: number, gap: number, f: (i: number) => void) => { for (let i = 0; i < n; i++) this.s.time.delayedCall(i * gap, () => f(i)); };
     // PixelLab effect art layered over the procedural effects
     const el = element(sk), V = this.vfx;
     const pf = (SKILL_PFX[sk.id] ?? []).some(u => this.s.anims.exists('pfx_' + u.fx));
-    const artOn = !pf;
+    const artOn = !pf && !designed;
     const blastKey = el === 'fire' ? 'px_fx_blast_fire' : el === 'dark' ? 'px_fx_blast_arcane' : 'px_fx_blast_w';
     const blastTint = el === 'fire' || el === 'dark' ? undefined : col;
     const circle = (x: number, y: number, size: number, dur = 600) => !artOn ? null : V.art('px_fx_circle_w', x, y, { s0: size * 0.35, s1: size, sy: 0.55, a0: 0.95, tint: col, dur, depth: y - 2, spin: 60 });
@@ -329,6 +341,7 @@ export class Combat {
           const tx = m.x, ty = m.y - m.m.size * 0.3;
           const fall = sk.fall ?? 'arrow';
           // finishers with a PixelLab effect (played by castSkill on these same targets): just the damage, nothing stacked
+          if (designed) { this.s.time.delayedCall(440, () => { if (m.alive) this.hitSk(m, sk, 4); }); return; }   // its designed effect plays on this target
           if ((sk.id === 'm4_meteor' || sk.id === 'a4_storm') && hasFx2('fx_ult_mage')) { this.s.time.delayedCall(sk.id === 'm4_meteor' ? 560 : 520, () => { if (m.alive) this.hitSk(m, sk, 4); }); return; }
           if (pf && (fall === 'meteor' || fall === 'bolt')) {
             const fxk = fall === 'meteor' ? 'meteor' : 'lightning-strike', u = SKILL_PFX[sk.id].find(q => q.fx === fxk);
@@ -366,7 +379,7 @@ export class Combat {
         break;
       }
       case 'buff': case 'heal': case 'shield': {
-        fx2(this.s, sk.kind === 'heal' ? 'fx_heal' : sk.kind === 'shield' ? 'fx_shield_up' : 'fx_buff', h.x, h.y + 4, h.y + 1, 1);
+        if (!designed) fx2(this.s, sk.kind === 'heal' ? 'fx_heal' : sk.kind === 'shield' ? 'fx_shield_up' : 'fx_buff', h.x, h.y + 4, h.y + 1, 1);
         const r = selfEffect(s, sk);
         if (!pf) this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
         circle(h.x, h.y, 0.75, 900); if (artOn) V.art('px_fx_pillar', h.x, h.y + 4, { oy: 1, s0: 0.6, s1: 1.1, sy: 1.4, a0: 1, dur: 800, tint: sk.kind === 'shield' ? undefined : col });
@@ -386,7 +399,7 @@ export class Combat {
 
   /** pixelfx layer for a skill: on the hero, in front, on the targets (same picks as the skill), or where a dash / leap lands */
   skillPfx(sk: SkillDef, aim: number, fx: number, fy: number) {
-    const uses = SKILL_PFX[sk.id]; if (!uses) return;
+    const uses = SKILL_PFX[sk.id]; if (!uses || hasFx2('fx_sk_' + sk.id)) return;   // a designed PixelLab effect replaces the pixelfx layer
     if (['s4_judgment', 't4_titan', 'a4_storm', 'm4_meteor'].includes(sk.id) && hasFx2('fx_ult_sword')) return;   // PixelLab finisher instead
     const h = this.s.hero, left = fx < -0.2;
     const targets = (): { x: number; y: number }[] => {

@@ -978,5 +978,11 @@
  "heroF": {
   "cid": "f87d8718-1768-4b99-8c87-e26ace6749ce",
   "zip": 1
+ },
+ "mo18": {
+  "cid": "b2ccb9f2-9a89-404d-92bf-68a0fe765a71",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
  }
 }

@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-t2-wall 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 1.png",
+   "frame": {
+    "x": 136,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 2.png",
+   "frame": {
+    "x": 272,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 3.png",
+   "frame": {
+    "x": 408,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 4.png",
+   "frame": {
+    "x": 0,
+    "y": 120,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 5.png",
+   "frame": {
+    "x": 136,
+    "y": 120,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 6.png",
+   "frame": {
+    "x": 272,
+    "y": 120,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 7.png",
+   "frame": {
+    "x": 408,
+    "y": 120,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 8.png",
+   "frame": {
+    "x": 0,
+    "y": 240,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t2-wall 9.png",
+   "frame": {
+    "x": 136,
+    "y": 240,
+    "w": 136,
+    "h": 120
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 136,
+    "h": 120
+   },
+   "sourceSize": {
+    "w": 136,
+    "h": 120
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5166666666666667
+   },
+   "duration": 77
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-t2-wall.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 544,
+   "h": 360
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 68,
+   "y": 62
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-t2-wall",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -62,14 +62,17 @@ const lighten = (c: number, f = 0.55) => { const r = (c >> 16) & 255, g = (c >> 
 
 export class Vfx {
   constructor(public s: Phaser.Scene) { vfxTextures(s); }
+  /** while a designed PixelLab skill effect plays, the code-drawn decorations stay quiet (projectiles still fly) */
+  quietUntil = 0;
+  private get q() { return this.s.time.now < this.quietUntil; }
 
   /** flash of light that swells and fades */
-  glow(x: number, y: number, col: number, size = 1, dur = 320, alpha = 1) {
+  glow(x: number, y: number, col: number, size = 1, dur = 320, alpha = 1) { if (this.q) return null as never;
     const g = this.s.add.image(x, y, 'vfx_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(D).setScale(size * 0.4).setAlpha(alpha);
     this.s.tweens.add({ targets: g, scale: size * 1.3, alpha: 0, duration: dur, ease: 'Quad.easeOut', onComplete: () => g.destroy() });
   }
   /** glowing embers flying out */
-  burst(x: number, y: number, col: number, n = 14, speed = 120, life = 450, scale = 0.16, gravity = 0) {
+  burst(x: number, y: number, col: number, n = 14, speed = 120, life = 450, scale = 0.16, gravity = 0) { if (this.q) return null as never;
     const em = this.s.add.particles(x, y, 'vfx_glow', {
       speed: { min: speed * 0.35, max: speed }, angle: { min: 0, max: 360 }, scale: { start: scale, end: 0 }, alpha: { start: 1, end: 0 },
       lifespan: { min: life * 0.6, max: life }, tint: [col, lighten(col), 0xffffff], blendMode: 'ADD', gravityY: gravity, emitting: false,
@@ -77,12 +80,12 @@ export class Vfx {
     em.explode(n); this.s.time.delayedCall(life + 80, () => em.destroy());
   }
   /** 4-point star flash at the point of impact */
-  star(x: number, y: number, col: number, size = 1) {
+  star(x: number, y: number, col: number, size = 1) { if (this.q) return null as never;
     const st = this.s.add.image(x, y, 'vfx_star').setTint(lighten(col, 0.4)).setBlendMode(Phaser.BlendModes.ADD).setDepth(D + 3).setScale(0.2 * size).setAngle(Math.random() * 90);
     this.s.tweens.add({ targets: st, scale: 1.1 * size, angle: st.angle + 45, alpha: 0, duration: 260, ease: 'Quad.easeOut', onComplete: () => st.destroy() });
   }
   /** big glowing crescent swing (angle in radians, screen space) */
-  slash(x: number, y: number, angle: number, col: number, size = 1, flip = false) {
+  slash(x: number, y: number, angle: number, col: number, size = 1, flip = false) { if (this.q) return null as never;
     for (const [tint, sc, a, delay] of [[col, 1, 0.9, 0], [lighten(col, 0.75), 0.82, 1, 20]] as const) {
       const im = this.s.add.image(x, y, 'vfx_slash').setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(D + 1)
         .setRotation(angle + (flip ? Math.PI : 0)).setFlipY(flip).setScale(0.45 * size * sc).setAlpha(0);
@@ -99,7 +102,7 @@ export class Vfx {
     em.explode(8); this.s.time.delayedCall(400, () => em.destroy());
   }
   /** spear thrust: a thin bright streak stabbing forward, a small star at the tip (angle in radians, screen space) */
-  thrust(x: number, y: number, angle: number, col: number, size = 1) {
+  thrust(x: number, y: number, angle: number, col: number, size = 1) { if (this.q) return null as never;
     const c = Math.cos(angle), s = Math.sin(angle);
     for (const [tint, wd, a, delay] of [[col, 0.11, 0.85, 0], [0xffffff, 0.05, 1, 15]] as const) {
       const im = this.s.add.image(x, y, 'vfx_glow').setTint(tint).setBlendMode(Phaser.BlendModes.ADD).setDepth(D + 1).setRotation(angle).setScale(0.15 * size, wd * size).setAlpha(a);
@@ -109,21 +112,21 @@ export class Vfx {
     this.s.time.delayedCall(70, () => this.star(x + c * 36 * size, y + s * 36 * size, col, 0.5 * size));
   }
   /** hit: star + flash + embers (+ ring for big hits) */
-  impact(x: number, y: number, col: number, big = false) {
+  impact(x: number, y: number, col: number, big = false) { if (this.q) return null as never;
     this.star(x, y, col, big ? 1.6 : 0.9);
     this.glow(x, y, col, big ? 1.4 : 0.7, big ? 360 : 220);
     this.burst(x, y, col, big ? 18 : 7, big ? 170 : 110, big ? 500 : 320, big ? 0.2 : 0.13);
     if (big) this.wave(x, y + 4, 34, col, 320);
   }
   /** flat shockwave ring on the ground */
-  wave(x: number, y: number, r: number, col: number, dur = 420, thick = 1) {
+  wave(x: number, y: number, r: number, col: number, dur = 420, thick = 1) { if (this.q) return null as never;
     for (const [d, a] of [[0, 1], [70, 0.55]] as const) {
       const ring = this.s.add.image(x, y, 'vfx_ring').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(2).setScale(0.05, 0.03).setAlpha(a * thick);
       this.s.tweens.add({ targets: ring, scaleX: r / 58, scaleY: r / 58 * 0.55, alpha: 0, duration: dur, delay: d, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() });
     }
   }
   /** dust puffs (landings, dashes) */
-  dust(x: number, y: number, n = 8, spread = 30) {
+  dust(x: number, y: number, n = 8, spread = 30) { if (this.q) return null as never;
     const em = this.s.add.particles(x, y, 'vfx_smoke', {
       speedX: { min: -spread * 2, max: spread * 2 }, speedY: { min: -30, max: 5 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.55, end: 0 },
       lifespan: { min: 400, max: 750 }, tint: 0x8a7a64, emitting: false,
@@ -131,7 +134,7 @@ export class Vfx {
     em.explode(n); this.s.time.delayedCall(800, () => em.destroy());
   }
   /** rock shards kicked up that fall back down */
-  debris(x: number, y: number, col: number, n = 12) {
+  debris(x: number, y: number, col: number, n = 12) { if (this.q) return null as never;
     const em = this.s.add.particles(x, y, 'vfx_shard', {
       speed: { min: 80, max: 200 }, angle: { min: 200, max: 340 }, gravityY: 520, scale: { start: 0.9, end: 0.4 }, rotate: { min: 0, max: 360 },
       lifespan: 650, tint: [col, 0x6a5a48, 0x9a8a70], emitting: false,
@@ -139,7 +142,7 @@ export class Vfx {
     em.explode(n); this.s.time.delayedCall(700, () => em.destroy());
   }
   /** column of light from the sky */
-  pillar(x: number, y: number, col: number, h = 140, dur = 600) {
+  pillar(x: number, y: number, col: number, h = 140, dur = 600) { if (this.q) return null as never;
     const b = this.s.add.image(x, y, 'vfx_beam').setOrigin(0.5, 1).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(D).setScale(0.4, h / 128).setAlpha(0);
     this.s.tweens.add({ targets: b, alpha: 1, scaleX: 2.2, duration: 120, yoyo: true, hold: dur * 0.4, onComplete: () => b.destroy() });
     const em = this.s.add.particles(x, y, 'vfx_glow', {
@@ -148,7 +151,7 @@ export class Vfx {
     this.s.time.delayedCall(dur * 0.7, () => em.stop()); this.s.time.delayedCall(dur + 700, () => em.destroy());
   }
   /** spinning rune circle under a target + rising motes for `ms` */
-  aura(target: Phaser.GameObjects.Components.Transform, col: number, ms = 900, plus = false) {
+  aura(target: Phaser.GameObjects.Components.Transform, col: number, ms = 900, plus = false) { if (this.q) return null as never;
     const ring = this.s.add.image(target.x, target.y, 'vfx_rune').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(2).setScale(0.1, 0.06).setAlpha(0.95);
     this.s.tweens.add({ targets: ring, scaleX: 0.42, scaleY: 0.24, duration: 220, ease: 'Back.easeOut' });
     this.s.tweens.add({ targets: ring, angle: 360, duration: 1600, repeat: -1 });
@@ -162,7 +165,7 @@ export class Vfx {
   }
   /** glowing projectile flying to (tx,ty) with a particle trail; calls hit() on arrival */
   /** PixelLab effect sprite (px_fx_*): pops / grows and fades. Returns null when the art isn't loaded (procedural fx still play). */
-  art(key: string, x: number, y: number, o: { rot?: number; s0?: number; s1?: number; sy?: number; a0?: number; a1?: number; dur?: number; tint?: number; add?: boolean; ox?: number; oy?: number; depth?: number; spin?: number; delay?: number } = {}) {
+  art(key: string, x: number, y: number, o: { rot?: number; s0?: number; s1?: number; sy?: number; a0?: number; a1?: number; dur?: number; tint?: number; add?: boolean; ox?: number; oy?: number; depth?: number; spin?: number; delay?: number } = {}) { if (this.q) return null as never;
     if (!this.s.textures.exists(key)) return null;
     const im = this.s.add.image(x, y, key).setOrigin(o.ox ?? 0.5, o.oy ?? 0.5).setRotation(o.rot ?? 0).setScale(o.s0 ?? 0.5, (o.s0 ?? 0.5) * (o.sy ?? 1)).setAlpha(o.a0 ?? 1).setDepth(o.depth ?? D + 1);
     if (o.add !== false) im.setBlendMode(Phaser.BlendModes.ADD);
@@ -193,7 +196,7 @@ export class Vfx {
     } });
   }
   /** shimmering bubble around a target */
-  bubble(target: Phaser.GameObjects.Components.Transform, col: number, ms: number) {
+  bubble(target: Phaser.GameObjects.Components.Transform, col: number, ms: number) { if (this.q) return null as never;
     const b = this.s.add.image(target.x, target.y - 16, 'vfx_ring').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(D).setScale(0.05);
     const fill = this.s.add.image(target.x, target.y - 16, 'vfx_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(D - 1).setAlpha(0.22).setScale(0.05);
     this.s.tweens.add({ targets: b, scaleX: 0.36, scaleY: 0.42, duration: 260, ease: 'Back.easeOut' });
