@@ -27,7 +27,7 @@ import { activeTier, nextForm, currentSkills } from '../systems/stats';
 import { beginCast } from '../systems/skillCast';
 import { SKILL_BY_ID } from '../data/skills';
 
-import { vipActive } from '../systems/premium';
+import { vipActive, vipTier, VIP_AURA, VIP_WALK } from '../systems/premium';
 import { uiOpt } from '../core/uiOptions';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
@@ -278,6 +278,8 @@ export class TopDownScene extends Phaser.Scene {
   defendNext = false;
   hunters?: Hunters;
   heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text;
+  /** VIP aura: flames behind the hero + a soft glow of the same flames over it */
+  aura?: { key: string; on: Phaser.GameObjects.Sprite; glow: Phaser.FX.Glow; fire: Phaser.GameObjects.Particles.ParticleEmitter };
   heroRing?: Phaser.GameObjects.Sprite | null;
   /** riding a mount (world/mount.ts); fighting / gathering gets off for a moment */
   riding?: Riding; rideBlockT = 0; heroMoving = false;
@@ -1409,6 +1411,37 @@ export class TopDownScene extends Phaser.Scene {
   autoStuck = { x: 0, y: 0, t: 0 };
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
+  /** the VIP aura (director: a thin aura hugging the hero's outline, not a bonfire): a glow traced around the hero's own
+   *  picture that pulses like breathing energy, and thin flame streaks rising off the body. Colour by VIP card (premium.ts). */
+  updateAura() {
+    const s = S(), tier = (s as { auraOff?: boolean }).auraOff ? 0 : vipTier(s), want = tier ? String(tier) : undefined;   // colour by VIP card
+    const target = (this.riding ? this.riding.rider : this.hero) as Phaser.GameObjects.Sprite;
+    if (this.aura && (this.aura.key !== want || this.aura.on !== target)) { this.aura.on.preFX?.remove(this.aura.glow); this.aura.fire.destroy(); this.aura = undefined; }
+    if (!want || !VIP_AURA[tier]) return;
+    if (!this.aura) {
+      if (!target.preFX) return;   // (canvas renderer: no glow)
+      if (!this.textures.exists('aura_streak')) {   // a thin flame streak: bright core fading up
+        const c = document.createElement('canvas'); c.width = 3; c.height = 10; const k = c.getContext('2d')!;
+        const gr = k.createLinearGradient(0, 10, 0, 0); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        k.fillStyle = gr; k.fillRect(1, 0, 1, 10); k.globalAlpha = 0.5; k.fillRect(0, 3, 3, 7); this.textures.addCanvas('aura_streak', c);
+      }
+      const { col, tints } = VIP_AURA[tier];
+      const glow = target.preFX.addGlow(col, 1.6, 0, false, 0.1, 4);
+      // thin streaks leave the body's outline (an ellipse edge round the hero), not the whole body
+      const fire = this.add.particles(0, 0, 'aura_streak', {
+        emitZone: { type: 'edge', source: new Phaser.Geom.Ellipse(0, -15, 20, 30), quantity: 36 } as never,
+        speedY: { min: -38, max: -20 }, speedX: { min: -3, max: 3 },
+        lifespan: { min: 180, max: 320 }, scaleX: { start: 0.8, end: 0.4 }, scaleY: { start: 1, end: 0.2 }, alpha: { start: 0.7, end: 0 },
+        tint: tints, frequency: 40, blendMode: Phaser.BlendModes.ADD,
+      });
+      this.aura = { key: want, on: target, glow, fire };
+    }
+    const h = this.hero, t = this.time.now;
+    this.aura.glow.outerStrength = 1.5 + Math.sin(t / 90) * 0.5 + Math.sin(t / 37) * 0.3;   // flickering, like living energy
+    const vis = h.visible || !!this.riding;
+    this.aura.fire.setPosition(Math.round(target.x), Math.round(this.riding ? target.y : h.y)).setDepth((this.riding ? target.depth : h.y) + 0.5).setVisible(vis);
+    this.aura.fire.emitting = vis;
+  }
   /** Deepwild auto farm session: the order and what has come in since it started */
   farm: { goal: FarmGoal; got: FarmGoal; base: { wood: number; stone: number; food: number } } | null = null;
   startFarm() {
@@ -1893,7 +1926,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero; this.heroMoving = false;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
-      const sp = 108 * (this.riding ? MOUNTS[this.riding.id].speed : 1) * dt / 1000;   // director: a little faster (was 92); a mount faster still (dragon > horse)
+      const sp = 108 * (this.riding ? MOUNTS[this.riding.id].speed : vipActive(S()) ? VIP_WALK : 1) * dt / 1000;   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
       this.heroMoving = true;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
       const ok = (x: number, y: number) => this.canStand(x, y);
@@ -1917,6 +1950,7 @@ export class TopDownScene extends Phaser.Scene {
       else if (!can && this.riding) { this.riding.destroy(); this.riding = undefined; this.combat.vfx.dust(h.x, h.y, 6, 16); if (h.alpha === 0) h.setAlpha(1); }
       if (this.riding) { this.riding.update(h.x, h.y, this.dir, this.heroMoving, this.F.key, h.scaleX, time); h.setAlpha(0); }
     }
+    this.updateAura();
     if (this.heroBar) {   // the name over the head, the HP bar just under it (director)
       const s0 = S(), by = this.riding ? this.riding.headY() : h.y - 36; this.heroBar.clear();
       if (h.visible) hpBar(this.heroBar, h.x, by, s0.hp / Math.max(1, derive(s0).maxHp), 24);

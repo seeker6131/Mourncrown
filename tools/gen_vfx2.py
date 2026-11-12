@@ -110,6 +110,9 @@ JOBS = [   # key, description, sprite to build around (or None)
     ('fx_bld_fire', 'a building on fire: several tall tongues of orange and yellow flame licking upward from a wide base, sparks and embers flying up, dark red glow at the bottom, seamless loop, 1 second, no ground, no building', None),
     ('fx_smoke', 'a column of thick dark grey smoke rising and billowing slowly upward from a fire, puffs drifting and fading at the top, seamless loop, 2 seconds', None),
     ('fx_ruin_fire', 'small low flames flickering among burnt rubble: three or four little orange fires spread out on the ground with glowing embers and thin wisps of smoke, seamless loop, 1 second, no rubble drawn, just the fires', None),
+    # VIP aura (director: a blazing energy aura wrapped around the hero while walking the maps)
+    ('fx_aura_gold', 'a fierce blazing energy aura wrapped around a standing hero: tall spiky golden-yellow flames of power rise from the feet and surround the whole body outline from head to toe, flickering upward, with tiny white electric sparks and light motes rising, bright at the edges, seamless loop, 0.8 seconds, leave the middle clear for the character, transparent background', None),
+    ('fx_aura_void', 'a fierce blazing energy aura wrapped around a standing hero: tall spiky deep violet and magenta flames of dark power rise from the feet and surround the whole body outline from head to toe, flickering upward, with small purple lightning crackles and dark motes rising, seamless loop, 0.8 seconds, leave the middle clear for the character, transparent background', None),
     ('fx_bs5_special', 'a dark curse explodes on the ground: a purple-black magic circle flares, then a pillar of dark violet flame bursts up, 1 second, no loop, seen from the front and above', None),
 ]
 

@@ -222,3 +222,16 @@ describe('selling to the NPC', () => {
     expect(r.count).toBeGreaterThanOrEqual(4); expect(s.inventory.filter(i => i.id === 'cloth_tunic' && s.equip.armor !== i.uid).length).toBe(0);
   });
 });
+
+import { grantVip, vipTier } from '../src/systems/premium';
+describe('VIP card tiers (aura colour)', () => {
+  it('3 / 7 / 15 days give tiers 1 / 2 / 3; the best card counts while VIP lasts; gone after', () => {
+    const s = startNewGame(), now = 1_000_000;
+    expect(vipTier(s, now)).toBe(0);
+    grantVip(s, 3, now); expect(vipTier(s, now)).toBe(1);
+    grantVip(s, 15, now); expect(vipTier(s, now)).toBe(3);
+    grantVip(s, 7, now); expect(vipTier(s, now)).toBe(3);
+    const later = now + 26 * 86400000; expect(vipTier(s, later)).toBe(0);
+    grantVip(s, 7, later); expect(vipTier(s, later)).toBe(2);
+  });
+});

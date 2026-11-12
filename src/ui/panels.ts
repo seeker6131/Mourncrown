@@ -832,11 +832,14 @@ export class Panels implements GuildHost {
         const step = (f: number) => () => { this.mkPrice = Math.max(1, Math.round(this.mkPrice * f)); this.rebuild(); };
         [['-50%', 0.5], ['-10%', 0.9], ['+10%', 1.1], ['x2', 2]].forEach(([l, f], i) => c.add(k.button(dx + 8 + i * ((dw - 16) / 4), top + 104, (dw - 16) / 4 - 4, 20, l as string, step(f as number), { size: 8.5 })));
         c.add(k.text(dx + 10, top + 134, `ราคาแนะนำ ${(suggestPrice(it) * it.qty).toLocaleString()}  •  NPC รับซื้อ ${(sellPrice(it) * it.qty).toLocaleString()}\nภาษีตลาด 8%: -${fee.toLocaleString()}  →  ได้รับ ${(this.mkPrice - fee).toLocaleString()} 💰\nขึ้นขาย ${LISTING_HOURS} ชม. ไม่มีคนซื้อ = คืนของ`, 7.5, '#e8dcc0', { lineSpacing: 3 }));
-        c.add(k.button(dx + 8, top + H - 108, dw - 16, 24, `ลงขาย (${myListings(s).length}/${MAX_LISTINGS})`, () => {
+        const away = !!(this.ui as unknown as { td?: { stageN: number } }).td?.stageN && !vipActive(s);   // out of the village: VIP only
+        if (away) c.add(k.text(dx + dw / 2, top + H - 124, '👑 ลงขายนอกหมู่บ้านได้เฉพาะ VIP', 8, '#ffd84a').setOrigin(0.5, 0));
+        c.add(k.button(dx + 8, top + H - 108, dw - 16, 24, away ? 'กลับหมู่บ้านเพื่อลงขาย' : `ลงขาย (${myListings(s).length}/${MAX_LISTINGS})`, () => {
           const r = act('marketList', { uid: it.uid, qty: it.qty, price: this.mkPrice });
+          if (r === 'away') { sfx.error(); bus.emit(EV.TOAST, '👑 ลงขายนอกหมู่บ้านได้เฉพาะ VIP — กลับหมู่บ้านก่อน', '#ffd84a'); return; }
           if (typeof r === 'string') { sfx.error(); bus.emit(EV.TOAST, { equipped: 'ถอดก่อนจึงจะลงขายได้', missing: 'ไม่พบของ', full: 'ลงขายได้สูงสุด 10 รายการ', price: 'ราคาไม่ถูกต้อง' }[r], '#ff8a6a'); return; }
           sfx.coin(); bus.emit(EV.TOAST, `ลงขาย ${d.name} ราคา ${this.mkPrice.toLocaleString()} 💰 แล้ว`, '#9fffb0'); this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
-        }, { size: 9.5, color: 0x1f4a2a }));
+        }, { size: 9.5, color: 0x1f4a2a, disabled: away }));
       }
     } else {
       const mine = myListings(s);

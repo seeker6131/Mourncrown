@@ -318,7 +318,8 @@ export const handlers = {
     if (wasVillager) { const w = ({ sword: 'wood_sword', archer: 'short_bow', mage: 'apprentice_wand', cleric: 'iron_mace' } as Record<string, string>)[s.cls]; if (w && addItem(s, w, 1)) { equip(s, s.inventory[s.inventory.length - 1].uid); weapon = w; } }
     return { ok: true, weapon };
   },
-  marketList: (s: GameState, a: { uid: number; qty: number; price: number }, c: Ctx) => listItem(s, a.uid, a.qty, a.price, c.now),
+  /** list an item on the market: in the village — VIP anywhere (director) */
+  marketList: (s: GameState, a: { uid: number; qty: number; price: number }, c: Ctx) => (mem.map !== 0 && !vipActive(s, c.now) ? 'away' as const : listItem(s, a.uid, a.qty, a.price, c.now)),
   marketCancel: (s: GameState, a: { id: string }) => cancelListing(s, a.id),
   buyDiamond: (s: GameState, a: { id: string }, c: Ctx) => buyDiamondItem(s, a.id, c.now),
   vipGift: (s: GameState, _a: object, c: Ctx) => claimVipGift(s, c.now),

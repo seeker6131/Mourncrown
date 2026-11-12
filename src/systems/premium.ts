@@ -26,6 +26,9 @@ export const VIP_PERKS = [
   'ซื้อยาได้ทุกที่ไม่ต้องกลับบ้าน + เลือกให้ระบบซื้อยาให้เองเมื่อหมด',
   'ของขวัญรายวัน: ม้วนกลับหมู่บ้าน x3 + ยาฟื้นพลังใหญ่ x5',
   'ป้าย VIP สีทองบนแถบสถานะ',
+  'ออร่าพลังรอบตัว: 3 วัน สีฟ้า • 7 วัน สีม่วง • 15 วัน สีทอง',
+  'เดินเร็วขึ้น 15% (ขี่ม้า/มังกรยังเร็วกว่า)',
+  'ลงขายของในตลาดกลางได้ทุกที่ ไม่ต้องกลับหมู่บ้าน',
 ];
 /** things diamonds buy — comfort and looks only */
 export interface DiamondItem { id: string; name: string; desc: string; price: number; soon?: boolean }
@@ -44,12 +47,26 @@ export const DIAMOND_SHOP: DiamondItem[] = [
   { id: 'rename', name: 'เปลี่ยนชื่อตัวละคร', desc: 'ใช้ได้เมื่อระบบออนไลน์เปิด', price: 200, soon: true },
 ];
 
-type PS = GameState & { diamonds?: number; vipUntil?: number; vipGift?: string; bagPlus?: number; fxOwned?: string[]; fx?: string };
+type PS = GameState & { diamonds?: number; vipUntil?: number; vipTier?: number; auraOff?: boolean; vipGift?: string; bagPlus?: number; fxOwned?: string[]; fx?: string };
 export const diamonds = (s: GameState) => (s as PS).diamonds ?? 0;
 export const vipActive = (s: GameState, now = Date.now()) => ((s as PS).vipUntil ?? 0) > now;
 export const vipLeftMs = (s: GameState, now = Date.now()) => Math.max(0, ((s as PS).vipUntil ?? 0) - now);
 /** grant after a VERIFIED purchase (server-side when online); stacks onto remaining time */
-export function grantVip(s: GameState, days: number, now = Date.now()) { const p = s as PS; p.vipUntil = Math.max(p.vipUntil ?? 0, now) + days * 86400000; }
+export function grantVip(s: GameState, days: number, now = Date.now()) {
+  const p = s as PS, tier = days >= 15 ? 3 : days >= 7 ? 2 : 1;
+  p.vipTier = (p.vipUntil ?? 0) > now ? Math.max(p.vipTier ?? 1, tier) : tier;   // the best card in this VIP run
+  p.vipUntil = Math.max(p.vipUntil ?? 0, now) + days * 86400000;
+}
+/** VIP card tier while VIP lasts: 1 = 3-day, 2 = 7-day, 3 = 15-day (aura colour) — 0 when not VIP */
+export const vipTier = (s: GameState, now = Date.now()) => vipActive(s, now) ? (s as PS).vipTier ?? 1 : 0;
+/** VIP walks a little faster on foot — slower than the horse (x1.3) and the dragon (x1.5) */
+export const VIP_WALK = 1.15;
+/** aura colours by VIP card: 3 days = sky blue, 7 days = violet, 15 days = gold */
+export const VIP_AURA: Record<number, { name: string; col: number; tints: number[] }> = {
+  1: { name: 'ฟ้าคราม', col: 0x5ad8ff, tints: [0xe0faff, 0x5ad8ff, 0x1a8aff] },
+  2: { name: 'ม่วงทมิฬ', col: 0xb05aff, tints: [0xf0c8ff, 0xb05aff, 0x6a1aff] },
+  3: { name: 'ทองราชันย์', col: 0xffd23a, tints: [0xfff2a0, 0xffd23a, 0xff9a1a] },
+};
 export function grantDiamonds(s: GameState, n: number) { const p = s as PS; p.diamonds = (p.diamonds ?? 0) + n; }
 
 /** daily VIP gift; returns false if not VIP or already claimed today */
