@@ -13,7 +13,8 @@ import { formKeyOf } from '../world/chars';
 import { activeTier } from '../systems/stats';
 import { guildOf } from '../systems/guild';
 import { mountOn } from '../systems/mounts';
-import { cloud } from '../net/cloud';
+import { cloud, googleLinked } from '../net/cloud';
+import { showGoogleButton } from '../net/googleBtn';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -73,7 +74,18 @@ export class TitleScene extends Phaser.Scene {
     k.text(cx, 350, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
     // the game server: is the save kept there (net/cloud.ts)
     const cl = k.text(cx, 336, '', 7.5, '#9fd4ff').setOrigin(0.5);
-    const showCloud = () => cl.setText(cloud.state === 'ok' || cloud.state === 'saving' ? '☁ เชื่อมต่อเซิร์ฟแล้ว — เซฟเก็บบนเซิร์ฟ' : cloud.state === 'error' ? '☁ ออฟไลน์ — เล่นได้ปกติ เซฟเก็บในเครื่อง' : '☁ กำลังเชื่อมต่อเซิร์ฟ...').setColor(cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
+    // Google sign-in: the hero follows the player to any device (until linked, the account lives on this device only)
+    let note = '';
+    const showCloud = () => cl.setText(note || (cloud.state === 'ok' || cloud.state === 'saving' ? (googleLinked() ? '☁ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม' : '☁ เชื่อมต่อเซิร์ฟแล้ว — เซฟเก็บบนเซิร์ฟ') : cloud.state === 'error' ? '☁ ออฟไลน์ — เล่นได้ปกติ เซฟเก็บในเครื่อง' : '☁ กำลังเชื่อมต่อเซิร์ฟ...')).setColor(cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
+    if (!googleLinked()) {
+      const off = showGoogleButton(r => {
+        if (r === 'switched') { off(); this.scene.restart(); return; }   // the hero of that Google account is now on this device
+        if (r === 'linked') { off(); note = '✔ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม'; }
+        else note = '✖ เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง';
+        showCloud();
+      });
+      this.events.once('shutdown', off);
+    }
     showCloud(); this.time.addEvent({ delay: 600, loop: true, callback: showCloud });
     // language switch (English by default on the first visit)
     this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));

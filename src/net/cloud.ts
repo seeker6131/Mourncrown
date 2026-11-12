@@ -3,10 +3,14 @@
 // offline: the local save is always written first, the server copy follows a few seconds later.
 // ⚠️ Step 1: the server stores what the game sends. Step 2 moves the rules (src/server/handlers.ts) to the server.
 export const SERVER = 'https://mourncrown.egowenit.workers.dev';
+/** Google sign-in (Google Cloud project 'mourncrown', web client) — public, not a secret */
+export const GOOGLE_CLIENT_ID = '481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com';
 const ACC = 'mc_cloud', SAVE_KEY = 'eldergrove_save_v1', DELAY = 12_000;
 
-interface Acc { id: string; token: string; rev: number }
-export const cloud = { state: 'off' as 'off' | 'ok' | 'saving' | 'error', at: 0, google: false };
+interface Acc { id: string; token: string; rev: number; google?: boolean }
+export const cloud = { state: 'off' as 'off' | 'ok' | 'saving' | 'error', at: 0 };
+/** is this device's account linked to a Google account (the hero loads on any device) */
+export const googleLinked = () => ok() && !!acc()?.google;
 const ok = () => typeof window !== 'undefined' && typeof fetch === 'function' && typeof localStorage !== 'undefined';
 function acc(): Acc | null { try { return JSON.parse(localStorage.getItem(ACC) ?? 'null'); } catch { return null; } }
 function setAcc(a: Acc) { try { localStorage.setItem(ACC, JSON.stringify(a)); } catch { /* private mode */ } }
@@ -58,3 +62,20 @@ export async function flush(keepalive = false) {
   busy = false;
 }
 if (ok()) document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(true); });
+
+/** a Google sign-in credential from the button: link this device's hero to the Google account, or (that Google account
+ *  already has a hero) sign this device in to it and take its save. 'switched' = the save on this device was replaced. */
+export async function googleLogin(credential: string): Promise<'linked' | 'switched' | 'fail'> {
+  if (!ok()) return 'fail';
+  try {
+    await flush();   // this device's latest progress reaches its own account first
+    const r = await req('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) });
+    if (r.status !== 200) return 'fail';
+    if (r.body.linked) { const a = acc()!; a.google = true; setAcc(a); return 'linked'; }
+    const n: Acc = { id: String(r.body.id), token: String(r.body.token), rev: 0, google: true }; setAcc(n);
+    const sv = await req('/save');
+    if (sv.status === 200 && sv.body.data) { localStorage.setItem(SAVE_KEY, JSON.stringify(sv.body.data)); n.rev = Number(sv.body.rev) || 0; setAcc(n); return 'switched'; }
+    dirty = true; flush();   // a new Google account: the hero on this device becomes its hero
+    return 'linked';
+  } catch { return 'fail'; }
+}
