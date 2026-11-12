@@ -13,6 +13,7 @@ ALIAS = {'walking': 'walk'}
 # animations made only to compare options (kept on PixelLab, never imported)
 TRIALS = {'bs5': ('stompa', 'stompb')}
 SRC = {'bs3': 'bs3b'}      # the remade Obsidian Serpent (big canvas, wings not cut) lives in chars/bs3b.zip
+FIX_MIRROR = {'bs1', 'bs2', 'bs3'}   # re-made walks ('walkfix', tools/gen_anim.py) for S..N only: the west side flipped from the east
 MIRROR_W = {'bs3'}         # generated facing the east side only: west / south-west / north-west = east side flipped
 COPY = {'bs3': {'special': 'attack', 'attack': 'walk'}}   # animation not generated yet -> shown with another one
 def norm(a):
@@ -26,7 +27,7 @@ def norm(a):
 # gets the plain name varies), so the re-made group is found by its id in state.json ('walkfix_g').
 FIX = re.compile(r'^walking-[0-9a-f]{8}$')
 _SF = os.path.join(PL, 'chars', 'state.json'); STATE = json.load(open(_SF)) if os.path.exists(_SF) else {}
-def frames_of(z, old_walk=False, fixg=None, text_dirs=()):
+def frames_of(z, old_walk=False, fixg=None, text_dirs=(), fixmirror=False):
     names = z.namelist(); load = lambda n: Image.open(io.BytesIO(z.read(n))).convert('RGBA')
     # a zip can hold several states of one character (hg: Idle + axe / pick / spear): the idle picture is the 'Idle' state
     rot = {}
@@ -75,6 +76,11 @@ def frames_of(z, old_walk=False, fixg=None, text_dirs=()):
             if d in rot and fr:
                 c = Image.new('RGBA', fr[0].size); c.paste(rot[d], ((c.width - rot[d].width) // 2, (c.height - rot[d].height) // 2)); fr = [c] + fr
             out.setdefault(a, {})[d] = fr
+    # bosses whose walk was re-made for the east side only: the west side is the east side flipped (saves credits)
+    for a, dd in refix.items():
+        if a == 'walk' and fixmirror:
+            for e, w in (('east', 'west'), ('south-east', 'south-west'), ('north-east', 'north-west')):
+                if e in out.get('walk', {}): out['walk'][w] = [im.transpose(Image.FLIP_LEFT_RIGHT) for im in out['walk'][e]]
     return rot, out, load
 
 def foot(ims):
@@ -238,7 +244,7 @@ def build(key, zips, man):
         only = None
         if isinstance(zp, tuple): zp, only = zp
         if not os.path.exists(zp): continue
-        r, a, _ = frames_of(zipfile.ZipFile(zp), key.startswith('bs') and not STATE.get(key, {}).get('walkfix_g'), STATE.get(key, {}).get('walkfix_g'), TEXT_WALK.get(key, ()))   # a boss with a re-made skeleton walk (bs5: six arms kept) uses it
+        r, a, _ = frames_of(zipfile.ZipFile(zp), key.startswith('bs') and not STATE.get(key, {}).get('walkfix_g'), STATE.get(key, {}).get('walkfix_g'), TEXT_WALK.get(key, ()), key in FIX_MIRROR)   # a boss with a re-made skeleton walk (bs5: six arms kept) uses it
         for tr in TRIALS.get(key, ()): a.pop(tr, None)   # trial clips that lost the comparison stay out of the game
         if only is None: rot.update(r); anims.update(a)
         else:
@@ -333,7 +339,8 @@ if __name__ == '__main__':
     alt = set(SRC.values())
     for f in sorted(os.listdir(cd)) if os.path.isdir(cd) else []:
         k = f[:-4]
-        if f.endswith('.zip') and not f.startswith(('hero_', 'mt_')) and k not in alt:   # mounts: tools/import_mounts.py build(k, [os.path.join(cd, SRC.get(k, k) + '.zip')], man)
+        # mounts: tools/import_mounts.py · riding poses: tools/import_riders.py
+        if f.endswith('.zip') and not f.startswith(('hero_', 'mt_')) and not f.endswith('_ride.zip') and k not in alt: build(k, [os.path.join(cd, SRC.get(k, k) + '.zip')], man)
     json.dump(man, open(os.path.join(OUT, 'chars.json'), 'w'), indent=0)
     # sheets of animations that no longer exist (renamed / merged groups) are removed so the game never loads them
     want = {f'{k}_idle.webp' for k in man} | {f'{k}_{a}.webp' for k, v in man.items() for a in v['anims']}

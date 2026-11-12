@@ -45,7 +45,7 @@ function bodyTop(sc: Phaser.Scene, key: string, frame: number) {
 }
 
 export class Riding {
-  back: Phaser.GameObjects.Sprite; front: Phaser.GameObjects.Sprite; rider: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image;
+  back: Phaser.GameObjects.Sprite; front: Phaser.GameObjects.Sprite; fronts: Phaser.GameObjects.Sprite[] = []; rider: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image;
   embers?: Phaser.GameObjects.Particles.ParticleEmitter;
   info: MInfo; key: string; dir = -1; form = ''; moving = false; cut = 0; riderTop = 0;
   constructor(public sc: Phaser.Scene, public id: MountId, x: number, y: number) {
@@ -55,6 +55,7 @@ export class Riding {
     this.back = sc.add.sprite(x, y, tex, 0).setOrigin(0.5, oy).setScale(def.scale);
     this.rider = sc.add.sprite(x, y, '__DEFAULT');
     this.front = sc.add.sprite(x, y, tex, 0).setOrigin(0.5, oy).setScale(def.scale);
+    for (let i = 0; i < 2; i++) this.fronts.push(sc.add.sprite(x, y, tex, 0).setOrigin(0.5, oy).setScale(def.scale).setVisible(false));
     if (def.fire) {
       if (!sc.textures.exists('px_ember')) { const c = document.createElement('canvas'); c.width = 2; c.height = 2; const k = c.getContext('2d')!; k.fillStyle = '#ffb040'; k.fillRect(0, 0, 2, 2); sc.textures.addCanvas('px_ember', c); }
       this.embers = sc.add.particles(x, y, 'px_ember', { x: { min: -14, max: 14 }, speedY: { min: -38, max: -18 }, speedX: { min: -8, max: 8 }, lifespan: { min: 500, max: 900 }, alpha: { start: 1, end: 0 }, scale: { start: 1, end: 0.4 }, tint: [0xffd060, 0xff8030, 0xff4020], frequency: 70, blendMode: Phaser.BlendModes.ADD });
@@ -88,20 +89,27 @@ export class Riding {
     // the side the near leg lies over the flank, so nothing. Without a pose: everything under the seat hides the cut.
     const [sx, sy] = def.seat[dir] ?? [m.fs / 2, m.fs * 0.35];
     this.front.setTexture(this.back.texture.key, this.back.frame.name);
-    const band = def.front?.[dir];
-    if (!pose) this.front.setVisible(true).setCrop(0, sy + 1, m.fs, m.fs - sy - 1);
-    else if (band) { const y0 = band[2] ?? sy - 2; this.front.setVisible(true).setCrop(band[0], y0, band[1] - band[0], m.fs - y0); }
-    else this.front.setVisible(false);
+    // the body under the saddle is always nearer than the rider's lower legs (they hang down the far side / behind the
+    // flank); with a riding pose the thighs stay on the saddle and legs spread wider than the body still show at the sides
+    const by = pose ? sy + 6 : sy + 1;
+    this.front.setVisible(true).setCrop(0, by, m.fs, m.fs - by);
+    // the head and neck when they are on the near side (facing us / to a side): the far leg must not hang over them
+    const parts = pose ? def.front?.[dir] ?? [] : [];
+    this.fronts.forEach((f, i) => {
+      const r = parts[i]; if (!r) { f.setVisible(false); return; }
+      f.setTexture(this.back.texture.key, this.back.frame.name).setVisible(true).setCrop(r[0], r[2], r[1] - r[0], Math.max(0, by - r[2]));
+    });
     // gait: the rider rises and falls with the steps
     const bob = moving ? -Math.abs(Math.sin(time / 95)) * 1.6 : Math.sin(time / 600) * 0.5;
     const wx = x + (sx - m.fs / 2) * s, wy = y + (sy - m.foot) * s;
     this.back.setPosition(x, y).setDepth(y - 0.3);
     this.front.setPosition(x, y).setDepth(y + 0.3);
+    for (const f of this.fronts) f.setPosition(x, y).setDepth(y + 0.3);
     this.rider.setPosition(Math.round(wx), Math.round(wy + (pose ? 1 : 3) * heroScale + bob)).setScale(heroScale).setDepth(y);
     this.sh.setPosition(x, y);
     this.embers?.setPosition(wx, wy - 6).setDepth(y + 0.4);
   }
   /** world y of the rider's head (for the HP bar) */
   headY() { return this.rider.y - this.riderTop * this.rider.scaleY - 4; }
-  destroy() { this.back.destroy(); this.front.destroy(); this.rider.destroy(); this.sh.destroy(); this.embers?.destroy(); }
+  destroy() { this.back.destroy(); this.front.destroy(); this.fronts.forEach(f => f.destroy()); this.rider.destroy(); this.sh.destroy(); this.embers?.destroy(); }
 }

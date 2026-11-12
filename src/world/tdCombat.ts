@@ -752,15 +752,12 @@ export class Combat {
         const attacking = time - m.atkT < (m.boss ? animMs(m.m.key, 'attack') + 60 : 600) || (m.chargeT ?? 0) > time;
         if (!attacking) { if (moving) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }
       }
-      // a boss walks with heavy stomps: its body rises and falls with each step, dust puffs from its feet
-      let bob = 0;
+      // a boss's steps raise a little dust (its legs move in its own walk; the picture is never rocked or tilted — director)
       if (m.boss && moving && !((m.chargeT ?? 0) > time)) {
-        m.stepT = (m.stepT ?? 0) + dt; const ph = m.stepT / 260;
-        bob = -Math.abs(Math.sin(ph * Math.PI)) * 4;
-        m.sp.setAngle(Math.sin(ph * Math.PI) * 2.2);
+        m.stepT = (m.stepT ?? 0) + dt; const ph = m.stepT / 300;
         if (Math.floor(ph) !== (m.stepN ?? -1)) { m.stepN = Math.floor(ph); this.vfx.dust(m.x + (m.stepN % 2 ? 10 : -10), m.y, 3, 8); }
-      } else if (m.boss && m.sp.angle) m.sp.setAngle(0);
-      m.sp.setPosition(m.x, m.y + bob).setDepth(m.y);
+      }
+      m.sp.setPosition(m.x, m.y).setDepth(m.y);
       (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
       (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.setPosition(m.x, m.y + 2).setDepth(m.y + 1);
       { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) { rg.setPosition(m.x, m.y + 1).setDepth(m.y - 3); if (!m.boss) rg.setAlpha(angry ? 0.95 : 0.4); } }

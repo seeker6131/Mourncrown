@@ -170,10 +170,21 @@ export class Panels implements GuildHost {
     return { x, y, w, h, g };
   }
 
+  bagPage = 0;
+  /** a second tap on the same item within a moment */
+  private lastTap = { uid: -1, t: 0 };
+  dbl(uid: number) { const now = Date.now(), d = this.lastTap.uid === uid && now - this.lastTap.t < 380; this.lastTap = d ? { uid: -1, t: 0 } : { uid, t: now }; return d; }
+  /** wear a piece of gear, or take it off if it is worn — at once */
+  toggleWear(uid: number) {
+    const s = S(), it = s.inventory.find(i => i.uid === uid); if (!it) return;
+    const on = isEquipped(s, uid); act(on ? 'unequip' : 'equip', { uid }); sfx.equip();
+    bus.emit(EV.TOAST, `${on ? 'ถอด' : 'สวมใส่'} ${itemDef(it.id).name}`, '#ffe7a0');
+    this.selUid = uid; saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+  }
   // ---------------- BAG ----------------
   buildBag(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = Math.min(560, ui.VW - 20), H = 320;
+    const W = Math.min(640, ui.VW - 20), H = 320;
     const { x, y, g } = this.window(c, W, H, 'กระเป๋า & อุปกรณ์');
     // equipment column
     const ex = x + 14, ey = y + 32;
@@ -192,7 +203,7 @@ export class Panels implements GuildHost {
         c.add(this.ico(sx + 14, sy + 14, `icon_${itemDef(it.id).icon}`, 28));
         if (it.upg) c.add(k.text(sx + 27, sy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
         const z = ui.add.zone(sx, sy, 28, 28).setOrigin(0).setInteractive();
-        z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
+        z.on('pointerup', () => { if (this.dbl(it.uid)) { this.toggleWear(it.uid); return; } sfx.click(); this.selUid = it.uid; this.rebuild(); });   // double tap = take off
         c.add(z);
       }
     }
@@ -202,26 +213,35 @@ export class Panels implements GuildHost {
     c.add(k.text(ex + 20, ey + H - 72, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
 
     // grid
-    const N = invSize(s), cols = Math.ceil(N / 5), cs = Math.min(30, Math.floor(198 / cols) - 3);
+    // director: bigger items, 6 to a row; pages of 6 rows when the bag holds more
+    const N = invSize(s), cols = 6, cs = 38, gap = 4, rows = 6, per = cols * rows, pages = Math.ceil(N / per);
+    this.bagPage = Math.min(this.bagPage, pages - 1);
     const gx = ex + 122, gy = ey;
-    for (let i = 0; i < N; i++) {
-      const cx = gx + (i % cols) * (cs + 3), cy = gy + Math.floor(i / cols) * (cs + 3);
+    for (let j = 0; j < Math.min(per, N - this.bagPage * per); j++) {
+      const i = this.bagPage * per + j;
+      const cx = gx + (j % cols) * (cs + gap), cy = gy + Math.floor(j / cols) * (cs + gap);
       const it = s.inventory[i];
       const def = it ? itemDef(it.id) : null;
       k.iconSlot(g, cx, cy, cs, it ? RARITY_COLORS[rarOf(it)] : undefined, !!it && it.uid === this.selUid);
       if (it && def) {
         c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs));
-        if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
-        if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7, '#9fffb0').setOrigin(1, 0));
-        if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
-        if (it.set) c.add(k.text(cx + cs - 2, cy + cs - 10, '◆', 7, '#' + SETS[it.set].col.toString(16).padStart(6, '0')).setOrigin(1, 0));
+        if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 8.5, '#ffffff').setOrigin(1, 1));
+        if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 8, '#9fffb0').setOrigin(1, 0));
+        if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 8, '#ffd84a'));
+        if (it.set) c.add(k.text(cx + cs - 2, cy + cs - 12, '◆', 8, '#' + SETS[it.set].col.toString(16).padStart(6, '0')).setOrigin(1, 0));
         const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
-        z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
+        z.on('pointerup', () => { if (this.dbl(it.uid) && ['weapon', 'armor', 'accessory'].includes(def.type)) { this.toggleWear(it.uid); return; } sfx.click(); this.selUid = it.uid; this.rebuild(); });   // double tap = wear / take off
         c.add(z);
       }
     }
+    if (pages > 1) {   // more than one page: ▲ ▼ under the grid
+      const py = gy + rows * (cs + gap) + 2, pw = cols * (cs + gap) - gap;
+      c.add(k.button(gx, py, 60, 18, '◀', () => { this.bagPage = Math.max(0, this.bagPage - 1); this.rebuild(); }, { size: 9, disabled: this.bagPage === 0 }));
+      c.add(k.text(gx + pw / 2, py + 4, `หน้า ${this.bagPage + 1}/${pages}`, 8.5, '#d9b45a').setOrigin(0.5, 0));
+      c.add(k.button(gx + pw - 60, py, 60, 18, '▶', () => { this.bagPage = Math.min(pages - 1, this.bagPage + 1); this.rebuild(); }, { size: 9, disabled: this.bagPage >= pages - 1 }));
+    }
     // detail
-    const dx = gx + cols * (cs + 3) + 6, dw = x + W - 14 - dx;
+    const dx = gx + cols * (cs + gap) + 6, dw = x + W - 14 - dx;
     if (dw > 80) this.itemDetail(c, g, dx, ey, dw, H - 44, 'bag');
   }
 
@@ -271,10 +291,10 @@ export class Panels implements GuildHost {
         if (r.recall) { this.close(); bus.emit('td:recall'); } else this.rebuild();
       }, 0x1f4a2a);
       if (def.type === 'weapon' || def.type === 'armor' || def.type === 'accessory') {
-        if (isEquipped(s, it.uid)) btn('ถอดออก', () => { act('unequip', { uid: it.uid }); bus.emit(EV.STATE_CHANGED); });
+        if (isEquipped(s, it.uid)) btn('ถอดออก', () => { act('unequip', { uid: it.uid }); sfx.equip(); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); });
         else {
-          btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.equip(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); bus.emit(EV.STATE_CHANGED); }, 0x1f3a5a);
-          btn('ย่อยเป็นวัตถุดิบ', () => { const r = act('dismantle', { uid: it.uid }); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; bus.emit(EV.STATE_CHANGED); } }, 0x4a2a5a);
+          btn('สวมใส่', () => { act('equip', { uid: it.uid }); sfx.equip(); bus.emit(EV.TOAST, `สวมใส่ ${def.name}`, '#ffe7a0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x1f3a5a);   // the item jumps into its slot at once
+          btn('ย่อยเป็นวัตถุดิบ', () => { const r = act('dismantle', { uid: it.uid }); if (r) { sfx.upgradeOk(); bus.emit(EV.TOAST, `ได้ผลึกมานา x${r.shards}${r.cores ? ` แก่นโบราณ x${r.cores}` : ''}`, '#c89aff'); this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); } }, 0x4a2a5a);
         }
       }
     } else if (mode === 'sell') {
