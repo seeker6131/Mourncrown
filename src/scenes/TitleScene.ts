@@ -12,6 +12,11 @@ export class TitleScene extends Phaser.Scene {
 
   artLeft = 0; artMid = 0;
   create() {
+    // turning the phone (portrait -> landscape) changes the screen size: lay the title out again
+    // (not once the game is starting: going full screen resizes too, and a restart would cancel the start)
+    let starting = false;
+    const relayout = () => { if (!starting) this.time.delayedCall(80, () => { if (this.sys.isActive() && !starting) this.scene.restart(); }); };
+    this.scale.on('resize', relayout); this.events.once('shutdown', () => this.scale.off('resize', relayout));
     const u = this.scale.height / 360, VW = this.scale.width / u;
     this.cameras.main.setOrigin(0, 0).setZoom(u);
     const k = new UIKit(this, () => u);
@@ -42,6 +47,7 @@ export class TitleScene extends Phaser.Scene {
     this.tweens.add({ targets: title, scale: { from: 1, to: 1.03 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     const start = (fresh: boolean) => {
+      starting = true;
       unlockAudio();
       if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen();   // full screen on start (Android / iPad / desktop)
       const st = fresh ? startNewGame() : (loadGame() ?? startNewGame());
