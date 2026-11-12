@@ -5,6 +5,8 @@ import { itemDef, ITEMS } from '../src/data/items';
 import { invSize, type GameState } from '../src/core/state';
 import { addItem } from '../src/systems/inventory';
 import { MARKET_FEE, type Listing } from '../src/systems/market';
+import { startNewGame } from '../src/core/save';
+import { goalProgress } from '../src/systems/guild';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -33,7 +35,7 @@ const json = (req: Request, body: unknown, status = 200) => new Response(JSON.st
 
 async function who(req: Request, env: Env) {
   const t = req.headers.get('x-mc-token'); if (!t || t.length < 32 || t.length > 128) return null;
-  const a = await env.DB.prepare('SELECT id, google_sub, name FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string; google_sub: string | null; name: string | null }>();
+  const a = await env.DB.prepare('SELECT id, google_sub, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; google_sub: string | null; name: string | null }>();
   if (a) await env.DB.prepare('UPDATE accounts SET seen = ? WHERE id = ?').bind(Date.now(), a.id).run();
   return a;
 }
@@ -70,8 +72,8 @@ export default {
       if (path === '/' || path === '/health') return json(req, { ok: true, game: 'mourncrown', google: !!env.GOOGLE_CLIENT_ID });
 
       if (path === '/auth/guest' && req.method === 'POST') {
-        const ipHash = await sha('mc:' + (req.headers.get('CF-Connecting-IP') ?? ''));
-        const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE ip_hash = ? AND created > ?').bind(ipHash, Date.now() - 3600_000).first<{ n: number }>();
+        const ip = req.headers.get('CF-Connecting-IP') ?? '', ipHash = await sha('mc:' + ip);
+        const n = ip ? await env.DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE ip_hash = ? AND created > ?').bind(ipHash, Date.now() - 3600_000).first<{ n: number }>() : null;   // (Cloudflare always names the IP; only a local test copy has none)
         if ((n?.n ?? 0) >= NEW_PER_HOUR) return json(req, { error: 'rate' }, 429);
         return json(req, await newAccount(env, ipHash, null));
       }
@@ -79,7 +81,8 @@ export default {
       if (path === '/auth/google' && req.method === 'POST') {
         const body = await req.json().catch(() => ({})) as { credential?: string };
         const sub = await googleSub(env, body.credential ?? ''); if (!sub) return json(req, { error: 'google' }, 401);
-        const linked = await env.DB.prepare('SELECT id FROM accounts WHERE google_sub = ?').bind(sub).first<{ id: string }>();
+        const linked = await env.DB.prepare('SELECT id, banned FROM accounts WHERE google_sub = ?').bind(sub).first<{ id: string; banned: number }>();
+        if (linked?.banned) return json(req, { error: 'banned' }, 403);
         if (linked) {   // this Google account already has a hero: this device signs in to it (a new session token for this device)
           const token = rand(32);
           await env.DB.prepare('UPDATE accounts SET token_hash = ?, seen = ? WHERE id = ?').bind(await sha(token), Date.now(), linked.id).run();
@@ -98,7 +101,7 @@ export default {
       if (path === '/play') {
         if (req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'play' }, 400);
         const t = url.searchParams.get('t') ?? '';
-        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string }>() : null;
+        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string }>() : null;
         if (!a) return new Response('auth', { status: 401 });
         const u = new URL(req.url); u.pathname = '/ws'; u.search = ''; u.searchParams.set('id', a.id);
         return env.PLAYER.get(env.PLAYER.idFromName(a.id)).fetch(new Request(u.toString(), req));
@@ -109,7 +112,7 @@ export default {
         const room = path.slice(6);
         if (!/^[a-z0-9-]{1,32}$/.test(room) || req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'room' }, 400);
         const t = url.searchParams.get('t') ?? '';
-        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ?').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
+        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
         if (!a) return new Response('auth', { status: 401 });
         const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
@@ -171,6 +174,8 @@ export default {
 };
 
 // ===== a map room: the players in one map see each other and talk =====
+/** players a room (the system picks the room — the next one when full): monster maps 30, the Deepwild 100 (director), villages 50 */
+const roomCap = (room: string) => room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
@@ -192,6 +197,10 @@ export class Room {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? '', name = (u.searchParams.get('name') || 'ผู้กล้า#' + id.slice(0, 4)).slice(0, 16);
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
+    if (this.all().filter(x => x.a.id !== id).length >= roomCap(u.searchParams.get('room') ?? '')) {   // full: the game moves on to the next room of this map
+      (server as unknown as { accept(): void }).accept(); server.close(4001, 'full');
+      return new Response(null, { status: 101, webSocket: client } as ResponseInit);
+    }
     this.state.acceptWebSocket(server, [id]);
     server.serializeAttachment({ id, room: u.searchParams.get('room') ?? '', name, n: 0, win: Date.now(), chatT: 0, join: Date.now(), bud: 0, budT: Date.now() } as Who);
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
@@ -242,7 +251,7 @@ export class Room {
         for (const [k, v] of Object.entries(r.dmg)) sh[k] = Math.round(v / r.max * 1000) / 1000;
         send({ t: 'mdead', sid: Number(m.sid), sh });
         // the server pays: each player with a fair share gets their own reward in their own game on the server
-        const room = me.room ?? '', n = room === 'w' ? WILD : Number(room.slice(1)) || 0, need = r.boss ? 0.03 : 0.1;
+        const room = me.room ?? '', n = room.startsWith('w') ? WILD : parseInt(room.slice(1), 10) || 0, need = r.boss ? 0.03 : 0.1;
         if (n) await Promise.allSettled(Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) =>
           this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid: Number(m.sid), key: r.key, kind: r.kind, boss: r.boss, elite: r.elite, share: v }) }))));
       }
@@ -276,7 +285,7 @@ const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos'
 type St = Record<string, unknown>;
 interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
 export class Player {
-  st: St | null = null; mem: Mem = newMem(); rev = 0; at = 0; dirty = false; loaded = false; id = '';
+  st: St | null = null; mem: Mem = newMem(); goalSend: { kind: string; n: number }[] = []; rev = 0; at = 0; dirty = false; loaded = false; id = '';
   constructor(private state: DOState & { storage: DOStore }, private env: Env) {}
   private async load(id: string) {
     if (this.loaded) return; this.id = id;
@@ -302,7 +311,12 @@ export class Player {
     useMem(this.mem);
     const realG = (st as { guildId?: string }).guildId ? st.guild : undefined;
     let r: unknown; try { r = fn(st, args ?? {}, { now: Date.now(), rnd: Math.random }); } catch (e) { r = { refused: 'error', detail: String(e).slice(0, 120) }; }
-    if (realG !== undefined) st.guild = realG;   // (a real guild changes only through its own object)
+    if (realG !== undefined) {   // a real guild changes only through its own object — but goal progress (kills, ore...) is sent there
+      const nowG = st.guild as { goals?: { list?: { kind: string; have: number }[] } } | undefined, oldL = (realG as typeof nowG)?.goals?.list ?? [];
+      const ups = (nowG?.goals?.list ?? []).map(q => ({ kind: q.kind, n: q.have - (oldL.find(o => o.kind === q.kind)?.have ?? q.have) })).filter(d => d.n > 0);
+      st.guild = realG;
+      if (ups.length) this.goalSend = [...this.goalSend, ...ups];
+    }
     const own: St = {}; for (const k of Object.keys(st)) if (!CLIENT_KEYS.has(k) && before.get(k) !== JSON.stringify(st[k])) own[k] = st[k];
     return { r, own };
   }
@@ -327,6 +341,7 @@ export class Player {
     }
     if (name === 'guildCreate') {
       if (st.guild) return { r: { refused: 'member' }, own: {} };
+      if (!cleanName(String(a.name ?? '').replace(/\s+/g, '_'))) return { r: { refused: 'name' }, own: {} };   // (the player-name filter)
       const out = this.run('guildCreate', a); const g = st.guild; if (!g || (out.r as { refused?: string })?.refused) return out;
       for (const mm of g.members) if (mm.id === 'me') mm.id = this.id;
       try { await DB.prepare('INSERT INTO guilds (id, name, name_key, leader, members, hall, at) VALUES (?, ?, ?, ?, 1, 1, ?)').bind(g.id, g.name, g.name.toLowerCase(), String(st.name ?? ''), now).run(); }
@@ -439,7 +454,10 @@ export class Player {
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
       const body = JSON.parse(await req.text()) as { data?: St };
       if (!body.data || typeof body.data !== 'object' || typeof body.data.version !== 'number') return new Response(JSON.stringify({ error: 'data' }), { status: 400 });
-      if (!this.st) { this.st = body.data; for (const k of ['diamonds', 'vipUntil', 'vipTier']) delete this.st[k]; }   // (never money things from a save)
+      if (!this.st) {   // a new account's first save: a fresh character (a save edited before going online brings nothing)
+        this.st = startNewGame() as unknown as St;
+        for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
+      }
       else for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
       this.dirty = true; await this.persist();
       return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
@@ -461,6 +479,7 @@ export class Player {
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
     const gid = (this.st as { guildId?: string }).guildId;
+    if (this.goalSend.length && gid) { const g = this.goalSend; this.goalSend = []; try { await this.gstub(gid).fetch(new Request('https://g/goal', { method: 'POST', body: JSON.stringify({ pid: this.id, ups: g }) })); } catch { /* next time */ } }
     const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>)
       : ['guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave'].includes(m.name) ? await this.guildMeta(m.name, (m.args ?? {}) as Record<string, unknown>)
       : gid && GUILD_ACTS.has(m.name) ? await this.guildAct(gid, m.name, m.args) : this.run(m.name, m.args);
@@ -507,6 +526,13 @@ export class Guild {
       if (!this.g.members.length) { await this.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(this.g.id).run(); this.g = null; await this.state.storage.put('g', null); return new Response('{}'); }
       if (me.role === 'leader') { const next = this.g.members.find(m => m.role === 'deputy') ?? [...this.g.members].sort((a, b) => a.joined - b.joined)[0]; next.role = 'leader'; }   // the guild goes on
       await this.save(body.pid); return new Response('{}');
+    }
+    if (u.pathname === '/goal') {   // a member's kills / ore / animals count toward the guild's daily goals
+      const pid = String(body.pid); if (!this.g.members.some(m => m.id === pid)) return new Response('{}');
+      const st = { guild: { ...this.g, me: pid } } as unknown as GameState, before = JSON.stringify(this.g);
+      for (const d of (body.ups as { kind: string; n: number }[]).slice(0, 10)) goalProgress(st, d.kind as never, Math.min(500, Math.max(0, Math.round(d.n))));
+      const ng = (st as unknown as { guild: G }).guild; delete ng.me; this.g = ng; if (JSON.stringify(this.g) !== before) await this.save();
+      return new Response('{}');
     }
     if (u.pathname === '/act') {
       const pid = String(body.pid); if (!this.g.members.some(m => m.id === pid)) return new Response(JSON.stringify({ r: { refused: 'guild' }, guild: null }));

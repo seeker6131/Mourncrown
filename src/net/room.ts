@@ -15,14 +15,21 @@ export class RoomLink {
   /** this game moves the map's monsters (the room's longest-staying player) */
   get isHost() { return this.online && !!this.me && this.host === this.me; }
   private last = ''; private lastT = 0; private wait = 1000;
-  constructor(public room: string, private on: (e: RoomEvent) => void) { this.open(); }
+  /** the map's base room; full rooms send us on to base-2, base-3 ... (30 players a room) */
+  private shard = 1;
+  constructor(public base: string, private on: (e: RoomEvent) => void) { this.open(); }
+  get room() { return this.shard > 1 ? `${this.base}-${this.shard}` : this.base; }
   get online() { return !!this.ws && this.ws.readyState === WebSocket.OPEN; }
   private open() {
     const t = accountToken(); if (!t || this.closed || typeof WebSocket === 'undefined') return;
     const ws = new WebSocket(SERVER.replace(/^http/, 'ws') + '/room/' + this.room + '?t=' + encodeURIComponent(t)); this.ws = ws;
     ws.onopen = () => { this.wait = 1000; this.last = ''; };
     ws.onmessage = e => { try { this.got(JSON.parse(String(e.data))); } catch { /* bad line */ } };
-    ws.onclose = () => { if (this.ws === ws) this.ws = null; if (!this.closed) { setTimeout(() => this.open(), this.wait); this.wait = Math.min(15000, this.wait * 2); } };
+    ws.onclose = e => {
+      if (this.ws === ws) this.ws = null; if (this.closed) return;
+      if (e.code === 4001 && this.shard < 50) { this.shard++; this.open(); return; }   // full: the next room of this map
+      setTimeout(() => this.open(), this.wait); this.wait = Math.min(15000, this.wait * 2);
+    };
   }
   private put(o: Partial<Other> & { id: string }) {
     const cur = this.others.get(o.id), now = performance.now();

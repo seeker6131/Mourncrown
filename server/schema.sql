@@ -30,3 +30,5 @@ CREATE TABLE IF NOT EXISTS market_pay (listing TEXT PRIMARY KEY, seller TEXT NOT
 CREATE INDEX IF NOT EXISTS market_pay_seller ON market_pay (seller, done);
 -- real guilds: a directory for finding / joining (the guild itself lives in its own Durable Object)
 CREATE TABLE IF NOT EXISTS guilds (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, leader TEXT, members INTEGER NOT NULL, hall INTEGER NOT NULL, at INTEGER NOT NULL);
+-- banned accounts (the admin sets 1): they cannot sign in, play or join rooms
+ALTER TABLE accounts ADD COLUMN banned INTEGER NOT NULL DEFAULT 0;
