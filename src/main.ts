@@ -4,6 +4,7 @@ import { TitleScene } from './scenes/TitleScene';
 import { TopDownScene } from './scenes/TopDownScene';
 import { TdUIScene } from './scenes/TdUIScene';
 import { installDebug } from './core/debug';
+import { TEST_HOOKS } from './core/testHooks';
 import { tr, lang } from './core/i18n';
 
 // Language: every text object goes through tr() (English by default, Thai when chosen)
@@ -45,8 +46,7 @@ function resize() {
 window.addEventListener('resize', () => setTimeout(resize, 50));
 window.addEventListener('orientationchange', () => setTimeout(resize, 300));
 
-(window as unknown as { __game: Phaser.Game }).__game = game;
-installDebug(game);
+if (TEST_HOOKS) { (window as unknown as { __game: Phaser.Game }).__game = game; installDebug(game); }   // tests only (localhost) — never on the public site
 
 // keep the built pictures / code on the phone between visits (public/sw.js): later starts skip the downloads
 if (import.meta.env.PROD && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))

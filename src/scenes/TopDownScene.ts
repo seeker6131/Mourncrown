@@ -34,6 +34,9 @@ import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../
 import { potOf, pickPotion, POT_CD } from '../systems/potions';
 import { farmGoal, farmLeft, farmDone, FARM_KEYS, FARM_NAMES, type FarmGoal } from '../systems/farm';
 import { accountName } from '../net/cloud';
+import { RoomLink } from '../net/room';
+import { TEST_HOOKS } from '../core/testHooks';
+import { OtherPlayers } from '../world/others';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
@@ -278,6 +281,21 @@ export class TopDownScene extends Phaser.Scene {
   defendNext = false;
   hunters?: Hunters;
   heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text;
+  link?: RoomLink; peers?: OtherPlayers; heroBubble?: Phaser.GameObjects.Text; heroBubbleT = 0;
+  /** which shared room this scene is (null = alone): village, guild village, monster map n, the Deepwild */
+  roomId(): string | null {
+    if (this.dungeon || this.raid || this.defense || this.raidMode || this.warSide || this.inside >= 0) return null;
+    if (this.wild) return 'w';
+    if (this.stageN) return 'm' + this.stageN;
+    if (this.gv) { const g = guildOf(S()) as { id?: string } | null; return g?.id ? ('g-' + String(g.id).toLowerCase().replace(/[^a-z0-9]/g, '')).slice(0, 32) : 'gv'; }
+    return 'v';
+  }
+  /** a chat bubble over my own hero */
+  heroSay(text: string) {
+    this.heroBubble?.destroy();
+    this.heroBubble = this.add.text(0, 0, text, { fontFamily: 'sans-serif', fontSize: '7px', color: '#1a1410', backgroundColor: '#fff3c8', padding: { x: 3, y: 2 }, wordWrap: { width: 110 }, resolution: 6 }).setOrigin(0.5, 1).setDepth(99993);
+    this.heroBubbleT = this.time.now + 4500;
+  }
   /** VIP aura: flames behind the hero + a soft glow of the same flames over it */
   aura?: { key: string; on: Phaser.GameObjects.Sprite; glow: Phaser.FX.Glow; fire: Phaser.GameObjects.Particles.ParticleEmitter };
   heroRing?: Phaser.GameObjects.Sprite | null;
@@ -305,7 +323,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
-    (window as unknown as { __tdS: typeof S }).__tdS = S;
+    if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
     this.crowd = undefined; this.farm = null; this.grid = undefined; this.path = null; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
     this.combat = new Combat(this as never);
@@ -365,6 +383,10 @@ export class TopDownScene extends Phaser.Scene {
     this.hunters = undefined;
     this.heroBar = this.add.graphics().setDepth(99991);
     { const nm = accountName(); if (nm && S().name !== nm) { S().name = nm; saveGame(S()); } }   // the name chosen on the server
+    // the map room: other real players in this map (not in the private dungeon, a building, raids or the war)
+    this.peers?.destroy(); this.link?.close(); this.link = undefined; this.peers = undefined;
+    { const rid = this.roomId(); if (rid) { const link = new RoomLink(rid, e => { this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e); }); this.link = link; this.peers = new OtherPlayers(this, link); } }
+    this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
     this.riding = undefined; this.rideBlockT = 0;
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
@@ -1587,7 +1609,7 @@ export class TopDownScene extends Phaser.Scene {
     const r = beginCast(s, id, this.time.now, this.skillReady);
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
     if (hasAnim(this.F.key, this.swing)) {
-      this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false);
+      this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false); this.link?.hit(this.swing, this.dir);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
     }
     sfx.cast(); playSkill(r);
@@ -1891,7 +1913,7 @@ export class TopDownScene extends Phaser.Scene {
     this.attacking = true;
     const h = this.hero;
     const F = this.F;
-    playAnim(h, F.key, this.swing, this.dir, false);
+    playAnim(h, F.key, this.swing, this.dir, false); this.link?.hit(this.swing, this.dir);
     this.time.delayedCall(Math.max(60, hitMs(F.key, this.swing, 210) - 90), () => sfx.swing());   // the whoosh just before the weapon lands
     if (this.stageN) this.combat.heroAttack(F.key);
     else if (this.defense) this.defense.heroAttack(F.key);
@@ -1951,6 +1973,12 @@ export class TopDownScene extends Phaser.Scene {
       if (this.riding) { this.riding.update(h.x, h.y, this.dir, this.heroMoving, this.F.key, h.scaleX, time); h.setAlpha(0); }
     }
     this.updateAura();
+    if (this.link) {
+      const s0 = S(), d0 = derive(s0);
+      this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: (s0 as { auraOff?: boolean }).auraOff ? 0 : vipTier(s0), r: this.riding?.id ?? '', lv: s0.level });
+      this.peers?.update(dt);
+    }
+    if (this.heroBubble) { if (this.time.now > this.heroBubbleT) { this.heroBubble.destroy(); this.heroBubble = undefined; } else this.heroBubble.setPosition(Math.round(h.x), Math.round((this.riding ? this.riding.headY() : h.y - 36) - 12)); }
     if (this.heroBar) {   // the name over the head, the HP bar just under it (director)
       const s0 = S(), by = this.riding ? this.riding.headY() : h.y - 36; this.heroBar.clear();
       if (h.visible) hpBar(this.heroBar, h.x, by, s0.hp / Math.max(1, derive(s0).maxHp), 24);

@@ -19,6 +19,7 @@ import { tdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { potCount, POT_CD } from '../systems/potions';
+import { askChat } from '../net/chatInput';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
 import { WC } from '../world/warClient';
@@ -58,6 +59,9 @@ export class TdUIScene extends Phaser.Scene {
   warBtn?: Phaser.GameObjects.Container; warBg?: Phaser.GameObjects.Graphics; warTx?: Phaser.GameObjects.Text;
   autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
+  chatLines: { line: string; t: number }[] = []; chatText?: Phaser.GameObjects.Text;
+  /** the last chat lines (fade 15 s after the newest) */
+  drawChat() { if (!this.chatText) return; const live = this.chatLines.filter(l => this.time.now - l.t < 15000); this.chatText.setText(live.map(l => l.line).join('\n')).setAlpha(live.length ? 1 : 0); }
   potBtns: { kind: 'hp' | 'mp'; c: Phaser.GameObjects.Container; n: Phaser.GameObjects.Text; cd: Phaser.GameObjects.Graphics; r: number }[] = [];
   skillBtns: { id: string; icon: Phaser.GameObjects.Image; cd: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text; mp: Phaser.GameObjects.Text; c: Phaser.GameObjects.Container; x: number; y: number; r: number }[] = [];
   skillSet = '';
@@ -126,6 +130,7 @@ export class TdUIScene extends Phaser.Scene {
   }
   updateSkills(now: number) {
     const s = S();
+    if (this.chatLines.length && (Math.floor(now / 500) % 2 === 0)) this.drawChat();
     for (const b of this.potBtns) {
       if (!b.r) continue;
       const left = (b.kind === 'hp' ? this.td.potT : this.td.mpT) - this.td.time.now, n = potCount(s, b.kind);
@@ -232,6 +237,13 @@ export class TdUIScene extends Phaser.Scene {
       if (q) { bus.emit('td:fx', 'fx_quest'); sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
     });
     this.root.add([this.questG, this.questText, this.questZone]);
+    // chat with the players in this map (net/room.ts): 💬 opens the typing box, the last lines show under it
+    this.chatLines = [];
+    { const cb = k.button(8, 94, 30, 20, '💬', () => { const link = (this.td as unknown as { link?: { chat(t: string): void; online: boolean } }).link; if (!link?.online) { this.toast('ยังไม่ได้เชื่อมต่อเซิร์ฟ (เล่นออฟไลน์อยู่)', '#c8b89a'); return; } askChat(t => link.chat(t)); }, { size: 10, color: 0x2a4a5a }); this.root.add(cb); }
+    this.chatText = k.text(44, 96, '', 7, '#e8f4ff', { lineSpacing: 2, backgroundColor: 'rgba(0,0,0,0.35)', padding: { x: 3, y: 2 }, wordWrap: { width: 230 } }).setAlpha(0);
+    this.root.add(this.chatText);
+    const onChat = (e: { name: string; text: string }) => { this.chatLines = [...this.chatLines, { line: `${e.name}: ${e.text}`, t: this.time.now }].slice(-4); this.drawChat(); };
+    bus.on('td:chat', onChat); this.events.once('shutdown', () => bus.off('td:chat', onChat));
 
     // top-right menu: icon buttons
     if (!this.textures.exists('ui_diamond')) {   // 💎 icon drawn once

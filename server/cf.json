@@ -3,5 +3,6 @@
   "worker": "mourncrown",
   "dbName": "mourncrown",
   "db": "4c3dbe5c-4b7c-410d-87a9-818fd57400fb",
-  "googleClientId": "481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com"
+  "googleClientId": "481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com",
+  "migrationTag": "v1"
 }

@@ -94,3 +94,6 @@ export async function chooseName(name: string): Promise<'ok' | 'bad' | 'taken' |
     return r.body.error === 'taken' ? 'taken' : r.body.error === 'bad' ? 'bad' : 'fail';
   } catch { return 'fail'; }
 }
+
+/** this device's session token (for the map room WebSocket), or null offline */
+export const accountToken = () => (ok() ? acc()?.token ?? null : null);

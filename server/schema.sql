@@ -19,3 +19,6 @@ CREATE TABLE IF NOT EXISTS saves (
 ALTER TABLE accounts ADD COLUMN name TEXT;
 ALTER TABLE accounts ADD COLUMN name_key TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS accounts_name ON accounts (name_key);
+-- suspicious saves for the admin (anti-cheat log)
+CREATE TABLE IF NOT EXISTS flags (id TEXT NOT NULL, at INTEGER NOT NULL, what TEXT NOT NULL, detail TEXT);
+CREATE INDEX IF NOT EXISTS flags_id ON flags (id, at);
