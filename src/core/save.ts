@@ -1,6 +1,7 @@
 import { newGameState, SAVE_VERSION, type GameState } from './state';
 import { addItem, equip } from '../systems/inventory';
 import { derive } from '../systems/stats';
+import { cloudSaved } from '../net/cloud';
 
 const KEY = 'eldergrove_save_v1';
 
@@ -11,6 +12,7 @@ export function hasSave(): boolean {
 export function saveGame(s: GameState): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
+    cloudSaved();   // the server copy follows (net/cloud.ts)
     return true;
   } catch { return false; }
 }

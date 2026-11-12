@@ -6,3 +6,4 @@ __pycache__/
 
 # test screenshots never belong in the repo
 /*.png
+server/.build/

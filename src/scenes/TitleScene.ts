@@ -13,6 +13,7 @@ import { formKeyOf } from '../world/chars';
 import { activeTier } from '../systems/stats';
 import { guildOf } from '../systems/guild';
 import { mountOn } from '../systems/mounts';
+import { cloud } from '../net/cloud';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -70,6 +71,10 @@ export class TitleScene extends Phaser.Scene {
     if (art && hasSave()) by -= 2;
     this.add.existing(k.button(cx - 80, by, 160, 30, hasSave() ? 'เริ่มเกมใหม่' : '▶ เริ่มผจญภัย', () => start(!hasSave() ? true : true), { size: 12 }));
     k.text(cx, 350, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
+    // the game server: is the save kept there (net/cloud.ts)
+    const cl = k.text(cx, 336, '', 7.5, '#9fd4ff').setOrigin(0.5);
+    const showCloud = () => cl.setText(cloud.state === 'ok' || cloud.state === 'saving' ? '☁ เชื่อมต่อเซิร์ฟแล้ว — เซฟเก็บบนเซิร์ฟ' : cloud.state === 'error' ? '☁ ออฟไลน์ — เล่นได้ปกติ เซฟเก็บในเครื่อง' : '☁ กำลังเชื่อมต่อเซิร์ฟ...').setColor(cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
+    showCloud(); this.time.addEvent({ delay: 600, loop: true, callback: showCloud });
     // language switch (English by default on the first visit)
     this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));
     this.cameras.main.fadeIn(400);

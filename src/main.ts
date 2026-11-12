@@ -51,3 +51,8 @@ installDebug(game);
 // keep the built pictures / code on the phone between visits (public/sw.js): later starts skip the downloads
 if (import.meta.env.PROD && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+
+// the save on the game server: an account for this device, the newer save taken before the player presses start
+import('./net/cloud').then(m => m.cloudBoot(() => !!game.scene.getScene('TopDown')?.sys.isActive()).then(took => {
+  const t = game.scene.getScene('Title'); if (took && t?.sys.isActive()) t.scene.restart();   // a save from another device: show 'continue'
+}));
