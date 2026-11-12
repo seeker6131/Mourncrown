@@ -117,7 +117,9 @@ export const handlers = {
     return { sid, elite };
   },
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
-  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean }, c: Ctx) {
+  /** (shared map) a monster the room's host spawned: known here too, so its kill can be paid */
+  mirror(_s: GameState, a: { sid: number; key: string; boss: boolean; elite: boolean }) { mem.spawns.set(a.sid, { key: a.key, elite: !!a.elite, boss: !!a.boss }); mem.sid = Math.max(mem.sid, a.sid + 1); return { ok: true }; },   // (new spawns never reuse a mirrored number)
+  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean; share?: number }, c: Ctx) {
     const n = mem.map, base = MONSTERS[a.kind]; if (!n || !base) return no('map');
     const sp = mem.spawns.get(a.sid); if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');   // must be a live monster the server spawned
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
@@ -126,8 +128,9 @@ export const handlers = {
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
-    if (!DEV_TOOLS && mem.dmg < hp) return no('dps');
-    mem.dmg = Math.max(0, mem.dmg - hp); mem.spawns.delete(a.sid);
+    const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
+    if (!DEV_TOOLS && mem.dmg < part) return no('dps');
+    mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid);
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };

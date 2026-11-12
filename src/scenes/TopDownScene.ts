@@ -385,7 +385,16 @@ export class TopDownScene extends Phaser.Scene {
     { const nm = accountName(); if (nm && S().name !== nm) { S().name = nm; saveGame(S()); } }   // the name chosen on the server
     // the map room: other real players in this map (not in the private dungeon, a building, raids or the war)
     this.peers?.destroy(); this.link?.close(); this.link = undefined; this.peers = undefined;
-    { const rid = this.roomId(); if (rid) { const link = new RoomLink(rid, e => { this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e); }); this.link = link; this.peers = new OtherPlayers(this, link); } }
+    { const rid = this.roomId(); if (rid) {
+      const shared = rid === 'w' || rid.startsWith('m');   // monster maps and the Deepwild: one set of monsters for the room
+      const link = new RoomLink(rid, e => {
+        if (e.t === 'host') { if (shared) this.combat.setMirror(!!e.id && e.id !== link.me); return; }
+        if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk') { if (shared) this.combat.netEvent(e); return; }
+        this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
+      });
+      this.link = link; this.peers = new OtherPlayers(this, link);
+      if (shared) this.combat.net = link;
+    } }
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
     this.riding = undefined; this.rideBlockT = 0;

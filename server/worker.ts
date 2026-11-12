@@ -152,26 +152,39 @@ export default {
 // ===== a map room: the players in one map see each other and talk =====
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
-interface Who { id: string; name: string; p?: Record<string, unknown>; n: number; win: number; chatT: number }
+interface Who { id: string; name: string; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
+interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number> }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
+  /** the monsters of this map: the host's game spawns and moves them, the room keeps their HP (in memory: a room that
+   *  sleeps forgets, and the host's next list brings them back at full HP) */
+  mons = new Map<number, RMon>(); host = '';
   constructor(private state: DOState) {}
+  private all(skip?: WebSocket) { return this.state.getWebSockets().filter(w => w !== skip).map(w => ({ w, a: (w as WSX).deserializeAttachment() as Who })).filter(x => x.a); }
+  /** the host = who has been here longest; tell everyone when it changes */
+  private pickHost(skip?: WebSocket) {
+    const h = this.all(skip).sort((x, y) => x.a.join - y.a.join)[0]?.a.id ?? '';
+    if (h !== this.host) { this.host = h; const msg = JSON.stringify({ t: 'host', id: h }); for (const { w } of this.all(skip)) { try { w.send(msg); } catch { /* closing */ } } }
+  }
   async fetch(req: Request) {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? '', name = (u.searchParams.get('name') || 'ผู้กล้า#' + id.slice(0, 4)).slice(0, 16);
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
     this.state.acceptWebSocket(server, [id]);
-    server.serializeAttachment({ id, name, n: 0, win: Date.now(), chatT: 0 } as Who);
+    server.serializeAttachment({ id, name, n: 0, win: Date.now(), chatT: 0, join: Date.now(), bud: 0, budT: Date.now() } as Who);
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
-    server.send(JSON.stringify({ t: 'hi', you: id, name, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
+    if (!this.host || !others.some(o => o.id === this.host)) this.host = '';
+    this.pickHost();
+    server.send(JSON.stringify({ t: 'hi', you: id, name, host: this.host, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
     return new Response(null, { status: 101, webSocket: client } as ResponseInit);
   }
   private others(ws: WebSocket, msg: string) { for (const w of this.state.getWebSockets()) if (w !== ws) { try { w.send(msg); } catch { /* closing */ } } }
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
-    const me = (ws as WSX).deserializeAttachment() as Who; if (!me || typeof data !== 'string' || data.length > 600) return;
+    const me = (ws as WSX).deserializeAttachment() as Who; if (!me || typeof data !== 'string' || data.length > 12000) return;
+    if (!this.host) this.pickHost();   // (woke from sleep: memory was cleared)
     const now = Date.now(); if (now - me.win > 1000) { me.win = now; me.n = 0; }
-    if (++me.n > 12) return;   // at most 12 messages a second
+    if (++me.n > 20) return;   // at most 20 messages a second
     let m: Record<string, unknown>; try { m = JSON.parse(data); } catch { return; }
     if (m.t === 'p') {   // where I am / what I look like
       const num = (v: unknown, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
@@ -180,6 +193,33 @@ export class Room {
       this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
     } else if (m.t === 'hit') {   // swing / skill (for the animation others see)
       this.others(ws, JSON.stringify({ t: 'hit', id: me.id, k: String(m.k ?? 'attack').slice(0, 12), d: Math.max(0, Math.min(7, Number(m.d) || 0)) }));
+    } else if (m.t === 'ms' && me.id === this.host && Array.isArray(m.a)) {   // the host's monsters: where they are
+      const seen = new Set<number>(), out: unknown[] = [];
+      for (const e of (m.a as unknown[][]).slice(0, 160)) {
+        const sid = Number(e[0]), max = Math.max(1, Number(e[10]) || 1); if (!sid) continue; seen.add(sid);
+        let r = this.mons.get(sid); if (!r) { r = { hp: max, max, alive: true, boss: !!e[3], dmg: {} }; this.mons.set(sid, r); }
+        if (r.alive) out.push([...e.slice(0, 11), Math.max(0, Math.round(r.hp))]);
+      }
+      for (const sid of [...this.mons.keys()]) if (!seen.has(sid)) this.mons.delete(sid);
+      this.others(ws, JSON.stringify({ t: 'ms', a: out }));
+    } else if (m.t === 'dmg') {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
+      const r = this.mons.get(Number(m.sid)); if (!r || !r.alive) return;
+      const lv = Math.max(1, Math.min(999, Number((me.p as { lv?: number } | undefined)?.lv) || 1)), cap = (lv * 30 + 100) * 10;   // damage per second, generous
+      me.bud = Math.min(cap * 4, me.bud + (now - me.budT) / 1000 * cap); me.budT = now;
+      const n = Math.max(0, Math.min(Math.round(Number(m.n) || 0), me.bud)); if (!n) { (ws as WSX).serializeAttachment(me); return; }
+      me.bud -= n; (ws as WSX).serializeAttachment(me);
+      r.hp -= n; r.dmg[me.id] = (r.dmg[me.id] ?? 0) + n;
+      const all = this.state.getWebSockets();
+      const send = (o: unknown) => { const t = JSON.stringify(o); for (const w of all) { try { w.send(t); } catch { /* closing */ } } };
+      send({ t: 'mhp', sid: Number(m.sid), hp: Math.max(0, Math.round(r.hp)), by: me.id });
+      if (r.hp <= 0) {   // dead: everyone's share of the damage (each one's reward is their own)
+        r.alive = false; const sh: Record<string, number> = {};
+        for (const [k, v] of Object.entries(r.dmg)) sh[k] = Math.round(v / r.max * 1000) / 1000;
+        send({ t: 'mdead', sid: Number(m.sid), sh });
+      }
+    } else if (m.t === 'matk' && me.id === this.host) {   // a monster (moved by the host) swings at another player
+      const to = String(m.to ?? ''), msg = JSON.stringify({ t: 'matk', sid: Number(m.sid), k: String(m.k ?? 'hit').slice(0, 8) });
+      for (const w of this.state.getWebSockets(to)) { try { w.send(msg); } catch { /* closing */ } }
     } else if (m.t === 'c') {   // chat: one line every 2 seconds, filtered
       if (now - me.chatT < 2000) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
       const text = cleanChat(String(m.text ?? '')); if (!text) return;
@@ -187,6 +227,10 @@ export class Room {
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
     }
   }
-  async webSocketClose(ws: WebSocket) { const me = (ws as WSX).deserializeAttachment() as Who; if (me) this.others(ws, JSON.stringify({ t: 'bye', id: me.id })); }
+  async webSocketClose(ws: WebSocket) {
+    const me = (ws as WSX).deserializeAttachment() as Who; if (me) this.others(ws, JSON.stringify({ t: 'bye', id: me.id }));
+    try { ws.close(); } catch { /* already */ }
+    if (me && me.id === this.host) { this.host = ''; this.pickHost(ws); }
+  }
   async webSocketError(ws: WebSocket) { await this.webSocketClose(ws); }
 }
