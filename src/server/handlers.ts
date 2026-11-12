@@ -6,6 +6,7 @@
 // Rules here: never trust numbers from the client — only ids; check everything; random rolls happen here.
 import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP } from './config';
+import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
 import { pickBase, makeGear, rollRarity } from '../systems/loot';
@@ -21,7 +22,7 @@ import { build, upgrade, collect, craft, cook } from '../systems/settlement';
 import {
   guildOf, homeOf, donate, upgradeVillage, collectVillage, setRole, simInvite, kick, defBuild, defUpgrade, defRepair, defRemove, createGuild, joinGuild,
   houseBuild, hireGuard, dismissGuard, sleep, wake, trophyPut, trophyTake, stashPut, stashTake, shopBuy as guildShopBuy, goals, goalProgress, guildTick, rivals,
-  rivalStructs, canRaid, raidResult, devGuild, type Rival,
+  rivalStructs, canRaid, raidResult, devGuild, seasonClaim, type Rival,
 } from '../systems/guild';
 import { RAID_SECS, REST_EXP, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
 import { gainExp } from '../systems/stats';
@@ -46,7 +47,7 @@ const no = (why: string): Refused => ({ refused: why });
 interface Drop { id: string; qty: number; gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }; until: number }
 /** server-wide news (SL drops) — on the real server this goes to every connected player */
 const news: { t: number; name: string; item: string; rar: number }[] = [];
-const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
+const mem = { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() };
 /** too many requests of one kind per second = bot / speed hack */
 function rateOk(key: string, perSec: number, now: number) {
   const q = (mem.rate.get(key) ?? []).filter(t => now - t < 1000); q.push(now); mem.rate.set(key, q); return q.length <= perSec;
@@ -80,6 +81,15 @@ export const handlers = {
     return { ok: true };
   },
   /** the server owns every spawn: it hands out an id and decides golden monsters (3%, never bosses / animals / the Deepwild) */
+  /** today's wandering bounty boss for this player (board + announcements) */
+  bountyInfo: (s: GameState, _a: object, c: Ctx) => bountyOf(s, c.now),
+  /** on entering the bounty's map the server registers the lord (once per slot, while it is not dead) */
+  bountySpawn(s: GameState, a: { n: number }, c: Ctx) {
+    const b = bountyOf(s, c.now); if (b.killed || b.n !== a.n || mem.map !== a.n) return no('none');
+    for (const v of mem.spawns.values()) if (v.bounty === b.slot) return no('alive');
+    const sid = mem.sid++; mem.spawns.set(sid, { key: b.mob.key, elite: false, boss: false, bounty: b.slot });
+    return { sid, mob: b.mob, name: b.name, hp: BOUNTY_HP };
+  },
   spawn(_s: GameState, a: { key: string; boss: boolean; animal?: boolean }, c: Ctx) {
     if (mem.spawns.size > 400) mem.spawns.delete(mem.spawns.keys().next().value!);
     const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = mem.sid++;
@@ -94,14 +104,16 @@ export const handlers = {
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
-    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : 1), dps = dpsOf(s);
+    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     if (!DEV_TOOLS && mem.dmg < hp) return no('dps');
     mem.dmg = Math.max(0, mem.dmg - hp); mem.spawns.delete(a.sid);
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
-    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
+    const bounty = sp.bounty !== undefined && bountyOf(s, c.now).slot === sp.bounty;
+    const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss || bounty, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
+    if (bounty) { const b = bountyOf(s, c.now); s.gold += b.gold; give('ancient_core', 1); markBounty(s, b.slot); (r as { bounty?: { gold: number; name: string } }).bounty = { gold: b.gold, name: b.name }; }
     if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
     if (base.animal) {   // meat and hides follow the daily hunting energy
       const hm = huntMult(s, c.now); energy(s, c.now).hunt++;
@@ -198,6 +210,7 @@ export const handlers = {
   guildUpgrade: (s: GameState, a: { type: GuildBld }, c: Ctx) => upgradeVillage(s, a.type, c.now),
   guildCollect: (s: GameState, a: { type: GuildBld }, c: Ctx) => collectVillage(s, a.type, c.now),
   houseBuild: (s: GameState, _a: object, c: Ctx) => houseBuild(s, c.now),
+  seasonClaim: (s: GameState, _a: object, c: Ctx) => seasonClaim(s, c.now),
   hireGuard: (s: GameState, a: { type: GuardType }, c: Ctx) => hireGuard(s, a.type, c.now),
   dismissGuard: (s: GameState, a: { type: GuardType }) => dismissGuard(s, a.type),
   donate: (s: GameState, a: { gold?: number; wood?: number; stone?: number; food?: number; item?: string; qty?: number }, c: Ctx) => (rateOk('donate', 4, c.now) ? donate(s, a, c.now) : no('rate')),

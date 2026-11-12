@@ -43,7 +43,7 @@ import { sfx, audioState } from '../audio/sfx';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'rooms' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -146,6 +146,7 @@ export class Panels implements GuildHost {
       case 'guild': buildGuild(this, c); break;
       case 'stash': buildStash(this, c); break;
       case 'trophy': buildTrophy(this, c); break;
+      case 'bounty': this.buildBounty(c); break;
     }
   }
 
@@ -358,6 +359,22 @@ export class Panels implements GuildHost {
 
   // ---------------- VILLAGE PLOT ----------------
   openPlot(i: number) { this.plot = i; this.open('plot'); }
+  /** the bounty board: this slot's wandering lord, where, how long, what it pays */
+  buildBounty(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, b = act('bountyInfo', {});
+    const W = Math.min(480, ui.VW - 16), H = 250, { x, y, g } = this.window(c, W, H, '📜 กระดานค่าหัว');
+    const st = STAGES[b.n - 1], left = Math.max(0, b.until - Date.now()), mm = Math.floor(left / 60000), ss = Math.floor(left / 1000) % 60;
+    g.fillStyle(0x2a1d12, 0.95).fillRoundedRect(x + 14, y + 32, W - 28, 150, 6).lineStyle(1, GOLD_D, 1).strokeRoundedRect(x + 14, y + 32, W - 28, 150, 6);
+    const pk = `c_${b.mob.key}_idle`;
+    if (ui.textures.exists(pk)) { const im = ui.add.image(x + 70, y + 100, pk, 0); im.setScale(96 / Math.max(im.width, im.height)); c.add(im); }
+    else loadIdle(ui, [b.mob.key], () => { if (this.cur === 'bounty') this.rebuild(); });
+    c.add(k.text(x + 130, y + 42, `👑 ${b.name}`, 13, '#ffb04a'));
+    c.add(k.text(x + 130, y + 66, `📍 แผนที่ ${b.n} ${st.land.name} (มอน Lv${st.level})`, 9.5, '#e8dcc0'));
+    c.add(k.text(x + 130, y + 84, b.killed ? '✅ คุณปราบไปแล้วในรอบนี้ — รอค่าหัวรอบถัดไป' : `⏱ เร่ร่อนอยู่อีก ${mm}:${String(ss).padStart(2, '0')} นาที`, 9.5, b.killed ? '#9fffb0' : '#ffe7a0'));
+    c.add(k.text(x + 130, y + 104, `ค่าหัว: 💰${b.gold.toLocaleString()} + แก่นโบราณ 1 + ของดรอประดับบอส (Rare ขึ้นไป + ชิ้นส่วนเซ็ต)`, 8, '#9ad8ff', { wordWrap: { width: W - 160 } }));
+    c.add(k.text(x + 130, y + 140, 'ตัวใหญ่ เลือดเยอะ ตีแรง — ชวนเพื่อนไปด้วยได้ • ค่าหัวใหม่ทุก 20 นาที', 7.5, '#a89878', { wordWrap: { width: W - 160 } }));
+    c.add(k.button(x + W / 2 - 90, y + H - 50, 180, 26, b.killed ? 'รอรอบถัดไป' : `⚔ ไปแผนที่ ${b.n}`, () => { this.close(); bus.emit('td:goStage', b.n); }, { size: 10, color: 0x7a3a10, disabled: b.killed || s.level < st.req }));
+  }
   /** the guild window on a tab (and a defense slot picked) */
   openGuild(tab: GuildTab, slot = -1) { this.guildTab = tab; if (slot >= 0) this.guildSlot = slot; this.guildPick = null; this.open('guild'); }
 
@@ -617,6 +634,7 @@ export class Panels implements GuildHost {
     const b = (label: string, cb: () => void, color?: number) => { const col = n % 2, row = Math.floor(n / 2); c.add(k.button(x + 16 + col * (colW + 14), y + 34 + row * 26, colW, 22, label, cb, { size: 8.5, color })); n++; };
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
+    b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {

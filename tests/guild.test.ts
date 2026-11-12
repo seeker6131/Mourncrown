@@ -211,3 +211,32 @@ describe('raids', () => {
     expect(simIncoming(s, T0 + 1000, () => 0.1)).toBeNull();
   });
 });
+
+describe('guild war season', () => {
+  it('raid stars and defenses add season points; last week rolls over and can be claimed once', async () => {
+    const { season, seasonBoard, seasonClaim, raidOutcome, weekOf } = await import('../src/systems/guild');
+    const { s, g } = village(); const rv = rivals(s, T0)[0];
+    raidResult(s, rv, rivalStructs(rv).map(q => q.id), T0);
+    expect(season(s, T0).score).toBeGreaterThanOrEqual(30);
+    const before = season(s, T0).score; raidOutcome(s, 0, 'บอท', T0); expect(season(s, T0).score).toBe(before + 8);
+    expect(seasonBoard(s, T0).some(e => e.me)).toBe(true);
+    const next = T0 + 7 * 86400000;
+    expect(weekOf(next)).toBe(weekOf(T0) + 1);
+    const pts = meOf(s)!.pts, r = seasonClaim(s, next);
+    expect('rank' in r).toBe(true); expect(meOf(s)!.pts).toBeGreaterThan(pts);
+    expect(seasonClaim(s, next)).toEqual({ refused: 'claimed' });
+    void g;
+  });
+});
+
+describe('bounty boss', () => {
+  it('one lord per 20-minute slot near the player level; marked when killed', async () => {
+    const { bountyOf, markBounty } = await import('../src/systems/bounty');
+    const s = startNewGame(); s.level = 30;
+    const b = bountyOf(s, T0);
+    expect(b.killed).toBe(false); expect(b.until).toBeGreaterThan(T0);
+    expect(bountyOf(s, T0 + 1000).n).toBe(b.n);
+    markBounty(s, b.slot); expect(bountyOf(s, T0).killed).toBe(true);
+    expect(bountyOf(s, b.until + 1).killed).toBe(false);
+  });
+});

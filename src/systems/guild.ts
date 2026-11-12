@@ -33,6 +33,8 @@ export interface GuildState {
   shieldUntil: number; raids: { day: string; used: number }; log: GLog[];
   goals: { day: string; list: Goal[] }; shop: { day: string; bought: Record<string, number> };
   simAt: number; incomingAt: number; rivals: { day: string; list: Rival[] }; unread: string[]; hungry?: boolean;
+  /** weekly guild war season: points this week, last week's result, the week whose reward was claimed */
+  season?: { week: number; score: number; prev?: { week: number; score: number }; claimed?: number };
 }
 export interface HomeState { rest: number; sleptAt: number; stash: InvItem[]; trophies: InvItem[] }
 export interface GuildOffer { id: string; name: string; members: number; hall: number; leader: string }
@@ -429,6 +431,7 @@ export function simIncoming(s: GameState, now: number, rnd: () => number) {
 /** what an enemy raid on our village costs (or earns, when it was beaten off) */
 export function raidOutcome(s: GameState, stars: number, name: string, now: number) {
   const g = guildOf(s)!;
+  if (!stars) seasonAdd(s, 8, now);   // beating a raid off counts for the season too
   if (!stars) { meOf(s)!.pts += 20; log(g, 'defend', `🛡 ${name} บุกแต่ป้องกันได้! (+20 แต้มบุญ)`, now); g.unread.push(`🛡 ${name} บุกหมู่บ้าน แต่ป้อมและทหารป้องกันไว้ได้!`); g.shieldUntil = now + 4 * 3600000; return { stars }; }
   const take = RAID_TAKE[stars], free = 1 - vaultShare(whLv(s)); const lost: string[] = [];
   for (const k of RES) { const n = Math.floor(g.treasury[k] * free * take); g.treasury[k] -= n; if (n) lost.push(`${ICON[k]}${n}`); }
@@ -486,6 +489,7 @@ export function raidResult(s: GameState, rv: Rival, destroyed: string[], now = D
   const cap = tCap(s);
   for (const k of RES) { gain[k] = Math.max(0, Math.min(gain[k], cap - g.treasury[k])); g.treasury[k] += gain[k]; }
   g.raids.used++; g.shieldUntil = Math.min(g.shieldUntil, now);   // attacking drops your own shield
+  seasonAdd(s, stars * 10 + set.size, now);
   g.rivals.list = g.rivals.list.filter(x => x.id !== rv.id);
   const pts = Math.round((gain.gold * CONTRIB.gold + gain.wood + gain.stone * 1.5 + gain.food) / 10) + stars * 30; meOf(s)!.pts += pts;
   log(g, 'raid', `${meOf(s)!.name} ปล้น${rv.name} ${'⭐'.repeat(stars) || 'ไม่ได้ดาว'} ได้ 💰${gain.gold} 🪵${gain.wood} 🪨${gain.stone} 🍖${gain.food}`, now);
@@ -515,5 +519,42 @@ export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAtt
   g.shieldUntil = 0; g.incomingAt = 0; let first = true;
   simIncoming(s, now, () => { if (first) { first = false; return 0.1; } return rnd(); });
   return g.unread.splice(0);
+}
+// ---------------------------------------------------------------- weekly guild war season
+const WEEK = 7 * 86400000, WEEK0 = Date.UTC(2026, 0, 5);   // weeks start on Monday 00:00 UTC
+export const weekOf = (now: number) => Math.floor((now - WEEK0) / WEEK);
+export const weekEnd = (now: number) => WEEK0 + (weekOf(now) + 1) * WEEK;
+/** this week's season record (rolls the old week into `prev` when a new week starts) */
+export function season(s: GameState, now = Date.now()) {
+  const g = guildOf(s)!, w = weekOf(now);
+  const se = (g.season ??= { week: w, score: 0 });
+  if (se.week !== w) { se.prev = se.week === w - 1 ? { week: se.week, score: se.score } : { week: w - 1, score: 0 }; se.week = w; se.score = 0; }
+  return se;
+}
+export function seasonAdd(s: GameState, pts: number, now = Date.now()) { if (guildOf(s) && pts > 0) season(s, now).score += Math.round(pts); }
+/** (simulated until online) the other guilds' season points: each has its own pace over the week */
+function botScore(name: string, week: number, frac: number) { const r = srnd(hashStr(name + ':' + week)); return Math.round((30 + r() * 230) * Math.min(1, Math.max(0, frac)) ** (0.8 + r() * 0.4)); }
+export function seasonBoard(s: GameState, now = Date.now(), week = weekOf(now), myScore?: number) {
+  const g = guildOf(s)!, se = season(s, now), frac = week < weekOf(now) ? 1 : (now - (WEEK0 + week * WEEK)) / WEEK;
+  const list = RIVAL_NAMES.filter(n => n !== g.name).map(name => ({ name, score: botScore(name, week, frac), me: false }));
+  list.push({ name: g.name, score: myScore ?? se.score, me: true });
+  return list.sort((a, b) => b.score - a.score);
+}
+export const SEASON_REWARD = [
+  { pts: 600, cores: 3, gold: 10000 }, { pts: 400, cores: 2, gold: 6000 }, { pts: 300, cores: 1, gold: 4000 },
+  { pts: 150, cores: 0, gold: 2000 }, { pts: 150, cores: 0, gold: 2000 }, { pts: 150, cores: 0, gold: 2000 },
+];
+/** last week's reward, once: guild points + ancient cores for you, gold for the treasury (rank against the other guilds) */
+export function seasonClaim(s: GameState, now = Date.now()): R | { rank: number; pts: number; cores: number; gold: number } {
+  const g = guildOf(s); if (!g) return no('guild');
+  const se = season(s, now); if (!se.prev || se.prev.score <= 0) return no('none');
+  if (se.claimed === se.prev.week) return no('claimed');
+  const rank = seasonBoard(s, now, se.prev.week, se.prev.score).findIndex(e => e.me) + 1;
+  const rw = SEASON_REWARD[rank - 1] ?? { pts: 60, cores: 0, gold: 500 };
+  meOf(s)!.pts += rw.pts; if (rw.cores) addItem(s, 'ancient_core', rw.cores);
+  g.treasury.gold = Math.min(tCap(s), g.treasury.gold + rw.gold);
+  se.claimed = se.prev.week;
+  log(g, 'goal', `🏆 ฤดูกาลกิลด์วอร์จบ: อันดับ ${rank} — แต้มบุญ +${rw.pts}`, now);
+  return { rank, ...rw };
 }
 export const raidsLeft = (s: GameState, now = Date.now()) => { const g = guildOf(s)!; return g.raids.day === dayKey(now) ? Math.max(0, RAIDS_PER_DAY - g.raids.used) : RAIDS_PER_DAY; };

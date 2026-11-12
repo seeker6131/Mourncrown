@@ -12,7 +12,7 @@ import { isEquipped } from '../systems/inventory';
 import { invSize } from '../core/state';
 import {
   guildOf, meOf, isOfficer, hallLv, whLv, barracksLv, gbLv, tCap, villageCost, goals, rivals, rivalStructs, raidsLeft, repairCost, homeOf, houseLv, defensePower,
-  guildUnlocked, guildOffers, guardsTotal, guardFoodH, houseCost, produce,
+  guildUnlocked, guildOffers, guardsTotal, guardFoodH, houseCost, produce, season, seasonBoard, weekEnd, SEASON_REWARD,
 } from '../systems/guild';
 import {
   DEFENSES, DEF_ORDER, defSlots, defStat, GUILD_SHOP, GOAL_POOL, vaultShare, stashSlots, trophySlots, TROPHY_BONUS, GUILD_MAX, restCap, REST_EXP,
@@ -20,15 +20,15 @@ import {
 } from '../data/guild';
 
 import { DEV_TOOLS } from '../server/config';
-export type GuildTab = 'home' | 'members' | 'donate' | 'build' | 'defense' | 'guards' | 'goals' | 'shop' | 'raid' | 'log';
-const TABS: [GuildTab, string][] = [['home', '🏛 ภาพรวม'], ['members', '👥 สมาชิก'], ['donate', '🎁 บริจาค'], ['build', '🏗 อาคาร'], ['defense', '🛡 ป้อม'], ['guards', '💂 ทหาร'], ['goals', '📜 ภารกิจ'], ['shop', '🛒 ร้าน'], ['raid', '⚔ ปล้น'], ['log', '📖 บันทึก']];
+export type GuildTab = 'home' | 'members' | 'donate' | 'build' | 'defense' | 'guards' | 'goals' | 'shop' | 'raid' | 'season' | 'log';
+const TABS: [GuildTab, string][] = [['home', '🏛 ภาพรวม'], ['members', '👥 สมาชิก'], ['donate', '🎁 บริจาค'], ['build', '🏗 อาคาร'], ['defense', '🛡 ป้อม'], ['guards', '💂 ทหาร'], ['goals', '📜 ภารกิจ'], ['shop', '🛒 ร้าน'], ['raid', '⚔ ปล้น'], ['season', '🏆 ฤดูกาล']];   // the log: guild hall fireplace / warehouse ledger
 const RES_ICON: Record<string, string> = { gold: '💰', wood: '🪵', stone: '🪨', food: '🍖' };
 const WHY: Record<string, string> = {
   role: 'เฉพาะหัวหน้า/รองหัวหน้า', treasury: 'คลังหมู่บ้านไม่พอ — ชวนสมาชิกบริจาค', hall: 'ต้องอัปหอกิลด์ก่อน', busy: 'กำลังก่อสร้างอยู่', max: 'เลเวลสูงสุดแล้ว',
   cap: 'คลังหมู่บ้านเต็ม — อัปโกดังเพื่อขยาย', amount: 'ของไม่พอ', taken: 'ช่องนี้มีป้อมแล้ว', slot: 'ช่องนี้ยังไม่เปิด', daily: 'วันนี้ครบแล้ว', pts: 'แต้มบุญไม่พอ',
   bag: 'กระเป๋าเต็ม', full: 'เต็มแล้ว', weak: 'หมู่บ้านนี้อ่อนเกินไป', target: 'เป้าหมายนี้ไม่มีแล้ว', rarity: 'ตั้งโชว์ได้เฉพาะอุปกรณ์ Super Rare ขึ้นไป', equipped: 'ถอดออกก่อน',
   house: 'ต้องสร้างบ้านก่อน', item: 'ไม่มีของชิ้นนี้', member: 'ทำกับสมาชิกคนนี้ไม่ได้', level: `ต้องเลเวล ${GUILD_UNLOCK_LV} ขึ้นไป`, name: 'ชื่อกิลด์สั้นเกินไป',
-  cost: 'ทรัพยากรส่วนตัวไม่พอ', empty: 'ยังไม่มีของให้เก็บ', none: 'ไม่มีทหารประเภทนี้', guild: 'ยังไม่มีกิลด์',
+  cost: 'ทรัพยากรส่วนตัวไม่พอ', claimed: 'รับไปแล้ว', empty: 'ยังไม่มีของให้เก็บ', none: 'ไม่มีทหารประเภทนี้', guild: 'ยังไม่มีกิลด์',
 };
 export const whyText = (r: unknown) => WHY[(r as { refused: string }).refused] ?? 'ทำไม่ได้';
 const num = (n: number) => Math.floor(n).toLocaleString();
@@ -228,6 +228,24 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
       });
       if (!rivals(s).length) T(L + 12, top + 60, 'วันนี้ไม่มีเป้าหมายเหลือแล้ว พรุ่งนี้มาใหม่', 9, '#a89878');
       if (!off) T(L + 8, top + H - 80, 'เฉพาะหัวหน้า/รองหัวหน้าที่สั่งบุกได้', 8, '#ffb080');
+      break;
+    }
+    case 'season': {
+      const se = season(s, now), board = seasonBoard(s, now), left = weekEnd(now) - now;
+      T(L + 8, top + 6, `ฤดูกาลกิลด์วอร์สัปดาห์นี้ • จบใน ${hrs(left)} • ได้แต้มจาก: ปล้นได้ดาว (ดาวละ 10 + อาคารที่พังชิ้นละ 1) • ป้องกันหมู่บ้านสำเร็จ +8`, 8, '#ffe7a0', CW - 16);
+      board.slice(0, 9).forEach((e, i) => {
+        const by = top + 34 + i * 19, medal = ['🥇', '🥈', '🥉'][i] ?? `${i + 1}.`;
+        g.fillStyle(e.me ? 0x1f3a1f : 0x2a1d12, 0.9).fillRoundedRect(L + 6, by, CW - 12, 17, 3);
+        T(L + 14, by + 3, `${medal} ${e.name}${e.me ? ' (กิลด์เรา)' : ''}`, 8.5, e.me ? '#9fffb0' : '#ffe7a0');
+        T(R - 90, by + 3, `${num(e.score)} แต้ม`, 8.5, '#ffd84a');
+      });
+      const rw = SEASON_REWARD.map((r, i) => `${['🥇', '🥈', '🥉'][i] ?? `${i + 1}`} ${r.pts}บุญ${r.cores ? `+แก่น${r.cores}` : ''}`).slice(0, 4).join('  ');
+      T(L + 8, top + H - 92, `รางวัลจบสัปดาห์: ${rw} … (อันดับอื่นได้แต้มบุญ) • ทองเข้าคลังตามอันดับ`, 7.5, '#9ad8ff', CW - 16);
+      const can = !!se.prev && se.prev.score > 0 && se.claimed !== se.prev.week;
+      c.add(k.button(L + 8, top + H - 74, 240, 20, can ? `🎁 รับรางวัลฤดูกาลที่แล้ว (${num(se.prev!.score)} แต้ม)` : '🎁 ยังไม่มีรางวัลให้รับ', () => {
+        const r = act('seasonClaim', {}); if (refused(r)) { fail(r); return; }
+        done(h, `🏆 ฤดูกาลที่แล้วอันดับ ${r.rank} — แต้มบุญ +${r.pts}${r.cores ? ` แก่นโบราณ +${r.cores}` : ''} ทองเข้าคลัง +${num(r.gold)}`, '#ffd84a');
+      }, { size: 8, color: 0x6a4a10, disabled: !can }));
       break;
     }
     case 'log': {

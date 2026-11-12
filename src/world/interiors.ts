@@ -5,7 +5,7 @@ import type { GuildTab } from '../ui/guildPanels';
 
 export type RoomKind = 'hall' | 'warehouse' | 'barracks' | 'forge' | 'kitchen' | 'tavern' | 'market' | 'lumber' | 'quarry' | 'barn' | 'house';
 /** what a hotspot does: a guild window tab, one of the existing windows, or a house action */
-export type HotAct = { collect: 'lumber' | 'quarry' | 'barn' } | { tab: GuildTab } | { panel: 'smith' | 'shop' | 'market' | 'wardrobe' | 'alchemy' | 'stash' | 'trophy' } | { plot: 'forge' | 'kitchen' } | { sleep: true };
+export type HotAct = { collect: 'lumber' | 'quarry' | 'barn' } | { tab: GuildTab } | { panel: 'smith' | 'shop' | 'market' | 'wardrobe' | 'alchemy' | 'stash' | 'trophy' | 'bounty' } | { plot: 'forge' | 'kitchen' } | { sleep: true };
 export interface Furn { k: string; x: number; y: number; label?: string; act?: HotAct; sc?: number }
 export interface Room { name: string; floor: 'plank' | 'stone'; wall: 'wood' | 'stone'; furn: Furn[]; win?: number[] }
 
@@ -56,7 +56,7 @@ export const ROOMS: Record<RoomKind, Room> = {
   ] },
   tavern: { name: 'โรงเตี๊ยมกิลด์', floor: 'plank', wall: 'stone', win: [270], furn: [
     { k: 'fu_bar', x: 150, y: 126, label: '🍺 ร้านกิลด์', act: { tab: 'shop' } },
-    { k: 'fu_board', x: 372, y: 112, label: '📜 กระดานภารกิจ / ค่าหัว', act: { tab: 'goals' } },
+    { k: 'fu_board', x: 372, y: 112, label: '📜 กระดานค่าหัว (บอสเร่ร่อน)', act: { panel: 'bounty' } },
     { k: 'fu_table', x: 310, y: 196 }, { k: 'fu_table', x: 120, y: 230 }, { k: 'fu_table', x: 330, y: 264 },
     { k: 'barrel_0', x: 404, y: 160 }, { k: 'barrel_1', x: 52, y: 166 },
   ] },

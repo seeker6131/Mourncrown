@@ -24,7 +24,7 @@ import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type 
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; bounty?: boolean;
 }
 
 export interface Host extends Phaser.Scene {
@@ -80,6 +80,7 @@ export class Combat {
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot;
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
+    this.spawnBounty(n);
   }
   // ---------- loot on the ground: the item itself with a rarity aura; flies into the hero when close ----------
   ground: Loot[] = [];
@@ -180,10 +181,22 @@ export class Combat {
     });
   }
 
-  spawn(m: StageMon, x: number, y: number, boss: boolean) {
+  /** the wandering bounty lord, when this map is the bounty's map (systems/bounty.ts) */
+  spawnBounty(n: number) {
+    const r = act('bountySpawn', { n }); if (refused(r) || !this.pickSpot) return;
+    const p = this.pickSpot(), mob = { ...r.mob, name: `👑 ${r.name}`, size: Math.round(r.mob.size * 1.6) };
+    this.spawn(mob, p.x, p.y, false, { sid: r.sid, hpMult: r.hp });
+    const m = this.mons[this.mons.length - 1]; m.bounty = true;
+    m.sp.setScale(m.sp.scaleX * 1.6);
+    const ea = fx2(this.s, 'fx_elite_aura', p.x, p.y + 2, p.y + 1, mob.size / 40); ea?.setTint(0xff7a5a); if (ea) m.sp.setData('aura2', ea);
+    fx2(this.s, 'fx_boss_spawn', p.x, p.y + 4, p.y - 1, 1.8);
+    bus.emit(EV.TOAST, `👑 ${r.name} อยู่ในแผนที่นี้! (ค่าหัว)`, '#ffb04a');
+  }
+  spawn(m: StageMon, x: number, y: number, boss: boolean, forced?: { sid: number; hpMult: number }) {
     const base = MONSTERS[m.kind]; const st = scaleStats(base, this.stage!.level, boss);
-    const reg = act('spawn', { key: m.key, boss, animal: !!base.animal });   // the server names the spawn and decides golden monsters
+    const reg = forced ? { sid: forced.sid, elite: false } : act('spawn', { key: m.key, boss, animal: !!base.animal });   // the server names the spawn and decides golden monsters
     if (reg.elite) st.hp *= 5;
+    if (forced) { st.hp *= forced.hpMult; st.atk = Math.round(st.atk * 2.2); st.exp *= 20; }
     const sc = this.s;
     let sp: Phaser.GameObjects.Sprite;
     if (CH[m.key]) { sp = sc.add.sprite(x, y, `c_${m.key}_idle`); setIdle(sp, m.key, 0); sp.setScale(SPRITE_SCALE[m.key] ?? 1); }
@@ -510,15 +523,17 @@ export class Combat {
       playAnim(m.sp, m.m.key, 'die', m.dir, false);
       m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
     } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); if (!m.animal) fx2(this.s, 'fx_mon_death', m.x, m.y - 6, m.y + 1, 0.8); }
-    if (m.boss) { fx2(this.s, 'fx_boss_death', m.x, m.y, m.y + 2, 1.5); this.s.cameras.main.flash(180, 255, 230, 200); }
+    if (m.boss || m.bounty) { fx2(this.s, 'fx_boss_death', m.x, m.y, m.y + 2, 1.5); this.s.cameras.main.flash(180, 255, 230, 200); }
     // rewards are decided by a pure system function (moves to the server when the game goes online)
     const s = S();
     (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
     (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
     const r = act('kill', { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss });
-    if (!this.dungeon) this.respawn(m);
+    if (!this.dungeon && !m.bounty) this.respawn(m);
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
+    const bty = (r as { bounty?: { gold: number; name: string } }).bounty;
+    if (bty) { bus.emit(EV.TOAST, `👑 ปราบ ${bty.name}! ได้ค่าหัว 💰${bty.gold} + แก่นโบราณ`, '#ffb04a'); fx2(this.s, 'fx_raid_victory', m.x, m.y - 30, 99995, 1.3); }
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
     if (r.drops?.length) this.dropLoot(m.x, m.y, r.drops);
     if (r.gold) sfx.coinSoft();

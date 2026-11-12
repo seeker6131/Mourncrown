@@ -53,6 +53,8 @@ import { ambience } from '../world/ambience';
 import { DefenseBattle } from '../world/defense';
 /** the raid the guild window just started (the scene restarts into the rival village) */
 let RAID_DATA: RaidStart | null = null;
+/** the bounty slot already announced (survives scene restarts) */
+let BOUNTY_SEEN = -1;
 const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OBJ_FILES = import.meta.glob('../assets/td/obj/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const OM = objMeta as unknown as Record<string, { w: number; h: number; foot: number; x0: number; x1: number; top: number; chim?: [number, number] }>;
@@ -298,6 +300,8 @@ export class TopDownScene extends Phaser.Scene {
       this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true, defend: true }));
     };
     bus.on('td:defend', goDefend); this.events.once('shutdown', () => bus.off('td:defend', goDefend));
+    const goStage = (n: number) => { if (this.stageN === n) { bus.emit(EV.TOAST, 'คุณอยู่ในแผนที่นี้แล้ว — ตามหาบอส 👑', '#ffb04a'); return; } this.enterStage(n); };
+    bus.on('td:goStage', goStage); this.events.once('shutdown', () => bus.off('td:goStage', goStage));
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
     if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
@@ -887,6 +891,7 @@ export class TopDownScene extends Phaser.Scene {
     this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n }));
   }
   hungryWarned = false;
+  bountyT = 0;
 
   /** the stage select is a TdUI panel (same skin as the other windows) */
   stageSelect() { const u = this.ui; if (u) { u.panels.land = -1; u.panels.open('stages'); } this.portalCool = this.time.now + 600; }
@@ -1397,6 +1402,7 @@ export class TopDownScene extends Phaser.Scene {
       });
       else if (n.key === 'np2') offer(d, '💬 ร้านค้า', () => ui.panels.open('shop'));
       else if (n.key === 'np3') offer(d, '💬 ช่างตีเหล็ก', () => ui.panels.open('smith'));
+      else if (n.key === 'np7') offer(d, '📜 กระดานค่าหัว', () => ui.panels.open('bounty'));
     }
     PLOTS.forEach((P, i) => {
       const d = Math.hypot(P.x - h.x, (P.y + 12 - h.y) * 1.4); if (d > 60) return;
@@ -1648,6 +1654,11 @@ export class TopDownScene extends Phaser.Scene {
       if (!this.canStand(this.hero.x, this.hero.y)) { const p = this.openGrid().rescue(this.hero.x, this.hero.y); if (p) { this.hero.setPosition(p.x, p.y); this.combat.vfx.dust(p.x, p.y, 6, 20); } }
     }
     if (this.dungeon && !this.dDone && !this.dead && this.dEnd && time > this.dEnd) { this.dEnd = 0; bus.emit(EV.TOAST, '⏱ หมดเวลา! ดันเจี้ยนล้มเหลว', '#ff6a5a'); this.time.delayedCall(1500, () => { showWait(); this.scene.restart({ stage: 0 }); }); }
+    if (time > this.bountyT) {   // a new wandering lord: announce it once (server-wide in the online game)
+      this.bountyT = time + 30000;
+      const b = act('bountyInfo', {});
+      if (b.slot !== BOUNTY_SEEN && !b.killed && S().level >= STAGES[b.n - 1].req) { BOUNTY_SEEN = b.slot; bus.emit(EV.TOAST, `📢 ค่าหัว! 👑 ${b.name} ปรากฏที่แผนที่ ${b.n} — ดูที่กระดานค่าหัว`, '#ffb04a'); }
+    }
     if (this.wild && time > this.onlineT) { this.onlineT = time + 30000; const r = act('wildRooms', { pick: this.room }); this.online = r.rooms[this.room - 1].count; }
     else this.village?.update(time, dt);
     // a portal only fires when the hero walks onto it: after closing the stage select (or arriving) they must step off first
