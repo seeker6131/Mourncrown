@@ -833,7 +833,17 @@
   "walk8group": "86ea2191-5e0a-4cad-a3d2-bd6fb9c7aae4",
   "walk8": "done",
   "attack8": 8,
-  "walkfix_g": "39fa3ed5-d703-4276-aa83-c9cf6ea13e7d"
+  "walkfix_g": "39fa3ed5-d703-4276-aa83-c9cf6ea13e7d",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  },
  "bs5": {
   "cid": "96fa7e23-cba0-4c3b-a787-e43e0d62a097",

@@ -374,7 +374,7 @@
 },
 "walk": {
 "fs": 180,
-"n": 9,
+"n": 10,
 "dirs": [
 "south",
 "south-east",
@@ -443,7 +443,7 @@
 },
 "walk": {
 "fs": 180,
-"n": 9,
+"n": 10,
 "dirs": [
 "south",
 "south-east",
@@ -576,8 +576,8 @@
 "hit": 4
 },
 "walk": {
-"fs": 180,
-"n": 9,
+"fs": 192,
+"n": 8,
 "dirs": [
 "south",
 "south-east",
@@ -588,7 +588,7 @@
 "west",
 "south-west"
 ],
-"foot": 154
+"foot": 160
 },
 "die": {
 "fs": 180,
