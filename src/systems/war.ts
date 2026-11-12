@@ -101,16 +101,17 @@ export function warKill(s: GameState, now = Date.now()): R | { troops: number } 
   return { troops: w.theirs.troops };
 }
 /** walk away: the war ends now with what stands */
-export function warEnd(s: GameState, now = Date.now()) { const w = warTick(s, now); if (w && !w.over) settle(s, now); return w; }
+export function warEnd(s: GameState, now = Date.now()) { const w = warTick(s, now); if (w && !w.over) settle(s, now, true); return w; }
 
 const starsOf = (side: WarSide) => {
   const all = side.blds.length, down = side.blds.filter(b => b.hp <= 0).length, hall = side.blds.some(b => b.kind === 'hall' && b.hp <= 0), p = down / Math.max(1, all);
   return p >= 1 ? 3 : hall && p >= 0.5 ? 2 : hall || p >= 0.5 ? 1 : 0;
 };
 /** the result: more of the village left standing wins. Loot and losses go through the usual raid rules. */
-function settle(s: GameState, now: number) {
+function settle(s: GameState, now: number, quit = false) {
   const g = guildOf(s)!, w = g.war!; if (w.over) return;
-  const ours = pctLeft(w.ours), theirs = pctLeft(w.theirs), win = ours > theirs;
+  // walking away before the end is a loss (no locking in an early lead)
+  const ours = pctLeft(w.ours), theirs = pctLeft(w.theirs), win = !quit && ours > theirs;
   const before = g.unread.length;
   // what our squad wrecked: loot from their treasury (raid rules, no new resources made)
   const r = raidResult(s, w.rival, w.theirs.blds.filter(b => b.hp <= 0).map(b => b.id), now); g.raids.used--;   // the war already counted its raid
@@ -122,7 +123,7 @@ function settle(s: GameState, now: number) {
   for (const b of w.ours.blds) if (b.id.startsWith('d:')) { const q = g.defenses.find(x => 'd:' + x.slot === b.id); if (q) q.hp = Math.max(1, Math.round(b.hp)); }
   seasonAdd(s, win ? 40 : 10, now);
   if (win) meOf(s)!.pts += 60;
-  const got = [`${win ? '🏆 ชนะสงคราม!' : '🏳 แพ้สงคราม'} หมู่บ้านเราเหลือ ${Math.round(ours * 100)}% • ${w.rival.name} เหลือ ${Math.round(theirs * 100)}%`,
+  const got = [`${win ? '🏆 ชนะสงคราม!' : quit ? '🏳 ถอยทัพ (นับว่าแพ้)' : '🏳 แพ้สงคราม'} หมู่บ้านเราเหลือ ${Math.round(ours * 100)}% • ${w.rival.name} เหลือ ${Math.round(theirs * 100)}%`,
     `ของเข้าคลัง 💰${r.gain.gold} 🪵${r.gain.wood} 🪨${r.gain.stone} 🍖${r.gain.food} • ฤดูกาล +${win ? 40 : 10}${win ? ' • แต้มบุญ +60' : ''}`, ...g.unread.splice(before)];
   w.over = { win, ours, theirs, stars, got };
   guildLog(g, 'raid', `${win ? '🏆 ชนะ' : '🏳 แพ้'}สงครามกับ ${w.rival.name} (${Math.round(ours * 100)}% ต่อ ${Math.round(theirs * 100)}%)`, now);

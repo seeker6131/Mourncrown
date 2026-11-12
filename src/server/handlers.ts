@@ -43,7 +43,8 @@ import { pstats, claimAch, setTitle } from '../data/achievements';
 import type { BuildingId, MealId } from '../data/buildings';
 import type { ClassId } from '../data/classes';
 
-export interface Ctx { now: number; rnd: () => number }
+/** admin: the director's test accounts (server/cf.json) skip the speed / damage checks — nobody else ever does */
+export interface Ctx { now: number; rnd: () => number; admin?: boolean }
 /** potions a VIP can buy away from the shop */
 const VIP_POTIONS = ['hp_potion', 'hp_potion_l', 'mp_potion'];
 export type Refused = { refused: string };
@@ -136,7 +137,7 @@ export const handlers = {
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
-    if (!DEV_TOOLS && mem.dmg < part) return no('dps');
+    if (!c.admin && mem.dmg < part) return no('dps');
     mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid);
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
@@ -275,7 +276,7 @@ export const handlers = {
   warHit(s: GameState, a: { id: string; dmg: number }, c: Ctx) {
     const dps = dpsOf(s), dmg = Math.max(0, Number(a.dmg) || 0);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;   // a hero can only hit so hard per second
-    if (!DEV_TOOLS && mem.dmg < dmg) return no('dps');
+    if (!c.admin && mem.dmg < dmg) return no('dps');
     mem.dmg = Math.max(0, mem.dmg - dmg);
     return warHit(s, String(a.id), dmg, c.now);
   },
@@ -321,7 +322,7 @@ export const handlers = {
     const secs = (c.now - R.start) / 1000; if (secs > RAID_SECS + 20) return no('time');
     const structs = rivalStructs(R.rival), ids = [...new Set(a.destroyed ?? [])].filter(id => structs.some(q => q.id === id));
     const hp = structs.filter(q => ids.includes(q.id)).reduce((x, q) => x + q.hp, 0);
-    if (!DEV_TOOLS && hp > dpsOf(s) * secs * 8 + 500) return no('dps');
+    if (!c.admin && hp > dpsOf(s) * secs * 8 + 500) return no('dps');
     return raidResult(s, R.rival, ids, c.now);
   },
   upSkill: (s: GameState, a: { id: string }) => upSkill(s, a.id),
@@ -349,7 +350,7 @@ export const handlers = {
     const d = mem.dungeon; if (!d || !isDungeon(mem.map)) return no('map');
     const secs = (c.now - d.start) / 1000;
     if (d.kills < DUNGEON_NEED) return no('waves');
-    if (!DEV_TOOLS && secs < 40) return no('fast');
+    if (!c.admin && secs < 40) return no('fast');
     if (secs > DUNGEON_SECS + 30) return no('time');
     mem.dungeon = null; pstats(s).dungeons++;
     const st = stageOf(DUNGEON + d.li, s.level), set = LAND_SET[LANDS[d.li].id], gear: { id: string; rar: number; set?: string }[] = [];

@@ -3,12 +3,13 @@
 // Online (net/play.ts): the same rules run on the game server with its own dice — the device runs them too only to
 // show the result at once, and the server's answer replaces the valuable fields. Actions with dice are decided ONLY by
 // the server: call actServer() for those (a kill's loot, gathering, upgrades, crafting, picking up loot).
+import { TEST_HOOKS } from '../core/testHooks';
 import { handlers, type Handlers } from '../server/handlers';
 import { S } from '../core/events';
 import { play } from './play';
 
 export const refused = (r: unknown): r is { refused: string } => !!r && typeof r === 'object' && 'refused' in (r as object) && !!(r as { refused?: string }).refused;
-const local = (name: string, args: unknown) => (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name](S(), args, { now: Date.now(), rnd: Math.random });
+const local = (name: string, args: unknown) => (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name](S(), args, { now: Date.now(), rnd: Math.random, admin: TEST_HOOKS });
 /** actions the server alone decides when online (they roll dice or hand out loot) */
 export const SERVER_ONLY = new Set(['kill', 'gather', 'upgradeItem', 'craft', 'pickup', 'dungeonClear', 'marketCancel', 'marketBuy', 'marketBrowse', 'guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave']);
 export const isOnline = () => play.online;

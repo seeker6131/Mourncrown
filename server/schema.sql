@@ -32,3 +32,9 @@ CREATE INDEX IF NOT EXISTS market_pay_seller ON market_pay (seller, done);
 CREATE TABLE IF NOT EXISTS guilds (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, leader TEXT, members INTEGER NOT NULL, hall INTEGER NOT NULL, at INTEGER NOT NULL);
 -- banned accounts (the admin sets 1): they cannot sign in, play or join rooms
 ALTER TABLE accounts ADD COLUMN banned INTEGER NOT NULL DEFAULT 0;
+-- guild war between real guilds: the shield (no raids until then) and the weekly season points (this week + last week)
+ALTER TABLE guilds ADD COLUMN shield INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE guilds ADD COLUMN week INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE guilds ADD COLUMN score INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE guilds ADD COLUMN pweek INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE guilds ADD COLUMN pscore INTEGER NOT NULL DEFAULT 0;

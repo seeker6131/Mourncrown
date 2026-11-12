@@ -28,7 +28,7 @@ export interface Treasury { gold: number; wood: number; stone: number; food: num
 export interface GLog { t: number; kind: 'donate' | 'upgrade' | 'defense' | 'raid' | 'defend' | 'goal' | 'join' | 'role' | 'guard'; text: string }
 export interface Goal { kind: GoalKind; need: number; have: number; mine: number; done: boolean }
 export interface RivalStruct { id: string; kind: 'hall' | 'building' | 'defense'; type: string; level: number; hp: number; stored?: number; res?: string; slot?: number }
-export interface Rival { id: string; name: string; hall: number; wh: number; barracks: number; guards: number; treasury: { gold: number; wood: number; stone: number; food: number }; buildings: { type: GuildBld; level: number; stored: number }[]; defenses: { slot: number; type: DefenseId; level: number }[]; houses: number[] }
+export interface Rival { id: string; name: string; /** a real guild on the server (id 'g:<guild id>'); otherwise a pretend village */ real?: boolean; hall: number; wh: number; barracks: number; guards: number; treasury: { gold: number; wood: number; stone: number; food: number }; buildings: { type: GuildBld; level: number; stored: number }[]; defenses: { slot: number; type: DefenseId; level: number }[]; houses: number[] }
 export interface GuildState {
   id: string; name: string; me: string;
   treasury: Treasury; members: GMember[]; buildings: GBuilding[]; defenses: GDefense[]; guards: Record<GuardType, number>;
@@ -37,6 +37,12 @@ export interface GuildState {
   simAt: number; incomingAt: number; rivals: { day: string; list: Rival[] }; unread: string[]; hungry?: boolean;
   /** the guild flag: 256 hex pixels (data/flag.ts); missing = one the game makes from the name */
   flag?: string;
+  /** a real guild on the game server (no pretend raids come in; the server matches real villages) */
+  real?: boolean;
+  /** (server) raids on real guilds waiting to be dealt to them */
+  out?: RaidHit[];
+  /** (server) the season board of the real guilds: this week and last week */
+  board?: { at: number; week: number; list: { name: string; score: number }[]; prev: { name: string; score: number }[] };
   /** a guild war in progress (systems/war.ts) */
   war?: import('./war').War;
   /** weekly guild war season: points this week, last week's result, the week whose reward was claimed */
@@ -291,6 +297,7 @@ export function houseRepair(s: GameState): R | { ok: true } {
   me.houseDmg = 0; return { ok: true };
 }
 /** what burned in a raid on our village: share of each building's toughness lost (0..1), and our own house */
+export interface RaidHit { target: string; name: string; stars: number; destroyed: string[]; gain: Record<'gold' | 'wood' | 'stone' | 'food', number> }
 export interface Wreck { b?: Partial<Record<GuildBld, number>>; house?: number }
 function applyWreck(s: GameState, w: Wreck) {
   const g = guildOf(s)!, me = meOf(s)!;
@@ -487,7 +494,7 @@ export function guildTick(s: GameState, now = Date.now(), rnd: () => number = Ma
 }
 /** a simulated rival attacks when the shield is down (at most once every 10 hours) */
 export function simIncoming(s: GameState, now: number, rnd: () => number) {
-  const g = guildOf(s)!; if (now < g.shieldUntil || now - g.incomingAt < 10 * 3600000) return null;
+  const g = guildOf(s)!; if (g.real || now < g.shieldUntil || now - g.incomingAt < 10 * 3600000) return null;   // real guilds are raided by real guilds
   g.incomingAt = now;
   if (rnd() > 0.5) return null;
   const atk = (hallLv(s) * 420 + 300) * (0.7 + rnd() * 0.7), def = defensePower(s), ratio = atk / Math.max(1, def);
@@ -554,17 +561,55 @@ export function raidResult(s: GameState, rv: Rival, destroyed: string[], now = D
   const g = guildOf(s)!; const all = rivalStructs(rv), set = new Set(destroyed.filter(id => all.some(q => q.id === id)));
   const pct = set.size / all.length, hall = set.has('b:hall');
   const stars = pct >= 1 ? 3 : hall && pct >= 0.5 ? 2 : hall || pct >= 0.5 ? 1 : 0;
-  const free = 1 - vaultShare(rv.wh), take = RAID_TAKE[stars], gain = { gold: 0, wood: 0, stone: 0, food: 0 } as Record<'gold' | 'wood' | 'stone' | 'food', number>;
+  const bot = g.real && !rv.real ? 0.5 : 1;   // online, a pretend village yields half (its riches come from nowhere)
+  const free = 1 - vaultShare(rv.wh), take = RAID_TAKE[stars] * bot, gain = { gold: 0, wood: 0, stone: 0, food: 0 } as Record<'gold' | 'wood' | 'stone' | 'food', number>;
   for (const k of RES) gain[k] = Math.floor(rv.treasury[k] * free * take * RAID_GAIN);
-  for (const q of all) if (set.has(q.id) && q.res && q.stored) gain[q.res as 'gold'] += Math.floor(q.stored * RAID_STORED);
+  for (const q of all) if (set.has(q.id) && q.res && q.stored) gain[q.res as 'gold'] += Math.floor(q.stored * RAID_STORED * bot);
   const cap = tCap(s);
   for (const k of RES) { gain[k] = Math.max(0, Math.min(gain[k], cap - g.treasury[k])); g.treasury[k] += gain[k]; }
   g.raids.used++; g.shieldUntil = Math.min(g.shieldUntil, now);   // attacking drops your own shield
   seasonAdd(s, stars * 10 + set.size, now);
+  if (rv.real) (g.out ??= []).push({ target: rv.id.slice(2), name: g.name, stars, destroyed: [...set], gain: { ...gain } });   // the server deals it to them
   g.rivals.list = g.rivals.list.filter(x => x.id !== rv.id);
   const pts = Math.round((gain.gold * CONTRIB.gold + gain.wood + gain.stone * 1.5 + gain.food) / 10) + stars * 30; meOf(s)!.pts += pts;
   log(g, 'raid', `${meOf(s)!.name} ปล้น${rv.name} ${'⭐'.repeat(stars) || 'ไม่ได้ดาว'} ได้ 💰${gain.gold} 🪵${gain.wood} 🪨${gain.stone} 🍖${gain.food}`, now);
   return { stars, gain, pts, destroyed: set.size, total: all.length };
+}
+/** a real guild as a raid target (the server sends this snapshot to the guild that was matched with it) */
+export function rivalOf(s: GameState, now = Date.now()): Rival {
+  const g = guildOf(s)!, t = g.treasury;
+  const houses = g.members.map(m => m.houseLv).sort((a, b) => b - a).slice(0, HOUSE_SLOTS);
+  while (houses.length < HOUSE_SLOTS) houses.push(0);
+  return {
+    id: 'g:' + g.id, real: true, name: g.name, hall: hallLv(s, now), wh: whLv(s, now), barracks: Math.max(1, barracksLv(s, now)), guards: guardsTotal(g),
+    treasury: { gold: t.gold, wood: t.wood, stone: t.stone, food: t.food },
+    buildings: g.buildings.filter(b => !isRuin(b)).map(b => ({ type: b.type, level: Math.max(1, b.level), stored: b.stored })),
+    defenses: g.defenses.map(q => ({ slot: q.slot, type: q.type, level: q.level })), houses,
+  };
+}
+/** another guild raided this (real) guild: what it loses — the raider got less than this (no riches are made) */
+export function raidedBy(s: GameState, hit: RaidHit, now = Date.now()) {
+  const g = guildOf(s)!, stars = Math.max(0, Math.min(3, Math.floor(hit.stars))), name = String(hit.name).slice(0, 24);
+  const lost = { gold: 0, wood: 0, stone: 0, food: 0 }, gone = new Set(hit.destroyed);
+  for (const b of g.buildings) if (gone.has('b:' + b.type)) {
+    b.dmg = 1;   // burnt down: it stops working until it is repaired
+    const res = GUILD_BLD[b.type].produces as keyof typeof lost | undefined;
+    if (res && b.stored) { const n = Math.floor(b.stored * RAID_STORED); b.stored -= n; lost[res] += n; }
+  }
+  for (const q of g.defenses) if (gone.has('d:' + q.slot)) q.hp = 1;
+  if (!stars) {
+    seasonAdd(s, 8, now); g.shieldUntil = Math.max(g.shieldUntil, now + 4 * 3600000);
+    log(g, 'defend', `🛡 ${name} บุกแต่ป้องกันได้!`, now); g.unread.push(`🛡 กิลด์ ${name} บุกหมู่บ้าน แต่ป้อมและทหารป้องกันไว้ได้!`);
+    return lost;
+  }
+  const take = RAID_TAKE[stars], free = 1 - vaultShare(whLv(s, now)); const txt: string[] = [];
+  for (const k of RES) { const n = Math.floor(g.treasury[k] * free * take); g.treasury[k] -= n; lost[k] += n; if (lost[k]) txt.push(`${ICON[k]}${lost[k]}`); }
+  for (const q of g.defenses) q.hp = Math.max(1, Math.round(q.hp * (1 - 0.25 * stars)));
+  const fallen = Math.min(guardsTotal(g), stars - 1); for (let i = 0; i < fallen; i++) { if (g.guards.spear) g.guards.spear--; else g.guards.archer--; }
+  g.shieldUntil = Math.max(g.shieldUntil, now + SHIELD_H[stars] * 3600000);
+  log(g, 'defend', `⚔ กิลด์ ${name} ปล้นหมู่บ้าน ${'⭐'.repeat(stars)} เสีย ${txt.join(' ')}`, now);
+  g.unread.push(`⚔ กิลด์ ${name} ปล้นหมู่บ้านได้ ${'⭐'.repeat(stars)} — เสีย ${txt.join(' ')}${fallen ? ` • ทหารเสียชีวิต ${fallen}` : ''}${gone.size ? ` • อาคาร/ป้อมพัง ${gone.size}` : ''} • ซ่อมได้ที่หน้าต่างกิลด์ • ได้โล่ ${SHIELD_H[stars]} ชม.`);
+  return lost;
 }
 /** test buttons (DEV_TOOLS only, refused by the server for OBT): fill the treasury, skip 12 hours, an enemy raid right now */
 export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend', now = Date.now(), rnd: () => number = Math.random, n?: number, name?: string, wreck?: Wreck): string[] {
@@ -607,6 +652,12 @@ export function seasonAdd(s: GameState, pts: number, now = Date.now()) { if (gui
 function botScore(name: string, week: number, frac: number) { const r = srnd(hashStr(name + ':' + week)); return Math.round((30 + r() * 230) * Math.min(1, Math.max(0, frac)) ** (0.8 + r() * 0.4)); }
 export function seasonBoard(s: GameState, now = Date.now(), week = weekOf(now), myScore?: number) {
   const g = guildOf(s)!, se = season(s, now), frac = week < weekOf(now) ? 1 : (now - (WEEK0 + week * WEEK)) / WEEK;
+  if (g.real) {   // online: the real guilds (server/worker.ts keeps the board)
+    const b = g.board, src = !b ? [] : week === b.week ? b.list : week === b.week - 1 ? b.prev : [];
+    const list = src.filter(e => e.name !== g.name).map(e => ({ name: e.name, score: e.score, me: false }));
+    list.push({ name: g.name, score: myScore ?? se.score, me: true });
+    return list.sort((a, b) => b.score - a.score);
+  }
   const list = RIVAL_NAMES.filter(n => n !== g.name).map(name => ({ name, score: botScore(name, week, frac), me: false }));
   list.push({ name: g.name, score: myScore ?? se.score, me: true });
   return list.sort((a, b) => b.score - a.score);
@@ -620,7 +671,9 @@ export function seasonClaim(s: GameState, now = Date.now()): R | { rank: number;
   const g = guildOf(s); if (!g) return no('guild');
   const se = season(s, now); if (!se.prev || se.prev.score <= 0) return no('none');
   if (se.claimed === se.prev.week) return no('claimed');
-  const rank = seasonBoard(s, now, se.prev.week, se.prev.score).findIndex(e => e.me) + 1;
+  const board = seasonBoard(s, now, se.prev.week, se.prev.score);
+  // online with few guilds, the top places are not given away: rank counts as if the board had 6 guilds
+  const rank = board.findIndex(e => e.me) + 1 + (g.real ? Math.max(0, SEASON_REWARD.length - board.length) : 0);
   const rw = SEASON_REWARD[rank - 1] ?? { pts: 60, cores: 0, gold: 500 };
   meOf(s)!.pts += rw.pts; if (rw.cores) addItem(s, 'ancient_core', rw.cores);
   const dragon = rank === 1 && grantMount(s, 'dragon');   // the limited dragon for the season's best guild

@@ -46,3 +46,42 @@ describe('guild war (mixed: the system fights, heroes help)', () => {
     expect(warHit(s, 'b:hall', 100, T0 + WAR_SECS * 1000 + 2)).toEqual({ refused: 'war' });
   });
 });
+
+describe('guild war between REAL guilds (online)', () => {
+  it('a real guild is a raid target as it really is; the raider gets less than the target loses', async () => {
+    const { rivalOf, raidedBy, raidResult } = await import('../src/systems/guild');
+    const A = guild(), B = guild(); A.g.real = B.g.real = true; B.g.shieldUntil = 0;
+    B.g.treasury.gold = 20000; B.g.treasury.wood = 5000;
+    const rv = rivalOf(B.s, T0);
+    expect(rv.real).toBe(true); expect(rv.id).toBe('g:' + B.g.id); expect(rv.treasury.gold).toBe(20000);
+    const r = raidResult(A.s, rv, ['b:hall', 'b:market'], T0);
+    expect(r.stars).toBe(1);
+    const hit = A.g.out![0]; expect(hit.target).toBe(B.g.id); expect(hit.destroyed).toContain('b:hall');
+    const lost = raidedBy(B.s, hit, T0);
+    for (const k of ['gold', 'wood', 'stone', 'food'] as const) expect(r.gain[k]).toBeLessThanOrEqual(lost[k]);   // no riches are made
+    expect(B.g.treasury.gold).toBe(20000 - lost.gold);
+    expect(B.g.buildings.find(b => b.type === 'hall')!.dmg).toBe(1);   // burnt down until repaired
+    expect(B.g.shieldUntil).toBeGreaterThan(T0 + 11 * 3600000);
+    expect(B.g.unread[B.g.unread.length - 1]).toContain('ปล้นหมู่บ้านได้');
+  });
+  it('online, pretend villages do not raid a real guild, and yield half', async () => {
+    const { simIncoming, raidResult } = await import('../src/systems/guild');
+    const a = guild(), b = guild(); a.g.real = true; a.g.shieldUntil = 0; a.g.incomingAt = 0;
+    expect(simIncoming(a.s, T0 + 86400000 * 5, () => 0.1)).toBeNull();
+    seed = 7; const ra = rivals(a.s, T0)[0]; seed = 7; const rb = rivals(b.s, T0)[0];
+    const ga = raidResult(a.s, ra, ['b:hall'], T0).gain.gold, gb = raidResult(b.s, rb, ['b:hall'], T0).gain.gold;
+    expect(ga).toBeLessThan(gb);
+    expect(a.g.out ?? []).toEqual([]);
+  });
+  it('walking away from a war is a loss; the season board online is the real guilds, top places need 6 guilds', async () => {
+    const { seasonBoard, seasonClaim, season } = await import('../src/systems/guild');
+    const { s, g } = guild(); const rv = rivals(s, T0)[0];
+    startWar(s, rv.id, T0); warEnd(s, T0 + 5000);
+    expect(g.war!.over!.win).toBe(false); expect(g.war!.over!.got[0]).toContain('ถอยทัพ');
+    g.real = true; const se = season(s, T0); se.prev = { week: se.week - 1, score: 500 };
+    g.board = { at: T0, week: se.week, list: [{ name: 'อีกกิลด์', score: 5 }], prev: [{ name: 'อีกกิลด์', score: 100 }] };
+    expect(seasonBoard(s, T0).map(e => e.name).sort()).toEqual(['อีกกิลด์', g.name].sort());   // no pretend guilds online
+    const r = seasonClaim(s, T0) as { rank: number; dragon: boolean };
+    expect(r.rank).toBe(5); expect(r.dragon).toBe(false);   // first of 2 guilds counts as 5th of 6
+  });
+});

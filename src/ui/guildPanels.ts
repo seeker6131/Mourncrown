@@ -35,6 +35,7 @@ const WHY: Record<string, string> = {
   cap: 'คลังหมู่บ้านเต็ม — อัปโกดังเพื่อขยาย', amount: 'ของไม่พอ', taken: 'ช่องนี้มีป้อมแล้ว', slot: 'ช่องนี้ยังไม่เปิด', daily: 'วันนี้ครบแล้ว', pts: 'แต้มบุญไม่พอ',
   bag: 'กระเป๋าเต็ม', full: 'เต็มแล้ว', weak: 'หมู่บ้านนี้อ่อนเกินไป', target: 'เป้าหมายนี้ไม่มีแล้ว', rarity: 'ตั้งโชว์ได้เฉพาะอุปกรณ์ Super Rare ขึ้นไป', equipped: 'ถอดออกก่อน',
   house: 'ต้องสร้างบ้านก่อน', item: 'ไม่มีของชิ้นนี้', member: 'ทำกับสมาชิกคนนี้ไม่ได้', level: `ต้องเลเวล ${GUILD_UNLOCK_LV} ขึ้นไป`, name: 'ชื่อกิลด์สั้นเกินไป',
+  shield: 'หมู่บ้านนี้เพิ่งได้โล่ — ไปตีเป้าหมายอื่น', dps: 'ตีเร็วเกินกว่าที่ฮีโร่ทำได้ — ระบบไม่นับ', fast: 'เร็วเกินไป', rate: 'กดถี่เกินไป',
   cost: 'ทรัพยากรส่วนตัวไม่พอ', claimed: 'รับไปแล้ว', empty: 'ยังไม่มีของให้เก็บ', none: 'ไม่มีทหารประเภทนี้', guild: 'ยังไม่มีกิลด์',
 };
 export const whyText = (r: unknown) => WHY[(r as { refused: string }).refused] ?? 'ทำไม่ได้';
@@ -252,7 +253,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
         T(L + 12, top + 90, 'ระบบสู้ให้ทั้งสองฝั่งอยู่แล้ว — ลงไปช่วยได้: ตีอาคารศัตรู = ดาเมจเพิ่ม • ฆ่าทหารที่บุกบ้านเรา = กองทัพศัตรูอ่อนลง • จบแล้วฝั่งที่หมู่บ้านเหลือมากกว่าชนะ', 7.5, '#a89878', CW - 24);
         c.add(k.button(L + 10, top + 124, (CW - 30) / 2, 28, '⚔ ไปหมู่บ้านศัตรู (บุก)', () => { h.close(); bus.emit('td:war', 'enemy'); }, { size: 9.5, color: 0x7a1a10 }));
         c.add(k.button(L + 20 + (CW - 30) / 2, top + 124, (CW - 30) / 2, 28, '🏠 ไปหมู่บ้านเรา (ป้องกัน)', () => { h.close(); bus.emit('td:war', 'home'); }, { size: 9.5, color: 0x1f4a2a }));
-        c.add(k.button(L + 10, top + 160, 160, 20, '🏳 ยุติสงครามตอนนี้', () => { act('warEnd', {}); h.rebuild(); }, { size: 8, color: 0x3a2a2a, disabled: !off }));
+        c.add(k.button(L + 10, top + 160, 160, 20, '🏳 ถอยทัพ (นับว่าแพ้)', () => { act('warEnd', {}); h.rebuild(); }, { size: 8, color: 0x3a2a2a, disabled: !off }));
         break;
       }
       T(L + 8, top + 6, `ปล้นได้อีกวันนี้ ${raidsLeft(s)} ครั้ง • ${sh > 0 ? `โล่ของเรายังอยู่ ${hrs(sh)} (ไปปล้น = โล่หาย)` : 'ไม่มีโล่'} • ระบบจับคู่หมู่บ้านพลังใกล้กันให้ 3 แห่งต่อวัน`, 8, '#ffe7a0', CW - 16);
@@ -260,7 +261,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
       rivals(s).forEach((r, i) => {
         const by = top + 50 + i * 64, st = rivalStructs(r), rich = r.treasury.gold + r.treasury.wood + r.treasury.stone;
         g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(L + 6, by, CW - 12, 58, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(L + 6, by, CW - 12, 58, 4);
-        T(L + 14, by + 4, `⚔ ${r.name}`, 10, '#ffd84a');
+        T(L + 14, by + 4, `⚔ ${r.name}${r.real ? ' • กิลด์จริง' : ' • หมู่บ้านจำลอง'}`, 10, r.real ? '#ffd84a' : '#c8b89a');
         T(L + 14, by + 22, `หอกิลด์ Lv${r.hall} • ป้อม ${r.defenses.length} • ทหาร ${r.guards} • อาคาร ${st.length - r.defenses.length}`, 8, '#e8dcc0');
         T(L + 14, by + 38, `คลัง: ${rich > 60000 ? 'ร่ำรวย 💰💰💰' : rich > 25000 ? 'ปานกลาง 💰💰' : 'น้อย 💰'}`, 8, '#c8e8b0');
         c.add(k.button(R - 128, by + 6, 116, 26, '⚔ ประกาศสงคราม', () => { const rr = act('warStart', { id: r.id }); if (refused(rr)) { fail(rr); return; } WC.war = rr.war; WC.seen = 0; h.close(); bus.emit(EV.TOAST, `⚔ ประกาศสงครามกับ ${r.name}! กองทัพทั้งสองฝ่ายออกรบแล้ว`, '#ffd84a'); bus.emit('td:war', 'enemy'); }, { size: 9.5, color: 0x7a1a10, disabled: !off || raidsLeft(s) <= 0 }));
