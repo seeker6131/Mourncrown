@@ -328,6 +328,8 @@ export class Combat {
           if (!m.alive) return;
           const tx = m.x, ty = m.y - m.m.size * 0.3;
           const fall = sk.fall ?? 'arrow';
+          // finishers with a PixelLab effect (played by castSkill on these same targets): just the damage, nothing stacked
+          if ((sk.id === 'm4_meteor' || sk.id === 'a4_storm') && hasFx2('fx_ult_mage')) { this.s.time.delayedCall(sk.id === 'm4_meteor' ? 560 : 520, () => { if (m.alive) this.hitSk(m, sk, 4); }); return; }
           if (pf && (fall === 'meteor' || fall === 'bolt')) {
             const fxk = fall === 'meteor' ? 'meteor' : 'lightning-strike', u = SKILL_PFX[sk.id].find(q => q.fx === fxk);
             const t = playPfx(this.s, fxk, m.x, m.y + 2, { scale: u?.scale, flip: Math.random() < 0.5 });
@@ -385,6 +387,7 @@ export class Combat {
   /** pixelfx layer for a skill: on the hero, in front, on the targets (same picks as the skill), or where a dash / leap lands */
   skillPfx(sk: SkillDef, aim: number, fx: number, fy: number) {
     const uses = SKILL_PFX[sk.id]; if (!uses) return;
+    if (['s4_judgment', 't4_titan', 'a4_storm', 'm4_meteor'].includes(sk.id) && hasFx2('fx_ult_sword')) return;   // PixelLab finisher instead
     const h = this.s.hero, left = fx < -0.2;
     const targets = (): { x: number; y: number }[] => {
       if (sk.kind === 'rain') return this.nearest(230).slice(0, sk.count ?? 5);
@@ -415,12 +418,13 @@ export class Combat {
     const magic = MAGIC.has(formKey);
     // damage and the slash effect land on the frame where the weapon / bow / staff strikes
     this.s.time.delayedCall(hitMs(formKey, formKey === 'hg' ? (hasAnim('hg', 'hunt') ? 'hunt' : 'chop') : 'attack', ranged ? 260 : 120), () => {
-      if (!ranged) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
+      const pl = hasFx2('fx_hit_sword');
+      if (!ranged && (!pl || formKey === 'hg')) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
       for (const m of hits) {
         if (!m.alive) continue;
-        if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff); else this.arrow(h.x, h.y - 18, m); }
+        if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff, pl); else this.arrow(h.x, h.y - 18, m, pl); }
         const r = calcDamage(magic ? d.matk : d.atk, m.def, 1, d.crit);
-        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged); this.hurtMon(m, r.dmg, r.crit, magic); });
+        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged); this.hurtMon(m, r.dmg, r.crit, magic, pl); });
       }
     });
   }
@@ -449,24 +453,25 @@ export class Combat {
 
   sparks(x: number, y: number, col: number, n: number) { this.vfx.burst(x, y, col, n, 90 + n * 6, 360, 0.13); }
 
-  arrow(x: number, y: number, m: Mon) {
+  arrow(x: number, y: number, m: Mon, quiet = false) {
     const tx = m.x, ty = m.y - m.m.size * 0.35;
-    this.vfx.bolt(x, y, tx, ty, 0xffe8a0, 1, 900, () => this.vfx.impact(tx, ty, 0xffe0a0), true);
+    this.vfx.bolt(x, y, tx, ty, 0xffe8a0, 1, 900, () => { if (!quiet) this.vfx.impact(tx, ty, 0xffe0a0); }, true);
   }
 
-  magicBolt(x: number, y: number, m: Mon, col: number) {
+  magicBolt(x: number, y: number, m: Mon, col: number, quiet = false) {
     const tx = m.x, ty = m.y - m.m.size * 0.35;
     this.vfx.glow(x, y, col, 0.6, 200);
-    this.vfx.bolt(x, y, tx, ty, col, 1.1, 650, () => { this.vfx.impact(tx, ty, col, true); });
+    this.vfx.bolt(x, y, tx, ty, col, 1.1, 650, () => { if (!quiet) this.vfx.impact(tx, ty, col, true); });
   }
 
-  hurtMon(m: Mon, dmg: number, crit: boolean, magic = false) {
+  hurtMon(m: Mon, dmg: number, crit: boolean, magic = false, fxDone = false) {
     if (!m.alive) return;
     m.hp -= dmg; m.hitT = this.s.time.now;
     if (this.s.time.now > this.hitSfxT) { this.hitSfxT = this.s.time.now + 70; if (crit) sfx.crit(); else sfx.hit(); }
     const st = magic ? (crit ? DMG.magicCrit : DMG.magic) : (crit ? DMG.physCrit : DMG.phys);
     this.dmgText(m.x + (Math.random() - 0.5) * 10, m.y - m.m.size * 0.75, dmg, st, crit, magic);
-    if (!magic) this.vfx.impact(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xfff4dc, crit);
+    if (fxDone) { /* the PixelLab hit effect is the only one (no stacked effects) */ }
+    else if (!magic) this.vfx.impact(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xfff4dc, crit);
     else if (crit) this.vfx.star(m.x, m.y - m.m.size * 0.4, 0xff9cff, 1.4);
     m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
     const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), kb = m.boss ? 1 : 6;
@@ -563,9 +568,11 @@ export class Combat {
           m.dir = dirOf(tx, ty); moving = true;
         }
       }
-      if (!busy && !this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 180) {
-        // chasing is always a bit slower than the hero (hero 92 px/s) so the player can get away
-        const sp = Math.min((base.speed + 8) * 1.25, 78) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
+      if (!busy && !this.s.dead && dist < aggro && dist > reach * 0.8 && time - m.hitT > 120) {
+        // director: a monster that gets hit charges straight in for a moment (faster than the hero), then chases a bit
+        // slower than the hero (108 px/s) so the player can still get away
+        const rush = time - m.hitT < 1600;
+        const sp = (rush ? Math.min((base.speed + 20) * 2.2, 150) : Math.min((base.speed + 8) * 1.35, 96)) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
         if (!this.s.isBlocked(nx, m.y)) m.x = nx;
         if (!this.s.isBlocked(m.x, ny)) m.y = ny;
         m.dir = dirOf(dx, dy); moving = true;
@@ -605,8 +612,7 @@ export class Combat {
             sfx.hurt();
             const heavy = m.boss || HEAVY.has(m.m.kind), left = h.x < m.x;
             if (m.boss && hasFx2(`fx_${m.m.key}_hit`)) fx2(this.s, `fx_${m.m.key}_hit`, h.x, h.y - 14, 99953, 0.9)?.setFlipX(left);
-            else playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : base.ranged ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss ? 0.6 : heavy ? 0.6 : 0.7, flip: left });
-            if (m.boss) this.vfx.impact(h.x, h.y - 16, 0xff6a3a, true);
+            else { playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : base.ranged ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss ? 0.6 : heavy ? 0.6 : 0.7, flip: left }); if (m.boss) this.vfx.impact(h.x, h.y - 16, 0xff6a3a, true); }
           }
           this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
           if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }

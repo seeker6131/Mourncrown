@@ -70,7 +70,8 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
       T(L + 8, top + 72, 'ข่าวล่าสุดในกิลด์', 9, '#ffd84a');
       g0.log.slice(0, 7).forEach((l, i) => T(L + 12, top + 88 + i * 15, `${new Date(l.t).toLocaleTimeString().slice(0, 5)}  ${l.text}`, 8, '#e8dcc0', CW - 24));
       T(L + 8, top + H - 80, 'บริจาคเข้าคลัง → หัวหน้าอัปอาคาร/ป้อม • ของส่วนตัวไม่โดนปล้น แต่คลังหมู่บ้านโดน', 7.5, '#a89878', CW - 16);
-      if (DEV_TOOLS) ([['🧪 เติมคลังเต็ม', 'guildFill'], ['🧪 ข้ามเวลา 12 ชม.', 'guildTime'], ['🧪 ศัตรูบุกตอนนี้', 'guildAttack']] as const).forEach(([lb, op], i) => c.add(k.button(L + 8 + i * ((CW - 16) / 3), top + H - 102, (CW - 16) / 3 - 6, 18, lb, () => {
+      if (DEV_TOOLS) c.add(k.button(L + 8, top + H - 124, CW - 16, 18, '🧪 จำลองกิลด์ศัตรู (บอท) บุกหมู่บ้านเรา — สู้จริง', () => { h.close(); bus.emit('td:defend'); }, { size: 8, color: 0x7a1a10 }));
+      if (DEV_TOOLS) ([['🧪 เติมคลังเต็ม', 'guildFill'], ['🧪 ข้ามเวลา 12 ชม.', 'guildTime'], ['🧪 รายงานโดนปล้น', 'guildAttack']] as const).forEach(([lb, op], i) => c.add(k.button(L + 8 + i * ((CW - 16) / 3), top + H - 102, (CW - 16) / 3 - 6, 18, lb, () => {
         const r = act('dev', { op }); if (refused(r)) { fail(r); return; }
         for (const m of r.got) bus.emit(EV.TOAST, m, m.startsWith('⚔') ? '#ff9a7a' : '#9fffb0');
         sfx.levelUp(); bus.emit(EV.STATE_CHANGED); h.rebuild();

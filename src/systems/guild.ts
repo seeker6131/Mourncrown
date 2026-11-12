@@ -424,6 +424,11 @@ export function simIncoming(s: GameState, now: number, rnd: () => number) {
   const atk = (hallLv(s) * 420 + 300) * (0.7 + rnd() * 0.7), def = defensePower(s), ratio = atk / Math.max(1, def);
   const stars = ratio > 2.2 ? 3 : ratio > 1.4 ? 2 : ratio > 0.9 ? 1 : 0;
   const name = RIVAL_NAMES[Math.floor(rnd() * RIVAL_NAMES.length)];
+  return raidOutcome(s, stars, name, now);
+}
+/** what an enemy raid on our village costs (or earns, when it was beaten off) */
+export function raidOutcome(s: GameState, stars: number, name: string, now: number) {
+  const g = guildOf(s)!;
   if (!stars) { meOf(s)!.pts += 20; log(g, 'defend', `🛡 ${name} บุกแต่ป้องกันได้! (+20 แต้มบุญ)`, now); g.unread.push(`🛡 ${name} บุกหมู่บ้าน แต่ป้อมและทหารป้องกันไว้ได้!`); g.shieldUntil = now + 4 * 3600000; return { stars }; }
   const take = RAID_TAKE[stars], free = 1 - vaultShare(whLv(s)); const lost: string[] = [];
   for (const k of RES) { const n = Math.floor(g.treasury[k] * free * take); g.treasury[k] -= n; if (n) lost.push(`${ICON[k]}${n}`); }
@@ -487,8 +492,12 @@ export function raidResult(s: GameState, rv: Rival, destroyed: string[], now = D
   return { stars, gain, pts, destroyed: set.size, total: all.length };
 }
 /** test buttons (DEV_TOOLS only, refused by the server for OBT): fill the treasury, skip 12 hours, an enemy raid right now */
-export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAttack', now = Date.now(), rnd: () => number = Math.random): string[] {
+export function devGuild(s: GameState, op: 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend', now = Date.now(), rnd: () => number = Math.random, n?: number, name?: string): string[] {
   const g = guildOf(s); if (!g) return ['ยังไม่มีกิลด์'];
+  if (op === 'guildDefend') {   // the defense battle in the village ended: n = stars the enemy got (0 = beaten off)
+    raidOutcome(s, Math.max(0, Math.min(3, Math.floor(n ?? 0))), name ?? RIVAL_NAMES[0], now);
+    return g.unread.splice(0);
+  }
   if (op === 'guildFill') {
     const cap = tCap(s); for (const k of RES) g.treasury[k] = cap;
     const ids = new Set<string>(); for (const d of [...Object.values(GUILD_BLD).map(b => b.costs), ...Object.values(DEFENSES).map(d => d.costs)]) for (const c of d) for (const id of Object.keys(c.items ?? {})) ids.add(id);

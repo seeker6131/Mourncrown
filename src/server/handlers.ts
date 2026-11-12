@@ -273,9 +273,9 @@ export const handlers = {
   /** daily login calendar: one claim per day */
   loginClaim: (s: GameState, _a: object, c: Ctx) => claimLogin(s, c.now) ?? no('claimed'),
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
-  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack'; n?: number }, c: Ctx): Refused | { got: string[] } {
+  dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend'; n?: number; name?: string }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');
-    if (a.op === 'guildFill' || a.op === 'guildTime' || a.op === 'guildAttack') return { got: devGuild(s, a.op, c.now, c.rnd) };
+    if (a.op === 'guildFill' || a.op === 'guildTime' || a.op === 'guildAttack' || a.op === 'guildDefend') return { got: devGuild(s, a.op, c.now, c.rnd, a.n, a.name) };
     if (a.op === 'kit') return { got: giveTestKit(s, 5, c.rnd) };
     if (a.op === 'level') testLevelUp(s, a.n ?? 10);
     else if (a.op === 'vip') grantVip(s, a.n ?? 3, c.now);

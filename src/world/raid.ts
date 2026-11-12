@@ -172,7 +172,7 @@ export class RaidBattle {
       const dx = h.x - g.x, dy = h.y - g.y, dist = Math.hypot(dx, dy), key = GUARDS[g.type].key;
       const chase = !this.sc.dead && dist < 230, want = chase ? (dist > g.range ? { x: h.x, y: h.y } : null) : (Math.hypot(g.post.x - g.x, g.post.y - g.y) > 6 ? g.post : null);
       if (want && !g.busy) {
-        const ax = want.x - g.x, ay = want.y - g.y, ad = Math.hypot(ax, ay), sp = 46 * dt / 1000;
+        const ax = want.x - g.x, ay = want.y - g.y, ad = Math.hypot(ax, ay), sp = (chase ? 82 : 50) * dt / 1000;
         const nx = g.x + ax / ad * sp, ny = g.y + ay / ad * sp;
         if (this.sc.canStand(nx, g.y)) g.x = nx; if (this.sc.canStand(g.x, ny)) g.y = ny;
         g.dir = dirOf(ax, ay); playAnim(g.sp, key, 'walk', g.dir);

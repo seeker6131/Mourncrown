@@ -50,6 +50,7 @@ import { GUILD_BLD, GUILD_UNLOCK_LV, type GuildBld } from '../data/guild';
 import { preloadFx2, createFx2Anims, fx2 } from '../world/fx2';
 import { RaidBattle, type RaidStart } from '../world/raid';
 import { ambience } from '../world/ambience';
+import { DefenseBattle } from '../world/defense';
 /** the raid the guild window just started (the scene restarts into the rival village) */
 let RAID_DATA: RaidStart | null = null;
 const VFX_FILES = import.meta.glob('../assets/vfx/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -239,6 +240,8 @@ export class TopDownScene extends Phaser.Scene {
   arriveAt = -1;
   town?: GuildTown;
   raid?: RaidBattle;
+  defense?: DefenseBattle;
+  defendNext = false;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -248,6 +251,7 @@ export class TopDownScene extends Phaser.Scene {
     this.gv = !this.stageN && (data?.guild ?? !!(st0 && guildOf(st0)));
     this.inside = this.gv ? data?.inside ?? -1 : -1; this.arriveAt = data?.at ?? -1;
     this.raidMode = this.gv && !!(data as { raid?: boolean })?.raid && !!RAID_DATA;
+    this.defendNext = this.gv && !!(data as { defend?: boolean })?.defend; this.defense = undefined;
     if (this.raidMode) this.inside = -1;
     if (this.gv) { MW = this.inside >= 0 ? RW : GV.VW; MH = this.inside >= 0 ? RH : GV.VH; }
     if (this.dungeon) { MW = 1536; MH = 1024; }
@@ -289,6 +293,11 @@ export class TopDownScene extends Phaser.Scene {
     bus.on('td:guildHome', home); this.events.once('shutdown', () => bus.off('td:guildHome', home));
     const goRaid = (r: RaidStart) => { RAID_DATA = r; this.portalCool = this.time.now + 99999; sfx.door(); this.cameras.main.fadeOut(300); this.time.delayedCall(310, () => showWait()); this.time.delayedCall(340, () => this.scene.restart({ stage: 0, guild: true, raid: true })); };
     bus.on('td:raid', goRaid); this.events.once('shutdown', () => bus.off('td:raid', goRaid));
+    const goDefend = () => {
+      if (this.town && this.inside < 0 && !this.raid) { if (!this.defense) { this.defense = new DefenseBattle(this as never, this.town); this.defense.start(); } return; }
+      this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true, defend: true }));
+    };
+    bus.on('td:defend', goDefend); this.events.once('shutdown', () => bus.off('td:defend', goDefend));
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
     if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
@@ -296,7 +305,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.wild) { const r = act('wildRooms', { pick: this.roomPick }); if (r.refused) bus.emit(EV.TOAST, 'ห้องเต็ม — ย้ายไปห้องที่ว่าง', '#ff8a6a'); this.room = r.room; this.online = r.rooms[r.room - 1].count; this.onlineT = this.time.now + 30000; }
     if (!this.stageN && !this.gv) { ensureNpcVillage(S(), PLOT_OF, HOME_PLOT); this.renderPlots(); }
     if (this.raidMode && RAID_DATA) { this.raid = new RaidBattle(this as never, RAID_DATA); RAID_DATA = null; this.raid.build(); bus.emit(EV.TOAST, `⚔ บุกหมู่บ้าน ${this.raid.data.rival.name}! ทำลายอาคาร/ป้อมใน ${this.raid.data.secs / 60} นาที`, '#ffd84a'); }
-    else { this.raid = undefined; if (this.town) { this.town.render(); this.town.sync(); } }
+    else { this.raid = undefined; if (this.town) { this.town.render(); this.town.sync(); if (this.defendNext) this.time.delayedCall(800, () => bus.emit('td:defend')); } }
     if (!this.scene.isActive('TdUI')) this.scene.launch('TdUI'); else this.scene.get('TdUI').scene.restart();
     this.scene.bringToTop('TdUI');
     if (!this.stageN && !this.gv) {
@@ -679,7 +688,7 @@ export class TopDownScene extends Phaser.Scene {
   wildProps?: () => void;
   /** village dressing: produce crates, pumpkins, flower barrels, haystacks, an apple tree... beside the roads, never on a plot */
   villageProps(rnd: () => number, free: (x: number, y: number, r: number) => boolean, roadOff: (x: number, y: number) => number) {
-    const ks = ['produce', 'pumpkins', 'flowerbarrel', 'wheelbarrow', 'haystack', 'coop', 'sacks', 'firepit', 'bench', 'appletree'].map(k => 'pp_vil_' + k).filter(k => OM[k]);
+    const ks = ['produce', 'pumpkins', 'flowerbarrel', 'wheelbarrow', 'haystack', 'coop', 'sacks', 'firepit', 'bench', 'appletree', 'lanternpost', 'noticeboard', 'logstack', 'flowerbed', 'scarecrow', 'barrels', 'dogbowl'].map(k => 'pp_vil_' + k).filter(k => OM[k]);
     if (!ks.length) return;
     const near = (x: number, y: number) => this.reserved.has(Math.round(x / 4) + ',' + Math.round(y / 4));
     for (let n = 0, k = 0; k < 800 && n < 26; k++) {
@@ -696,17 +705,17 @@ export class TopDownScene extends Phaser.Scene {
    *  (so they are seen), small ones anywhere; lights get a warm glow */
   placeLandProps(land: string, rnd: () => number, free: (x: number, y: number, r: number) => boolean, pathOff: (x: number, y: number) => number, keepOut: (x: number, y: number) => boolean) {
     const L: Record<string, [string[], string[], string[]]> = {
-      forest: [['birch', 'willow'], ['log', 'boulder', 'ruin', 'stumpshroom', 'berry', 'rockpile'], ['shrooms', 'flowers']],
-      haunt: [['tree'], ['grave1', 'grave2', 'crypt', 'skulls', 'lantern', 'fence', 'coffin', 'scarecrow', 'web'], ['glowshroom']],
-      lava: [['tree', 'pillar'], ['spike', 'vent', 'boulder', 'bones'], ['crystal']],   // (the beast ribcage reads like a monster: not scattered)
-      snow: [['pine', 'pine2', 'statue'], ['boulder', 'snowman', 'bush', 'spike', 'log'], ['crystal']],
-      dung: [['pillar', 'torch'], ['chains', 'cage', 'rubble', 'bones', 'spike', 'barrel', 'rack', 'altar'], []],
-      wild: [['bamboo', 'totem'], ['vinerock', 'hollowlog', 'bush', 'flower'], ['shroomring']],
+      forest: [['birch', 'willow', 'oakyoung'], ['log', 'boulder', 'ruin', 'stumpshroom', 'berry', 'rockpile', 'shrine', 'beehive', 'well', 'cart'], ['shrooms', 'flowers', 'fern', 'lily']],
+      haunt: [['tree', 'tree2', 'angel', 'gallows'], ['grave1', 'grave2', 'grave3', 'crypt', 'skulls', 'lantern', 'fence', 'coffin', 'scarecrow', 'web', 'cauldron'], ['glowshroom', 'candles']],
+      lava: [['tree', 'pillar', 'obelisk', 'skullrock'], ['spike', 'vent', 'boulder', 'bones', 'geyser', 'cart'], ['crystal', 'ashbush']],   // (the beast ribcage reads like a monster: not scattered)
+      snow: [['pine', 'pine2', 'statue', 'frozenfall'], ['boulder', 'snowman', 'bush', 'spike', 'log', 'tent', 'sled', 'icebear', 'signpost'], ['crystal']],
+      dung: [['pillar', 'torch', 'statue'], ['chains', 'cage', 'rubble', 'bones', 'spike', 'barrel', 'rack', 'altar', 'coffin', 'irons', 'brazier', 'bookpile'], ['crystal']],
+      wild: [['bamboo', 'totem', 'ruinhead', 'bigshroom'], ['vinerock', 'hollowlog', 'bush', 'flower', 'nest', 'pitcher'], ['shroomring', 'waterlily']],
     };
     const set = L[land]; if (!set) return;
     const pre = `pp_${land}_`, ok = (k: string) => !!OM[pre + k];
     const [big, mid, small] = set.map(a => a.filter(ok));
-    const area = (MW * MH) / (1280 * 800), LIGHT = new Set(['pp_haunt_lantern', 'pp_dung_torch', 'pp_lava_vent', 'pp_lava_crystal']);
+    const area = (MW * MH) / (1280 * 800), LIGHT = new Set(['pp_haunt_lantern', 'pp_dung_torch', 'pp_lava_vent', 'pp_lava_crystal', 'pp_haunt_cauldron', 'pp_lava_geyser', 'pp_dung_brazier', 'pp_dung_crystal', 'pp_wild_bigshroom']);
     const put = (k: string, x: number, y: number, fw: number, fd: number) => {
       const im = this.obj(k, x, y, fw, fd, true); if (!im) return;
       if (land === 'snow') im.setTint(0xa8c8ff);   // the colour reference warms whites to pink: cool the snow back down
@@ -1122,6 +1131,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
     if (this.raid) return this.raid.title();
+    if (this.defense && !this.defense.over) return this.defense.title();
     const g = guildOf(S()); if (this.inside >= 0) return `🏠 ${this.roomKind === 'house' ? 'บ้านของฉัน' : ROOMS[this.roomKind ?? 'hall'].name} • ${g?.name ?? ''}`;
     return this.gv && g ? `🏛 หมู่บ้านกิลด์ ${g.name}` : 'หมู่บ้านเอลเดอร์โกรฟ'; }
   /** golden burst when the hero levels up or changes form */
@@ -1288,6 +1298,7 @@ export class TopDownScene extends Phaser.Scene {
     sfx.cast(); playSkill(r);
     this.combat.castSkill(r);
     this.raid?.skill(r);
+    this.defense?.skill(r);
     bus.emit(EV.STATE_CHANGED);
   }
 
@@ -1584,6 +1595,7 @@ export class TopDownScene extends Phaser.Scene {
     playAnim(h, F.key, this.swing, this.dir, false);
     this.time.delayedCall(Math.max(60, hitMs(F.key, this.swing, 210) - 90), () => sfx.swing());   // the whoosh just before the weapon lands
     if (this.stageN) this.combat.heroAttack(F.key);
+    else if (this.defense) this.defense.heroAttack(F.key);
     else if (this.raid) this.raid.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
   }
@@ -1613,7 +1625,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
-      const sp = 92 * dt / 1000;
+      const sp = 108 * dt / 1000;   // director: a little faster (was 92)
       const nx = h.x + mx * sp, ny = h.y + my * sp;
       const ok = (x: number, y: number) => this.canStand(x, y);
       if (ok(nx, h.y)) h.x = nx;
@@ -1629,6 +1641,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
+    this.defense?.update(time, dt);
 // never embedded: a forced move (skill, knockback) must not leave the hero where the collision test fails in every direction
     if (!this.dead && time > this.unstuckT && !this.tweens.isTweening(this.hero)) {
       this.unstuckT = time + 300;
@@ -1654,7 +1667,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
-      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN || this.raid ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
+      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN || this.raid || this.defense ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
       const st = this.stageN && !this.wild && !this.dungeon ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
