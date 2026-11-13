@@ -5,19 +5,21 @@ import type { GameState } from '../core/state';
 import { addItem } from './inventory';
 import { ITEMS } from '../data/items';
 import { invSize } from '../core/state';
+import { grantCbt, cbtGot, CBT_VIP_DAYS, CBT_TITLE, CBT_PACK } from './cbtGift';
 
 export interface Gift { gold?: number; wood?: number; stone?: number; food?: number; items?: { id: string; qty: number }[] }
-export interface Mail extends Gift { id: string; at: number; from: string; title: string; text: string; until?: number; claimed?: number; read?: boolean }
+export interface Mail extends Gift { id: string; at: number; from: string; title: string; text: string; until?: number; claimed?: number; read?: boolean; /** 'cbt' = the CBT testers' gift (VIP 7 days + title + pack) */ kind?: 'cbt' }
 type MS = GameState & { mail?: Mail[]; mailAll?: number };
 export const MAIL_MAX = 60;
 export const mailOf = (s: GameState) => ((s as MS).mail ??= []);
-export const hasGift = (m: Mail) => !!(m.gold || m.wood || m.stone || m.food || m.items?.length);
+export const hasGift = (m: Mail) => !!(m.kind || m.gold || m.wood || m.stone || m.food || m.items?.length);
 export const mailLive = (m: Mail, now = Date.now()) => !m.until || now < m.until;
 /** letters waiting: gifts not yet claimed (and still in date) + unread letters */
 export const mailWaiting = (s: GameState, now = Date.now()) => mailOf(s).filter(m => mailLive(m, now) && ((hasGift(m) && !m.claimed) || !m.read)).length;
 /** the gift as short text: 💰 500 • 🪵 100 • ยาฟื้นพลังใหญ่ x5 */
-export function giftText(g: Gift) {
+export function giftText(g: Gift & { kind?: string }) {
   const out: string[] = [];
+  if (g.kind === 'cbt') return `👑 VIP ${CBT_VIP_DAYS} วัน • 🏷 ฉายา「${CBT_TITLE.title}」• 💰 ${CBT_PACK.gold.toLocaleString()} • ยาฟื้นพลังใหญ่ x${CBT_PACK.potL} • ม้วนกลับหมู่บ้าน x${CBT_PACK.scroll}`;
   if (g.gold) out.push(`💰 ${g.gold.toLocaleString()}`);
   if (g.wood) out.push(`🪵 ${g.wood.toLocaleString()}`);
   if (g.stone) out.push(`🪨 ${g.stone.toLocaleString()}`);
@@ -48,6 +50,13 @@ export function claimMail(s: GameState, id: string, now = Date.now()): 'missing'
   const m = mailOf(s).find(q => q.id === id); if (!m || !hasGift(m)) return 'missing';
   if (m.claimed) return 'claimed';
   if (!mailLive(m, now)) return 'expired';
+  if (m.kind === 'cbt') {   // the CBT gift: the same as the menu's button, once per account
+    if (cbtGot(s)) { m.claimed = now; m.read = true; return 'claimed'; }
+    const need = ['hp_potion_l', 'scroll_return'].filter(id => !s.inventory.some(i => i.id === id)).length;
+    if (s.inventory.length + need > invSize(s)) return 'bag';
+    if (grantCbt(s, now) !== true) return 'expired';
+    m.claimed = now; m.read = true; return { got: giftText(m) };
+  }
   const items = m.items ?? [], need = items.reduce((n, it) => n + (ITEMS[it.id]?.stack ? (s.inventory.some(i => i.id === it.id) ? 0 : 1) : it.qty), 0);
   if (s.inventory.length + need > invSize(s)) return 'bag';
   s.gold += m.gold ?? 0; s.res.wood += m.wood ?? 0; s.res.stone += m.stone ?? 0; s.res.food += m.food ?? 0;

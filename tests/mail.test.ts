@@ -39,4 +39,16 @@ describe('the mailbox: gifts the player claims', () => {
   it('the game cannot make letters: the actions only claim / read / delete what is there', () => {
     const s = startNewGame(); expect(handlers.mailClaim(s, { id: 'none' }, { now: NOW, rnd: Math.random, admin: false })).toBe('missing');
   });
+  it('the CBT gift as a letter: claiming it gives VIP + title + pack once; claiming from the menu first closes the letter', async () => {
+    const { vipActive } = await import('../src/systems/premium');
+    const { grantCbt, cbtGot } = await import('../src/systems/cbtGift');
+    const s = startNewGame(), g0 = s.gold;
+    addMail(s, { id: 'cbt', kind: 'cbt', from: 'ทีมงาน', title: 'CBT', text: '' }, NOW);
+    expect(mailWaiting(s, NOW)).toBe(1);
+    expect(typeof claimMail(s, 'cbt', NOW)).toBe('object');
+    expect(vipActive(s, NOW + 86400000)).toBe(true); expect(cbtGot(s)).toBe(true); expect(s.gold - g0).toBe(5000);
+    expect(claimMail(s, 'cbt', NOW)).toBe('claimed'); expect(s.gold - g0).toBe(5000);
+    const t = startNewGame(); addMail(t, { id: 'cbt', kind: 'cbt', from: 'x', title: 'CBT', text: '' }, NOW);
+    grantCbt(t, NOW); expect(mailWaiting(t, NOW)).toBe(0);   // (got it from the menu: the letter is done too)
+  });
 });

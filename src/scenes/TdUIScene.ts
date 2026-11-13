@@ -1,6 +1,7 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import Phaser from 'phaser';
+import { showNews } from '../core/changelog';
 import { mailWaiting } from '../systems/mail';
 import { activeElixir } from '../systems/alchemy';
 import { toggleFullscreen } from '../core/fullscreen';
@@ -295,7 +296,14 @@ export class TdUIScene extends Phaser.Scene {
       q.strokeStyle = '#0b2a40'; q.lineWidth = 2; q.stroke(); q.strokeStyle = 'rgba(255,255,255,0.6)'; q.lineWidth = 1; q.beginPath(); q.moveTo(8, 14); q.lineTo(32, 14); q.moveTo(14, 5); q.lineTo(18, 14); q.lineTo(20, 36); q.moveTo(26, 5); q.lineTo(22, 14); q.stroke();
       this.textures.addCanvas('ui_diamond', cv);
     }
-    const menu: [string, string, () => void][] = [['ui_diamond', 'ร้าน💎', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    if (!this.textures.exists('ui_mail')) {   // the mailbox button's envelope (drawn here: no picture file needed)
+      const g = this.add.graphics();
+      g.fillStyle(0xf3e6c4, 1).fillRect(1, 2, 22, 15).lineStyle(1.5, 0x5a3a1a, 1).strokeRect(1, 2, 22, 15);
+      g.lineBetween(1, 2, 12, 11).lineBetween(23, 2, 12, 11).lineBetween(1, 17, 9, 9).lineBetween(23, 17, 15, 9);
+      g.fillStyle(0xc0392b, 1).fillCircle(12, 11, 3);
+      g.generateTexture('ui_mail', 24, 19); g.destroy();
+    }
+    const menu: [string, string, () => void][] = [['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_diamond', 'ร้าน💎', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
       const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
       const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
@@ -306,6 +314,10 @@ export class TdUIScene extends Phaser.Scene {
       z.on('pointerout', () => im.setScale(20 / Math.max(im.width, im.height)));
       z.on('pointerup', () => { im.setScale(20 / Math.max(im.width, im.height)); cb(); });
       this.root.add([sl, im, t, z]);
+      if (ic === 'ui_mail') {   // letters waiting: a red count on the envelope
+        this.mailDot = this.add.circle(x + 11, y - 10, 6, 0xd03020).setStrokeStyle(1, 0xffffff); this.mailTxt = k.text(x + 11, y - 15, '', 7, '#ffffff').setOrigin(0.5, 0);
+        this.root.add([this.mailDot, this.mailTxt]);
+      }
     });
     // class change ready
     this.loot = new LootPopup(this as never); this.news = new NewsTicker(this as never);
@@ -329,6 +341,7 @@ export class TdUIScene extends Phaser.Scene {
 
     const st = S();
     // daily login calendar pops up in the village once a day (after the tutorial)
+    if (st.introSeen && !tutActive(st)) this.time.delayedCall(1500, () => showNews(S().playTime ?? 0));   // 📢 what's new since this device last looked (core/changelog.ts)
     if (st.introSeen && !tutActive(st) && loginInfo(st).ready && !(this.td as unknown as { stageN: number }).stageN && !WC.side) this.time.delayedCall(1200, () => { if (!this.panels.isOpen) this.panels.open('login'); });
     if (!st.introSeen) {
       st.introSeen = true;
@@ -360,9 +373,9 @@ export class TdUIScene extends Phaser.Scene {
   bandX = 0; bandW = 300;
   tutG!: Phaser.GameObjects.Graphics; tutTx!: Phaser.GameObjects.Text; tutSkip!: Phaser.GameObjects.Container;
   /** letters waiting last time (a new one: a note) */
-  mailN = -1;
+  mailN = -1; mailDot?: Phaser.GameObjects.Arc; mailTxt?: Phaser.GameObjects.Text;
   refresh() {
-    { const n = mailWaiting(S()); if (this.mailN >= 0 && n > this.mailN) this.toast(`📬 มีจดหมายใหม่ ${n - this.mailN} ฉบับ — เปิดที่ เมนู → 📬 จดหมาย`, '#ffd84a'); this.mailN = n; }
+    { const n = mailWaiting(S()); if (this.mailN >= 0 && n > this.mailN) this.toast(`📬 มีจดหมายใหม่ ${n - this.mailN} ฉบับ — กดซองจดหมายด้านบน`, '#ffd84a'); this.mailN = n; this.mailDot?.setVisible(n > 0); this.mailTxt?.setText(n > 9 ? '9+' : n ? String(n) : '').setVisible(n > 0); }
     if (!this.hud) return;
     const s = S(), d = derive(s), k = this.kit, g = this.hud;
     { const t = (this.td as unknown as { tutText(): string }).tutText?.() ?? ''; this.tutTx.setText(t); this.tutG.clear(); this.tutSkip.setVisible(!!t);

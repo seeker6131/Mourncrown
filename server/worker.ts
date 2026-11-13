@@ -13,7 +13,8 @@ import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallL
 import { dayKey } from '../src/systems/daily';
 import { grantCbt } from '../src/systems/cbtGift';
 import { ensureHomeVillage } from '../src/systems/settlement';
-import { addMail, takeMailAll, cleanGift, giftText, type Gift } from '../src/systems/mail';
+import { addMail, takeMailAll, cleanGift, giftText, mailOf, type Gift } from '../src/systems/mail';
+import { CBT_ACTIVE, cbtGot } from '../src/systems/cbtGift';
 import { GUILD_MAX } from '../src/data/guild';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
@@ -725,6 +726,10 @@ export class Player {
       if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
       if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();   // the home village's NPC buildings live here too (they used to exist on the device only)
       if (this.st && await this.mailAll()) await this.later();   // letters to everyone from the back office, not had yet
+      if (this.st && CBT_ACTIVE && !cbtGot(this.st as unknown as GameState) && !mailOf(this.st as unknown as GameState).some(m => m.id === 'cbt')) {   // the CBT gift not claimed yet: a letter (director)
+        addMail(this.st as unknown as GameState, { id: 'cbt', kind: 'cbt', from: 'ทีมงาน Mourncrown', title: '🎁 ของขวัญผู้ทดสอบ CBT', text: 'ขอบคุณที่มาช่วยทดสอบเกมนะครับ! กดรับ VIP 7 วัน + ฉายา「ผู้บุกเบิก」+ ของใช้ ได้เลย (ตอนเปิด OBT ข้อมูล CBT จะถูกล้าง ยกเว้นของ limited ที่จะประกาศภายหลัง)' });
+        await this.later();
+      }
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));

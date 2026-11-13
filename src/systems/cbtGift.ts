@@ -26,5 +26,6 @@ export function grantCbt(s: GameState, now = Date.now()): 'over' | 'claimed' | t
   const ts = titlesOf(s); if (!ts.includes(CBT_TITLE.id)) ts.push(CBT_TITLE.id);
   (s as GameState & { title?: string | null }).title = CBT_TITLE.id;
   (s as GameState & { cbtGot?: number }).cbtGot = now;
+  { const m = (s as GameState & { mail?: { id: string; claimed?: number; read?: boolean }[] }).mail?.find(q => q.id === 'cbt'); if (m) { m.claimed = now; m.read = true; } }   // (the letter with the same gift: done too)
   return true;
 }
