@@ -11,7 +11,7 @@ import { startNewGame } from '../src/core/save';
 import { grantAdminKit } from '../src/systems/adminKit';
 import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallLv, type RaidHit, type Rival } from '../src/systems/guild';
 import { dayKey } from '../src/systems/daily';
-import { CBT_GIFT_OPEN, cbtTier, grantCbt } from '../src/systems/cbtGift';
+import { grantCbt } from '../src/systems/cbtGift';
 import { GUILD_MAX } from '../src/data/guild';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
@@ -385,8 +385,8 @@ const MARKET = new Set(['marketList', 'marketCancel', 'marketBrowse', 'marketBuy
 /** actions that change the guild itself: run by the guild's own object on the one shared copy (all members see it) */
 const GUILD_ACTS = new Set(['guildSync', 'guildUpgrade', 'guildCollect', 'guildFlag', 'guildRole', 'guildKick', 'guildShop', 'guildInvite', 'donate', 'houseBuild', 'houseRepair', 'bldRepair', 'hireGuard', 'dismissGuard', 'defBuild', 'defUpgrade', 'defRepair', 'defRemove', 'seasonClaim', 'raidStart', 'raidEnd', 'warStart', 'warSync', 'warHit', 'warKill', 'warEnd', 'warDone']);
 const GUILD_CAP = GUILD_MAX;   // members of a real guild (the village has GUILD_MAX house plots)
-/** the CBT testers' gift (src/systems/cbtGift.ts): needs D1, so the player object answers it */
-const CBT = new Set(['cbtInfo', 'cbtClaim']);
+/** the CBT gift (src/systems/cbtGift.ts): only the server hands it out */
+const CBT = new Set(['cbtClaim']);
 const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name']);
 type St = Record<string, unknown>;
 interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
@@ -492,21 +492,12 @@ export class Player {
     return { own, text: [gold ? `🏪 ขายของในตลาดได้ ${sold.length} ชิ้น +${gold.toLocaleString()} 💰` : '', back ? `🏪 ของหมดเวลาขาย ${back} ชิ้น คืนเข้ากระเป๋าแล้ว` : ''].filter(Boolean).join(' • ') };
   }
   /** the players' market (shared by everyone, in the database) */
-  /** CBT gift: during the CBT the window shows the tier the player is heading for; after OBT each account claims once
-   *  (the level was copied into D1 `cbt` before the wipe; the claim is marked there, so a second claim finds it taken) */
-  private async cbt(name: string): Promise<{ r: unknown; own: St }> {
-    const DB = this.env.DB, st = this.st!, no = (why: string) => ({ r: { refused: why }, own: {} });
-    const acc = await DB.prepare('SELECT google_sub FROM accounts WHERE id = ?').bind(this.id).first<{ google_sub: string | null }>(), google = !!acc?.google_sub;
-    if (!CBT_GIFT_OPEN) return name === 'cbtInfo' ? { r: { open: false, lv: Number(st.level) || 1, claimed: false, google }, own: {} } : no('notyet');
-    const row = await DB.prepare('SELECT lv, claimed FROM cbt WHERE id = ?').bind(this.id).first<{ lv: number; claimed: number }>();
-    if (name === 'cbtInfo') return { r: { open: true, lv: row?.lv ?? 0, claimed: !!row?.claimed, google }, own: {} };
-    if (!row || !cbtTier(row.lv)) return no('none');
-    if (row.claimed) return no('claimed');
-    if (!google) return no('google');   // a Google account keeps the gift safe (a guest on a cleared browser would lose it)
-    const u = await DB.prepare('UPDATE cbt SET claimed = ? WHERE id = ? AND claimed = 0').bind(Date.now(), this.id).run() as { meta?: { changes?: number } };
-    if (!u.meta?.changes) return no('claimed');
-    const b = this.snap(), t = grantCbt(st as unknown as GameState, row.lv, Date.now()); await this.later();
-    return { r: { ok: true, lv: row.lv, tier: t?.name ?? '' }, own: this.diff(b) };
+  /** CBT gift: VIP 7 days + a small pack, once per account (marked in the account's character) */
+  private async cbt(_name: string): Promise<{ r: unknown; own: St }> {
+    const b = this.snap(), r = grantCbt(this.st as unknown as GameState, Date.now());
+    if (r !== true) return { r: { refused: r }, own: {} };
+    await this.later();
+    return { r: { ok: true }, own: this.diff(b) };
   }
   private async market(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
     const DB = this.env.DB, now = Date.now(), st = this.st as St & GameState;

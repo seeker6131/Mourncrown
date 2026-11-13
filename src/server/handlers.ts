@@ -371,9 +371,8 @@ export const handlers = {
   /** the players' market lives on the game server (server/worker.ts Player): offline there is nothing to browse or buy */
   marketBrowse: (_s: GameState, _a: { type: number; rar: number; page: number }) => no('offline') as Refused | { list: import('../systems/market').Listing[]; total: number },
   marketBuy: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true; id: string; qty: number; price: number },
-  /** the CBT testers' gift lives on the game server (it needs the D1 list of testers): offline there is nothing */
-  cbtInfo: (_s: GameState, _a: object) => no('offline') as Refused | { open: boolean; lv: number; claimed: boolean; google: boolean },
-  cbtClaim: (_s: GameState, _a: object) => no('offline') as Refused | { ok: true; lv: number; tier: string },
+  /** the CBT gift is handed out by the game server only (server/worker.ts Player.cbt): offline there is nothing */
+  cbtClaim: (_s: GameState, _a: object) => no('offline') as Refused | { ok: true },
   buyDiamond: (s: GameState, a: { id: string }, c: Ctx) => buyDiamondItem(s, a.id, c.now),
   vipGift: (s: GameState, _a: object, c: Ctx) => claimVipGift(s, c.now),
   /** the main quest chain: every 4th quest also gives a skill point */

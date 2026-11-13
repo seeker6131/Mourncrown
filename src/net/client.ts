@@ -12,7 +12,7 @@ import { isAdmin } from './cloud';
 export const refused = (r: unknown): r is { refused: string } => !!r && typeof r === 'object' && 'refused' in (r as object) && !!(r as { refused?: string }).refused;
 const local = (name: string, args: unknown) => (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name](S(), args, { now: Date.now(), rnd: Math.random, admin: TEST_HOOKS || isAdmin() })   // (the server checks the admin for real; this only lets the device show the same result);
 /** actions the server alone decides when online (they roll dice or hand out loot) */
-export const SERVER_ONLY = new Set(['kill', 'gather', 'upgradeItem', 'craft', 'pickup', 'dungeonClear', 'marketCancel', 'marketBuy', 'marketBrowse', 'guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave', 'cbtInfo', 'cbtClaim']);
+export const SERVER_ONLY = new Set(['kill', 'gather', 'upgradeItem', 'craft', 'pickup', 'dungeonClear', 'marketCancel', 'marketBuy', 'marketBrowse', 'guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave', 'cbtClaim']);
 export const isOnline = () => play.online;
 
 export function act<K extends keyof Handlers>(name: K, args: Parameters<Handlers[K]>[1], then?: (r: ReturnType<Handlers[K]>) => void): ReturnType<Handlers[K]> {

@@ -1,38 +1,30 @@
-// Thank-you gift for the CBT testers (director): VIP 7 days for everyone who played, an exclusive title that can never be
-// earned again, and a starter pack that grows with the level reached in the CBT. No diamonds (they only come from real
-// money) and no power items (no pay-to-win) — mounts are kept for events later.
-// How it works: the CBT characters are wiped at OBT. Just before the wipe, the highest level of every account is copied
-// into the D1 table `cbt` (docs/ONLINE_RISKS.md "OBT day"). After the wipe the gift opens: each account claims it once on
-// its fresh character (the claim is marked in D1, so it cannot be taken twice). During the CBT the window only shows
-// which tier the player is on the way to.
+// CBT gift (director): every CBT player claims VIP 7 days now, once per account, plus a small pack and a testers' title.
+// OBT gives nothing: everything from the CBT is wiped at OBT, except the limited items the director names later.
+// No diamonds (they only come from real money) and no power items (no pay-to-win) — mounts are kept for events later.
+// The server hands it out (server/worker.ts Player.cbt); the mark `cbtGot` lives in the account's one character.
 import type { GameState } from '../core/state';
 import { addItem } from './inventory';
 import { grantVip } from './premium';
 import { titlesOf, SPECIAL_TITLES } from '../data/achievements';
 
-/** false during the CBT; set true (one server deploy) on OBT day, after the levels were copied and the saves wiped */
-export const CBT_GIFT_OPEN = false;
+/** true while the CBT runs; set false (one server deploy) on OBT day, when the CBT data is wiped */
+export const CBT_ACTIVE = true;
 export const CBT_VIP_DAYS = 7;
-/** an exclusive title: only CBT testers ever get it */
+/** the CBT testers' title */
 export const CBT_TITLE = { id: 'cbt', title: SPECIAL_TITLES.cbt };
-export interface CbtTier { lv: number; name: string; gold: number; potL: number; scroll: number }
-/** reach Lv10 in the CBT to get the gift; higher levels get a bigger starter pack */
-export const CBT_TIERS: CbtTier[] = [
-  { lv: 10, name: 'ทองแดง', gold: 5000, potL: 20, scroll: 10 },
-  { lv: 30, name: 'เงิน', gold: 15000, potL: 40, scroll: 20 },
-  { lv: 50, name: 'ทอง', gold: 30000, potL: 60, scroll: 30 },
-];
-export const cbtTier = (lv: number): CbtTier | null => [...CBT_TIERS].reverse().find(t => lv >= t.lv) ?? null;
+export const CBT_PACK = { gold: 5000, potL: 20, scroll: 10 };
 
-/** give the gift for the CBT level `lv` (the server has already checked and marked the claim) */
-export function grantCbt(s: GameState, lv: number, now = Date.now()): CbtTier | null {
-  const t = cbtTier(lv); if (!t) return null;
+export const cbtGot = (s: GameState) => !!(s as GameState & { cbtGot?: number }).cbtGot;
+export const cbtReady = (s: GameState) => CBT_ACTIVE && !cbtGot(s);
+/** give the gift once (the server calls this; offline the game cannot) */
+export function grantCbt(s: GameState, now = Date.now()): 'over' | 'claimed' | true {
+  if (!CBT_ACTIVE) return 'over';
+  if (cbtGot(s)) return 'claimed';
   grantVip(s, CBT_VIP_DAYS, now);
-  s.gold += t.gold;
-  addItem(s, 'hp_potion_l', t.potL); addItem(s, 'scroll_return', t.scroll);
+  s.gold += CBT_PACK.gold;
+  addItem(s, 'hp_potion_l', CBT_PACK.potL); addItem(s, 'scroll_return', CBT_PACK.scroll);
   const ts = titlesOf(s); if (!ts.includes(CBT_TITLE.id)) ts.push(CBT_TITLE.id);
   (s as GameState & { title?: string | null }).title = CBT_TITLE.id;
   (s as GameState & { cbtGot?: number }).cbtGot = now;
-  return t;
+  return true;
 }
-export const cbtGot = (s: GameState) => !!(s as GameState & { cbtGot?: number }).cbtGot;

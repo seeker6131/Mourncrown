@@ -37,7 +37,7 @@ import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
 import { vipActive, vipLeftMs as vipLeft2 } from '../systems/premium';
-import { CBT_TIERS, CBT_VIP_DAYS, CBT_TITLE, cbtTier, cbtGot } from '../systems/cbtGift';
+import { CBT_ACTIVE, CBT_VIP_DAYS, CBT_TITLE, CBT_PACK, cbtGot, cbtReady } from '../systems/cbtGift';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
@@ -713,7 +713,7 @@ export class Panels implements GuildHost {
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
     b('🐎 สัตว์ขี่', () => this.open('mounts'), 0x4a3a10);
-    b(`🎁 รางวัลผู้ทดสอบ CBT${this.cbtInfo?.open && !this.cbtInfo.claimed && cbtTier(this.cbtInfo.lv) ? ' (รับได้!)' : ''}`, () => this.open('cbt'), 0x5a2a6a);
+    if (CBT_ACTIVE) b(`🎁 ของขวัญ CBT${cbtReady(s) ? ' (รับได้!)' : ''}`, () => this.open('cbt'), 0x5a2a6a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
@@ -1209,46 +1209,27 @@ export class Panels implements GuildHost {
     }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));
   }
 
-  // ---------------- CBT TESTERS' GIFT ----------------
-  cbtInfo: { open: boolean; lv: number; claimed: boolean; google: boolean } | null = null; cbtAsked = 0;
+  // ---------------- CBT GIFT ----------------
   buildCbt(c: Phaser.GameObjects.Container) {
-    const s = S(), ui = this.ui, k = this.k, online = isOnline();
-    const W = Math.min(600, ui.VW - 16), H = 300;
-    const { x, y, g } = this.window(c, W, H, '🎁 รางวัลผู้ทดสอบ CBT');
-    if (online && Date.now() - this.cbtAsked > 5000) { this.cbtAsked = Date.now(); actServer('cbtInfo', {}).then(r => { this.cbtInfo = refused(r) ? { open: false, lv: S().level, claimed: false, google: true } : r; if (this.cur === 'cbt') this.rebuild(); }); }   // (an older server that does not know it yet: show the tier from this character)
-    const inf = this.cbtInfo, lv = inf ? inf.lv : s.level, mine = cbtTier(lv);
-    c.add(k.text(x + W / 2, y + 30, 'ขอบคุณที่ช่วยทดสอบเกม! ทุกคนที่ถึง Lv10 ในช่วง CBT รับรางวัลตอนเปิด OBT', 8.5, '#ffe7a0').setOrigin(0.5, 0));
-    const cw = (W - 28 - 2 * 8) / 3, ch = 150, top = y + 50;
-    CBT_TIERS.forEach((t, i) => {
-      const cx = x + 14 + i * (cw + 8), on = mine === t, col = [0xc87a3a, 0xc8d0e0, 0xffd84a][i];
-      g.fillStyle(on ? 0x3a2a10 : 0x1a140e, 0.95).fillRoundedRect(cx, top, cw, ch, 5).lineStyle(on ? 2 : 1, on ? col : 0x4a3a2a, 1).strokeRoundedRect(cx, top, cw, ch, 5);
-      c.add(k.text(cx + cw / 2, top + 6, `ระดับ${t.name}`, 10, '#' + col.toString(16).padStart(6, '0')).setOrigin(0.5, 0));
-      c.add(k.text(cx + cw / 2, top + 22, `ถึง Lv${t.lv}+ ในช่วง CBT`, 7.5, '#c8b898').setOrigin(0.5, 0));
-      [`👑 VIP ${CBT_VIP_DAYS} วัน`, `🏷 ฉายาพิเศษ「${CBT_TITLE.title}」`, `💰 ${t.gold.toLocaleString()} ทอง`, `🧪 ยาฟื้นพลังใหญ่ x${t.potL}`, `📜 ม้วนกลับหมู่บ้าน x${t.scroll}`]
-        .forEach((line, j) => c.add(k.text(cx + 10, top + 42 + j * 20, line, 8, on ? '#ffffff' : '#a89878')));
-      if (on) c.add(k.text(cx + cw - 6, top + 4, '★', 12, '#ffd84a').setOrigin(1, 0));
-    });
-    const say = (t: string, col = '#e8dcc0', dy = 0) => c.add(k.text(x + W / 2, top + ch + 10 + dy, t, 8.5, col, { align: 'center', wordWrap: { width: W - 30 } }).setOrigin(0.5, 0));
-    say(`ฉายา「${CBT_TITLE.title}」มีเฉพาะผู้ทดสอบ CBT เท่านั้น — หลังจากนี้ไม่มีทางได้อีก`, '#c89cff');
-    if (!online) { say('ต้องเล่นแบบออนไลน์ (ล็อกอิน) เพื่อดูสิทธิ์ของคุณ', '#ff9a8a', 20); return; }
-    if (!inf) { say('กำลังเช็กสิทธิ์...', '#a89878', 20); return; }
-    if (!inf.open) {
-      say(mine ? `ตอนนี้คุณ Lv${lv} → ได้รางวัลระดับ${mine.name}${cbtTier(lv + 999) !== mine ? ' (เก็บเลเวลต่อ ได้ระดับสูงขึ้น!)' : ''}` : `ตอนนี้คุณ Lv${lv} — อีก ${10 - lv} เลเวลถึง Lv10 ก็ได้รางวัลแล้ว!`, mine ? '#9fffb0' : '#ffd84a', 20);
-      say(inf.google ? 'ตอนเปิด OBT ตัวละคร CBT จะถูกล้าง แต่รางวัลจะรอคุณในเกมใหม่' : '⚠ ผูกบัญชี Google ที่หน้าแรกของเกมไว้ด้วย — ต้องผูกถึงจะรับรางวัลได้', inf.google ? '#e8dcc0' : '#ff9a8a', 40);
-      return;
-    }
-    if (inf.claimed || cbtGot(s)) { say('✔ รับรางวัลแล้ว ขอบคุณที่ร่วมทดสอบ!', '#9fffb0', 20); return; }
-    if (!mine) { say('บัญชีนี้ไม่ได้ถึง Lv10 ในช่วง CBT', '#a89878', 20); return; }
-    if (!inf.google) say('⚠ ผูกบัญชี Google ที่หน้าแรกของเกมก่อน แล้วกลับมารับ', '#ff9a8a', 20);
-    c.add(k.button(x + W / 2 - 90, y + H - 36, 180, 26, `🎁 รับรางวัลระดับ${mine.name}`, () => {
+    const s = S(), ui = this.ui, k = this.k, online = isOnline(), got = cbtGot(s);
+    const W = Math.min(460, ui.VW - 16), H = 270;
+    const { x, y, g } = this.window(c, W, H, '🎁 ของขวัญผู้ทดสอบ CBT');
+    c.add(k.text(x + W / 2, y + 30, 'ขอบคุณที่มาช่วยทดสอบเกม! รับได้บัญชีละ 1 ครั้ง', 9, '#ffe7a0').setOrigin(0.5, 0));
+    const bx = x + 40, bw = W - 80, by = y + 52;
+    g.fillStyle(got ? 0x1a2a1a : 0x3a2a10, 0.95).fillRoundedRect(bx, by, bw, 116, 6).lineStyle(2, got ? 0x7ad88a : 0xffd84a, 1).strokeRoundedRect(bx, by, bw, 116, 6);
+    ([['👑', `VIP ${CBT_VIP_DAYS} วัน (ออร่าม่วง)`], ['🏷', `ฉายา「${CBT_TITLE.title}」`], ['💰', `${CBT_PACK.gold.toLocaleString()} ทอง`], ['🧪', `ยาฟื้นพลังใหญ่ x${CBT_PACK.potL}`], ['📜', `ม้วนกลับหมู่บ้าน x${CBT_PACK.scroll}`]] as const)
+      .forEach(([ic, line], j) => { c.add(k.text(bx + 20, by + 10 + j * 20, ic, 9)); c.add(k.text(bx + 42, by + 10 + j * 20, line, 9, got ? '#9fb89a' : '#ffffff')); });   // (an emoji in front makes the line measure short and lose its end)
+    c.add(k.text(x + W / 2, by + 124, '⚠ ตอนเปิด OBT ข้อมูลทั้งหมดจาก CBT จะถูกล้าง\n(ยกเว้นของ limited ที่จะประกาศภายหลัง)', 8, '#ff9a8a', { align: 'center', padding: { right: 6 } }).setOrigin(0.5, 0));
+    const label = got ? '✔ รับแล้ว' : !online ? 'ต้องเล่นแบบออนไลน์' : '🎁 รับของขวัญ';
+    c.add(k.button(x + W / 2 - 80, y + H - 38, 160, 26, label, () => {
       if (this.busyAct) return; this.busyAct = true;
       actServer('cbtClaim', {}).then(r => {
         this.busyAct = false;
-        if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'google' ? 'ผูกบัญชี Google ก่อนนะ' : r.refused === 'claimed' ? 'รับไปแล้ว' : 'รับไม่ได้', '#ff8a8a'); }
-        else { sfx.levelUp(); bus.emit(EV.TOAST, `🎁 ได้รางวัล CBT ระดับ${r.tier}! VIP ${CBT_VIP_DAYS} วัน + ฉายา「${CBT_TITLE.title}」`, '#ffd84a'); if (this.cbtInfo) this.cbtInfo.claimed = true; }
+        if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'claimed' ? 'รับไปแล้ว' : 'รับไม่ได้', '#ff8a8a'); }
+        else { sfx.levelUp(); bus.emit(EV.TOAST, `🎁 ได้ VIP ${CBT_VIP_DAYS} วัน + ฉายา「${CBT_TITLE.title}」!`, '#ffd84a'); }
         saveGame(s); bus.emit(EV.STATE_CHANGED); if (this.cur === 'cbt') this.rebuild();
       });
-    }, { size: 10, color: 0x6a4a10, disabled: !inf.google }));
+    }, { size: 10, color: 0x6a4a10, disabled: got || !online }));
   }
 
   // ---------------- ALCHEMY (kitchen) ----------------
