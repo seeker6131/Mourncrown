@@ -197,6 +197,7 @@ export class TdUIScene extends Phaser.Scene {
     this.VW = this.scale.width / this.u;
     this.cameras.main.setOrigin(0, 0).setZoom(this.u);
     this.kit = new UIKit(this, () => Math.max(1, this.u));
+    this.buffTx = []; this.buffT = 0;   // (the scene object is reused on every map change: the old texts are destroyed)
     this.toasts = []; this.lastKey = ''; this.actLabel = ''; this.actCb = null; this.skillBtns = []; this.skillSet = '';
     this.root = this.add.container(0, 0);
     this.panels = new Panels(this as unknown as UIScene);
@@ -391,7 +392,7 @@ export class TdUIScene extends Phaser.Scene {
     if (time - this.buffT < 500) return; this.buffT = time;
     const list = activeBuffs(S());
     this.buffTx.forEach((t, i) => {
-      const b = list[i]; if (!b) { t.setVisible(false); return; }
+      const b = list[i]; if (!t.active) return; if (!b) { t.setVisible(false); return; }
       t.setVisible(true).setText(b.left < 0 ? tr(b.text) : `${tr(b.text)}  ${clock(b.left)}`).setColor(b.key === 'hungry' ? '#ff9a8a' : '#fff4c8')
         .setAlpha(b.left >= 0 && b.left < 60000 && Math.floor(time / 500) % 2 ? 0.35 : 1);
     });
