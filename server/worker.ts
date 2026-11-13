@@ -444,7 +444,7 @@ export class Room {
     }
     if (u.pathname === '/gate') {   // (the worker) may this player come online now — the money cap
       const b = await req.json() as { id: string; max: number; hours: number }, now = Date.now(); await this.useLoad(now);
-      for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k);
+      for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k);
       if (this.online.has(String(b.id))) return new Response(JSON.stringify({ ok: true }));   // already playing (a reconnect / another map)
       if (b.max && this.online.size >= b.max) return new Response(JSON.stringify({ ok: false, why: 'full', n: this.online.size, max: b.max }));
       if (b.hours && this.use.mins / 60 >= b.hours) return new Response(JSON.stringify({ ok: false, why: 'day' }));
@@ -455,10 +455,11 @@ export class Room {
       const prev = this.online.get(String(b.id)); if (prev && now - prev < 15 * 60000) this.credit(now - prev, now);   // player-minutes today (the cap)
       if (u.pathname === '/hello') this.online.set(String(b.id), now); else this.online.delete(String(b.id));
       if (this.online.size > 20000) this.online.clear();
-      return new Response('{}');
+      for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k);   // (a game says hello every 2 minutes: 5 without one = gone)
+      return new Response(JSON.stringify({ n: this.online.size }));
     }
-    if (u.pathname === '/onlinelist') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ ids: [...this.online.keys()], h: Math.round(this.use.mins / 6) / 10 })); }   // (the back office)
-    if (u.pathname === '/count') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size, h: Math.round(this.use.mins / 6) / 10 })); }
+    if (u.pathname === '/onlinelist') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k); return new Response(JSON.stringify({ ids: [...this.online.keys()], h: Math.round(this.use.mins / 6) / 10 })); }   // (the back office)
+    if (u.pathname === '/count') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size, h: Math.round(this.use.mins / 6) / 10 })); }
     if (u.pathname === '/bosslist') { const now = Date.now(); return new Response(JSON.stringify([...this.bosses].filter(([, v]) => v.until > now).map(([n, v]) => ({ n, name: v.name, left: v.until - now })))); }
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
@@ -833,7 +834,10 @@ export class Player {
   helloT = 0;
   private async hello(path: '/hello' | '/bye') {
     this.helloT = Date.now();
-    try { await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) })); } catch { /* not counted this time */ }
+    try {
+      const j = await (await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) }))).json() as { n?: number };
+      if (path === '/hello' && typeof j.n === 'number') this.send({ t: 'on', n: j.n });   // (the 🟢 online count on the game's screen: fresh every 2 minutes, no extra request)
+    } catch { /* not counted this time */ }
   }
 }
 

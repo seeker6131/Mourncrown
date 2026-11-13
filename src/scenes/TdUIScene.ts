@@ -212,12 +212,15 @@ export class TdUIScene extends Phaser.Scene {
     this.mpText = k.text(128, 20.5, '', 6, '#d8ecff').setOrigin(0.5, 0);
     const topL = 216, topR = this.VW - 224, midR = this.VW - 152;
     this.stageText = k.text((topL + topR) / 2, 8, '', topR - topL < 300 ? 8 : 10, '#ffe7a0', { wordWrap: { width: Math.max(120, topR - topL - 6) }, align: 'center' }).setOrigin(0.5, 0);
-    // 🟢 how many are playing now (director: small, at the top) — asked every 3 minutes, kept across map changes
+    // 🟢 how many are playing now (director: small, at the top) — kept across map changes
     { const t = k.text((topL + topR) / 2, topR - topL < 300 ? 19 : 22, '', 6.5, '#9fffb0').setOrigin(0.5, 0).setAlpha(0.85); this.root.add(t);
       const show = () => t.active && t.setText(onlineNow.n > 0 ? `🟢 ออนไลน์ ${onlineNow.n.toLocaleString()} คน` : '');
       const ask = () => { if (!accountToken()) return; onlineNow.at = Date.now(); fetch(SERVER + '/online').then(r => r.json()).then((j: { n: number }) => { onlineNow.n = Number(j.n) || 0; show(); }).catch(() => undefined); };
+      // the server sends the count with every heartbeat (2 min) and on connect; asked here only when it has not come for a while
+      const onN = (n: number) => { onlineNow.n = n; onlineNow.at = Date.now(); show(); };
+      bus.on('net:online', onN); this.events.once('shutdown', () => bus.off('net:online', onN));
       show(); if (Date.now() - onlineNow.at > 180000) ask();
-      this.time.addEvent({ delay: 180000, loop: true, callback: ask }); }
+      this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
     this.bandX = (topL + midR) / 2; this.bandW = Math.max(150, midR - topL - 52);
     // tutorial banner under the title
     this.tutG = this.add.graphics(); this.tutTx = k.text(this.bandX, 60, '', 8.5, '#fff4c8', { wordWrap: { width: Math.min(360, this.bandW - 16) }, align: 'center' }).setOrigin(0.5, 0);

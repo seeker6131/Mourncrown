@@ -22,6 +22,7 @@ class PlayLink {
       if (m.t === 'full') { const f = m as unknown as { why: string; n: number; max: number }; this.full = { why: f.why, n: f.n, max: f.max, at: Date.now() }; return; }
       if (m.t === 'hi') { this.full = null; this.apply(m.own); this.ready = !!m.has; this.delay = 1000; if (!m.has) setTimeout(() => this.retry(), 4000); return; }   // (no save on the server yet: the first upload seeds it)
       if (m.t === 'r') { this.apply(m.own); const f = this.wait.get(m.q!); this.wait.delete(m.q!); f?.({ r: m.r, own: m.own ?? {} }); return; }
+      if (m.t === 'on') { bus.emit('net:online', Number((m as { n?: number }).n) || 0); return; }   // how many are playing now
       if (m.t === 'pay') { this.apply(m.own); bus.emit('net:pay', { sid: m.sid, r: m.r }); }
       if (m.t === 'note') { this.apply(m.own); const text = (m as { text?: string }).text; if (text) bus.emit(EV.TOAST, text, '#ffd84a'); }   // e.g. something sold on the market
     };
