@@ -155,9 +155,14 @@ export const handlers = {
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
   /** (shared map) a monster the room's host spawned: known here too, so its kill can be paid */
   mirror(_s: GameState, a: { sid: number; key: string; boss: boolean; elite: boolean }) { mem.spawns.set(a.sid, { key: a.key, elite: !!a.elite, boss: !!a.boss }); mem.sid = Math.max(mem.sid, a.sid + 1); return { ok: true }; },   // (new spawns never reuse a mirrored number)
-  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean; share?: number }, c: Ctx) {
+  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean; share?: number; n?: number }, c: Ctx) {
+    // the server's memory of this player (map, spawned monsters) is lost whenever its object sleeps or the server restarts:
+    // the game names the map it is on — taken when the hero's level may be there (a farming map or the Deepwild; never a dungeon)
+    if (!mem.map && a.n && (a.n === WILD || (STAGES[a.n - 1] && s.level >= STAGES[a.n - 1].req))) { mem.map = a.n; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; }
     const n = mem.map, base = MONSTERS[a.kind]; if (!n || !base) return no('map');
-    const sp = mem.spawns.get(a.sid); if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');   // must be a live monster the server spawned
+    // a monster the server never heard of (forgotten in a restart) counts as a plain one — never golden, never a boss
+    const sp = mem.spawns.get(a.sid) ?? (!a.boss && !isDungeon(n) ? { key: a.key, elite: false, boss: false } as { key: string; elite: boolean; boss: boolean; bounty?: number } : undefined);
+    if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
