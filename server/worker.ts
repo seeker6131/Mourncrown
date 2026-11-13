@@ -813,6 +813,7 @@ export class Player {
     const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
     if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } if (this.cbtLetter()) { await this.later(); this.send({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
+    if (m.t === 'sync' && this.st) { const own: St = {}; for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k]; ws.send(JSON.stringify({ t: 'note', own })); return; }   // (the game did something the server refused: its whole copy)
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (Date.now() - this.helloT > 300000) this.hello('/hello');
     if (this.cbtLetter()) { await this.later(); ws.send(JSON.stringify({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' })); }   // (still playing: keep counting me online)

@@ -47,6 +47,7 @@
 <header>
   <b>👑 MOURNCROWN หลังบ้าน</b>
   <nav id="tabs"></nav>
+  <span class="row" style="margin:0"><input type="search" id="uid" placeholder="🆔 วางรหัสผู้เล่น (UID) เพื่อส่งของ" style="width:min(260px,100%)"><button class="btn green" id="uidGo">🎁 ส่งของ / ดูข้อมูล</button></span>
   <span class="dim" id="upd" style="margin-left:auto;font-size:12px"></span>
 </header>
 <main id="main"><div class="msg">กำลังโหลด...</div></main>
@@ -145,6 +146,9 @@ async function show() {
   }
 }
 main.onclick = e => { const tr = e.target.closest('tr.click'); if (tr) player(tr.dataset.id); };
+// the UID box (director): a player copies the ID from their profile and sends it — paste it here to open them (gift form inside)
+$('uidGo').onclick = async () => { const id = $('uid').value.trim().replace(/^ID[:\s]*/i, ''); if (!id) { alert('ใส่รหัสผู้เล่นก่อน'); return; } try { const d = await api('/admin/player?id=' + encodeURIComponent(id)); if (!d.acc) { alert('ไม่พบผู้เล่นรหัสนี้ — ตรวจว่าคัดลอกมาครบไหม'); return; } player(id); } catch { alert('เปิดไม่สำเร็จ'); } };
+$('uid').onkeydown = e => { if (e.key === 'Enter') $('uidGo').click(); };
 async function player(id) {
   const d = await api('/admin/player?id=' + encodeURIComponent(id)), a = d.acc || {}, s = d.save?.data || {};
   $('dt').textContent = (a.name || '(ยังไม่ตั้งชื่อ)') + ' • Lv' + (a.lv ?? '-');

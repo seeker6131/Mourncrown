@@ -35,6 +35,13 @@ class PlayLink {
     let n = 0; for (const [k, v] of Object.entries(own)) { s[k] = v; n++; }
     if (n) bus.emit(EV.STATE_CHANGED);
   }
+  private syncT = 0;
+  /** the device did something the server refused (the server had less wood, say): ask for the server's whole copy now —
+   *  otherwise the device shows a house the server never built, and it vanishes at the next reload / update */
+  resync() {
+    if (!this.online || Date.now() - this.syncT < 3000) return; this.syncT = Date.now();
+    try { this.ws!.send('{"t":"sync"}'); } catch { /* closing */ }
+  }
   send(name: string, args: unknown): Promise<Out> {
     if (!this.online) return Promise.resolve({ r: { refused: 'offline' }, own: {} });
     const q = this.q++; this.ws!.send(JSON.stringify({ t: 'act', q, name, args }));
