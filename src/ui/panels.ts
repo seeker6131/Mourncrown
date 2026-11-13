@@ -13,6 +13,7 @@ import { S, bus, EV, runtime } from '../core/events';
 import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/settlement';
+import { buffClash } from '../systems/buffs';
 import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES, dayKey } from '../systems/daily';
@@ -80,6 +81,8 @@ export class Panels implements GuildHost {
   dialogNpc = '';
   dialogText = '';
   confirmNew = false;
+  /** the buff that asked "replace?" once (a second tap uses it) — 'i'+uid (bag) or 'm'+meal (kitchen) */
+  buffAsk = '';
 
   constructor(private ui: UIScene) {}
 
@@ -303,7 +306,10 @@ export class Panels implements GuildHost {
       by -= 26;
     };
     if (mode === 'bag') {
-      if (def.type === 'consumable') btn('ใช้', () => {
+      const slot = def.buff ? 'buff' : def.elixir ? 'elixir' : null, clash = slot ? buffClash(s, slot) : null, ask = !!clash && this.buffAsk !== `i${it.uid}`;
+      if (def.type === 'consumable') btn(ask || !clash ? 'ใช้' : '⚠ ยืนยัน ใช้ทับบัพเดิม', () => {
+        if (ask) { sfx.click(); this.buffAsk = `i${it.uid}`; bus.emit(EV.TOAST, `⚠ จะทับบัพ ${clash} — บัพไม่ซ้อน/ไม่บวกเวลา • แตะอีกครั้งเพื่อยืนยัน`, '#ffd84a'); this.rebuild(); return; }
+        this.buffAsk = '';
         const r = act('useItem', { uid: it.uid }); if (!r) return; sfx.potion();
         bus.emit(EV.TOAST, r.recall ? 'วาร์ปกลับหมู่บ้าน...' : r.buff ? `${r.buff} ทำงานแล้ว` : r.food ? `อาหารในคลัง +${r.food}` : `ฟื้นฟู ${r.heal ? 'HP +' + r.heal : 'MP +' + r.mana}`, '#9fffb0');
         if (!s.inventory.find(i => i.uid === it.uid)) this.selUid = null; saveGame(s); bus.emit(EV.STATE_CHANGED);
@@ -554,7 +560,10 @@ export class Panels implements GuildHost {
         g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(rx + 6, yy, rw - 12, 66, 3);
         c.add(k.text(rx + 12, yy + 4, md.name + (lockd ? `  🔒 ครัว Lv${md.minLv}` : ''), 10, lockd ? '#8a7a60' : '#ffd84a'));
         c.add(k.text(rx + 12, yy + 22, `${md.desc} +${p.pct}% นาน ${p.mins} นาที`, 8, '#e8dcc0', { wordWrap: { width: rw - 110 } }));
-        c.add(k.button(rx + rw - 90, yy + 20, 78, 26, 'ทำ', () => {
+        const clash = buffClash(s, 'buff'), ask = !!clash && this.buffAsk !== `m${m}`;
+        c.add(k.button(rx + rw - 90, yy + 20, 78, 26, ask || !clash ? 'ทำ' : '⚠ ยืนยัน', () => {
+          if (ask) { sfx.click(); this.buffAsk = `m${m}`; bus.emit(EV.TOAST, `⚠ จะทับบัพ ${clash} — บัพไม่ซ้อน/ไม่บวกเวลา • แตะอีกครั้งเพื่อยืนยัน`, '#ffd84a'); this.rebuild(); return; }
+          this.buffAsk = '';
           const r = act('cook', { meal: m });
           if (r === 'ok') { sfx.heal(); bus.emit(EV.TOAST, `กิน${md.name}! +${p.pct}%`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); this.rebuild(); }
           else { sfx.error(); bus.emit(EV.TOAST, r === 'no_food' ? 'อาหารไม่พอ — ล่าสัตว์ใน 🌿 ป่าดงดิบ' : 'ยังทำไม่ได้', '#ff8a8a'); }

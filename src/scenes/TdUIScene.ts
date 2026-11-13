@@ -15,6 +15,8 @@ import { itemDef as idef, RARITY_NAMES as RN } from '../data/items';
 import { UIKit } from '../ui/kit';
 import { panelFrame } from '../ui/skin';
 import { bus, EV, S } from '../core/events';
+import { activeBuffs, clock } from '../systems/buffs';
+import { tr } from '../core/i18n';
 import { derive, expToNext, nextForm, activeTier, currentSkills } from '../systems/stats';
 import { SKILL_BY_ID } from '../data/skills';
 import { tdQuest, rewardText } from '../systems/tdQuests';
@@ -221,6 +223,8 @@ export class TdUIScene extends Phaser.Scene {
       bus.on('net:online', onN); this.events.once('shutdown', () => bus.off('net:online', onN));
       show(); if (Date.now() - onlineNow.at > 180000) ask();
       this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
+    // 🧪 active buffs under the minimap (players: which buff is on and how long is left) — systems/buffs.ts
+    for (let i = 0; i < 4; i++) { const t = k.text(this.VW - 10, 146 + i * 12, '', 7, '#fff4c8', { backgroundColor: 'rgba(0,0,0,0.45)', padding: { x: 3, y: 1 } }).setOrigin(1, 0); this.buffTx.push(t); this.root.add(t); }
     this.bandX = (topL + midR) / 2; this.bandW = Math.max(150, midR - topL - 52);
     // tutorial banner under the title
     this.tutG = this.add.graphics(); this.tutTx = k.text(this.bandX, 60, '', 8.5, '#fff4c8', { wordWrap: { width: Math.min(360, this.bandW - 16) }, align: 'center' }).setOrigin(0.5, 0);
@@ -381,6 +385,17 @@ export class TdUIScene extends Phaser.Scene {
   bandX = 0; bandW = 300;
   tutG!: Phaser.GameObjects.Graphics; tutTx!: Phaser.GameObjects.Text; tutSkip!: Phaser.GameObjects.Container;
   /** letters waiting last time (a new one: a note) */
+  buffTx: Phaser.GameObjects.Text[] = []; buffT = 0;
+  /** the buff chips: time left, blinking in the last minute (twice a second) */
+  drawBuffs(time: number) {
+    if (time - this.buffT < 500) return; this.buffT = time;
+    const list = activeBuffs(S());
+    this.buffTx.forEach((t, i) => {
+      const b = list[i]; if (!b) { t.setVisible(false); return; }
+      t.setVisible(true).setText(b.left < 0 ? tr(b.text) : `${tr(b.text)}  ${clock(b.left)}`).setColor(b.key === 'hungry' ? '#ff9a8a' : '#fff4c8')
+        .setAlpha(b.left >= 0 && b.left < 60000 && Math.floor(time / 500) % 2 ? 0.35 : 1);
+    });
+  }
   mailN = -1; mailDot?: Phaser.GameObjects.Arc; mailTxt?: Phaser.GameObjects.Text;
   refresh() {
     { const n = mailWaiting(S()); if (this.mailN >= 0 && n > this.mailN) this.toast(`📬 มีจดหมายใหม่ ${n - this.mailN} ฉบับ — กดซองจดหมายด้านบน`, '#ffd84a'); this.mailN = n; this.mailDot?.setVisible(n > 0); this.mailTxt?.setText(n > 9 ? '9+' : n ? String(n) : '').setVisible(n > 0); }
@@ -456,7 +471,7 @@ export class TdUIScene extends Phaser.Scene {
   minimap?: Minimap; loot?: LootPopup; news?: NewsTicker; newsT = 0;
   update(time: number) {
     if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ [${RN[n.rar]}] ${idef(n.item).name}!!`); } }
-    this.minimap?.update(time);
+    this.minimap?.update(time); this.drawBuffs(time);
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;
     this.root.setVisible(!sel).setAlpha(uiOpt(S()).alpha);
