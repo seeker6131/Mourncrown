@@ -581,7 +581,7 @@ export class Room {
 // Holds the real character: every action the game sends runs the same rules (src/server/handlers.ts) here with the
 // server's dice and clock, and the answer carries what changed. What is valuable (level, gold, items, resources,
 // buildings, diamonds, VIP...) is written ONLY here; the game's own save can only bring the harmless fields below.
-const MARKET = new Set(['marketList', 'marketCancel', 'marketBrowse', 'marketBuy']);
+const MARKET = new Set(['marketList', 'marketCancel', 'marketBrowse', 'marketBuy', 'marketHistory']);
 /** actions that change the guild itself: run by the guild's own object on the one shared copy (all members see it) */
 const GUILD_ACTS = new Set(['guildSync', 'guildUpgrade', 'guildCollect', 'guildFlag', 'guildRole', 'guildKick', 'guildShop', 'guildInvite', 'donate', 'houseBuild', 'houseRepair', 'bldRepair', 'hireGuard', 'dismissGuard', 'defBuild', 'defUpgrade', 'defRepair', 'defRemove', 'seasonClaim', 'raidStart', 'raidEnd', 'warStart', 'warSync', 'warHit', 'warKill', 'warEnd', 'warDone']);
 const GUILD_CAP = GUILD_MAX;   // members of a real guild (the village has GUILD_MAX house plots)
@@ -741,6 +741,16 @@ export class Player {
       const total = (await DB.prepare(`SELECT COUNT(*) AS n FROM market WHERE ${where}`).bind(...bind).first<{ n: number }>())?.n ?? 0;
       const rows = (await DB.prepare(`SELECT id, seller_name, item, price, until FROM market WHERE ${where} ORDER BY price ASC LIMIT 7 OFFSET ?`).bind(...bind, page * 7).all<{ id: string; seller_name: string; item: string; price: number; until: number }>()).results;
       return { r: { list: rows.map(r => ({ id: r.id, seller: r.seller_name || 'ผู้เล่น', item: JSON.parse(r.item), price: r.price, until: r.until })), total }, own: {} };
+    }
+    if (name === 'marketHistory') {   // 📜 what sold on the whole server, newest first (everyone sees it — no buyer / seller names), or one item's recent prices
+      const type = Number(a.type) || 0, rar = Number(a.rar ?? -1), page = Math.max(0, Math.min(50, Number(a.page) || 0)), T = ['', 'weapon', 'armor', 'accessory'], id = typeof a.id === 'string' ? a.id.slice(0, 40) : '';
+      let where = "status = 'sold'"; const bind: unknown[] = [];
+      if (id) { where += " AND json_extract(item, '$.id') = ?"; bind.push(id); }
+      else { if (type >= 1 && type <= 3) { where += ' AND type = ?'; bind.push(T[type]); } else if (type === 4) where += " AND type NOT IN ('weapon', 'armor', 'accessory')"; if (rar >= 0) { where += ' AND rar >= ?'; bind.push(rar); } }
+      const total = (await DB.prepare(`SELECT COUNT(*) AS n FROM market WHERE ${where}`).bind(...bind).first<{ n: number }>())?.n ?? 0;
+      const rows = (await DB.prepare(`SELECT item, price, at FROM market WHERE ${where} ORDER BY at DESC LIMIT 7 OFFSET ?`).bind(...bind, page * 7).all<{ item: string; price: number; at: number }>()).results;
+      const week = id ? await DB.prepare(`SELECT COUNT(*) AS n, AVG(price * 1.0 / MAX(1, COALESCE(json_extract(item, '$.qty'), 1))) AS avg, MIN(price * 1.0 / MAX(1, COALESCE(json_extract(item, '$.qty'), 1))) AS lo, MAX(price * 1.0 / MAX(1, COALESCE(json_extract(item, '$.qty'), 1))) AS hi FROM market WHERE ${where} AND at > ?`).bind(...bind, now - 7 * 86400000).first<{ n: number; avg: number; lo: number; hi: number }>() : null;
+      return { r: { list: rows.map(r => ({ item: JSON.parse(r.item), price: r.price, at: r.at })), total, ...(week ? { week: { n: week.n, avg: Math.round(week.avg ?? 0), lo: Math.round(week.lo ?? 0), hi: Math.round(week.hi ?? 0) } } : {}) }, own: {} };
     }
     if (name === 'marketBuy') {   // checked, then taken off the market in one step (two buyers can never get the same piece)
       const row = await DB.prepare("SELECT * FROM market WHERE id = ? AND status = 'open' AND until > ?").bind(String(a.id), now).first<{ id: string; seller: string; item: string; price: number }>();

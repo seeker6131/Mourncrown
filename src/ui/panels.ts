@@ -101,6 +101,7 @@ export class Panels implements GuildHost {
     this.cur = id;
     this.selUid = null;
     this.confirmNew = false;
+    if (id === 'market') { this.mhItem = {}; this.mhKey = ''; }   // (fresh sales history each time the market opens)
     this.ui.controlsReset();
     this.rebuild();
   }
@@ -874,13 +875,17 @@ export class Panels implements GuildHost {
       this.mkKey = ''; if (this.cur === 'market') this.rebuild();
     });
   }
-  mkTab: 'buy' | 'sell' | 'mine' = 'buy'; mkType = 0; mkRar = -1; mkPage = 0; mkPrice = 0; mkSel: string | null = null;
+  /** 📜 the server's sales history (everyone sees it; no names) and one item's recent real prices (sell tab) */
+  mhKey = ''; mhLoaded: { list: { item: import('../systems/market').Listing['item']; price: number; at: number }[]; total: number } | null = null;
+  mhItem: Record<string, { n: number; avg: number; lo: number; hi: number } | null | 'loading'> = {};
+  mkTab: 'buy' | 'sell' | 'mine' | 'hist' = 'buy'; mkType = 0; mkRar = -1; mkPage = 0; mkPrice = 0; mkSel: string | null = null;
   buildMarket(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(620, ui.VW - 16), H = 330;
     const { x, y, g } = this.window(c, W, H, '🏪 ตลาดกลาง');
     const tabs: [typeof this.mkTab, string][] = [['buy', 'ซื้อ'], ['sell', 'ลงขาย'], ['mine', `ของที่ลงขาย (${myListings(s).length}/${MAX_LISTINGS})`]];
-    tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 90, y + 30, i === 2 ? 130 : 84, 22, label, () => { this.mkTab = id; this.mkPage = 0; this.selUid = null; this.mkSel = null; this.rebuild(); }, { size: 9, color: this.mkTab === id ? 0x6a4a10 : 0x2a1d12 })));
+    tabs.push(['hist', '📜 ขายแล้ว']);
+    tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 90 + (i === 3 ? 46 : 0), y + 30, i === 2 ? 130 : 84, 22, label, () => { this.mkTab = id; this.mkPage = 0; this.selUid = null; this.mkSel = null; this.rebuild(); }, { size: 9, color: this.mkTab === id ? 0x6a4a10 : 0x2a1d12 })));
     c.add(k.text(x + W - 16, y + 34, `💰 ${s.gold.toLocaleString()}`, 10, '#ffd84a').setOrigin(1, 0));
     const top = y + 60;
     const rcol = (r: number) => '#' + RARITY_COLORS[r].toString(16).padStart(6, '0');
@@ -911,6 +916,31 @@ export class Panels implements GuildHost {
       c.add(k.button(x + 14, y + H - 30, 30, 18, '◀', () => { this.mkPage = (this.mkPage + pages - 1) % pages; this.rebuild(); }, { size: 8 }));
       c.add(k.text(x + 60, y + H - 27, `${this.mkPage + 1}/${pages}  •  ${total} รายการ  •  ${online ? 'จากผู้เล่นจริง' : 'ตัวอย่างจากผู้เล่นจำลอง (ออฟไลน์)'}`, 7.5, online ? '#9fffb0' : '#c8b898'));
       c.add(k.button(x + 290, y + H - 30, 30, 18, '▶', () => { this.mkPage = (this.mkPage + 1) % pages; this.rebuild(); }, { size: 8 }));
+    } else if (this.mkTab === 'hist') {
+      // 📜 everything sold on the server, newest first — what sold, for how much, when (no buyer / seller names)
+      const TYPES = ['ทั้งหมด', 'อาวุธ', 'เกราะ', 'เครื่องประดับ', 'อื่นๆ'];
+      TYPES.forEach((n, i) => c.add(k.button(x + 14 + i * 74, top, 70, 18, n, () => { this.mkType = i; this.mkPage = 0; this.rebuild(); }, { size: 7.5, color: this.mkType === i ? 0x4a3a10 : 0x1a140e })));
+      c.add(k.button(x + 14 + 5 * 74 + 6, top, 104, 18, this.mkRar < 0 ? 'ทุกระดับ' : RARITY_NAMES[this.mkRar] + '+', () => { this.mkRar = this.mkRar >= 5 ? -1 : this.mkRar + 1; this.mkPage = 0; this.rebuild(); }, { size: 7.5 }));
+      const online = isOnline(), key = `h${this.mkType}/${this.mkRar}/${this.mkPage}`;
+      if (online && this.mhKey !== key) { this.mhKey = key; this.mhLoaded = null; actServer('marketHistory', { type: this.mkType, rar: this.mkRar, page: this.mkPage }).then(r => { if (this.mhKey !== key) return; this.mhLoaded = refused(r) ? { list: [], total: 0 } : r; if (this.cur === 'market') this.rebuild(); }); }
+      const shown = this.mhLoaded?.list ?? [], total = this.mhLoaded?.total ?? 0, pages = Math.max(1, Math.ceil(total / 7));
+      if (!online) c.add(k.text(x + W / 2, top + 110, 'ประวัติการขายดูได้เมื่อออนไลน์เท่านั้น', 10, '#8a7a60').setOrigin(0.5));
+      else if (!this.mhLoaded) c.add(k.text(x + W / 2, top + 110, 'กำลังโหลด...', 10, '#c8b898').setOrigin(0.5));
+      else if (!shown.length) c.add(k.text(x + W / 2, top + 110, 'ยังไม่มีการซื้อขายประเภทนี้', 10, '#8a7a60').setOrigin(0.5));
+      const ago = (t: number) => { const m = Math.max(0, Math.floor((Date.now() - t) / 60000)); return m < 1 ? 'เมื่อกี้' : m < 60 ? `${m} นาทีที่แล้ว` : m < 1440 ? `${Math.floor(m / 60)} ชม.ที่แล้ว` : `${Math.floor(m / 1440)} วันที่แล้ว`; };
+      shown.forEach((l, i) => {
+        const ry = top + 24 + i * 30, d = itemDef(l.item.id), rr = l.item.rar ?? d.rarity;
+        g.fillStyle(0x1a140e, 0.9).fillRoundedRect(x + 14, ry, W - 28, 27, 3).lineStyle(1, RARITY_COLORS[rr], 0.5).strokeRoundedRect(x + 14, ry, W - 28, 27, 3);
+        c.add(this.ico(x + 28, ry + 13, `icon_${d.icon}`, 26));
+        c.add(k.text(x + 44, ry + 3, `${d.name}${l.item.upg ? ' +' + l.item.upg : ''}${l.item.qty > 1 ? ' x' + l.item.qty : ''}`, 8.5, rcol(rr)));
+        c.add(k.text(x + 44, ry + 15, [isGear(d) ? RARITY_NAMES[rr] : '', ...statLines(d, fakeInv(l.item)).slice(0, 2), (l.item.aff?.length ? `✦${l.item.aff.length} ค่าพิเศษ` : '')].filter(Boolean).join('  •  '), 6.8, '#c8b898'));
+        c.add(k.text(x + W - 150, ry + 8, ago(l.at), 7.5, '#9ad8ff').setOrigin(1, 0));
+        c.add(k.text(x + W - 22, ry + 3, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
+        if (l.item.qty > 1) c.add(k.text(x + W - 22, ry + 15, `(${Math.round(l.price / l.item.qty).toLocaleString()}/ชิ้น)`, 6.8, '#c8b898').setOrigin(1, 0));
+      });
+      c.add(k.button(x + 14, y + H - 30, 30, 18, '◀', () => { this.mkPage = (this.mkPage + pages - 1) % pages; this.rebuild(); }, { size: 8 }));
+      c.add(k.text(x + 60, y + H - 27, `${this.mkPage + 1}/${pages}  •  ขายไปแล้ว ${total} รายการ (ทั้งเซิร์ฟ)`, 8, '#c8b898'));
+      c.add(k.button(x + 290, y + H - 30, 30, 18, '▶', () => { this.mkPage = (this.mkPage + 1) % pages; this.rebuild(); }, { size: 8 }));
     } else if (this.mkTab === 'sell') {
       const cols = 7, cs = 30;
       const sellable = s.inventory.filter(it => !isEquipped(s, it.uid));
@@ -932,6 +962,12 @@ export class Panels implements GuildHost {
         c.add(this.ico(dx + 22, top + 22, `icon_${d.icon}`, 32));
         c.add(k.text(dx + 44, top + 8, `${d.name}${it.upg ? ' +' + it.upg : ''} x${it.qty}`, 9.5, rcol(rr)));
         c.add(k.text(dx + 44, top + 24, isGear(d) ? RARITY_NAMES[rr] : d.desc, 7.5, rcol(rr), { wordWrap: { width: dw - 50 } }));
+        { // 📜 what this item really sold for on the server this week (helps setting a price)
+          const h = this.mhItem[it.id];
+          if (h === undefined && isOnline()) { this.mhItem[it.id] = 'loading'; actServer('marketHistory', { id: it.id }).then(r => { this.mhItem[it.id] = refused(r) || !r.week ? null : r.week; if (this.cur === 'market') this.rebuild(); }); }
+          const txt = h === 'loading' || h === undefined ? (isOnline() ? 'ราคาขายจริง: กำลังโหลด...' : '') : !h || !h.n ? 'ราคาขายจริง 7 วัน: ยังไม่มีคนขาย' : `ราคาขายจริง 7 วัน: เฉลี่ย ${h.avg.toLocaleString()}/ชิ้น (${h.lo.toLocaleString()}–${h.hi.toLocaleString()}, ${h.n} ครั้ง)`;
+          if (txt) c.add(k.text(dx + 10, top + 46, txt, 7, '#9ad8ff', { wordWrap: { width: dw - 20 } }));
+        }
         const fee = feeOf(this.mkPrice);
         c.add(k.text(dx + dw / 2, top + 62, `ราคาตั้งขาย`, 8, '#c8b898').setOrigin(0.5, 0));
         c.add(k.text(dx + dw / 2, top + 76, `💰 ${this.mkPrice.toLocaleString()}`, 16, '#ffd84a', { fontStyle: 'bold' }).setOrigin(0.5, 0));

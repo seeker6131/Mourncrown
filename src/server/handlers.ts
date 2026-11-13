@@ -393,6 +393,7 @@ export const handlers = {
   marketCancel: (s: GameState, a: { id: string }) => cancelListing(s, a.id),
   /** the players' market lives on the game server (server/worker.ts Player): offline there is nothing to browse or buy */
   marketBrowse: (_s: GameState, _a: { type: number; rar: number; page: number }) => no('offline') as Refused | { list: import('../systems/market').Listing[]; total: number },
+  marketHistory: (_s: GameState, _a: { type?: number; rar?: number; page?: number; id?: string }) => no('offline') as Refused | { list: { item: import('../systems/market').Listing['item']; price: number; at: number }[]; total: number; week?: { n: number; avg: number; lo: number; hi: number } },
   marketBuy: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true; id: string; qty: number; price: number },
   /** the CBT gift is handed out by the game server only (server/worker.ts Player.cbt): offline there is nothing */
   cbtClaim: (_s: GameState, _a: object) => no('offline') as Refused | { ok: true },
