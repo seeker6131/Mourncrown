@@ -102,7 +102,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
           c.add(k.button(R - 76, ry + 1, 64, 17, 'ให้ออก', () => { const r = act('guildKick', { id: m.id }); if (refused(r)) fail(r); else done(h, `${m.name} ออกจากกิลด์`, '#ffb080'); }, { size: 7.5, color: 0x5a1a1a }));
         }
       });
-      if (g0.members.length < GUILD_MAX) c.add(k.button(L + 8, top + H - 84, 200, 20, '➕ ชวนสมาชิก (จำลอง — รอเซิร์ฟจริง)', () => { const r = act('guildInvite', {}); if (refused(r)) fail(r); else done(h, `${r.name} เข้ากิลด์แล้ว!`); }, { size: 8, color: 0x1f4a2a }));
+      if (g0.members.length < GUILD_MAX) T(L + 8, top + H - 80, '➕ ชวนเพื่อน: ให้เพื่อนเปิดหน้าต่างกิลด์ → ค้นหากิลด์ → กดเข้าร่วม', 8, '#9fd4ff');
       break;
     }
     case 'donate': {
@@ -251,6 +251,7 @@ export function buildGuild(h: GuildHost, c: Phaser.GameObjects.Container) {
       }
       T(L + 8, top + 6, `ปล้นได้อีกวันนี้ ${raidsLeft(s)} ครั้ง • ${sh > 0 ? `โล่ของเรายังอยู่ ${hrs(sh)} (ไปปล้น = โล่หาย)` : 'ไม่มีโล่'} • ระบบจับคู่หมู่บ้านพลังใกล้กันให้ 3 แห่งต่อวัน`, 8, '#ffe7a0', CW - 16);
       T(L + 8, top + 22, '⚔ สงคราม: ระบบสู้ให้ 4 นาที กองเราบุกเขา–กองเขาบุกเรา พร้อมกัน ดูสด/ลงไปช่วยได้ทั้งสองฝั่ง ฝั่งที่หมู่บ้านเหลือมากกว่าชนะ • 🗡 ปล้นเดี่ยว: เข้าไปตีเอง 3 นาที', 7.5, '#9ad8ff', CW - 16);
+      if (!rivals(s).length) T(L + 8, top + 70, '🏳 ยังไม่มีกิลด์อื่นให้บุก — ระบบหาให้ใหม่ทุก 30 นาที (มีแต่กิลด์ของผู้เล่นจริง)', 9, '#c8b89a');
       rivals(s).forEach((r, i) => {
         const by = top + 50 + i * 64, st = rivalStructs(r), rich = r.treasury.gold + r.treasury.wood + r.treasury.stone;
         g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(L + 6, by, CW - 12, 58, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(L + 6, by, CW - 12, 58, 4);

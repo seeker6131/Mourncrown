@@ -736,12 +736,14 @@ export class Guild {
   }
   /** today's 3 targets: real guilds of about the same strength without a shield; pretend villages fill the gaps */
   private async match(now: number) {
-    const g = this.g!, day = dayKey(now); if (g.rivals?.day === day) return;
+    // real guilds only (director: no bot villages) — hall ±1 first, then any hall; while fewer than 3, looked up again every 30 min
+    const g = this.g!, day = dayKey(now), rv = g.rivals as { day: string; list: Rival[]; at?: number } | undefined;
+    if (rv?.day === day && rv.list.every(r => r.real) && (rv.list.length >= 3 || now - (rv.at ?? 0) < 1800000)) return;   // (a list from before, with made-up villages: replaced now)
     const my = hallLv(this.asSt(), now);
-    const rows = (await this.env.DB.prepare('SELECT id FROM guilds WHERE id != ? AND hall BETWEEN ? AND ? AND shield < ? ORDER BY RANDOM() LIMIT 3').bind(g.id, my - 1, my + 1, now).all<{ id: string }>()).results;
+    let rows = (await this.env.DB.prepare('SELECT id FROM guilds WHERE id != ? AND hall BETWEEN ? AND ? AND shield < ? ORDER BY RANDOM() LIMIT 3').bind(g.id, my - 1, my + 1, now).all<{ id: string }>()).results;
+    if (rows.length < 3) { const more = (await this.env.DB.prepare('SELECT id FROM guilds WHERE id != ? AND shield < ? ORDER BY RANDOM() LIMIT 6').bind(g.id, now).all<{ id: string }>()).results; rows = [...rows, ...more.filter(r => !rows.some(q => q.id === r.id))].slice(0, 3); }
     const real = (await Promise.all(rows.map(r => this.snapOf(r.id)))).filter((r): r is Rival => !!r);
-    const st = this.asSt(); (st as unknown as { guild: G }).guild.rivals = { day: '', list: [] };
-    g.rivals = { day, list: [...real, ...rivals(st, now).slice(0, Math.max(0, 3 - real.length))] };
+    g.rivals = { day, list: real, at: now } as typeof g.rivals;
   }
   /** the real guilds' season board (this week + last week), refreshed every 5 minutes */
   private async board(now: number) {

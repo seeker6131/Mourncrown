@@ -1001,7 +1001,7 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.spawnMap(WILD, spot, null);
     // other players gathering here (simulated until the server exists)
     const work = this.nodes.filter(n => !n.vein || n.vein.req <= 20);
-    this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.filter(n => n.until <= this.time.now).map(n => ({ x: n.x, y: n.y, kind: n.kind })), testBots.n ? Math.min(testBots.n, 99) : 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
+    if (testBots.n) this.crowd = new Crowd(this as never, CH.hg ? 'hg' : 'hero', () => work.filter(n => n.until <= this.time.now).map(n => ({ x: n.x, y: n.y, kind: n.kind })), testBots.n ? Math.min(testBots.n, 99) : 16, () => { const n = work[Math.floor(rnd() * work.length)]; return { x: n.x + 10, y: n.y + 16 }; });
   }
 
   /** Farming map: dense forest between the trails, clearings where monsters gather, the village gate in the west. */
@@ -1379,7 +1379,7 @@ export class TopDownScene extends Phaser.Scene {
     }
   }
   stageTitle0() {
-    if (this.gv && WC.war && !WC.war.over) return warLine(WC.war) + (this.warSide === 'enemy' ? ' • 👁 หมู่บ้านศัตรู' : this.warSide === 'home' ? ' • 👁 หมู่บ้านเรา' : ' • กด ⚔ ดูสงคราม'); if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${this.online}/100 • ⚡ แรง ${energyLeft(S())}`;
+    if (this.gv && WC.war && !WC.war.over) return warLine(WC.war) + (this.warSide === 'enemy' ? ' • 👁 หมู่บ้านศัตรู' : this.warSide === 'home' ? ' • 👁 หมู่บ้านเรา' : ' • กด ⚔ ดูสงคราม'); if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${testBots.n ? this.online : (this.link?.others.size ?? 0) + 1}/100 • ⚡ แรง ${energyLeft(S())}`;   // (real players here — director: no bots)
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
     if (this.raid) return this.raid.title();

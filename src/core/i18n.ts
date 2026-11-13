@@ -176,6 +176,7 @@ const EN: Record<string, string> = {
   "มีอัปเดตเกมใหม่!": "Game update!", "🔄 รีเกมเลย": "🔄 Reload now", "เกมจะรีเองใน": "The game reloads by itself in", "วินาที — กลับมาที่เดิมให้": "seconds — you come back to the same spot", "จะรีให้หลังจบดันเจี้ยน/สงคราม": "Reloads after the dungeon / war ends",
   "🔑 เข้าสู่ระบบ Google อีกครั้ง เพื่อเล่นตัวละครเดิมของคุณ": "🔑 Sign in with Google again to play your hero", "🚪 ออกจากระบบ": "🚪 Sign out", "⚠ ยืนยันออกจากระบบ (ตัวละครอยู่กับ Google)": "⚠ Confirm sign out (your hero stays with Google)",
   "🚧 วันนี้เซิร์ฟเปิดครบเวลาแล้ว — เปิดใหม่ 07:00 น. (ตอนนี้ของที่ได้จะไม่ถูกบันทึก)": "🚧 The server has reached today’s limit — it opens again at 07:00 (Thai time). What you get now is not saved", "🚧 เซิร์ฟเต็ม (": "🚧 Server full (", " คน) — รอสักครู่ ระบบจะพาเข้าเองเมื่อมีที่ว่าง": " players) — please wait, you will be let in when there is room",
+  "➕ ชวนเพื่อน: ให้เพื่อนเปิดหน้าต่างกิลด์ → ค้นหากิลด์ → กดเข้าร่วม": "➕ Invite friends: they open the guild window → find a guild → join", "🏳 ยังไม่มีกิลด์อื่นให้บุก — ระบบหาให้ใหม่ทุก 30 นาที (มีแต่กิลด์ของผู้เล่นจริง)": "🏳 No other guild to attack yet — looked up again every 30 min (real players’ guilds only)", "ตลาดผู้เล่นใช้ได้เมื่อออนไลน์เท่านั้น": "The players’ market works online only",
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

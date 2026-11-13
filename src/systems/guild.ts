@@ -227,6 +227,7 @@ export function setRole(s: GameState, id: string, role: Role, now = Date.now()):
 /** (simulation only, until online) another player joins */
 export function simInvite(s: GameState, now = Date.now(), rnd: () => number = Math.random): R | { name: string } {
   const g = guildOf(s); if (!g) return no('guild');
+  if (g.real) return no('real');   // (director: no bot members — real players join by themselves)
   if (!isOfficer(s)) return no('role');
   if (g.members.length >= GUILD_MAX) return no('full');
   const used = new Set(g.members.map(m => m.house)); const house = Array.from({ length: HOUSE_SLOTS }, (_, i) => i).find(i => !used.has(i));
@@ -470,6 +471,7 @@ export function defensePower(s: GameState) {
 /** catch up the guild village to `now`: production, guard food, simulated members (donations, upgrades), incoming raids */
 export function guildTick(s: GameState, now = Date.now(), rnd: () => number = Math.random) {
   const g = guildOf(s); if (!g) return;
+  if (g.real && g.members.some(m => m.sim)) g.members = g.members.filter(m => !m.sim);   // (director: real players only — bot members leave)
   produce(s, now);
   const hours = Math.min(12, Math.max(0, (now - g.simAt) / 3600000)); if (hours < 0.02) return;
   g.simAt = now; feedGuards(s, hours);
@@ -525,6 +527,7 @@ export function raidOutcome(s: GameState, stars: number, name: string, now: numb
 /** today's 3 matched targets (the server picks them; nobody chooses a victim freely) */
 export function rivals(s: GameState, now = Date.now()): Rival[] {
   const g = guildOf(s)!; const day = dayKey(now);
+  if (g.real) return g.rivals?.list ?? [];   // online: real guilds only, chosen by the server (director: no bot villages)
   if (g.rivals.day !== day) {
     const r = srnd(hashStr(g.id + 'rv' + day)), my = hallLv(s), list: Rival[] = [];
     for (let i = 0; i < 3; i++) {

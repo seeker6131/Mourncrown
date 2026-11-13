@@ -64,13 +64,15 @@ describe('guild war between REAL guilds (online)', () => {
     expect(B.g.shieldUntil).toBeGreaterThan(T0 + 11 * 3600000);
     expect(B.g.unread[B.g.unread.length - 1]).toContain('ปล้นหมู่บ้านได้');
   });
-  it('online, pretend villages do not raid a real guild, and yield half', async () => {
-    const { simIncoming, raidResult } = await import('../src/systems/guild');
-    const a = guild(), b = guild(); a.g.real = true; a.g.shieldUntil = 0; a.g.incomingAt = 0;
+  it('online (director): no bots — no pretend villages to raid or raiding us, no bot members; only the real guilds the server found', async () => {
+    const { simIncoming, simInvite, guildTick } = await import('../src/systems/guild');
+    const a = guild(); a.g.real = true; a.g.shieldUntil = 0; a.g.incomingAt = 0;
     expect(simIncoming(a.s, T0 + 86400000 * 5, () => 0.1)).toBeNull();
-    seed = 7; const ra = rivals(a.s, T0)[0]; seed = 7; const rb = rivals(b.s, T0)[0];
-    const ga = raidResult(a.s, ra, ['b:hall'], T0).gain.gold, gb = raidResult(b.s, rb, ['b:hall'], T0).gain.gold;
-    expect(ga).toBeLessThan(gb);
+    a.g.rivals = { day: '', list: [] };
+    expect(rivals(a.s, T0)).toEqual([]);   // nothing found by the server = nothing to raid (never a made-up village)
+    expect(simInvite(a.s, T0)).toEqual({ refused: 'real' });
+    a.g.members.push({ ...a.g.members[0], id: 'sim9_x', name: 'บอท', role: 'member', sim: true } as never);
+    guildTick(a.s, T0 + 3600000); expect(a.g.members.some(m => m.sim)).toBe(false);
     expect(a.g.out ?? []).toEqual([]);
   });
   it('walking away from a war is a loss; the season board online is the real guilds, top places need 6 guilds', async () => {

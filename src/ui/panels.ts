@@ -27,6 +27,7 @@ import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type C
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { MOUNTS, MOUNT_ORDER } from '../data/mounts';
 import { DEV_TOOLS } from '../server/config';
+import { TEST_HOOKS } from '../core/testHooks';
 import { mountOn, hasMount } from '../systems/mounts';
 
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
@@ -845,11 +846,12 @@ export class Panels implements GuildHost {
       // online: real players' listings from the server (one page at a time); offline: the sample market
       const online = isOnline(), key = `${this.mkType}/${this.mkRar}/${this.mkPage}`;
       if (online && this.mkKey !== key) { this.mkKey = key; this.mkLoaded = null; actServer('marketBrowse', { type: this.mkType, rar: this.mkRar, page: this.mkPage }).then(r => { if (this.mkKey !== key) return; this.mkLoaded = refused(r) ? { list: [], total: 0 } : r; if (this.cur === 'market') this.rebuild(); }); }
-      const sample = sampleListings().filter(l => TYPES[this.mkType][1](itemDef(l.item.id).type) && (this.mkRar < 0 || (l.item.rar ?? 0) >= this.mkRar)).sort((a, b) => a.price - b.price);
+      const sample = (TEST_HOOKS ? sampleListings() : []).filter(l => TYPES[this.mkType][1](itemDef(l.item.id).type) && (this.mkRar < 0 || (l.item.rar ?? 0) >= this.mkRar)).sort((a, b) => a.price - b.price);
       const per = 7, total = online ? this.mkLoaded?.total ?? 0 : sample.length, pages = Math.max(1, Math.ceil(total / per)); if (!online) this.mkPage = Math.min(this.mkPage, pages - 1);
       const shown = online ? this.mkLoaded?.list ?? [] : sample.slice(this.mkPage * per, this.mkPage * per + per);
       if (online && !this.mkLoaded) c.add(k.text(x + W / 2, top + 110, 'กำลังโหลดตลาด...', 10, '#c8b898').setOrigin(0.5));
       else if (online && !shown.length) c.add(k.text(x + W / 2, top + 110, 'ยังไม่มีใครลงขายของประเภทนี้', 10, '#8a7a60').setOrigin(0.5));
+      else if (!online && !shown.length) c.add(k.text(x + W / 2, top + 110, 'ตลาดผู้เล่นใช้ได้เมื่อออนไลน์เท่านั้น', 10, '#8a7a60').setOrigin(0.5));
       shown.forEach((l, i) => {
         const ry = top + 24 + i * 30, d = itemDef(l.item.id), rr = l.item.rar ?? d.rarity;
         g.fillStyle(this.mkSel === l.id ? 0x3a2a10 : 0x1a140e, 0.9).fillRoundedRect(x + 14, ry, W - 28, 27, 3).lineStyle(1, RARITY_COLORS[rr], 0.5).strokeRoundedRect(x + 14, ry, W - 28, 27, 3);
