@@ -42,6 +42,7 @@ import { giveTestKit, testLevelUp } from '../systems/testKit';
 import { invSize } from '../core/state';
 import { tutPay, claimLogin } from '../systems/progress';
 import { pstats, claimAch, setTitle } from '../data/achievements';
+import { claimMail, readMail, deleteMail } from '../systems/mail';
 import type { BuildingId, MealId } from '../data/buildings';
 import type { ClassId } from '../data/classes';
 
@@ -373,6 +374,10 @@ export const handlers = {
   marketBuy: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true; id: string; qty: number; price: number },
   /** the CBT gift is handed out by the game server only (server/worker.ts Player.cbt): offline there is nothing */
   cbtClaim: (_s: GameState, _a: object) => no('offline') as Refused | { ok: true },
+  /** 📬 the mailbox: claim a letter's gift (all or nothing), mark read, throw away a finished letter */
+  mailClaim: (s: GameState, a: { id: string }, c: Ctx) => claimMail(s, String(a.id), c.now),
+  mailRead: (s: GameState, a: { id: string }) => readMail(s, String(a.id)),
+  mailDelete: (s: GameState, a: { id: string }) => deleteMail(s, String(a.id)),
   buyDiamond: (s: GameState, a: { id: string }, c: Ctx) => buyDiamondItem(s, a.id, c.now),
   vipGift: (s: GameState, _a: object, c: Ctx) => claimVipGift(s, c.now),
   /** the main quest chain: every 4th quest also gives a skill point */

@@ -33,7 +33,7 @@ import { mountOn, hasMount } from '../systems/mounts';
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, actServer, isOnline, refused } from '../net/client';
-import { isAdmin, SERVER, accountToken, googleLinked, accountName, signOut } from '../net/cloud';
+import { isAdmin, SERVER, accountToken, googleLinked, accountName, signOut, accountId } from '../net/cloud';
 import { openLinkGoogle } from '../net/linkGoogle';
 import { showWait } from '../core/wait';
 import { askName } from '../net/namePrompt';
@@ -42,6 +42,7 @@ import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
 import { vipActive, vipLeftMs as vipLeft2 } from '../systems/premium';
 import { CBT_ACTIVE, CBT_VIP_DAYS, CBT_TITLE, CBT_PACK, cbtGot, cbtReady } from '../systems/cbtGift';
+import { mailOf, mailWaiting, hasGift, mailLive, giftText } from '../systems/mail';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
@@ -56,7 +57,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -168,6 +169,7 @@ export class Panels implements GuildHost {
       case 'bounty': this.buildBounty(c); break;
       case 'mounts': this.buildMounts(c); break;
       case 'cbt': this.buildCbt(c); break;
+      case 'mail': this.buildMail(c); break;
     }
   }
 
@@ -710,10 +712,11 @@ export class Panels implements GuildHost {
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     // two columns so the window fits short phone screens (the close button must stay visible)
-    const W = Math.min(520, ui.VW - 16), H = 276, colW = (W - 46) / 2;
+    const W = Math.min(520, ui.VW - 16), H = 302, colW = (W - 46) / 2;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let n = 0;
     const b = (label: string, cb: () => void, color?: number) => { const col = n % 2, row = Math.floor(n / 2); c.add(k.button(x + 16 + col * (colW + 14), y + 34 + row * 26, colW, 22, label, cb, { size: 8.5, color })); n++; };
+    { const n = mailWaiting(s); b(`📬 จดหมาย${n ? ` (${n})` : ''}`, () => this.open('mail'), n ? 0x7a4a10 : 0x4a3a10); }
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
@@ -1117,6 +1120,13 @@ export class Panels implements GuildHost {
     const vip = vipActive(s);
     c.add(k.text(sx + cw / 2, sy + 244, vip ? `👑 VIP เหลือ ${Math.ceil(vipLeft2(s) / 86400000)} วัน` : 'ยังไม่ใช่ VIP', 8.5, vip ? '#ffd84a' : '#8a7a60').setOrigin(0.5, 0));
     c.add(k.button(sx + 20, sy + H - 76, cw - 40, 20, '🏆 เปลี่ยนฉายา', () => this.open('collection'), { size: 8.5, color: 0x4a3a10 }));
+    // the player's code: copied and sent to the admin (bug reports, compensation from the back office)
+    { const id = accountId();
+      c.add(k.text(sx + 10, sy + H - 50, id ? `🆔 ${id}` : '🆔 (ออฟไลน์ — ยังไม่มีรหัส)', 7, '#9fd4ff'));
+      if (id) c.add(k.button(sx + cw - 48, sy + H - 53, 40, 16, '📋 คัดลอก', () => {
+        const done = () => bus.emit(EV.TOAST, '📋 คัดลอกรหัสผู้เล่นแล้ว — ส่งให้แอดมินได้เลย', '#9fffb0');
+        navigator.clipboard?.writeText(id).then(done, () => window.prompt('รหัสผู้เล่นของคุณ (คัดลอกได้)', id)) ?? window.prompt('รหัสผู้เล่นของคุณ (คัดลอกได้)', id);
+      }, { size: 6.5, color: 0x1f4a6a })); }
     // middle: stats
     const mx = sx + cw + 8, mw = 196;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(mx, sy, mw, H - 44, 5);
@@ -1230,6 +1240,50 @@ export class Panels implements GuildHost {
       if (refused(r)) { sfx.error(); return; }
       sfx.levelUp(); bus.emit(EV.TOAST, `รับของล็อกอินวันที่ ${info.day + 1}: ${r.label}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
     }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));
+  }
+
+  // ---------------- MAILBOX ----------------
+  mailSel = ''; mailPage = 0;
+  buildMail(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, now = Date.now(), box = mailOf(s);
+    const W = Math.min(620, ui.VW - 12), H = 320;
+    const { x, y, g } = this.window(c, W, H, '📬 จดหมาย');
+    if (!box.length) { c.add(k.text(x + W / 2, y + H / 2 - 10, 'ยังไม่มีจดหมาย — ของขวัญและรางวัลจากทีมงานจะส่งมาที่นี่', 9, '#a89878').setOrigin(0.5)); return; }
+    if (!box.some(m => m.id === this.mailSel)) this.mailSel = box[0].id;
+    // left: the letters
+    const lw = Math.min(230, W * 0.42), per = 7, pages = Math.ceil(box.length / per); this.mailPage = Math.min(this.mailPage, pages - 1);
+    box.slice(this.mailPage * per, this.mailPage * per + per).forEach((m, i) => {
+      const ry = y + 30 + i * 36, on = m.id === this.mailSel, live = mailLive(m, now), gift = hasGift(m) && !m.claimed && live;
+      g.fillStyle(on ? 0x4a3a10 : 0x1a140e, 0.95).fillRoundedRect(x + 10, ry, lw, 32, 4).lineStyle(1, on ? 0xffd84a : gift ? 0xc89a4a : 0x4a3a2a, 1).strokeRoundedRect(x + 10, ry, lw, 32, 4);
+      c.add(k.text(x + 18, ry + 7, gift ? '🎁' : !m.read ? '✉' : '📭', 12));
+      c.add(k.text(x + 40, ry + 3, m.title.length > 22 ? m.title.slice(0, 21) + '…' : m.title, 8.5, gift || !m.read ? '#ffffff' : '#a89878'));
+      c.add(k.text(x + 40, ry + 18, `${m.from} • ${new Date(m.at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}${!live ? ' • หมดอายุ' : ''}`, 6.5, '#8a7a60'));
+      const z = ui.add.zone(x + 10, ry, lw, 32).setOrigin(0).setInteractive({ useHandCursor: true });
+      z.on('pointerup', () => { this.mailSel = m.id; if (!m.read) act('mailRead', { id: m.id }); sfx.click(); this.rebuild(); }); c.add(z);
+    });
+    if (pages > 1) for (let i = 0; i < pages; i++) c.add(k.button(x + 10 + i * 30, y + H - 30, 26, 18, String(i + 1), () => { this.mailPage = i; this.rebuild(); }, { size: 8, color: i === this.mailPage ? 0x6a4a10 : 0x2a1d12 }));
+    // right: the letter
+    const m = box.find(q => q.id === this.mailSel)!, rx = x + lw + 20, rw = W - lw - 30, live = mailLive(m, now);
+    if (!m.read) act('mailRead', { id: m.id });
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, y + 30, rw, H - 44, 5);
+    c.add(k.text(rx + 10, y + 38, m.title, 11, '#ffd84a', { fontStyle: 'bold', wordWrap: { width: rw - 20 } }));
+    c.add(k.text(rx + 10, y + 58, `จาก ${m.from} • ${new Date(m.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}`, 7.5, '#a89878'));
+    c.add(k.text(rx + 10, y + 76, m.text || '—', 8.5, '#e8dcc0', { wordWrap: { width: rw - 20 } }));
+    if (hasGift(m)) {
+      const gy = y + H - 104;
+      g.fillStyle(m.claimed ? 0x1a2a1a : 0x3a2a10, 0.95).fillRoundedRect(rx + 8, gy, rw - 16, 50, 5).lineStyle(1, m.claimed ? 0x7ad88a : 0xffd84a, 1).strokeRoundedRect(rx + 8, gy, rw - 16, 50, 5);
+      c.add(k.text(rx + 16, gy + 5, m.claimed ? '✔ รับแล้ว' : '🎁 ของในจดหมาย', 8, m.claimed ? '#9fffb0' : '#ffd84a'));
+      c.add(k.text(rx + 16, gy + 20, giftText(m), 8.5, '#ffffff', { wordWrap: { width: rw - 32 } }));
+      if (m.until) c.add(k.text(rx + rw - 14, gy + 5, live ? `หมดอายุ ${new Date(m.until).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}` : 'หมดอายุแล้ว', 7, live ? '#c8b898' : '#ff8a6a').setOrigin(1, 0));
+    }
+    const canClaim = hasGift(m) && !m.claimed && live, canDel = !canClaim;
+    if (canClaim) c.add(k.button(rx + rw / 2 - 70, y + H - 44, 140, 24, '🎁 รับของ', () => {
+      const r = act('mailClaim', { id: m.id });
+      if (r === 'bag') { sfx.error(); bus.emit(EV.TOAST, 'กระเป๋าเต็ม — ทิ้งหรือขายของก่อนแล้วกลับมารับ', '#ff8a8a'); return; }
+      if (typeof r !== 'object') { sfx.error(); bus.emit(EV.TOAST, 'รับไม่ได้', '#ff8a8a'); this.rebuild(); return; }
+      sfx.levelUp(); bus.emit(EV.TOAST, `🎁 ได้รับ ${r.got}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+    }, { size: 10, color: 0x6a4a10 }));
+    else c.add(k.button(rx + rw - 84, y + H - 40, 76, 20, '🗑 ลบจดหมาย', () => { act('mailDelete', { id: m.id }); this.mailSel = ''; this.rebuild(); }, { size: 8, color: 0x3a2a2a, disabled: !canDel }));
   }
 
   // ---------------- CBT GIFT ----------------

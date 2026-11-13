@@ -179,6 +179,8 @@ const EN: Record<string, string> = {
   "➕ ชวนเพื่อน: ให้เพื่อนเปิดหน้าต่างกิลด์ → ค้นหากิลด์ → กดเข้าร่วม": "➕ Invite friends: they open the guild window → find a guild → join", "🏳 ยังไม่มีกิลด์อื่นให้บุก — ระบบหาให้ใหม่ทุก 30 นาที (มีแต่กิลด์ของผู้เล่นจริง)": "🏳 No other guild to attack yet — looked up again every 30 min (real players’ guilds only)", "ตลาดผู้เล่นใช้ได้เมื่อออนไลน์เท่านั้น": "The players’ market works online only",
   "👹 บอสเร่ร่อนสุ่มโผล่ — มีประกาศในแชตโลก": "👹 Roaming bosses come at random — announced in world chat",
   "👑 เว็บหลังบ้าน (ดูทุกอย่างในเกม)": "👑 Back office (see everything)",
+  "🆔 (ออฟไลน์ — ยังไม่มีรหัส)": "🆔 (offline — no code yet)", "📋 คัดลอก": "📋 Copy", "📋 คัดลอกรหัสผู้เล่นแล้ว — ส่งให้แอดมินได้เลย": "📋 Player code copied — send it to the admin", "รหัสผู้เล่นของคุณ (คัดลอกได้)": "Your player code (copy it)",
+  "📬 จดหมาย": "📬 Mail", "ยังไม่มีจดหมาย — ของขวัญและรางวัลจากทีมงานจะส่งมาที่นี่": "No letters yet — gifts and rewards from the team come here", "🎁 ของในจดหมาย": "🎁 Gift in this letter", "✔ รับแล้ว": "✔ Claimed", "หมดอายุแล้ว": "Expired", "หมดอายุ": "Expires", "🎁 รับของ": "🎁 Claim", "กระเป๋าเต็ม — ทิ้งหรือขายของก่อนแล้วกลับมารับ": "Bag full — drop or sell something, then come back", "🎁 ได้รับ ": "🎁 Got ", "🗑 ลบจดหมาย": "🗑 Delete", "📬 มีจดหมายใหม่ ": "📬 New mail: ", " ฉบับ — เปิดที่ เมนู → 📬 จดหมาย": " — open Menu → 📬 Mail", "📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย": "📬 New mail! Open Menu → 📬 Mail", "จาก ": "From ", "ทีมงาน Mourncrown": "Mourncrown team", "แอดมิน": "Admin", "🎁 ของจากแอดมิน": "🎁 From the admin", "🎁 ของขวัญจากแอดมิน": "🎁 A gift from the admin",
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

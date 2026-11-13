@@ -30,6 +30,8 @@
   .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: #333; }
   .tag.vip { background: #5a3a8a; } .tag.ban { background: #8a1a1a; } .tag.mute { background: #6a4a10; } .tag.g { background: #1a4a6a; }
   .bar { height: 8px; background: #0b0805; border-radius: 4px; overflow: hidden; margin-top: 6px; } .bar i { display: block; height: 100%; background: var(--green); }
+  input[type=number], input[list], #gNote { background: #0f0b12; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { font-size: 13px; color: var(--dim); }
   input[type=search] { background: #0f0b12; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 14px; width: min(320px, 100%); }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   .dim { color: var(--dim); } .msg { padding: 40px 10px; text-align: center; color: var(--dim); }
@@ -63,7 +65,7 @@ async function api(path, body) {
   if (r.status === 401 || r.status === 403) throw new Error('admin');
   return r.json();
 }
-const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['guilds', '🏛 กิลด์'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
+const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['mail', '📬 จดหมาย'], ['guilds', '🏛 กิลด์'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
 let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0;
 $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-k="${k}">${n}</button>`).join('');
 $('tabs').onclick = e => { const k = e.target.dataset?.k; if (k) { tab = k; page = 0; show(); } };
@@ -94,11 +96,34 @@ async function show() {
       timer = setTimeout(show, 30000);
     } else if (tab === 'players') {
       const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}`);
-      main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ / รหัสบัญชี" value="${esc(q)}">
+      main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ หรือวางรหัสผู้เล่นที่เขาส่งมา" value="${esc(q)}">
         <button class="btn" id="srt">เรียง: ${sort === 'lv' ? 'เลเวล' : 'เข้าล่าสุด'}</button>
         <button class="btn" id="pv" ${page ? '' : 'disabled'}>◀</button><span class="dim">หน้า ${page + 1}</span><button class="btn" id="nx" ${d.rows.length < 50 ? 'disabled' : ''}>▶</button></div>${playerTable(d.rows)}`;
       const qi = $('q'); let t = 0; qi.oninput = () => { clearTimeout(t); t = setTimeout(() => { q = qi.value; page = 0; show(); }, 400); };
       $('srt').onclick = () => { sort = sort === 'lv' ? 'seen' : 'lv'; page = 0; show(); }; $('pv').onclick = () => { page--; show(); }; $('nx').onclick = () => { page++; show(); };
+    } else if (tab === 'mail') {
+      const d = await api('/admin/mailall'), gtext = g => { let o = {}; try { o = JSON.parse(g || '{}'); } catch {} const it = (o.items || []).map(i => ((window.ITEMS || []).find(x => x.id === i.id)?.name || i.id) + (i.qty > 1 ? ' x' + i.qty : '')); return [o.gold && '💰 ' + num(o.gold), o.wood && '🪵 ' + num(o.wood), o.stone && '🪨 ' + num(o.stone), o.food && '🍖 ' + num(o.food), ...it].filter(Boolean).join(' • ') || '-'; };
+      main.innerHTML = `<h2>📬 ส่งจดหมายหาผู้เล่นทุกคน</h2>
+        <p class="dim">ทุกคนจะได้ในกล่องจดหมายในเกม (คนที่ไม่ได้ออนไลน์จะได้ตอนเข้าเกมครั้งถัดไป) — ใช้แจกรางวัลกิจกรรม ชดเชยเซิร์ฟล่ม ฯลฯ</p>
+        <div class="row"><input id="mTitle" placeholder="หัวข้อ เช่น ชดเชยเซิร์ฟปิดปรับปรุง" style="width:min(380px,100%)" maxlength="40"></div>
+        <div class="row"><textarea id="mText" placeholder="ข้อความ" style="width:min(560px,100%);height:70px;background:#0f0b12;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px" maxlength="300"></textarea></div>
+        <div class="row"><label>💰 ทอง <input type="number" min="0" id="mGold" style="width:100px"></label><label>🪵 ไม้ <input type="number" min="0" id="mWood" style="width:80px"></label>
+          <label>🪨 หิน <input type="number" min="0" id="mStone" style="width:80px"></label><label>🍖 อาหาร <input type="number" min="0" id="mFood" style="width:80px"></label></div>
+        <div class="row"><input list="itemList2" id="mItem" placeholder="พิมพ์ชื่อไอเทม..." style="width:220px"><datalist id="itemList2">${(window.ITEMS || []).map(i => `<option value="${esc(i.name)} [${esc(i.id)}]">`).join('')}</datalist>
+          <label>จำนวน <input type="number" min="1" max="999" value="1" id="mQty" style="width:60px"></label><button class="btn" id="mAdd">➕ เพิ่มไอเทม</button></div>
+        <div id="mList" class="dim" style="font-size:13px;margin-bottom:6px">ยังไม่ได้เลือกไอเทม</div>
+        <div class="row"><label>หมดอายุใน <input type="number" min="0" max="90" value="7" id="mDays" style="width:60px"> วัน (0 = ไม่หมดอายุ)</label><button class="btn green" id="mSend">📬 ส่งหาทุกคน</button></div>
+        <h2>📜 จดหมายถึงทุกคนที่เคยส่ง</h2>
+        <div class="tw"><table><tr><th>เมื่อ</th><th>หัวข้อ</th><th>ของ</th><th>หมดอายุ</th></tr>${d.rows.map(r => `<tr><td class="dim">${when(r.at)}</td><td style="white-space:normal">${esc(r.title)}<div class="dim" style="font-size:12px">${esc(r.text)}</div></td><td style="white-space:normal">${esc(gtext(r.gift))}</td><td>${r.until ? (r.until > Date.now() ? new Date(r.until).toLocaleDateString('th-TH') : 'หมดแล้ว') : '-'}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ยังไม่เคยส่ง</td></tr>'}</table></div>`;
+      const pick = [], draw = () => { $('mList').textContent = pick.length ? 'จะส่ง: ' + pick.map(p => `${p.name} x${p.qty}`).join(', ') : 'ยังไม่ได้เลือกไอเทม'; };
+      $('mAdd').onclick = () => { const v = $('mItem').value, m = v.match(/\[([^\]]+)\]$/), it = (window.ITEMS || []).find(i => i.id === (m ? m[1] : v) || i.name === v); if (!it) { alert('ไม่พบไอเทมนี้ — เลือกจากรายการที่ขึ้นมา'); return; } pick.push({ id: it.id, name: it.name, qty: Math.max(1, Math.min(999, Number($('mQty').value) || 1)) }); $('mItem').value = ''; draw(); };
+      $('mSend').onclick = async () => {
+        const b = { title: $('mTitle').value.trim(), text: $('mText').value.trim(), gold: Number($('mGold').value) || 0, wood: Number($('mWood').value) || 0, stone: Number($('mStone').value) || 0, food: Number($('mFood').value) || 0, items: pick.map(p => ({ id: p.id, qty: p.qty })), days: Number($('mDays').value) || 0 };
+        if (!b.title) { alert('ใส่หัวข้อก่อน'); return; }
+        const sum = [b.gold && '💰 ' + num(b.gold), b.wood && '🪵 ' + num(b.wood), b.stone && '🪨 ' + num(b.stone), b.food && '🍖 ' + num(b.food), ...pick.map(p => `${p.name} x${p.qty}`)].filter(Boolean);
+        if (!confirm(`ส่งหาผู้เล่น "ทุกคน":\n${b.title}\n${sum.join('\n') || '(จดหมายเปล่า ไม่มีของ)'}\n\nส่งแล้วยกเลิกไม่ได้ — ยืนยัน?`)) return;
+        const r = await api('/admin/mailall', b); if (r.ok) { alert('✅ ส่งแล้ว\n' + r.text); show(); } else alert('ส่งไม่สำเร็จ: ' + r.error);
+      };
     } else if (tab === 'guilds') {
       const d = await api('/admin/guilds');
       main.innerHTML = `<div class="tw"><table><tr><th>กิลด์</th><th>หัวหน้า</th><th>สมาชิก</th><th>หอกิลด์</th><th>คะแนนสัปดาห์</th><th>โล่</th><th>สร้างเมื่อ</th></tr>${d.rows.map(g => `<tr><td>${esc(g.name)}</td><td>${esc(g.leader_name || '-')}</td><td>${g.members}/10</td><td>Lv${g.hall}</td><td>${num(g.score)}</td><td>${g.shield > Date.now() ? '🛡 อีก ' + Math.ceil((g.shield - Date.now()) / 3600000) + ' ชม.' : '-'}</td><td class="dim">${when(g.at)}</td></tr>`).join('') || '<tr><td colspan="7" class="dim">ยังไม่มีกิลด์</td></tr>'}</table></div>`;
@@ -131,6 +156,13 @@ async function player(id) {
     <h2>⚙ จัดการ</h2><div class="row">
       ${a.banned ? `<button class="btn green" data-a="unban">✅ ปลดแบน</button>` : `<button class="btn red" data-a="ban">⛔ แบน</button>`}
       ${muted ? `<button class="btn green" data-a="unmute">🔊 เปิดแชต</button>` : `<button class="btn" data-a="mute" data-h="24">🔇 ปิดแชต 24 ชม.</button><button class="btn" data-a="mute" data-h="168">🔇 ปิดแชต 7 วัน</button>`}</div>
+    <h2>🎁 ส่งของให้ผู้เล่นนี้ (เข้ากล่องจดหมายในเกม)</h2>
+    <div class="row"><label>💰 ทอง <input type="number" min="0" id="gGold" style="width:100px"></label><label>🪵 ไม้ <input type="number" min="0" id="gWood" style="width:80px"></label>
+      <label>🪨 หิน <input type="number" min="0" id="gStone" style="width:80px"></label><label>🍖 อาหาร <input type="number" min="0" id="gFood" style="width:80px"></label></div>
+    <div class="row"><input list="itemList" id="gItem" placeholder="พิมพ์ชื่อไอเทม..." style="width:220px"><datalist id="itemList">${(window.ITEMS || []).map(i => `<option value="${esc(i.name)} [${esc(i.id)}]">`).join('')}</datalist>
+      <label>จำนวน <input type="number" min="1" max="999" value="1" id="gQty" style="width:60px"></label><button class="btn" id="gAdd">➕ เพิ่ม</button></div>
+    <div id="gList" class="dim" style="font-size:13px;margin-bottom:6px">ยังไม่ได้เลือกไอเทม</div>
+    <div class="row"><input id="gNote" placeholder="ข้อความถึงผู้เล่น (ไม่ใส่ก็ได้) เช่น ชดเชยบั๊กอาคารหาย" style="width:min(420px,100%)"><button class="btn green" id="gSend">🎁 ส่งของ</button></div>
     <h2>🎒 กระเป๋า (${(s.inventory || []).length})</h2><div style="font-size:13px">${esc(inv) || '<span class="dim">ว่าง</span>'}</div>
     <h2>🚩 ถูกรายงาน (${d.reports.length})</h2>${d.reports.map(r => `<div style="font-size:13px"><span class="dim">${when(r.at)} • ${esc(r.by_name)}:</span> ${esc(r.text)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
     <h2>🛡 กันโกง (${d.flags.length})</h2>${d.flags.map(f => `<div style="font-size:13px"><span class="dim">${when(f.at)}</span> ${esc(f.what)} — ${esc(f.detail)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
@@ -142,8 +174,20 @@ async function player(id) {
     const r = await api('/admin/act', { id: a.id, what, hours: Number(b.dataset.h) || 24 });
     if (r.ok) { player(id); if (tab !== 'overview') show(); } else alert('ทำไม่สำเร็จ: ' + (r.error || '?'));
   });
+  // the gift form: resources + a list of items, sent in one go after a confirmation
+  const pick = []; const drawPick = () => { $('gList').textContent = pick.length ? 'จะส่ง: ' + pick.map(p => `${p.name} x${p.qty}`).join(', ') : 'ยังไม่ได้เลือกไอเทม'; };
+  $('gAdd').onclick = () => { const v = $('gItem').value, m = v.match(/\[([^\]]+)\]$/), it = (window.ITEMS || []).find(i => i.id === (m ? m[1] : v) || i.name === v); if (!it) { alert('ไม่พบไอเทมนี้ — เลือกจากรายการที่ขึ้นมา'); return; } pick.push({ id: it.id, name: it.name, qty: Math.max(1, Math.min(999, Number($('gQty').value) || 1)) }); $('gItem').value = ''; drawPick(); };
+  $('gSend').onclick = async () => {
+    const g = { id: a.id, gold: Number($('gGold').value) || 0, wood: Number($('gWood').value) || 0, stone: Number($('gStone').value) || 0, food: Number($('gFood').value) || 0, items: pick.map(p => ({ id: p.id, qty: p.qty })), note: $('gNote').value.trim() };
+    const sum = [g.gold && `💰 ${num(g.gold)}`, g.wood && `🪵 ${num(g.wood)}`, g.stone && `🪨 ${num(g.stone)}`, g.food && `🍖 ${num(g.food)}`, ...pick.map(p => `${p.name} x${p.qty}`)].filter(Boolean);
+    if (!sum.length) { alert('ยังไม่ได้ใส่ของที่จะส่ง'); return; }
+    if (!confirm(`ส่งเข้ากล่องจดหมายของ ${a.name || a.id}:\n${sum.join('\n')}\n\nยืนยัน?`)) return;
+    const r = await api('/admin/give', g);
+    if (r.ok) { alert('✅ ส่งแล้ว\n' + r.text); player(id); } else alert('ส่งไม่สำเร็จ: ' + (r.error === 'nosave' || r.error === 'target' ? 'ผู้เล่นนี้ยังไม่มีตัวละครบนเซิร์ฟ' : r.error === 'empty' ? 'ไม่มีอะไรส่งได้ (กระเป๋าเต็ม?)' : r.error));
+  };
   if (!$('dlg').open) $('dlg').showModal();
 }
+api('/admin/items').then(d => { window.ITEMS = d.items; }).catch(() => {});
 show();
 </script>
 </body>

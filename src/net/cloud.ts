@@ -134,5 +134,7 @@ export async function chooseName(name: string): Promise<'ok' | 'bad' | 'taken' |
   } catch { return 'fail'; }
 }
 
+/** this player's account code (shown in the profile so a player can send it to the admin — not a secret; the token is) */
+export const accountId = () => (ok() ? acc()?.id ?? null : null);
 /** this device's session token (for the map room WebSocket), or null offline */
 export const accountToken = () => (ok() ? acc()?.token ?? null : null);

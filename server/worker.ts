@@ -13,6 +13,7 @@ import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallL
 import { dayKey } from '../src/systems/daily';
 import { grantCbt } from '../src/systems/cbtGift';
 import { ensureHomeVillage } from '../src/systems/settlement';
+import { addMail, takeMailAll, cleanGift, giftText, type Gift } from '../src/systems/mail';
 import { GUILD_MAX } from '../src/data/guild';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
@@ -237,6 +238,25 @@ export default {
         if (path === '/admin/market') return json(req, { rows: await all("SELECT id, seller_name, item, type, rar, price, until, status, buyer, at FROM market ORDER BY at DESC LIMIT 200") });
         if (path === '/admin/flags') return json(req, { rows: await all('SELECT f.at, f.what, f.detail, f.id, a.name FROM flags f LEFT JOIN accounts a ON a.id = f.id ORDER BY f.at DESC LIMIT 200') });
         if (path === '/admin/reports') return json(req, { rows: await all('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 200') });
+        if (path === '/admin/items') return json(req, { items: Object.values(ITEMS).map(i => ({ id: i.id, name: i.name, type: i.type, rarity: i.rarity, stack: !!i.stack })) });
+        if (path === '/admin/give' && req.method === 'POST') {   // send gold / wood / stone / food / items to a player (bug compensation) — no diamonds (real money only)
+          const b = await req.json().catch(() => ({})) as { id?: string; gold?: number; wood?: number; stone?: number; food?: number; items?: { id: string; qty: number }[]; note?: string };
+          const id = String(b.id ?? ''); if (!id || !(await one('SELECT 1 AS x FROM saves WHERE id = ?', id))) return json(req, { error: 'target' }, 400);
+          const r = await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/gift?id=' + id, { method: 'POST', body: JSON.stringify(b) }));
+          const out = await r.json() as { ok?: boolean; text?: string; error?: string };
+          if (out.ok) await flag(env, id, 'admin:give', `${out.text} — by ${me.id}`);
+          return json(req, out, out.ok ? 200 : 400);
+        }
+        if (path === '/admin/mailall') {   // letters to everyone: the list, or a new one (POST) — each player gets it on their next visit
+          if (req.method === 'POST') {
+            const b = await req.json().catch(() => ({})) as Gift & { title?: string; text?: string; days?: number };
+            const title = String(b.title ?? '').trim().slice(0, 40); if (!title) return json(req, { error: 'title' }, 400);
+            const days = Math.max(0, Math.min(90, Number(b.days) || 0)), gift = cleanGift(b);
+            await DB.prepare('INSERT INTO mail_all (at, title, text, gift, until, by_id) VALUES (?, ?, ?, ?, ?, ?)').bind(now, title, String(b.text ?? '').slice(0, 300), JSON.stringify(gift), days ? now + days * 86400000 : 0, me.id).run();
+            return json(req, { ok: true, text: `${title}${giftText(gift) ? ' — ' + giftText(gift) : ''}` });
+          }
+          return json(req, { rows: await all('SELECT id, at, title, text, gift, until FROM mail_all ORDER BY id DESC LIMIT 100') });
+        }
         if (path === '/admin/act' && req.method === 'POST') {   // ban / unban, mute / unmute (the admin's own account is never touched)
           const b = await req.json().catch(() => ({})) as { id?: string; what?: string; hours?: number };
           const id = String(b.id ?? ''); if (!id || (env.ADMINS ?? '').split(',').includes(id)) return json(req, { error: 'target' }, 400);
@@ -698,6 +718,7 @@ export class Player {
       // the director's account: everything in the game, given once by the server (src/systems/adminKit.ts)
       if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
       if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();   // the home village's NPC buildings live here too (they used to exist on the device only)
+      if (this.st && await this.mailAll()) await this.later();   // letters to everyone from the back office, not had yet
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
@@ -712,6 +733,16 @@ export class Player {
       const v = JSON.parse(await req.text()) as St | null;
       if (this.st) { if (v) this.st.guild = v; else { delete this.st.guild; delete this.st.guildId; } this.dirty = true; this.send({ t: 'note', own: { guild: v }, text: '' }); }
       return new Response('{}');
+    }
+    if (u.pathname === '/gift') {   // (the back office) the admin sends resources / items — written at once, the game is told
+      if (!this.st) return new Response(JSON.stringify({ error: 'nosave' }), { status: 400 });
+      const g = JSON.parse(await req.text()) as { gold?: number; wood?: number; stone?: number; food?: number; items?: { id: string; qty: number }[]; note?: string };
+      const gift = cleanGift(g as Gift), got = giftText(gift); if (!got) return new Response(JSON.stringify({ error: 'empty' }), { status: 400 });
+      const b = this.snap();
+      addMail(this.st as unknown as GameState, { from: 'แอดมิน', title: String(g.note || '').trim() ? '🎁 ของจากแอดมิน' : '🎁 ของขวัญจากแอดมิน', text: String(g.note ?? '').slice(0, 300), ...gift });   // (into the mailbox: the player claims it)
+      this.dirty = true; await this.persist();
+      this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' });
+      return new Response(JSON.stringify({ ok: true, text: `ส่งเข้ากล่องจดหมายแล้ว: ${got}` }));
     }
     if (u.pathname === '/claim') { const c = await this.claim(); if (c.text) this.send({ t: 'note', own: c.own, text: c.text }); return new Response('{}'); }
     if (u.pathname === '/gid') return new Response(JSON.stringify({ gid: (this.st as { guildId?: string } | null)?.guildId ?? null, lv: Number(this.st?.level) || 1 }));
@@ -738,6 +769,15 @@ export class Player {
     }
     return new Response('{}', { status: 404 });
   }
+  /** letters to everyone (D1 mail_all) this hero has not had yet go into the mailbox; true = some came */
+  private async mailAll() {
+    const st = this.st as unknown as GameState & { mailAll?: number }, since = st.mailAll ?? 0;
+    try {
+      const rows = (await this.env.DB.prepare('SELECT id, at, title, text, gift, until FROM mail_all WHERE id > ? ORDER BY id LIMIT 20').bind(since).all<{ id: number; at: number; title: string; text: string; gift: string; until: number }>()).results;
+      if (!rows.length) return false;
+      return takeMailAll(st, rows) > 0 || st.mailAll !== since;
+    } catch { return false; }
+  }
   /** one monster's reward for this player (the game gets a 'pay' note with the loot) */
   private payOne(p: { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number; wb?: boolean; lv?: number; killer?: boolean }) {
     if (p.wb) {
@@ -754,7 +794,7 @@ export class Player {
     if (typeof data !== 'string' || data.length > 20000) return;
     const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
-    if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); return; }   // (the game: still here — counts the minutes played for the money cap)
+    if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (Date.now() - this.helloT > 300000) this.hello('/hello');   // (still playing: keep counting me online)
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
