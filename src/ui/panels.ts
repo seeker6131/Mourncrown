@@ -14,7 +14,7 @@ import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/settlement';
 import { buffClash } from '../systems/buffs';
-import { lootOpt, setLootOpt } from '../systems/lootOpt';
+import { lootOpt, toggleLoot, LOOT_RARS, LOOT_MAX } from '../systems/lootOpt';
 import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES, dayKey } from '../systems/daily';
@@ -632,7 +632,7 @@ export class Panels implements GuildHost {
   // ---------------- CHANGING ROOM ----------------
   // ---------------- 👑 VIP loot settings (systems/lootOpt.ts) ----------------
   buildLootOpt(c: Phaser.GameObjects.Container) {
-    const s = S(), ui = this.ui, k = this.k, vip = vipActive(s), o = lootOpt(s);
+    const s = S(), ui = this.ui, k = this.k, vip = vipActive(s);
     const W = Math.min(560, ui.VW - 16), H = 300;
     const { x, y, g } = this.window(c, W, H, '👑 ตั้งค่าเก็บของ (VIP)');
     const top = y + 34, names = RARITY_NAMES, col = (r: number) => '#' + RARITY_COLORS[r].toString(16).padStart(6, '0');
@@ -641,22 +641,24 @@ export class Panels implements GuildHost {
       c.add(k.button(x + W / 2 - 70, top + 120, 140, 26, '👑 ดู VIP', () => this.open('premium'), { size: 10, color: 0x4a2a6a }));
       return;
     }
-    const row = (yy: number, title: string, note: string, opts: [number, string][], cur: number, pick: (v: number) => void) => {
-      c.add(k.text(x + 16, yy, title, 10.5, '#ffd84a')); c.add(k.text(x + 16, yy + 16, note, 7.5, '#c8b898', { wordWrap: { width: W - 32 } }));
-      const bw = (W - 32 - (opts.length - 1) * 6) / opts.length;
-      opts.forEach(([v, label], i) => {
-        const on = v === cur, bx = x + 16 + i * (bw + 6), by = yy + 40;
+    // tick boxes: up to 3 rarities each (Legend / SL are always picked up and never dismantled)
+    const row = (yy: number, which: 'keep' | 'dis', title: string, note: string) => {
+      const cur = lootOpt(s)[which];
+      c.add(k.text(x + 16, yy, `${title}  (${cur.length}/${LOOT_MAX})`, 10.5, '#ffd84a')); c.add(k.text(x + 16, yy + 16, note, 7.5, '#c8b898', { wordWrap: { width: W - 32 } }));
+      const bw = (W - 32 - (LOOT_RARS.length - 1) * 6) / LOOT_RARS.length;
+      LOOT_RARS.forEach((r, i) => {
+        const on = cur.includes(r), bx = x + 16 + i * (bw + 6), by = yy + 40;
         g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(bx, by, bw, 34, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(bx, by, bw, 34, 4);
-        c.add(k.text(bx + bw / 2, by + 10, label + (on ? ' ✔' : ''), 8.5, v > 0 && v <= 5 ? col(v) : '#f3e6c4').setOrigin(0.5, 0));
-        const z = ui.add.zone(bx, by, bw, 34).setOrigin(0).setInteractive(); z.on('pointerup', () => { sfx.click(); pick(v); saveGame(s); this.rebuild(); }); c.add(z);
+        c.add(k.text(bx + bw / 2, by + 10, `${on ? '☑' : '☐'} ${names[r]}`, 9, r ? col(r) : '#f3e6c4').setOrigin(0.5, 0));
+        const z = ui.add.zone(bx, by, bw, 34).setOrigin(0).setInteractive();
+        z.on('pointerup', () => { if (!toggleLoot(s, which, r)) { sfx.error(); bus.emit(EV.TOAST, `เลือกได้ไม่เกิน ${LOOT_MAX} อย่าง — เอาอันเดิมออกก่อน`, '#ff8a8a'); return; } sfx.click(); saveGame(s); this.rebuild(); });
+        c.add(z);
       });
     };
-    row(top, '⛏ เก็บอุปกรณ์ตั้งแต่ระดับ', 'อุปกรณ์ที่ต่ำกว่านี้จะไม่ถูกเก็บ (ทิ้งไว้บนพื้น) • วัตถุดิบ ยา และของอื่นเก็บทุกอย่างเสมอ',
-      [[0, 'ทุกอย่าง'], [1, names[1] + '+'], [2, names[2] + '+'], [3, names[3] + '+'], [4, names[4] + '+'], [5, names[5]]], o.keep, v => setLootOpt(s, { keep: v }));
-    row(top + 92, '⚙ ย่อยอัตโนมัติเมื่อเก็บ', 'อุปกรณ์ระดับนี้หรือต่ำกว่า → กลายเป็นเศษมานาทันที (ไม่กินช่องกระเป๋า) • ไม่ย่อย Legend / SL และชุดเซ็ต',
-      [[-1, 'ปิด'], [0, '≤ ' + names[0]], [1, '≤ ' + names[1]], [2, '≤ ' + names[2]], [3, '≤ ' + names[3]]], o.dis, v => setLootOpt(s, { dis: v }));
-    const on = lootOpt(s);
-    c.add(k.text(x + W / 2, top + 196, on.dis >= 0 && on.dis >= on.keep ? `ตอนนี้: เก็บ ${on.keep ? names[on.keep] + ' ขึ้นไป' : 'ทุกระดับ'} • ย่อยถึง ${names[on.dis]} — ⚠ อุปกรณ์ ${names[on.keep]}–${names[on.dis]} จะถูกย่อยทันทีที่เก็บ` : `ตอนนี้: เก็บ ${on.keep ? names[on.keep] + ' ขึ้นไป' : 'ทุกระดับ'} • ${on.dis >= 0 ? 'ย่อย ≤ ' + names[on.dis] : 'ไม่ย่อยอัตโนมัติ'}`, 8, '#9ad8ff', { align: 'center', wordWrap: { width: W - 32 } }).setOrigin(0.5, 0));
+    row(top, 'keep', '⛏ เก็บอุปกรณ์ระดับ (ติ๊กได้ไม่เกิน 3)', 'ไม่ติ๊กเลย = เก็บทุกระดับ • ระดับที่ไม่ได้ติ๊กจะทิ้งไว้บนพื้น • Legend / SL เก็บเสมอ • วัตถุดิบ ยา ของอื่นเก็บเสมอ');
+    row(top + 92, 'dis', '⚙ ย่อยอัตโนมัติเมื่อเก็บ (ติ๊กได้ไม่เกิน 3)', 'ระดับที่ติ๊ก → เก็บแล้วกลายเป็นเศษมานาทันที (ไม่กินช่องกระเป๋า) • ไม่ย่อย Legend / SL และชุดเซ็ต');
+    const o = lootOpt(s), nm = (l: number[]) => l.map(r => names[r]).join(', ');
+    c.add(k.text(x + W / 2, top + 196, `ตอนนี้: เก็บ ${o.keep.length ? nm(o.keep) + ' + Legend/SL' : 'ทุกระดับ'} • ${o.dis.length ? 'ย่อย ' + nm(o.dis) : 'ไม่ย่อยอัตโนมัติ'}`, 8, '#9ad8ff', { align: 'center', wordWrap: { width: W - 32 } }).setOrigin(0.5, 0));
   }
   buildWardrobe(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
