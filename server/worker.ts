@@ -12,7 +12,7 @@ import { grantAdminKit } from '../src/systems/adminKit';
 import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallLv, type RaidHit, type Rival } from '../src/systems/guild';
 import { dayKey } from '../src/systems/daily';
 import { grantCbt } from '../src/systems/cbtGift';
-import { ensureHomeVillage } from '../src/systems/settlement';
+import { ensureHomeVillage, homeFix } from '../src/systems/settlement';
 import { addMail, takeMailAll, cleanGift, giftText, mailOf, type Gift } from '../src/systems/mail';
 import { CBT_ACTIVE, cbtGot } from '../src/systems/cbtGift';
 import { GUILD_MAX } from '../src/data/guild';
@@ -724,7 +724,8 @@ export class Player {
       this.state.acceptWebSocket(server, [id]); server.serializeAttachment({ id });
       // the director's account: everything in the game, given once by the server (src/systems/adminKit.ts)
       if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
-      if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();   // the home village's NPC buildings live here too (they used to exist on the device only)
+      if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();
+      if (this.st) { const hf = homeFix(this.st as unknown as GameState); if (hf) await this.later(); if (hf === 2) addMail(this.st as unknown as GameState, { id: 'homefix', from: 'ทีมงาน Mourncrown', title: '🏠 ขออภัยเรื่องบ้านหาย', text: 'บ้านที่สร้างไว้หายหลังอัปเดตเพราะบั๊กของเรา — ทีมงานสร้างบ้าน Lv1 คืนให้แล้ว (เควสต่อจากนี้ทำต่อได้เลย) ขออภัยในความไม่สะดวกครับ 🙏' }); }   // (the lost-house bug: src/systems/settlement.ts homeFix)   // the home village's NPC buildings live here too (they used to exist on the device only)
       if (this.st && await this.mailAll()) await this.later();   // letters to everyone from the back office, not had yet
       if (this.cbtLetter()) await this.later();
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)

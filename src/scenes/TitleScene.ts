@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { lang, setLang } from '../core/i18n';
 import { showWait } from '../core/wait';
-import { toggleFullscreen, isFullscreen } from '../core/fullscreen';
 import { UIKit } from '../ui/kit';
 import { hasSave, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
@@ -61,7 +60,7 @@ export class TitleScene extends Phaser.Scene {
     const start = (fresh: boolean, rs?: Resume) => {
       starting = true;
       unlockAudio();
-      if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen();   // full screen on start (Android / iPad / desktop)
+      // (no automatic full screen — director: players in a window got thrown into it; the ⛶ button on the top bar does it)
       const st = fresh ? startNewGame() : (loadGame() ?? startNewGame());
       runtime.state = st;
       audioState.sfx = st.sfx; setMusic(st.music); setVolume(uiOpt(st).vol);
@@ -104,8 +103,8 @@ export class TitleScene extends Phaser.Scene {
     const rs = takeResume();
     if (rs && hasSave()) {
       start(false, rs);
-      // full screen and sound need a tap after a reload (browser rule): the first tap brings both back
-      const back = () => { unlockAudio(); if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen(); };
+      // sound needs a tap after a reload (browser rule): the first tap brings it back
+      const back = () => { unlockAudio(); };
       window.addEventListener('pointerdown', back, { once: true });
     }
   }

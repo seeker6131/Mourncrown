@@ -172,3 +172,22 @@ describe('the home village stands on the server too (its NPC buildings used to e
     expect(ensureHomeVillage(s)).toBe(false);   // (nothing more the second time)
   });
 });
+
+describe('the lost-house bug: heroes stuck at "build your home" get the home back, once', () => {
+  it('Lv6+, no home, quest chain at the home step: the home Lv1 is given once; others are only marked', async () => {
+    const { homeFix, ensureHomeVillage, VILLAGE_HOME_PLOT, HOME_FIX_UNTIL } = await import('../src/systems/settlement');
+    const { tdQuest } = await import('../src/systems/tdQuests');
+    const { startNewGame } = await import('../src/core/save');
+    const now = HOME_FIX_UNTIL - 86400000;
+    const s = startNewGame(); s.buildings = []; ensureHomeVillage(s); s.level = 17;
+    (s as unknown as { tdq: { i: number; base: number } }).tdq = { i: 2, base: 0 };
+    expect(homeFix(s, now)).toBe(2);
+    expect(s.buildings.find(b => b.type === 'home')).toMatchObject({ plot: VILLAGE_HOME_PLOT, level: 1 });
+    expect(tdQuest(s)?.done).toBe(true);   // (the "build your home" quest can be claimed at once)
+    expect(homeFix(s, now)).toBe(0);       // (once)
+    const low = startNewGame(); low.level = 3;
+    expect(homeFix(low, now)).toBe(1); expect(low.buildings.some(b => b.type === 'home')).toBe(false);
+    const late = startNewGame(); late.level = 20;
+    expect(homeFix(late, HOME_FIX_UNTIL)).toBe(0);   // (only for a few days)
+  });
+});

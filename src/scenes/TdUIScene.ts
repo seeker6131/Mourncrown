@@ -303,7 +303,12 @@ export class TdUIScene extends Phaser.Scene {
       g.fillStyle(0xc0392b, 1).fillCircle(12, 11, 3);
       g.generateTexture('ui_mail', 24, 19); g.destroy();
     }
-    const menu: [string, string, () => void][] = [['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_diamond', 'ร้าน💎', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    if (!this.textures.exists('ui_fs')) {   // the full-screen button: four corners (drawn here)
+      const g = this.add.graphics(); g.lineStyle(3, 0xf3e6c4, 1);
+      for (const [x, y, dx, dy] of [[2, 2, 1, 1], [20, 2, -1, 1], [2, 20, 1, -1], [20, 20, -1, -1]]) g.lineBetween(x, y, x + 7 * dx, y).lineBetween(x, y, x, y + 7 * dy);
+      g.generateTexture('ui_fs', 22, 22); g.destroy();
+    }
+    const menu: [string, string, () => void][] = [['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_diamond', 'ร้าน💎', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
       const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
       const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
