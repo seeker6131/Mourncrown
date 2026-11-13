@@ -5,6 +5,7 @@ import { invSize } from '../core/state';
 import { baseTier, isGear } from './loot';
 import { itemDef, MAX_UPGRADE, upgradeChance, upgradeCost, type EquipSlot } from '../data/items';
 import { derive } from './stats';
+import { buffCap, buffFull, sameBuff, stackUntil, type Incoming } from './buffs';
 
 export function countItem(s: GameState, id: string): number {
   return s.inventory.filter(i => i.id === id).reduce((a, b) => a + b.qty, 0);
@@ -71,20 +72,25 @@ export function clampVitals(s: GameState) {
   s.mp = Math.min(s.mp, d.maxMp);
 }
 
-export function useItem(s: GameState, uid: number, now = Date.now()): { heal: number; mana: number; food?: number; buff?: string; recall?: boolean } | null {
+export function useItem(s: GameState, uid: number, now = Date.now()): { heal: number; mana: number; food?: number; buff?: string; recall?: boolean; left?: number; stacked?: boolean; full?: boolean } | null {
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return null;
   const d = itemDef(it.id);
   if (d.type !== 'consumable') return null;
+  // ⏳ a buff: the same one adds its time (up to 1 h, VIP 3 h); already full → nothing is used up
+  const inc: Incoming | null = d.buff ? { slot: 'buff', stat: d.buff.stat, pct: d.buff.pct } : d.elixir ? { slot: 'elixir', name: d.name } : null;
+  if (inc && !d.heal && !d.mana && buffFull(s, inc, now)) return { heal: 0, mana: 0, buff: d.name, full: true };
+  const same = !!inc && sameBuff(s, inc, now), cap = buffCap(s, now);
   const der = derive(s);
   const heal = Math.min(d.heal ?? 0, der.maxHp - s.hp);
   const mana = Math.min(d.mana ?? 0, der.maxMp - s.mp);
   s.hp += heal; s.mp += mana;
   if (d.food) s.res.food += d.food;
-  if (d.buff) s.buff = { stat: d.buff.stat, pct: d.buff.pct, until: now + d.buff.mins * 60000 };
-  if (d.elixir) { const { mins, ...fx } = d.elixir; (s as GameState & { elixir?: unknown }).elixir = { ...fx, until: now + mins * 60000, name: d.name }; }
+  let left: number | undefined;
+  if (d.buff) { const until = stackUntil(s.buff?.until, same, d.buff.mins * 60000, cap, now); s.buff = { stat: d.buff.stat, pct: d.buff.pct, until }; left = until - now; }
+  if (d.elixir) { const { mins, ...fx } = d.elixir, e = s as GameState & { elixir?: { until: number } }, until = stackUntil(e.elixir?.until, same, mins * 60000, cap, now); e.elixir = { ...fx, until, name: d.name } as never; left = until - now; }
   removeUid(s, uid, 1);
-  return { heal, mana, food: d.food, buff: d.buff || d.elixir ? d.name : undefined, recall: d.recall };
+  return { heal, mana, food: d.food, buff: d.buff || d.elixir ? d.name : undefined, recall: d.recall, ...(left !== undefined ? { left, stacked: same } : {}) };
 }
 
 export function equippedLook(s: GameState, slot: EquipSlot): number {

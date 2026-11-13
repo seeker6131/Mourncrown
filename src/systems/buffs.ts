@@ -24,9 +24,34 @@ export function activeBuffs(s: GameState, now = Date.now()): BuffChip[] {
   if (b.heroHungry) out.push({ key: 'hungry', left: -1, text: '😫 หิว ATK−20% EXP−30%' });
   return out;
 }
-/** the buff a new one would replace (slot 'buff' = food / tonic, 'elixir' = alchemy), as text — null when the slot is free
- *  or nearly over (under a minute: nothing worth asking about) */
-export function buffClash(s: GameState, slot: 'buff' | 'elixir', now = Date.now()): string | null {
-  const c = activeBuffs(s, now).find(q => q.key === slot);
+// ⏳ the SAME buff taken again adds its time (players asked; director: everyone up to 1 hour, VIP up to 3 hours) — a different
+// buff in the slot still replaces it (one slot: no stacking of effects, director: "แยกช่อง กินพร้อม ขอไม่ทำ")
+export const BUFF_CAP_MIN = 60, BUFF_CAP_VIP_MIN = 180;
+/** the longest a buff can be stacked to, in ms (VIP: 3 hours) */
+export const buffCap = (s: GameState, now = Date.now()) => ((((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > now) ? BUFF_CAP_VIP_MIN : BUFF_CAP_MIN) * 60000;
+/** what is being taken: a food / tonic buff (stat, pct, meal) or an alchemy elixir (its name) */
+export type Incoming = { slot: 'buff'; stat: string; pct: number; meal?: boolean } | { slot: 'elixir'; name: string };
+/** the buff now in that slot is the same one (it would add time instead of replacing) */
+export function sameBuff(s: GameState, inc: Incoming, now = Date.now()) {
+  const b = s as BS;
+  if (inc.slot === 'buff') return !!b.buff && b.buff.until > now && b.buff.stat === inc.stat && b.buff.pct === inc.pct && !!b.buff.meal === !!inc.meal;
+  return !!b.elixir && b.elixir.until > now && b.elixir.name === inc.name;
+}
+/** the end time after taking a dose of `addMs`: the same buff adds on (up to the cap), anything else starts now */
+export function stackUntil(curUntil: number | undefined, same: boolean, addMs: number, cap: number, now = Date.now()) {
+  const base = same && curUntil && curUntil > now ? curUntil : now;
+  return Math.min(base + addMs, now + Math.max(cap, addMs));
+}
+/** the same buff is already (nearly) at the cap: taking more would waste it */
+export function buffFull(s: GameState, inc: Incoming, now = Date.now()) {
+  if (!sameBuff(s, inc, now)) return false;
+  const b = s as BS, until = inc.slot === 'buff' ? b.buff!.until : b.elixir!.until;
+  return until - now >= buffCap(s, now) - 60000;
+}
+/** the buff a new one would REPLACE (a different one in the same slot), as text — null when the slot is free, nearly over
+ *  (under a minute) or holds the same buff (that one just adds time) */
+export function buffClash(s: GameState, inc: Incoming, now = Date.now()): string | null {
+  if (sameBuff(s, inc, now)) return null;
+  const c = activeBuffs(s, now).find(q => q.key === inc.slot);
   return c && c.left >= 60000 ? `${c.text} (เหลือ ${clock(c.left)})` : null;
 }

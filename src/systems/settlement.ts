@@ -3,6 +3,7 @@ import type { GameState } from '../core/state';
 import { BUILDINGS, NPC_BUILDINGS, levelCost, ratePerMin, storageCap, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type ResKey, type MealId } from '../data/buildings';
 import { addItem, countItem, removeItem } from './inventory';
 import { villageUpkeep } from './supplies';
+import { buffCap, buffFull, sameBuff, stackUntil } from './buffs';
 import { rollRarity, makeGear, pickBase } from './loot';
 import { itemDef } from '../data/items';
 
@@ -129,13 +130,15 @@ export function craft(s: GameState, slot: 'weapon' | 'armor' | 'accessory', rnd:
 
 export function levelOf(s: GameState, type: BuildingId) { const b = s.buildings.find(q => q.type === type); return b ? (underConstruction(b) ? b.level - 1 : b.level) : 0; }
 
-export function cook(s: GameState, meal: MealId, now = Date.now()): 'ok' | 'no_kitchen' | 'no_food' | 'locked' {
+export function cook(s: GameState, meal: MealId, now = Date.now()): 'ok' | 'no_kitchen' | 'no_food' | 'locked' | 'full' {
   const lv = levelOf(s, 'kitchen');
   if (!lv) return 'no_kitchen';
   if (lv < MEALS[meal].minLv) return 'locked';
   const p = mealPower(lv);
+  const inc = { slot: 'buff' as const, stat: MEALS[meal].stat, pct: p.pct, meal: true };
+  if (buffFull(s, inc, now)) return 'full';   // (⏳ the same meal adds its time, up to 1 h / VIP 3 h)
   if (s.res.food < p.food) return 'no_food';
   s.res.food -= p.food;
-  s.buff = { stat: MEALS[meal].stat, pct: p.pct, until: now + p.mins * 60000, meal: true };   // a meal also halves what the hero eats on the maps (supplies.ts)
+  s.buff = { stat: MEALS[meal].stat, pct: p.pct, until: stackUntil(s.buff?.until, sameBuff(s, inc, now), p.mins * 60000, buffCap(s, now), now), meal: true };   // a meal also halves what the hero eats on the maps (supplies.ts)
   return 'ok';
 }

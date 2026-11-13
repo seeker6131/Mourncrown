@@ -30,6 +30,7 @@ export const VIP_PERKS = [
   'ออร่าพลังรอบตัว: 3 วัน สีฟ้า • 7 วัน สีม่วง • 15 วัน สีทอง',
   'เดินเร็วขึ้น 15% (ขี่ม้า/มังกรยังเร็วกว่า)',
   'ลงขายของในตลาดกลางได้ทุกที่ ไม่ต้องกลับหมู่บ้าน',
+  'สะสมเวลาบัพยา/อาหารชนิดเดียวกันได้ถึง 3 ชม. (ปกติ 1 ชม.)',
 ];
 /** things diamonds buy — comfort and looks only */
 export interface DiamondItem { id: string; name: string; desc: string; price: number; soon?: boolean }
