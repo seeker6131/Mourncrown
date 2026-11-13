@@ -31,6 +31,7 @@ import {
 import { RAID_SECS, REST_EXP, GUILD_BLD, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
 import { gainExp } from '../systems/stats';
 import { upSkill, advanceClass, lastRefund, bonusSkillPt } from '../systems/stats';
+import { adminForm } from '../systems/adminKit';
 import { listItem, cancelListing } from '../systems/market';
 import { buyDiamondItem, claimVipGift, grantVip, grantDiamonds, vipActive } from '../systems/premium';
 import { claimTdQuest } from '../systems/tdQuests';
@@ -93,7 +94,7 @@ export const handlers = {
       return { ok: true };
     }
     const st = STAGES[a.n - 1]; if (!st) return no('map');
-    if (s.level < st.req && !(DEV_TOOLS && (s as { tdUnlockAll?: boolean }).tdUnlockAll)) return no('level');
+    if (s.level < st.req && !(c.admin && (s as { tdUnlockAll?: boolean }).tdUnlockAll)) return no('level');
     mem.map = a.n; mem.supAt = c.now; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now;   // supplies are eaten while here (supplyTick), not paid at the gate
     const sv = s as unknown as { tdMaxMap?: number }; sv.tdMaxMap = Math.max(sv.tdMaxMap ?? 0, a.n);
     return { ok: true };
@@ -328,6 +329,8 @@ export const handlers = {
     return raidResult(s, R.rival, ids, c.now);
   },
   upSkill: (s: GameState, a: { id: string }) => upSkill(s, a.id),
+  /** (the director's account only) wear any class and form */
+  adminForm: (s: GameState, a: { cls: ClassId; tier: number }, c: Ctx) => (c.admin && ['sword', 'archer', 'mage', 'cleric', 'novice'].includes(a.cls) ? adminForm(s, a.cls, Number(a.tier) || 0) : no('admin')),
   /** class change; from villager the new line gets a free starter weapon (equipped) */
   advanceClass(s: GameState, a: { cls?: ClassId }) {
     const wasVillager = (s.tier ?? 0) === 0;

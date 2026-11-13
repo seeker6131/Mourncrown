@@ -8,6 +8,7 @@ import { invSize, type GameState } from '../src/core/state';
 import { addItem } from '../src/systems/inventory';
 import { MARKET_FEE, type Listing } from '../src/systems/market';
 import { startNewGame } from '../src/core/save';
+import { grantAdminKit } from '../src/systems/adminKit';
 import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallLv, type RaidHit, type Rival } from '../src/systems/guild';
 import { dayKey } from '../src/systems/daily';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
@@ -137,7 +138,7 @@ export default {
       const me = await who(req, env);
       if (!me) return json(req, { error: 'auth' }, 401);
 
-      if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub, name: me.name });
+      if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub, name: me.name, admin: (env.ADMINS ?? '').split(',').includes(me.id) });
 
       // the player's name: set once (changing it later is a support / shop matter), unique ignoring case
       // 🚩 a player reports someone's chat line: kept for the admin; 3 different players in a day = a day without chat
@@ -504,6 +505,8 @@ export class Player {
       for (const old of this.state.getWebSockets()) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one game per player
       const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
       this.state.acceptWebSocket(server, [id]); server.serializeAttachment({ id });
+      // the director's account: everything in the game, given once by the server (src/systems/adminKit.ts)
+      if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));

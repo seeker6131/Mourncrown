@@ -9,10 +9,12 @@ export const SERVER = typeof location !== 'undefined' && ['localhost', '127.0.0.
 export const GOOGLE_CLIENT_ID = '481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com';
 const ACC = 'mc_cloud', SAVE_KEY = 'eldergrove_save_v1', DELAY = 12_000;
 
-interface Acc { id: string; token: string; rev: number; google?: boolean; name?: string }
+interface Acc { id: string; token: string; rev: number; google?: boolean; name?: string; admin?: boolean }
 export const cloud = { state: 'off' as 'off' | 'ok' | 'saving' | 'error', at: 0 };
 /** is this device's account linked to a Google account (the hero loads on any device) */
 export const googleLinked = () => ok() && !!acc()?.google;
+/** the director's account (the server says so): sees the admin-only class / form switch */
+export const isAdmin = () => ok() && !!acc()?.admin;
 const ok = () => typeof window !== 'undefined' && typeof fetch === 'function' && typeof localStorage !== 'undefined';
 let accCache: Acc | null | undefined;   // (read every frame for the name tag: parsed once)
 function acc(): Acc | null { if (accCache !== undefined) return accCache ? { ...accCache } : null; try { accCache = JSON.parse(localStorage.getItem(ACC) ?? 'null'); } catch { accCache = null; } return accCache ? { ...accCache } : null; }
@@ -41,7 +43,7 @@ export async function cloudBoot(gameStarted: () => boolean): Promise<boolean> {
   try {
     const a = await account(); if (!a) { cloud.state = 'error'; return false; }
     const me = await req('/me');   // name / Google link may have been set on another device
-    if (me.status === 200) { a.google = !!me.body.google; a.name = me.body.name ? String(me.body.name) : undefined; setAcc(a); }
+    if (me.status === 200) { a.google = !!me.body.google; a.name = me.body.name ? String(me.body.name) : undefined; a.admin = !!me.body.admin; setAcc(a); }
     const r = await req('/save'); if (r.status !== 200) { cloud.state = 'error'; return false; }
     const rev = Number(r.body.rev) || 0;
     if (rev > a.rev && r.body.data && !gameStarted()) { localStorage.setItem(SAVE_KEY, JSON.stringify(r.body.data)); a.rev = rev; setAcc(a); took = true; }

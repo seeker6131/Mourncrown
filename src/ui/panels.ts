@@ -32,6 +32,7 @@ import { mountOn, hasMount } from '../systems/mounts';
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, actServer, isOnline, refused } from '../net/client';
+import { isAdmin } from '../net/cloud';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
@@ -442,7 +443,6 @@ export class Panels implements GuildHost {
       if (own) c.add(k.button(bx, by, bw, 24, riding ? '🚶 ลงเดิน' : '🐎 ขี่ตัวนี้', () => { act('mountSelect', { id: riding ? null : id }); sfx.click(); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 9.5, color: riding ? 0x3a2a2a : 0x1f4a2a }));
       else if (d.price) c.add(k.button(bx, by, bw, 24, `🛒 ซื้อ 💰${d.price.gold.toLocaleString()}`, () => { const r = act('mountBuy', { id }); if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'gold' ? 'ทองไม่พอ' : r.refused === 'level' ? `ต้องเลเวล ${d.price!.lv}` : 'ซื้อไม่ได้', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, `🐎 ได้ ${d.name} แล้ว! ขึ้นขี่เลย`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 9.5, color: 0x4a3a10, disabled: s.gold < d.price.gold || s.level < d.price.lv }));
       else c.add(k.text(cx + cw / 2, by + 6, '🔒 ยังไม่ได้รับ — ซื้อด้วยเงินจริงไม่ได้', 8, '#a89878').setOrigin(0.5, 0));
-      if (!own && DEV_TOOLS && d.limited) c.add(k.button(bx, by - 26, bw, 20, '🧪 ทดสอบ: รับมังกร', () => { act('dev', { op: 'mountDragon' }); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, { size: 8, color: 0x2a3a5a }));
     });
   }
   /** the guild window on a tab (and a defense slot picked) */
@@ -654,7 +654,7 @@ export class Panels implements GuildHost {
   buildForms(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(600, ui.VW - 16), H = 330;
-    const { x, y } = this.window(c, W, H, '🧪 ทดสอบ: สลับร่าง (สำหรับหาบั๊ก)');
+    const { x, y } = this.window(c, W, H, '👑 แอดมิน: เปลี่ยนอาชีพ / ร่าง');
     const cols = 4, bw = (W - 28 - (cols - 1) * 6) / cols;
     ALL_FORMS.forEach((f, i) => {
       const r = i === 0 ? 0 : 1 + Math.floor((i - 1) / 3), col = i === 0 ? 0 : Math.floor((i - 1) / 3);
@@ -663,13 +663,12 @@ export class Panels implements GuildHost {
       const bx = x + 14 + col * (bw + 6), by = y + 32 + row * 52;
       const cur = s.cls === f.cls && s.tier === f.tier;
       c.add(k.button(bx, by, bw, 44, `${formName(f.cls, f.tier)}\nร่าง ${f.tier + 1} • Lv${FORM_LEVEL[f.tier]}+`, () => {
-        s.cls = f.cls; s.tier = f.tier; s.useTier = f.tier; s.level = Math.max(s.level, FORM_LEVEL[f.tier]);
-        const d0 = derive(s); s.hp = d0.maxHp; s.mp = d0.maxMp;
+        if (refused(act('adminForm', { cls: f.cls, tier: f.tier }))) { sfx.error(); return; }   // (the server checks it is the director's account)
         sfx.levelUp(); bus.emit(EV.TOAST, `สลับเป็น ${formName(f.cls, f.tier)}`, '#9ad8ff');
         this.close(); bus.emit(EV.STATE_CHANGED);
       }, { size: 8.5, color: cur ? 0x6a4a10 : 0x2a1d12 }));
     });
-    c.add(k.text(x + 14, y + H - 22, 'ปุ่มนี้สำหรับทดสอบเท่านั้น จะเอาออกก่อนเปิดให้คนอื่นเล่น', 7.5, '#a89878'));
+    c.add(k.text(x + 14, y + H - 22, 'เฉพาะบัญชีแอดมิน (ผู้กำกับ) — คนอื่นไม่เห็นปุ่มนี้', 8, '#ffd84a'));
   }
 
   // ---------------- QUEST ----------------
@@ -710,7 +709,6 @@ export class Panels implements GuildHost {
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
     b('🐎 สัตว์ขี่', () => this.open('mounts'), 0x4a3a10);
-    b(`🧪 จำลองผู้เล่นบอท: ${testBots.n} คน (แตะเพื่อเพิ่ม)`, () => { testBots.n = BOT_STEPS[(BOT_STEPS.indexOf(testBots.n) + 1) % BOT_STEPS.length]; bus.emit('td:bots'); bus.emit(EV.TOAST, testBots.n ? `🤖 จำลองผู้เล่น ${testBots.n} คน (แผนที่มอน + ป่าดงดิบ) — ดู FPS บนแถบชื่อแผนที่` : '🤖 ปิดผู้เล่นบอท', '#9ad8ff'); this.rebuild(); }, 0x2a3a5a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
@@ -724,10 +722,7 @@ export class Panels implements GuildHost {
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
     b('🖥 ปรับ UI & เสียง (แถบเลื่อน)', () => this.open('uiopt'), 0x2a4a5a);
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
-    b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
-    b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = act('dev', { op: 'kit' }); if (refused(got)) { sfx.error(); bus.emit(EV.TOAST, 'ปิดปุ่มทดสอบแล้ว', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
-    b('🧪 ทดสอบ: VIP 3 วัน + 💎1000', () => { if (refused(act('dev', { op: 'vip', n: 3 }))) return; act('dev', { op: 'diamonds', n: 1000 }); sfx.levelUp(); bus.emit(EV.TOAST, 'ได้ VIP 3 วัน + เพชร 1000 (ทดสอบ)', '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
-    b(`🧪 ทดสอบ: เลเวล +10 (ตอนนี้ Lv${s.level})`, () => { if (refused(act('dev', { op: 'level', n: 10 }))) return; clampVitals(s); sfx.levelUp(); bus.emit(EV.TOAST, `เลเวล ${s.level}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a3a1a);
+    if (isAdmin()) b('👑 แอดมิน: เปลี่ยนอาชีพ / ร่าง', () => this.open('forms'), 0x5a4a10);   // (the director's account only)
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));
@@ -901,7 +896,7 @@ export class Panels implements GuildHost {
   buildPotion(c: Phaser.GameObjects.Container) {
     const s = S(), k = this.k, p = potOf(s);
     const W = Math.min(460, this.ui.VW - 20), H = 312, vip = vipActive(s);
-    const { x, y, g } = this.window(c, W, H, '🧪 ตั้งค่าการใช้ยา');
+    const { x, y, g } = this.window(c, W, H, '⚗ ตั้งค่าการใช้ยา');
     const set = (ch: Partial<PotSet>) => { sfx.click(); setPot(s, ch); saveGame(s); this.rebuild(); };
     const lx = x + 16, bx = x + 176, bw = (W - 176 - 16 - 3 * 4) / 4;
     const row = (i: number, label: string, opts: [string, boolean, () => void][], dim = false) => {
