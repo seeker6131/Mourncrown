@@ -43,7 +43,8 @@ code = open(out, 'rb').read()
 meta = {'main_module': 'worker.js', 'compatibility_date': '2025-01-01',
         'bindings': [{'type': 'd1', 'name': 'DB', 'id': cfg['db']}, {'type': 'durable_object_namespace', 'name': 'ROOM', 'class_name': 'Room'}, {'type': 'durable_object_namespace', 'name': 'PLAYER', 'class_name': 'Player'}, {'type': 'durable_object_namespace', 'name': 'GUILD', 'class_name': 'Guild'}]
                     + ([{'type': 'plain_text', 'name': 'GOOGLE_CLIENT_ID', 'text': cfg['googleClientId']}] if cfg.get('googleClientId') else [])
-                    + [{'type': 'plain_text', 'name': 'ADMINS', 'text': ','.join(cfg.get('admins', []))}]}
+                    + [{'type': 'plain_text', 'name': 'ADMINS', 'text': ','.join(cfg.get('admins', []))}]
+                    + [{'type': 'plain_text', 'name': 'MAX_ONLINE', 'text': str(cfg.get('limits', {}).get('maxOnline', 0))}, {'type': 'plain_text', 'name': 'DAY_HOURS', 'text': str(cfg.get('limits', {}).get('dayHours', 0))}]}   # (the money cap: server/cf.json limits)
 # Durable Object classes: each migration once (the tag applied last is kept in cf.json)
 MIGRATIONS = [('v1', {'new_sqlite_classes': ['Room']}), ('v2', {'new_sqlite_classes': ['Player']}), ('v3', {'new_sqlite_classes': ['Guild']})]
 done = cfg.get('migrationTag'); todo = MIGRATIONS[[t for t, _ in MIGRATIONS].index(done) + 1:] if done else MIGRATIONS

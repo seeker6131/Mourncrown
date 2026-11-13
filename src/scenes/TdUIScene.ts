@@ -142,7 +142,9 @@ export class TdUIScene extends Phaser.Scene {
       if (!off) { if (this.offSince && this.offShown) this.toast('✔ เชื่อมต่อเซิร์ฟแล้ว', '#9fffb0'); this.offSince = 0; this.offShown = false; }
       else if (!this.offSince) this.offSince = now;
       const long = now - this.offSince > 12000, show = off && now - this.offSince > 1500;
-      if (show) { this.offShown = true; this.offText?.setText(long ? '⚠ ออฟไลน์ — กำลังเชื่อมต่อเซิร์ฟ... ของที่ได้ตอนนี้จะไม่ถูกบันทึก' : '🔄 กำลังเชื่อมต่อเซิร์ฟใหม่... รอสักครู่').setBackgroundColor(long ? 'rgba(110,20,20,0.85)' : 'rgba(20,60,110,0.85)'); }
+      const cap = play.full && Date.now() - play.full.at < 90000 ? play.full : null;   // the server's cap (director's money limit)
+      if (show && cap) { this.offShown = true; this.offText?.setText(cap.why === 'day' ? '🚧 วันนี้เซิร์ฟเปิดครบเวลาแล้ว — เปิดใหม่ 07:00 น. (ตอนนี้ของที่ได้จะไม่ถูกบันทึก)' : `🚧 เซิร์ฟเต็ม (${cap.n}/${cap.max} คน) — รอสักครู่ ระบบจะพาเข้าเองเมื่อมีที่ว่าง`).setBackgroundColor('rgba(90,50,10,0.85)'); }
+      else if (show) { this.offShown = true; this.offText?.setText(long ? '⚠ ออฟไลน์ — กำลังเชื่อมต่อเซิร์ฟ... ของที่ได้ตอนนี้จะไม่ถูกบันทึก' : '🔄 กำลังเชื่อมต่อเซิร์ฟใหม่... รอสักครู่').setBackgroundColor(long ? 'rgba(110,20,20,0.85)' : 'rgba(20,60,110,0.85)'); }
       this.offText?.setVisible(show);
     }
     if (this.chatLines.length && (Math.floor(now / 500) % 2 === 0)) this.drawChat();

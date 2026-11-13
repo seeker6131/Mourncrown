@@ -20,7 +20,7 @@ interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<D1Result<T>> }
 interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[]; waitUntil?(p: Promise<unknown>): void }
 interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(r: Request): Promise<Response> } }
-interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
+interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; MAX_ONLINE?: string; DAY_HOURS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
 declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
 type WSX = WebSocket & { serializeAttachment(v: unknown): void; deserializeAttachment(): unknown; accept?: () => void };
 
@@ -44,6 +44,20 @@ const json = (req: Request, body: unknown, status = 200) => new Response(JSON.st
 async function byToken(env: Env, t: string) {
   if (!t || t.length < 32 || t.length > 128) return null;
   return env.DB.prepare('SELECT id, google_sub, name FROM accounts WHERE banned = 0 AND (token_hash = ?1 OR id = (SELECT id FROM sessions WHERE token_hash = ?1))').bind(await sha(t)).first<{ id: string; google_sub: string | null; name: string | null }>();
+}
+/** the money cap (director, server/cf.json limits): at most MAX_ONLINE players at once and DAY_HOURS player-hours a day
+ *  (Cloudflare has no spending limit of its own). Someone already playing always gets back in; the admin always does. */
+async function gate(env: Env, id: string): Promise<{ ok: boolean; why?: string; n?: number; max?: number }> {
+  if ((env.ADMINS ?? '').split(',').includes(id)) return { ok: true };
+  const max = Number(env.MAX_ONLINE) || 0, hours = Number(env.DAY_HOURS) || 0; if (!max && !hours) return { ok: true };
+  try { return await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/gate', { method: 'POST', body: JSON.stringify({ id, max, hours }) }))).json() as { ok: boolean; why?: string }; }
+  catch { return { ok: true }; }   // (the counter cannot answer: let them in)
+}
+/** a refused game socket: it opens, says why, and closes (4002 = the cap; the game waits a minute before trying again) */
+function refuseWs(g: { why?: string; n?: number; max?: number }) {
+  const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
+  server.accept?.(); server.send(JSON.stringify({ t: 'full', why: g.why ?? 'full', n: g.n ?? 0, max: g.max ?? 0 })); server.close(4002, 'cap');
+  return new Response(null, { status: 101, webSocket: client } as ResponseInit);
 }
 async function who(req: Request, env: Env) {
   const a = await byToken(env, req.headers.get('x-mc-token') ?? '');
@@ -125,6 +139,7 @@ export default {
         const t = url.searchParams.get('t') ?? '';
         const a = await byToken(env, t);
         if (!a) return new Response('auth', { status: 401 });
+        const g = await gate(env, a.id); if (!g.ok) return refuseWs(g);
         const u = new URL(req.url); u.pathname = '/ws'; u.search = ''; u.searchParams.set('id', a.id);
         return env.PLAYER.get(env.PLAYER.idFromName(a.id)).fetch(new Request(u.toString(), req));
       }
@@ -136,6 +151,7 @@ export default {
         const t = url.searchParams.get('t') ?? '';
         const a = await byToken(env, t);
         if (!a) return new Response('auth', { status: 401 });
+        const g = await gate(env, a.id); if (!g.ok) return refuseWs(g);
         const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
       }
@@ -300,6 +316,17 @@ export class Room {
   bosses = new Map<number, { name: string; until: number }>();
   /** (chat-world) who is playing now: account → last sign of life (15 min without one = gone) */
   online = new Map<string, number>();
+  /** (chat-world) player-minutes played today (UTC day — Cloudflare's day), kept in storage across restarts */
+  use = { day: '', mins: 0 }; useT = 0; useLoaded = false;
+  private get store() { return (this.state as unknown as { storage: { get(k: string): Promise<unknown>; put(k: string, v: unknown): Promise<void> } }).storage; }
+  private async useLoad(now: number) {
+    if (!this.useLoaded) { this.useLoaded = true; const v = await this.store.get('use').catch(() => null) as { day: string; mins: number } | null; if (v) this.use = v; }
+    const day = new Date(now).toISOString().slice(0, 10); if (this.use.day !== day) this.use = { day, mins: 0 };
+  }
+  private credit(ms: number, now: number) {
+    this.use.mins += ms / 60000;
+    if (now - this.useT > 60000) { this.useT = now; this.store.put('use', this.use).catch(() => undefined); }   // (written once a minute at most)
+  }
   async fetch(req: Request) {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? '', name = (u.searchParams.get('name') || 'ผู้กล้า#' + id.slice(0, 4)).slice(0, 16);
     if (u.pathname === '/wbnote') {   // (from a map room) a roaming boss came / left / fell: everyone in world chat hears it
@@ -312,13 +339,22 @@ export class Room {
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
       return new Response('{}');
     }
+    if (u.pathname === '/gate') {   // (the worker) may this player come online now — the money cap
+      const b = await req.json() as { id: string; max: number; hours: number }, now = Date.now(); await this.useLoad(now);
+      for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k);
+      if (this.online.has(String(b.id))) return new Response(JSON.stringify({ ok: true }));   // already playing (a reconnect / another map)
+      if (b.max && this.online.size >= b.max) return new Response(JSON.stringify({ ok: false, why: 'full', n: this.online.size, max: b.max }));
+      if (b.hours && this.use.mins / 60 >= b.hours) return new Response(JSON.stringify({ ok: false, why: 'day' }));
+      return new Response(JSON.stringify({ ok: true }));
+    }
     if (u.pathname === '/hello' || u.pathname === '/bye') {   // (from a player's object) online / gone
-      const b = await req.json() as { id: string }, now = Date.now();
+      const b = await req.json() as { id: string }, now = Date.now(); await this.useLoad(now);
+      const prev = this.online.get(String(b.id)); if (prev && now - prev < 15 * 60000) this.credit(now - prev, now);   // player-minutes today (the cap)
       if (u.pathname === '/hello') this.online.set(String(b.id), now); else this.online.delete(String(b.id));
       if (this.online.size > 20000) this.online.clear();
       return new Response('{}');
     }
-    if (u.pathname === '/count') { const now = Date.now(); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size })); }
+    if (u.pathname === '/count') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size, h: Math.round(this.use.mins / 6) / 10 })); }
     if (u.pathname === '/bosslist') { const now = Date.now(); return new Response(JSON.stringify([...this.bosses].filter(([, v]) => v.until > now).map(([n, v]) => ({ n, name: v.name, left: v.until - now })))); }
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
@@ -636,6 +672,7 @@ export class Player {
     if (typeof data !== 'string' || data.length > 20000) return;
     const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
+    if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); return; }   // (the game: still here — counts the minutes played for the money cap)
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (Date.now() - this.helloT > 300000) this.hello('/hello');   // (still playing: keep counting me online)
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }

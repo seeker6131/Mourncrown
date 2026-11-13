@@ -30,6 +30,7 @@ export class RoomLink {
     ws.onclose = e => {
       if (this.ws === ws) this.ws = null; if (this.closed) return;
       if (e.code === 4001 && this.shard < 50) { this.shard++; this.open(); return; }   // full: the next room of this map
+      if (e.code === 4002) { setTimeout(() => this.open(), 60000); return; }   // the server's cap (director's money limit): try again in a minute
       setTimeout(() => this.open(), this.wait); this.wait = Math.min(15000, this.wait * 2);
     };
   }
