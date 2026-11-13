@@ -726,10 +726,7 @@ export class Player {
       if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
       if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();   // the home village's NPC buildings live here too (they used to exist on the device only)
       if (this.st && await this.mailAll()) await this.later();   // letters to everyone from the back office, not had yet
-      if (this.st && CBT_ACTIVE && !cbtGot(this.st as unknown as GameState) && !mailOf(this.st as unknown as GameState).some(m => m.id === 'cbt')) {   // the CBT gift not claimed yet: a letter (director)
-        addMail(this.st as unknown as GameState, { id: 'cbt', kind: 'cbt', from: 'ทีมงาน Mourncrown', title: '🎁 ของขวัญผู้ทดสอบ CBT', text: 'ขอบคุณที่มาช่วยทดสอบเกมนะครับ! กดรับ VIP 7 วัน + ฉายา「ผู้บุกเบิก」+ ของใช้ ได้เลย (ตอนเปิด OBT ข้อมูล CBT จะถูกล้าง ยกเว้นของ limited ที่จะประกาศภายหลัง)' });
-        await this.later();
-      }
+      if (this.cbtLetter()) await this.later();
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
@@ -780,6 +777,14 @@ export class Player {
     }
     return new Response('{}', { status: 404 });
   }
+  /** the CBT gift not claimed yet: a letter in the mailbox (director) — checked on connect and on every action (a game that
+   *  stayed on the old server through a deploy gets it as soon as it does anything); true = the letter was just added */
+  private cbtLetter() {
+    const st = this.st as unknown as GameState | null;
+    if (!st || !CBT_ACTIVE || cbtGot(st) || mailOf(st).some(m => m.id === 'cbt')) return false;
+    addMail(st, { id: 'cbt', kind: 'cbt', from: 'ทีมงาน Mourncrown', title: '🎁 ของขวัญผู้ทดสอบ CBT', text: 'ขอบคุณที่มาช่วยทดสอบเกมนะครับ! กดรับ VIP 7 วัน + ฉายา「ผู้บุกเบิก」+ ของใช้ ได้เลย (ตอนเปิด OBT ข้อมูล CBT จะถูกล้าง ยกเว้นของ limited ที่จะประกาศภายหลัง)' });
+    return true;
+  }
   /** letters to everyone (D1 mail_all) this hero has not had yet go into the mailbox; true = some came */
   private async mailAll() {
     const st = this.st as unknown as GameState & { mailAll?: number }, since = st.mailAll ?? 0;
@@ -807,7 +812,8 @@ export class Player {
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
     if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
     if (m.t !== 'act' || typeof m.name !== 'string') return;
-    if (Date.now() - this.helloT > 300000) this.hello('/hello');   // (still playing: keep counting me online)
+    if (Date.now() - this.helloT > 300000) this.hello('/hello');
+    if (this.cbtLetter()) { await this.later(); ws.send(JSON.stringify({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' })); }   // (still playing: keep counting me online)
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
     const gid = (this.st as { guildId?: string }).guildId;
     if (this.goalSend.length && gid) { const g = this.goalSend; this.goalSend = []; try { await this.gstub(gid).fetch(new Request('https://g/goal', { method: 'POST', body: JSON.stringify({ pid: this.id, ups: g }) })); } catch { /* next time */ } }
