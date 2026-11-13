@@ -5,6 +5,9 @@ import { SKILL_BY_ID, type SkillDef } from '../data/skills';
 import { derive, skillMult, calcDamage, currentSkills } from './stats';
 
 export type CastFail = 'cooldown' | 'mp' | 'locked';
+/** (device) skills cast since the last kill sent to the server — the server counts casts from the kill (quest "use skills
+ *  10 times": casting runs on the device only, so the server never saw them and the quest chain stuck there) */
+export const castQ = { n: 0 };
 /** Check and pay for a skill. `readyAt` = per-skill cooldown end times (ms, scene clock). */
 export function beginCast(s: GameState, id: string, now: number, readyAt: Record<string, number>): SkillDef | CastFail {
   if (!currentSkills(s).includes(id)) return 'locked';

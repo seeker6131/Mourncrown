@@ -155,7 +155,7 @@ export const handlers = {
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
   /** (shared map) a monster the room's host spawned: known here too, so its kill can be paid */
   mirror(_s: GameState, a: { sid: number; key: string; boss: boolean; elite: boolean }) { mem.spawns.set(a.sid, { key: a.key, elite: !!a.elite, boss: !!a.boss }); mem.sid = Math.max(mem.sid, a.sid + 1); return { ok: true }; },   // (new spawns never reuse a mirrored number)
-  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean; share?: number; n?: number }, c: Ctx) {
+  kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean; share?: number; n?: number; c?: number }, c: Ctx) {
     // the server's memory of this player (map, spawned monsters) is lost whenever its object sleeps or the server restarts:
     // the game names the map it is on — taken when the hero's level may be there (a farming map or the Deepwild; never a dungeon)
     if (!mem.map && a.n && (a.n === WILD || (STAGES[a.n - 1] && s.level >= STAGES[a.n - 1].req))) { mem.map = a.n; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; }
@@ -173,6 +173,7 @@ export const handlers = {
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
     if (!c.admin && mem.dmg < part) return no('dps');
+    { const sv = s as GameState & { tdCasts?: number }, nc = Math.max(0, Math.min(10, Math.floor(Number(a.c) || 0))); if (nc) sv.tdCasts = (sv.tdCasts ?? 0) + nc; }   // skills cast since the last kill (the quest counts them; casting runs on the device)
     mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid); if (old) { mem.forgot.add(a.sid); if (mem.forgot.size > 2000) mem.forgot.clear(); }
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];

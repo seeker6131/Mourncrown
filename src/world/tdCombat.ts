@@ -18,7 +18,7 @@ import { Vfx } from './vfx';
 import { slashFx } from '../systems/premium';
 import { sellJunk } from '../systems/inventory';
 import { invSize } from '../core/state';
-import { selfEffect, skillHit } from '../systems/skillCast';
+import { selfEffect, skillHit, castQ } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim, hitMs, animMs, preloadChars, createCharAnims } from './chars';
 import { WB } from '../server/mapSim';
@@ -631,7 +631,7 @@ export class Combat {
     if (share <= 0) return;   // (shared map: too little of the damage was mine — no reward)
     const at = { x: m.x, y: m.y, boss: m.boss };
     if (this.live && !m.local) { this.deadAt.set(m.sid, at); return; }   // shared map: the server pays each player (net:pay → onPay)
-    const args = { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss, share, n: this.stage?.n ?? 0 };   // (n: the server may have forgotten which map this is)
+    const args = { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss, share, n: this.stage?.n ?? 0, c: castQ.n }; castQ.n = 0;   // (n: the server may have forgotten which map this is)
     if (isOnline()) { actServer('kill', args).then(r => this.reward(at, r)); return; }   // the server rolls the loot
     this.reward(at, act('kill', args));
   }

@@ -40,3 +40,17 @@ describe('a kill still counts after the server forgot this player (its object sl
     expect(refused(handlers.gather(s, { node: 3, kind: 'wood', pit: -1, w: 1 }, ctx))).toBeNull();
   });
 });
+
+describe('skill casts reach the server with the kills (the "use skills 10 times" quest stuck the chain)', () => {
+  it('casts since the last kill are counted (at most 10 per kill); the quest can finish on the server', async () => {
+    const { tdQuest } = await import('../src/systems/tdQuests');
+    useMem(newMem()); const s = startNewGame() as ReturnType<typeof startNewGame> & { tdCasts?: number; tdq?: { i: number; base: number } }; s.level = 5;
+    s.tdq = { i: 6, base: 0 };   // (q5: use skills 10 times)
+    expect(tdQuest(s)?.q.metric).toBe('casts');
+    handlers.kill(s, { ...killArgs(1, 77), c: 4 }, ctx); expect(s.tdCasts).toBe(4);
+    handlers.kill(s, { ...killArgs(1, 76), c: 999 }, ctx); expect(s.tdCasts).toBe(14);   // (capped at 10 per kill)
+    expect(tdQuest(s)?.done).toBe(true);
+    useMem(newMem()); const t = startNewGame() as typeof s; t.level = 1;
+    handlers.kill(t, { ...killArgs(40), c: 5 }, ctx); expect(t.tdCasts ?? 0).toBe(0);   // (a refused kill counts nothing)
+  });
+});

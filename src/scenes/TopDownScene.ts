@@ -24,7 +24,7 @@ import { runtime } from '../core/events';
 import { derive } from '../systems/stats';
 import { Village, populateVillage } from '../world/npcs';
 import { activeTier, nextForm, currentSkills } from '../systems/stats';
-import { beginCast } from '../systems/skillCast';
+import { beginCast, castQ } from '../systems/skillCast';
 import { SKILL_BY_ID } from '../data/skills';
 
 import { vipActive, vipTier, VIP_AURA, VIP_WALK } from '../systems/premium';
@@ -1667,6 +1667,7 @@ export class TopDownScene extends Phaser.Scene {
     const s = S(), id = currentSkills(s)[i]; if (!id) return;
     const r = beginCast(s, id, this.time.now, this.skillReady);
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
+    castQ.n = Math.min(50, castQ.n + 1);
     if (hasAnim(this.F.key, this.swing)) {
       this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false); this.link?.hit(this.swing, this.dir);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
