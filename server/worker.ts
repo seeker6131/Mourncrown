@@ -23,7 +23,7 @@ interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<D1Result<T>> }
 interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[]; waitUntil?(p: Promise<unknown>): void }
 interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(r: Request): Promise<Response> } }
-interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; MAX_ONLINE?: string; DAY_HOURS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
+interface Env { DB: { prepare(sql: string): D1Stmt; batch(list: D1Stmt[]): Promise<unknown> }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; MAX_ONLINE?: string; DAY_HOURS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
 declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
 type WSX = WebSocket & { serializeAttachment(v: unknown): void; deserializeAttachment(): unknown; accept?: () => void };
 
@@ -225,6 +225,31 @@ export default {
             flags: await n('SELECT COUNT(*) AS n FROM flags WHERE at > ?', day),
           });
         }
+        if (path === '/admin/econ') {   // 💰 the economy: what there is now, where gold comes from / goes, who earns, market prices
+          const days = Math.max(1, Math.min(30, Number(url.searchParams.get('days')) || 7)), thai = (t: number) => new Date(t + 7 * 3600000).toISOString().slice(0, 10);
+          const today = thai(now), since = thai(now - (days - 1) * 86400000), prevSince = thai(now - (2 * days - 1) * 86400000);
+          const adm = (env.ADMINS ?? '').split(',').filter(Boolean), noAdm = adm.length ? ` AND a.id NOT IN (${adm.map(() => '?').join(',')})` : '';
+          const W = `a.id = e.id ${noAdm} AND NOT ${TEST}`, J = 'FROM econ e JOIN accounts a ON a.id = e.id LEFT JOIN saves s ON s.id = e.id';
+          // what the real players hold now → today's snapshot (the trend: does gold pile up?)
+          const held = await all<{ id: string; name: string; gold: number; dia: number; wood: number; stone: number; food: number; items: number }>(`SELECT a.id, a.name, COALESCE(json_extract(s.data,'$.gold'),0) AS gold, COALESCE(json_extract(s.data,'$.diamonds'),0) AS dia, COALESCE(json_extract(s.data,'$.res.wood'),0) AS wood, COALESCE(json_extract(s.data,'$.res.stone'),0) AS stone, COALESCE(json_extract(s.data,'$.res.food'),0) AS food, COALESCE(json_array_length(s.data,'$.inventory'),0) AS items FROM accounts a JOIN saves s ON s.id = a.id WHERE ${PLAYED}${noAdm}`, ...adm);
+          const sum = (k: 'gold' | 'dia' | 'wood' | 'stone' | 'food' | 'items') => held.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+          const golds = held.map(r => Number(r.gold) || 0).sort((x, y) => x - y), med = golds.length ? golds[Math.floor(golds.length / 2)] : 0;
+          await DB.prepare('INSERT INTO econ_snap (day, at, players, gold, dia, wood, stone, food, med_gold, items) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(day) DO UPDATE SET at = excluded.at, players = excluded.players, gold = excluded.gold, dia = excluded.dia, wood = excluded.wood, stone = excluded.stone, food = excluded.food, med_gold = excluded.med_gold, items = excluded.items')
+            .bind(today, now, held.length, sum('gold'), sum('dia'), sum('wood'), sum('stone'), sum('food'), med, sum('items')).run();
+          const F = 'SUM(e.g_in) AS g_in, SUM(e.g_out) AS g_out, SUM(e.d_in) AS d_in, SUM(e.d_out) AS d_out, SUM(e.wood) AS wood, SUM(e.stone) AS stone, SUM(e.food) AS food, SUM(e.n) AS n, COUNT(DISTINCT e.id) AS who';
+          const bySrc = await all(`SELECT e.src, ${F} ${J} WHERE e.day >= ? AND ${W} GROUP BY e.src ORDER BY SUM(e.g_in) + SUM(e.g_out) DESC`, since, ...adm);
+          const byDay = await all(`SELECT e.day, ${F} ${J} WHERE e.day >= ? AND ${W} GROUP BY e.day ORDER BY e.day`, thai(now - 29 * 86400000), ...adm);
+          const top = await all<{ id: string; name: string; g_in: number; g_out: number; n: number; pt: number; lv: number }>(`SELECT e.id, a.name, SUM(e.g_in) AS g_in, SUM(e.g_out) AS g_out, SUM(e.n) AS n, json_extract(s.data,'$.playTime') AS pt, json_extract(s.data,'$.level') AS lv ${J} WHERE e.day >= ? AND ${W} GROUP BY e.id ORDER BY SUM(e.g_in) DESC LIMIT 30`, since, ...adm);
+          const ids = top.map(t => t.id), mains = ids.length ? await all<{ id: string; src: string; g: number }>(`SELECT id, src, SUM(g_in) AS g FROM econ WHERE day >= ? AND id IN (${ids.map(() => '?').join(',')}) GROUP BY id, src`, since, ...ids) : [];
+          const rich = held.slice().sort((x, y) => (Number(y.gold) || 0) - (Number(x.gold) || 0)).slice(0, 10).map(r => ({ id: r.id, name: r.name, gold: r.gold, dia: r.dia }));
+          // market prices: this period against the one before (what costs more = inflation on items)
+          const sold = await all<{ item: string; price: number; at: number }>("SELECT item, price, at FROM market WHERE status = 'sold' AND at > ?", now - 2 * days * 86400000);
+          const mk: Record<string, { n: number; sum: number; pn: number; psum: number }> = {};
+          for (const r of sold) { let id = '?'; try { id = JSON.parse(r.item).id; } catch { /* bad row */ } const m = (mk[id] ??= { n: 0, sum: 0, pn: 0, psum: 0 }); if (thai(r.at) >= since) { m.n++; m.sum += r.price; } else { m.pn++; m.psum += r.price; } }
+          return json(req, { days, since, today, now: { players: held.length, gold: sum('gold'), dia: sum('dia'), wood: sum('wood'), stone: sum('stone'), food: sum('food'), items: sum('items'), med },
+            snaps: await all('SELECT * FROM econ_snap ORDER BY day DESC LIMIT 30'), bySrc, byDay, top: top.map(t => ({ ...t, main: mains.filter(m => m.id === t.id).sort((x, y) => y.g - x.g)[0]?.src ?? '' })), rich,
+            market: Object.entries(mk).map(([id, m]) => ({ id, name: ITEMS[id]?.name ?? id, n: m.n, avg: m.n ? Math.round(m.sum / m.n) : 0, pn: m.pn, pavg: m.pn ? Math.round(m.psum / m.pn) : 0 })).sort((x, y) => y.n - x.n).slice(0, 30), prevSince });
+        }
         if (path === '/admin/players') {
           const q = (url.searchParams.get('q') ?? '').trim().toLowerCase().slice(0, 32), sort = url.searchParams.get('sort') === 'lv' ? "CAST(json_extract(s.data,'$.level') AS INTEGER) DESC" : 'a.seen DESC';
           const page = Math.max(0, Number(url.searchParams.get('page')) || 0), only = url.searchParams.get('all') === '1' ? 's.id IS NOT NULL' : REAL;   // (all=1: the test accounts too)
@@ -238,6 +263,7 @@ export default {
           const save = await one<{ data: string; at: number; rev: number }>('SELECT data, at, rev FROM saves WHERE id = ?', id);
           return json(req, { acc, save: save ? { at: save.at, rev: save.rev, data: JSON.parse(save.data) } : null,
             flags: await all('SELECT at, what, detail FROM flags WHERE id = ? ORDER BY at DESC LIMIT 50', id),
+            econ: await all("SELECT src, SUM(g_in) AS g_in, SUM(g_out) AS g_out, SUM(d_in) AS d_in, SUM(d_out) AS d_out, SUM(wood) AS wood, SUM(stone) AS stone, SUM(food) AS food, SUM(n) AS n FROM econ WHERE id = ? AND day >= ? GROUP BY src ORDER BY SUM(g_in) + SUM(g_out) DESC", id, new Date(now + 7 * 3600000 - 6 * 86400000).toISOString().slice(0, 10)),
             reports: await all('SELECT r.at, r.room, r.text, b.name AS by_name FROM reports r LEFT JOIN accounts b ON b.id = r.by_id WHERE r.target = ? ORDER BY r.at DESC LIMIT 50', id),
             market: await all('SELECT id, item, price, status, until, at FROM market WHERE seller = ? ORDER BY at DESC LIMIT 30', id) });
         }
@@ -578,8 +604,27 @@ export class Player {
     const data = JSON.stringify(this.st), now = Date.now(); this.rev++; this.at = now; this.dirty = false;
     await this.env.DB.prepare('INSERT INTO saves (id, rev, at, size, data) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET rev = excluded.rev, at = excluded.at, size = excluded.size, data = excluded.data').bind(this.id, this.rev, now, data.length, data).run();
   }
+  // ---- the money ledger (back office 💰): what each action changed in gold / diamonds / resources, added up by source in
+  // memory and written to D1 `econ` (one row per day × player × source) at most every 5 minutes and when the game closes ----
+  econQ = new Map<string, number[]>(); econT = Date.now();
+  private eSnap(): number[] | null { const s = this.st as { gold?: number; diamonds?: number; res?: { wood?: number; stone?: number; food?: number } } | null; return s ? [Number(s.gold) || 0, Number(s.diamonds) || 0, Number(s.res?.wood) || 0, Number(s.res?.stone) || 0, Number(s.res?.food) || 0] : null; }
+  private eAdd(src: string, b: number[] | null) {
+    const a = this.eSnap(); if (!a || !b) return;
+    const dg = a[0] - b[0], dd = a[1] - b[1], dw = a[2] - b[2], ds = a[3] - b[3], df = a[4] - b[4];
+    if (!dg && !dd && !dw && !ds && !df) return;
+    const k = src.slice(0, 24), q = this.econQ.get(k) ?? [0, 0, 0, 0, 0, 0, 0, 0];   // gold in, gold out, 💎 in, 💎 out, wood, stone, food (net), times
+    if (dg > 0) q[0] += dg; else q[1] -= dg; if (dd > 0) q[2] += dd; else q[3] -= dd; q[4] += dw; q[5] += ds; q[6] += df; q[7]++;
+    this.econQ.set(k, q);
+  }
+  private async eFlush(force = false) {
+    if (!this.econQ.size || !this.id || (!force && Date.now() - this.econT < 300000)) return;
+    const day = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10), rows = [...this.econQ]; this.econQ.clear(); this.econT = Date.now();   // (the day in Thailand)
+    try {
+      await this.env.DB.batch(rows.map(([src, q]) => this.env.DB.prepare('INSERT INTO econ (day, id, src, g_in, g_out, d_in, d_out, wood, stone, food, n) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(day, id, src) DO UPDATE SET g_in = g_in + excluded.g_in, g_out = g_out + excluded.g_out, d_in = d_in + excluded.d_in, d_out = d_out + excluded.d_out, wood = wood + excluded.wood, stone = stone + excluded.stone, food = food + excluded.food, n = n + excluded.n').bind(day, this.id, src, ...q.map(Math.round))));
+    } catch { /* the database is busy: these minutes are not in the ledger */ }
+  }
   private async later() { this.dirty = true; if (!(await this.state.storage.getAlarm())) await this.state.storage.setAlarm(Date.now() + 30000); }   // (written at most every 30 s, and when the game closes)
-  async alarm() { await this.persist(); }
+  async alarm() { await this.persist(); await this.eFlush(); }
   /** run one action with the server's dice and clock; the answer + the top-level fields it changed */
   private run(name: string, args: unknown) {
     const st = this.st!, fn = (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name];
@@ -655,7 +700,7 @@ export class Player {
     const paid = (await DB.prepare('SELECT listing, gold FROM market_pay WHERE seller = ? AND done = 0').bind(this.id).all<{ listing: string; gold: number }>()).results;
     let gold = 0; const sold: string[] = [];
     for (const p of paid) { gold += p.gold; sold.push(p.listing); await DB.prepare('UPDATE market_pay SET done = 1 WHERE listing = ?').bind(p.listing).run(); }
-    if (gold) { st.gold += gold; st.myListings = (st.myListings ?? []).filter(l => !sold.includes(l.id)); }
+    if (gold) { const eb = this.eSnap(); st.gold += gold; st.myListings = (st.myListings ?? []).filter(l => !sold.includes(l.id)); this.eAdd('marketSold', eb); }
     const late = (await DB.prepare("SELECT id FROM market WHERE seller = ? AND status = 'open' AND until < ?").bind(this.id, now).all<{ id: string }>()).results;
     let back = 0;
     for (const l of late) {
@@ -724,7 +769,7 @@ export class Player {
       const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
       this.state.acceptWebSocket(server, [id]); server.serializeAttachment({ id });
       // the director's account: everything in the game, given once by the server (src/systems/adminKit.ts)
-      if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
+      if (this.st && (this.env.ADMINS ?? '').split(',').includes(id)) { const eb = this.eSnap(); if (grantAdminKit(this.st as unknown as GameState)) { this.eAdd('adminKit', eb); await this.later(); } }
       if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();
       if (this.st) { const hf = homeFix(this.st as unknown as GameState); if (hf) await this.later(); if (hf === 2) addMail(this.st as unknown as GameState, { id: 'homefix', from: 'ทีมงาน Mourncrown', title: '🏠 ขออภัยเรื่องบ้านหาย', text: 'บ้านที่สร้างไว้หายหลังอัปเดตเพราะบั๊กของเรา — ทีมงานสร้างบ้าน Lv1 คืนให้แล้ว (เควสต่อจากนี้ทำต่อได้เลย) ขออภัยในความไม่สะดวกครับ 🙏' }); }   // (the lost-house bug: src/systems/settlement.ts homeFix)   // the home village's NPC buildings live here too (they used to exist on the device only)
       if (this.st && await this.mailAll()) await this.later();   // letters to everyone from the back office, not had yet
@@ -802,13 +847,13 @@ export class Player {
   private payOne(p: { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number; wb?: boolean; lv?: number; killer?: boolean }) {
     if (p.wb) {
       if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }
-      const out = this.run('wbKill', { sid: p.sid, key: p.key, kind: p.kind, lv: p.lv, share: p.share, killer: !!p.killer });
-      this.send({ t: 'pay', sid: p.sid, ...out }); return;
+      const eb = this.eSnap(), out = this.run('wbKill', { sid: p.sid, key: p.key, kind: p.kind, lv: p.lv, share: p.share, killer: !!p.killer });
+      this.eAdd('wbKill', eb); this.send({ t: 'pay', sid: p.sid, ...out }); return;
     }
     const st = p.n === WILD ? null : STAGES[p.n - 1], L = st?.land, mob = L ? [...L.mobs, L.boss].find(m => m.key === p.key) : null;
     this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }   // (memory lost / just arrived: a fresh 10 s of damage, never zero)
-    const out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });
-    this.send({ t: 'pay', sid: p.sid, ...out });
+    const eb = this.eSnap(), out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });
+    this.eAdd('roomKill', eb); this.send({ t: 'pay', sid: p.sid, ...out });
   }
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
     if (typeof data !== 'string' || data.length > 20000) return;
@@ -822,14 +867,16 @@ export class Player {
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
     const gid = (this.st as { guildId?: string }).guildId;
     if (this.goalSend.length && gid) { const g = this.goalSend; this.goalSend = []; try { await this.gstub(gid).fetch(new Request('https://g/goal', { method: 'POST', body: JSON.stringify({ pid: this.id, ups: g }) })); } catch { /* next time */ } }
+    const eb = this.eSnap();
     const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>)
       : CBT.has(m.name) ? await this.cbt(m.name)
       : ['guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave'].includes(m.name) ? await this.guildMeta(m.name, (m.args ?? {}) as Record<string, unknown>)
       : gid && GUILD_ACTS.has(m.name) ? await this.guildAct(gid, m.name, m.args) : this.run(m.name, m.args);
-    if (Object.keys(out.own).length) await this.later();
+    this.eAdd(m.name, eb);
+    if (Object.keys(out.own).length) { await this.later(); await this.eFlush(); }
     ws.send(JSON.stringify({ t: 'r', q: m.q, ...out }));
   }
-  async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); if (!this.state.getWebSockets().filter(w => w !== ws).length) await this.hello('/bye'); }
+  async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); await this.eFlush(true); if (!this.state.getWebSockets().filter(w => w !== ws).length) await this.hello('/bye'); }
   /** the online counter (a map in the chat-world room): hello on connect and now and then while playing, bye on leaving */
   helloT = 0;
   private async hello(path: '/hello' | '/bye') {

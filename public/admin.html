@@ -66,12 +66,63 @@ async function api(path, body) {
   if (r.status === 401 || r.status === 403) throw new Error('admin');
   return r.json();
 }
-const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['mail', '📬 จดหมาย'], ['guilds', '🏛 กิลด์'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
+const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['mail', '📬 จดหมาย'], ['guilds', '🏛 กิลด์'], ['econ', '💰 เศรษฐกิจ'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
 let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0, showTests = false;
 $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-k="${k}">${n}</button>`).join('');
 $('tabs').onclick = e => { const k = e.target.dataset?.k; if (k) { tab = k; page = 0; show(); } };
 const playerRow = r => `<tr class="click" data-id="${esc(r.id)}"><td>${r.test ? '🧪 ' : ''}${esc(r.name || '(ยังไม่ตั้งชื่อ)')}</td><td>${r.lv ?? '-'}</td><td>${esc(CLS[r.cls] || r.cls || '-')}${r.tier ? ' ร่าง ' + (r.tier + 1) : ''}</td><td>${num(r.gold)}</td><td>${num(r.diamonds)}</td><td>${tags(r)}</td><td>${when(r.seen)}</td><td class="dim">${when(r.created)}</td></tr>`;
 const playerTable = rows => `<div class="tw"><table><tr><th>ชื่อ</th><th>Lv</th><th>อาชีพ</th><th>ทอง</th><th>💎</th><th>สถานะ</th><th>เข้าล่าสุด</th><th>สมัคร</th></tr>${rows.map(playerRow).join('') || '<tr><td colspan="8" class="dim">ไม่มี</td></tr>'}</table></div>`;
+// ---- 💰 the economy (server/worker.ts /admin/econ + the `econ` ledger): what inflates, where gold comes from, who earns ----
+let econDays = 7;
+const SRC = { kill: 'ฆ่ามอน', roomKill: 'ฆ่ามอน (แมพรวม)', wbKill: 'บอสเร่ร่อน', botKill: 'ฆ่ามอน', pickup: 'เก็บของดรอป', gather: 'เก็บทรัพยากรในป่า', sell: 'ขายของให้ร้าน', sellJunk: 'ขายของขยะให้ร้าน',
+  shopBuy: 'ซื้อของร้าน', autoPotion: 'ซื้อยาอัตโนมัติ', vipBuyPotion: 'ซื้อยา (VIP)', upgradeItem: 'ตีบวกอุปกรณ์', dismantle: 'ย่อยอุปกรณ์', craft: 'ตีอุปกรณ์ (โรงตีเหล็ก)', cook: 'ทำอาหาร', brew: 'ปรุงยา',
+  build: 'สร้างอาคาร', upgradeBuilding: 'อัปอาคาร', collect: 'เก็บผลผลิตอาคาร', claimTdQuest: 'รางวัลเควส', completeQuest: 'รางวัลเควส', achClaim: 'รางวัลความสำเร็จ', loginClaim: 'รางวัลล็อกอินรายวัน',
+  tutorialDone: 'จบบทสอน', dungeonClear: 'ดันเจี้ยน', mailClaim: 'จดหมาย / ของจากแอดมิน', cbtClaim: 'ของขวัญ CBT', marketBuy: 'ซื้อในตลาด (จ่ายผู้เล่น)', marketSold: 'ขายในตลาด (ได้จากผู้เล่น)',
+  marketList: 'ลงขายตลาด', marketCancel: 'ยกเลิกขาย', donate: 'บริจาคกิลด์', guildCreate: 'ตั้งกิลด์', guildUpgrade: 'อัปกิลด์', guildShop: 'ร้านกิลด์', houseBuild: 'บ้านในกิลด์', bldRepair: 'ซ่อมอาคารกิลด์',
+  houseRepair: 'ซ่อมบ้านกิลด์', hireGuard: 'จ้างทหาร', defBuild: 'ป้อมกิลด์', defUpgrade: 'อัปป้อม', defRepair: 'ซ่อมป้อม', raidEnd: 'ปล้นหมู่บ้าน', warEnd: 'สงครามกิลด์', warDone: 'สงครามกิลด์', seasonClaim: 'รางวัลฤดูกาล',
+  mountBuy: 'ซื้อสัตว์ขี่', buyDiamond: 'เติมเพชร (เงินจริง)', vipGift: 'ของขวัญ VIP', supplyTick: 'เสบียงบนแมพ', upSkill: 'อัปสกิล', advanceClass: 'เปลี่ยนร่าง', adminKit: 'ชุดแอดมิน', bountySpawn: 'ค่าหัว',
+  sleep: 'นอนพัก', useItem: 'ใช้ไอเทม', stashPut: 'หีบเก็บของ', stashTake: 'หีบเก็บของ', dev: 'ปุ่มทดสอบ (แอดมิน)' };
+const srcName = k => SRC[k] ? `${SRC[k]} <span class="dim" style="font-size:11px">${esc(k)}</span>` : esc(k);
+const sgn = v => { v = Math.round(Number(v) || 0); return v > 0 ? `<span style="color:var(--green)">+${num(v)}</span>` : v < 0 ? `<span style="color:var(--red)">−${num(-v)}</span>` : '<span class="dim">0</span>'; };
+function econVerdict(inn, out) {   // gold made vs gold removed (player-to-player market money cancels out)
+  if (!inn && !out) return ['⚪', 'ยังไม่มีข้อมูล', 'ระบบเพิ่งเริ่มบันทึก — รอผู้เล่นเล่นสักพัก'];
+  if (inn + out < 50000) return ['⚪', 'ข้อมูลยังน้อย', `มีการเคลื่อนไหวของทองแค่ ${num(inn + out)} — รอเก็บข้อมูลสักวันก่อน ค่อยอ่านว่าเฟ้อหรือสมดุล`];
+  const r = out ? inn / out : 99;
+  if (r > 1.5) return ['🔴', 'เฟ้อ', `ทองถูกสร้างมากกว่าที่ถูกใช้ออก ${r.toFixed(1)} เท่า — ทองสะสมในเกมเร็ว ราคาของจะค่อยๆ แพงขึ้น ควรเพิ่มที่ใช้ทอง หรือลดทองจากแหล่งหลัก`];
+  if (r > 1.1) return ['🟡', 'เพิ่มขึ้นช้าๆ', `ทองเข้า ${r.toFixed(2)} เท่าของทองออก — ปกติของเกมช่วงแรก (ผู้เล่นยังเก็บสะสม) จับตาดูต่อ`];
+  if (r >= 0.8) return ['🟢', 'สมดุล', `ทองเข้า/ออกใกล้กัน (${r.toFixed(2)} เท่า)`];
+  return ['🔵', 'ฝืด', `ทองถูกใช้ออกมากกว่าที่ได้ (${r.toFixed(2)} เท่า) — ผู้เล่นอาจรู้สึกจน ของแพงเกินไป`];
+}
+function econHtml(d) {
+  const tot = k => d.bySrc.reduce((t, r) => t + (Number(r[k]) || 0), 0), sold = Number(d.bySrc.find(r => r.src === 'marketSold')?.g_in) || 0;
+  const inn = tot('g_in') - sold, out = tot('g_out') - sold, [ic, word, why] = econVerdict(inn, out);
+  const snaps = d.snaps.slice().reverse(), first = snaps.find(x => x.day >= d.since) || snaps[0], last = snaps[snaps.length - 1];
+  const per = x => x && x.players ? x.gold / x.players : 0, grow = first && last && first !== last && per(first) ? ((per(last) / per(first) - 1) * 100) : null;
+  const resV = (k, name) => { const v = tot(k); return `<div class="stat"><div class="k">${name} สุทธิ ${d.days} วัน</div><div class="v" style="font-size:17px">${sgn(v)}</div><div class="k">${v > 0 ? 'สะสมเพิ่ม (ผลิต > ใช้)' : v < 0 ? 'ถูกใช้มากกว่าผลิต' : '-'} • ทั้งเกมมี ${num(d.now[k])}</div></div>`; };
+  const maxIn = Math.max(1, ...d.byDay.map(r => Math.max(Number(r.g_in) || 0, Number(r.g_out) || 0)));
+  const medTop = d.top.length ? d.top.map(t => t.g_in).sort((a, b) => a - b)[Math.floor(d.top.length / 2)] : 0;
+  return `<div class="row">${[1, 7, 30].map(n => `<button class="btn${econDays === n ? ' green' : ''}" data-days="${n}">${n === 1 ? 'วันนี้' : n + ' วัน'}</button>`).join('')}
+      <span class="dim" style="font-size:12px">เริ่มบันทึกที่มาของทองตั้งแต่ 13 พ.ย. 2026 (ก่อนหน้านั้นไม่มีข้อมูล) • ไม่นับบัญชีทดสอบและแอดมิน</span></div>
+    <div class="stat" style="margin-bottom:10px"><div class="k">สถานะเศรษฐกิจทอง (${d.days === 1 ? 'วันนี้' : d.days + ' วันล่าสุด'})</div><div class="v">${ic} ${word}</div><div style="font-size:13px">${why}</div>
+      <div class="k" style="margin-top:6px">ทองเกิดใหม่ ${num(inn)} • ทองถูกใช้ออก ${num(out)} • ซื้อขายระหว่างผู้เล่น ${num(sold)} (ย้ายมือ ไม่ได้สร้างใหม่)${grow !== null ? ` • ทองเฉลี่ยต่อคน ${grow >= 0 ? '+' : ''}${grow.toFixed(0)}% ตั้งแต่ ${first.day}` : ''}</div></div>
+    <div class="grid">
+      <div class="stat"><div class="k">ทองทั้งเกมตอนนี้</div><div class="v">💰 ${num(d.now.gold)}</div><div class="k">${num(d.now.players)} คน • เฉลี่ย ${num(Math.round(d.now.gold / Math.max(1, d.now.players)))} • มัธยฐาน ${num(d.now.med)}</div></div>
+      <div class="stat"><div class="k">เพชรทั้งเกม</div><div class="v">💎 ${num(d.now.dia)}</div><div class="k">เข้า ${num(tot('d_in'))} • ใช้ ${num(tot('d_out'))} (${d.days} วัน)</div></div>
+      ${resV('wood', '🪵 ไม้')}${resV('stone', '🪨 หิน')}${resV('food', '🍖 อาหาร')}
+    </div>
+    <h2>📊 ทองเข้า / ออก รายวัน</h2>
+    <div class="tw"><table><tr><th>วัน</th><th>ทองเข้า</th><th></th><th>ทองออก</th><th>สุทธิ</th><th>คนเล่น</th></tr>${d.byDay.map(r => `<tr><td>${r.day}</td><td>${num(r.g_in)}</td><td style="width:40%"><div class="bar" style="margin:0"><i style="width:${100 * r.g_in / maxIn}%"></i></div><div class="bar" style="margin:2px 0 0"><i style="width:${100 * r.g_out / maxIn}%;background:var(--red)"></i></div></td><td>${num(r.g_out)}</td><td>${sgn(r.g_in - r.g_out)}</td><td>${r.who}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ยังไม่มีข้อมูล</td></tr>'}</table></div>
+    <h2>🔎 ทองมาจากไหน / ไปไหน (${d.days === 1 ? 'วันนี้' : d.days + ' วัน'})</h2>
+    <div class="tw"><table><tr><th>แหล่ง</th><th>ทองเข้า</th><th>ทองออก</th><th>💎 เข้า/ออก</th><th>🪵</th><th>🪨</th><th>🍖</th><th>ครั้ง</th><th>คน</th></tr>${d.bySrc.map(r => `<tr><td>${srcName(r.src)}</td><td>${r.g_in ? num(r.g_in) : '-'}</td><td>${r.g_out ? num(r.g_out) : '-'}</td><td>${r.d_in || r.d_out ? `${num(r.d_in)} / ${num(r.d_out)}` : '-'}</td><td>${sgn(r.wood)}</td><td>${sgn(r.stone)}</td><td>${sgn(r.food)}</td><td>${num(r.n)}</td><td>${r.who}</td></tr>`).join('') || '<tr><td colspan="9" class="dim">ยังไม่มีข้อมูล — ข้อมูลเข้าทุก 5 นาทีที่ผู้เล่นเล่นอยู่</td></tr>'}</table></div>
+    <h2>🏆 ใครได้ทองมากสุด (${d.days === 1 ? 'วันนี้' : d.days + ' วัน'}) — แตะเพื่อดูที่มาของคนนั้น</h2>
+    <div class="tw"><table><tr><th>ชื่อ</th><th>Lv</th><th>ทองเข้า</th><th>ทองออก</th><th>แหล่งหลัก</th><th></th></tr>${d.top.map(t => `<tr class="click" data-id="${esc(t.id)}"><td>${esc(t.name || '(ไม่มีชื่อ)')}</td><td>${t.lv ?? '-'}</td><td>${num(t.g_in)}</td><td>${num(t.g_out)}</td><td>${SRC[t.main] || esc(t.main)}</td><td>${medTop && t.g_in > medTop * 5 && t.g_in > 20000 ? '<span class="tag ban">⚠ สูงผิดปกติ</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ยังไม่มีข้อมูล</td></tr>'}</table></div>
+    <h2>💎 รวยสุดตอนนี้</h2>
+    <div class="tw"><table><tr><th>ชื่อ</th><th>ทอง</th><th>เพชร</th></tr>${d.rich.map(r => `<tr class="click" data-id="${esc(r.id)}"><td>${esc(r.name || '(ไม่มีชื่อ)')}</td><td>${num(r.gold)}</td><td>${num(r.dia)}</td></tr>`).join('')}</table></div>
+    <h2>🏪 ราคาตลาด (ขายได้จริง) — ช่วงนี้เทียบช่วงก่อน</h2>
+    <div class="tw"><table><tr><th>ไอเทม</th><th>ขายได้</th><th>ราคาเฉลี่ย</th><th>ช่วงก่อน</th><th>เปลี่ยน</th></tr>${d.market.map(m => `<tr><td>${esc(m.name)}</td><td>${m.n}</td><td>${m.n ? num(m.avg) : '-'}</td><td>${m.pn ? num(m.pavg) : '-'}</td><td>${m.n && m.pn ? (m.avg > m.pavg * 1.2 ? '🔴 แพงขึ้น ' : m.avg < m.pavg * 0.8 ? '🔵 ถูกลง ' : '🟢 ') + Math.round((m.avg / m.pavg - 1) * 100) + '%' : '-'}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มีการซื้อขาย</td></tr>'}</table></div>
+    <h2>🗓 ภาพรวมรายวัน (ถ่ายตอนเปิดหน้านี้ วันละ 1 แถว)</h2>
+    <div class="tw"><table><tr><th>วัน</th><th>ผู้เล่น</th><th>ทองรวม</th><th>เฉลี่ย/คน</th><th>มัธยฐาน</th><th>💎</th><th>🪵</th><th>🪨</th><th>🍖</th></tr>${d.snaps.map(x => `<tr><td>${x.day}</td><td>${x.players}</td><td>${num(x.gold)}</td><td>${num(Math.round(x.gold / Math.max(1, x.players)))}</td><td>${num(x.med_gold)}</td><td>${num(x.dia)}</td><td>${num(x.wood)}</td><td>${num(x.stone)}</td><td>${num(x.food)}</td></tr>`).join('')}</table></div>`;
+}
 async function show() {
   clearTimeout(timer);
   [...$('tabs').children].forEach(b => b.classList.toggle('on', b.dataset.k === tab));
@@ -136,6 +187,10 @@ async function show() {
     } else if (tab === 'reports') {
       const d = await api('/admin/reports');
       main.innerHTML = `<div class="tw"><table><tr><th>เมื่อ</th><th>ผู้ถูกรายงาน</th><th>ข้อความ</th><th>ห้อง</th><th>คนรายงาน</th><th>ปิดแชตอยู่</th></tr>${d.rows.map(r => `<tr class="click" data-id="${esc(r.target)}"><td class="dim">${when(r.at)}</td><td>${esc(r.target_name)}</td><td style="white-space:normal;min-width:200px">${esc(r.text)}</td><td>${esc(r.room)}</td><td>${esc(r.by_name)}</td><td>${(r.muted_until || 0) > Date.now() ? '🔇 ใช่' : '-'}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ไม่มีรายงาน</td></tr>'}</table></div>`;
+    } else if (tab === 'econ') {
+      const d = await api('/admin/econ?days=' + econDays);
+      main.innerHTML = econHtml(d);
+      main.querySelectorAll('button[data-days]').forEach(b => b.onclick = () => { econDays = Number(b.dataset.days); show(); });
     } else if (tab === 'flags') {
       const d = await api('/admin/flags');
       main.innerHTML = `<p class="dim">สิ่งที่ระบบกันโกงจับได้ (ทอง/เลเวลพุ่งผิดปกติ, แก้เพชร/VIP เอง) และสิ่งที่แอดมินทำ</p><div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>เรื่อง</th><th>รายละเอียด</th></tr>${d.rows.map(f => `<tr class="click" data-id="${esc(f.id)}"><td class="dim">${when(f.at)}</td><td>${esc(f.name || f.id)}</td><td>${esc(f.what)}</td><td style="white-space:normal">${esc(f.detail)}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ไม่มี</td></tr>'}</table></div>`;
@@ -171,6 +226,7 @@ async function player(id) {
     <div class="row"><input id="gNote" placeholder="ข้อความถึงผู้เล่น (ไม่ใส่ก็ได้) เช่น ชดเชยบั๊กอาคารหาย" style="width:min(420px,100%)"><button class="btn green" id="gSend">🎁 ส่งของ</button></div>
     <h2>🎒 กระเป๋า (${(s.inventory || []).length})</h2><div style="font-size:13px">${esc(inv) || '<span class="dim">ว่าง</span>'}</div>
     <h2>🚩 ถูกรายงาน (${d.reports.length})</h2>${d.reports.map(r => `<div style="font-size:13px"><span class="dim">${when(r.at)} • ${esc(r.by_name)}:</span> ${esc(r.text)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>💰 ที่มาของทอง 7 วัน (เริ่มบันทึก 13 พ.ย.)</h2>${(d.econ || []).length ? `<div class="tw"><table style="min-width:420px"><tr><th>แหล่ง</th><th>ทองเข้า</th><th>ทองออก</th><th>💎</th><th>🪵/🪨/🍖</th><th>ครั้ง</th></tr>${d.econ.map(r => `<tr><td>${srcName(r.src)}</td><td>${r.g_in ? num(r.g_in) : '-'}</td><td>${r.g_out ? num(r.g_out) : '-'}</td><td>${r.d_in || r.d_out ? num(r.d_in) + ' / ' + num(r.d_out) : '-'}</td><td>${sgn(r.wood)} / ${sgn(r.stone)} / ${sgn(r.food)}</td><td>${num(r.n)}</td></tr>`).join('')}<tr><td><b>รวม</b></td><td><b>${num(d.econ.reduce((t, r) => t + r.g_in, 0))}</b></td><td><b>${num(d.econ.reduce((t, r) => t + r.g_out, 0))}</b></td><td colspan="3"></td></tr></table></div>` : '<span class="dim">ยังไม่มีข้อมูล</span>'}
     <h2>🛡 กันโกง (${d.flags.length})</h2>${d.flags.map(f => `<div style="font-size:13px"><span class="dim">${when(f.at)}</span> ${esc(f.what)} — ${esc(f.detail)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
     <h2>🏪 ของที่ลงขาย (${d.market.length})</h2>${d.market.map(m => `<div style="font-size:13px">${esc((() => { try { return JSON.parse(m.item).id; } catch { return '?'; } })())} • 💰 ${num(m.price)} • ${esc(m.status)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
     <h2>🧾 ข้อมูลตัวละครทั้งหมด</h2><pre>${esc(JSON.stringify(s, null, 1))}</pre>`;

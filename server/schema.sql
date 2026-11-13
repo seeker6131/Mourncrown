@@ -48,3 +48,8 @@ CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, id TEXT NOT NU
 CREATE INDEX IF NOT EXISTS sessions_id ON sessions (id, at);
 -- letters to everyone from the back office (each player's game puts the new ones in its mailbox once)
 CREATE TABLE IF NOT EXISTS mail_all (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, title TEXT NOT NULL, text TEXT, gift TEXT, until INTEGER NOT NULL DEFAULT 0, by_id TEXT);
+-- the money ledger (back office 💰): gold / diamonds in and out, resources net, by day (Thai) × player × source (the action)
+CREATE TABLE IF NOT EXISTS econ (day TEXT NOT NULL, id TEXT NOT NULL, src TEXT NOT NULL, g_in INTEGER NOT NULL DEFAULT 0, g_out INTEGER NOT NULL DEFAULT 0, d_in INTEGER NOT NULL DEFAULT 0, d_out INTEGER NOT NULL DEFAULT 0, wood INTEGER NOT NULL DEFAULT 0, stone INTEGER NOT NULL DEFAULT 0, food INTEGER NOT NULL DEFAULT 0, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, id, src));
+CREATE INDEX IF NOT EXISTS econ_id ON econ (id, day);
+-- the whole economy once a day (taken when the back office opens 💰): totals of real players, to see what inflates
+CREATE TABLE IF NOT EXISTS econ_snap (day TEXT PRIMARY KEY, at INTEGER NOT NULL, players INTEGER NOT NULL, gold INTEGER NOT NULL, dia INTEGER NOT NULL, wood INTEGER NOT NULL, stone INTEGER NOT NULL, food INTEGER NOT NULL, med_gold INTEGER NOT NULL, items INTEGER NOT NULL DEFAULT 0);
