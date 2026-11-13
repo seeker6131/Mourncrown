@@ -141,8 +141,16 @@ export function advanceClass(s: GameState, cls?: ClassId): boolean {
   if (nt === null) return false;
   if ((s.tier ?? 0) === 0) { if (!cls || cls === 'novice') return false; s.cls = cls; }
   s.tier = nt; s.useTier = nt;
+  // a new form brings new skills: every point spent on the old ones comes back (director: nobody loses points)
+  const back = Object.values(s.skillLv ?? {}).reduce((a, lv) => a + Math.max(0, lv - 1), 0);
+  s.skillLv = {}; s.skillPts = (s.skillPts ?? 0) + back; lastRefund = back;
   return true;
 }
+/** skill points given back by the last form change */
+export let lastRefund = 0;
+/** extra skill points besides levels (director: something to aim for): the first kill of each map's boss, the main
+ *  quest chain every 4 quests, every 7th daily login */
+export function bonusSkillPt(s: GameState, n = 1) { s.skillPts = (s.skillPts ?? 0) + n; }
 
 /** Form currently worn (chosen in the changing room; can be any unlocked form). */
 export function activeTier(s: GameState) { if (s.outfit === 'gather') return 0; return Math.max(0, Math.min(s.useTier ?? s.tier ?? 0, s.tier ?? 0)); }

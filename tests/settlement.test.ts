@@ -138,3 +138,24 @@ describe('daily tasks', () => {
     expect(s.gold).toBe(g + t.gold);
   });
 });
+
+describe('skill points (director: nobody loses points; more ways to earn them)', () => {
+  it('a new form gives back every point spent on the old skills', async () => {
+    const { startNewGame } = await import('../src/core/save');
+    const { advanceClass, upSkill, currentSkills } = await import('../src/systems/stats');
+    const s = startNewGame(); s.level = 10; s.skillPts = 5;
+    const id = currentSkills(s)[0]; expect(upSkill(s, id)).toBe(true); expect(upSkill(s, id)).toBe(true); expect(upSkill(s, id)).toBe(true);
+    expect(s.skillPts).toBe(2);
+    expect(advanceClass(s, 'sword')).toBe(true);
+    expect(s.skillPts).toBe(5); expect(s.skillLv).toEqual({});
+  });
+  it('the first kill of a map boss, every 4th main quest and every 7th login give a point', async () => {
+    const { startNewGame } = await import('../src/core/save');
+    const { handlers, useMem, newMem } = await import('../src/server/handlers');
+    const s = startNewGame(); useMem(newMem()); const c = { now: Date.UTC(2026, 10, 13, 12), rnd: () => 0.5 };
+    // 7 daily logins
+    let pts = s.skillPts;
+    for (let d = 0; d < 7; d++) { const r = handlers.loginClaim(s, {}, { ...c, now: c.now + d * 86400000 }) as { skillPt?: number }; if (d < 6) expect(r.skillPt).toBe(0); else expect(r.skillPt).toBe(1); }
+    expect(s.skillPts).toBe(pts + 1);
+  });
+});

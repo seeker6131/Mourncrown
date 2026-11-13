@@ -384,7 +384,7 @@ export class Panels implements GuildHost {
     // skill points: big and clear; every + shows what it gives, uses a point, and greys out with no points / at the top
     g.fillStyle(s.skillPts ? 0x1f3a1f : 0x2a1d12, 1).fillRoundedRect(rx + 6, ly + 4, rw - 12, 20, 4);
     c.add(k.text(rx + 12, ly + 7, `✨ แต้มสกิล: ${s.skillPts}`, 10, s.skillPts ? '#9fffb0' : '#a89878'));
-    c.add(k.text(rx + rw - 12, ly + 9, s.skillPts ? 'กด + เพื่ออัปสกิล' : 'ได้แต้มเพิ่มเมื่อเลเวลอัป', 7.5, s.skillPts ? '#c8f0c0' : '#8a7a60').setOrigin(1, 0));
+    c.add(k.text(rx + rw - 12, ly + 9, s.skillPts ? 'กด + เพื่ออัปสกิล' : 'แต้มได้จาก: เลเวลอัป • บอสครั้งแรก • เควสต์หลัก • ล็อกอิน 7 วัน', 7.5, s.skillPts ? '#c8f0c0' : '#8a7a60').setOrigin(1, 0));
     currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const sy = ly + 30 + i * 62;
       c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30));
@@ -576,6 +576,7 @@ export class Panels implements GuildHost {
         sfx.levelUp();
         const nm = formName(s.cls, s.tier);
         bus.emit(EV.TOAST, `กลายเป็น ${nm}!`, '#ffd84a');
+        if (ar.refund) bus.emit(EV.TOAST, `✨ คืนแต้มสกิล ${ar.refund} แต้ม — ไปอัปสกิลชุดใหม่ได้เลย (หน้าตัวละคร)`, '#9fffb0');
         this.close();
         bus.emit(EV.STATE_CHANGED);
         (ui.world as unknown as { levelUpFx(): void }).levelUpFx();
@@ -1187,6 +1188,7 @@ export class Panels implements GuildHost {
     });
     c.add(k.button(x + W / 2 - 70, y + H - 40, 140, 26, info.ready ? '🎁 รับของวันนี้' : 'รับแล้ว พรุ่งนี้มาใหม่', () => {
       const r = act('loginClaim', {});
+      if (!refused(r) && (r as { skillPt?: number }).skillPt) bus.emit(EV.TOAST, '✨ ล็อกอินครบ 7 วัน — ได้แต้มสกิล +1!', '#9fffb0');
       if (refused(r)) { sfx.error(); return; }
       sfx.levelUp(); bus.emit(EV.TOAST, `รับของล็อกอินวันที่ ${info.day + 1}: ${r.label}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
     }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));

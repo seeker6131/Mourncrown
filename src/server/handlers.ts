@@ -30,7 +30,7 @@ import {
 } from '../systems/guild';
 import { RAID_SECS, REST_EXP, GUILD_BLD, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
 import { gainExp } from '../systems/stats';
-import { upSkill, advanceClass } from '../systems/stats';
+import { upSkill, advanceClass, lastRefund, bonusSkillPt } from '../systems/stats';
 import { listItem, cancelListing } from '../systems/market';
 import { buyDiamondItem, claimVipGift, grantVip, grantDiamonds, vipActive } from '../systems/premium';
 import { claimTdQuest } from '../systems/tdQuests';
@@ -144,6 +144,8 @@ export const handlers = {
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
     const bounty = sp.bounty !== undefined && bountyOf(s, c.now).slot === sp.bounty;
     const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss || bounty, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
+    // the first time you beat a map's boss: +1 skill point (once per map)
+    if (a.boss && n !== WILD && !isDungeon(n)) { const bf = ((s as { bossFirst?: number[] }).bossFirst ??= []); if (!bf.includes(n)) { bf.push(n); bonusSkillPt(s); (r as { skillPt?: number }).skillPt = 1; } }
     if (bounty) {
       const b = bountyOf(s, c.now); s.gold += b.gold; give('ancient_core', 1); markBounty(s, b.slot);
       const dragon = !hasMount(s, 'dragon') && c.rnd() < DRAGON_BOUNTY && grantMount(s, 'dragon');   // the limited dragon: very rare, never shown as a rate
@@ -329,10 +331,10 @@ export const handlers = {
   /** class change; from villager the new line gets a free starter weapon (equipped) */
   advanceClass(s: GameState, a: { cls?: ClassId }) {
     const wasVillager = (s.tier ?? 0) === 0;
-    if (!advanceClass(s, a.cls)) return { ok: false, weapon: null as string | null };
+    if (!advanceClass(s, a.cls)) return { ok: false, weapon: null as string | null, refund: 0 };
     let weapon: string | null = null;
     if (wasVillager) { const w = ({ sword: 'wood_sword', archer: 'short_bow', mage: 'apprentice_wand', cleric: 'iron_mace' } as Record<string, string>)[s.cls]; if (w && addItem(s, w, 1)) { equip(s, s.inventory[s.inventory.length - 1].uid); weapon = w; } }
-    return { ok: true, weapon };
+    return { ok: true, weapon, refund: lastRefund };
   },
   /** list an item on the market: in the village — VIP anywhere (director) */
   marketList: (s: GameState, a: { uid: number; qty: number; price: number }, c: Ctx) => (mem.map !== 0 && !vipActive(s, c.now) ? 'away' as const : listItem(s, a.uid, a.qty, a.price, c.now)),
@@ -342,7 +344,8 @@ export const handlers = {
   marketBuy: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true; id: string; qty: number; price: number },
   buyDiamond: (s: GameState, a: { id: string }, c: Ctx) => buyDiamondItem(s, a.id, c.now),
   vipGift: (s: GameState, _a: object, c: Ctx) => claimVipGift(s, c.now),
-  claimTdQuest: (s: GameState, _a: object) => claimTdQuest(s),
+  /** the main quest chain: every 4th quest also gives a skill point */
+  claimTdQuest: (s: GameState, _a: object) => { const q = claimTdQuest(s); if (!q) return q; const i = ((s as { tdq?: { i: number } }).tdq?.i ?? 0); const pt = i > 0 && i % 4 === 0; if (pt) bonusSkillPt(s); return Object.assign({}, q, { skillPt: pt ? 1 : 0 }); },
   acceptQuest: (s: GameState, a: { id: string }) => acceptQuest(s, a.id),
   completeQuest: (s: GameState, a: { id: string }) => completeQuest(s, a.id),
   /** dungeon cleared: the server checks every wave died in a believable time, then opens the chest */
@@ -366,7 +369,8 @@ export const handlers = {
   /** tutorial finished (or skipped): one-time starter reward */
   tutorialDone: (s: GameState, _a: object) => (tutPay(s) ? { ok: true } : no('paid')),
   /** daily login calendar: one claim per day */
-  loginClaim: (s: GameState, _a: object, c: Ctx) => claimLogin(s, c.now) ?? no('claimed'),
+  /** daily login: every 7th day also gives a skill point */
+  loginClaim: (s: GameState, _a: object, c: Ctx) => { const r = claimLogin(s, c.now); if (!r) return no('claimed'); const n = (s as { login?: { n: number } }).login?.n ?? 0, pt = n > 0 && n % 7 === 0; if (pt) bonusSkillPt(s); return Object.assign({}, r, { skillPt: pt ? 1 : 0 }); },
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
   dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend' | 'mountDragon'; n?: number; name?: string; wreck?: Wreck }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');

@@ -636,6 +636,7 @@ export class Combat {
     const bty = (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty;
     if (bty?.dragon) { bus.emit(EV.TOAST, '🐉✦ ลิมิเต็ด! ได้ "มังกรเพลิงนิรันดร์" — สัตว์ขี่ในตำนาน! (เมนู → 🐎 สัตว์ขี่)', '#ff9a3a'); fx2(this.s, 'fx_drop_sl', m.x, m.y, m.y + 2, 1.2); this.s.cameras.main.flash(300, 255, 140, 40); }
     if (bty) { bus.emit(EV.TOAST, `👑 ปราบ ${bty.name}! ได้ค่าหัว 💰${bty.gold} + แก่นโบราณ`, '#ffb04a'); fx2(this.s, 'fx_raid_victory', m.x, m.y - 30, 99995, 1.3); }
+    if ((r as { skillPt?: number }).skillPt) bus.emit(EV.TOAST, '✨ ปราบบอสแผนที่นี้ครั้งแรก — ได้แต้มสกิล +1!', '#9fffb0');
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
     if (r.drops?.length) this.dropLoot(m.x, m.y, r.drops);
     if (r.gold) sfx.coinSoft();
