@@ -277,9 +277,19 @@ export class Room {
     const n = this.sim?.n ?? 0; if (!n) return;
     this.state.waitUntil?.(this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/wbnote', { method: 'POST', body: JSON.stringify({ n, k, name, by }) })).catch(() => undefined));
   }
+  /** monster rewards waiting to be sent, per player: one call every 3 s instead of one per kill (the daily request quota) */
+  payQ = new Map<string, unknown[]>(); payT = 0;
+  private payNow(pid: string, p: unknown) { return this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify(p) })); }
+  private flushPay() {
+    this.payT = Date.now(); if (!this.payQ.size) return;
+    const all = [...this.payQ]; this.payQ.clear();
+    const go = Promise.allSettled(all.map(([pid, list]) => this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/payb?id=' + pid, { method: 'POST', body: JSON.stringify({ list }) }))));
+    this.state.waitUntil?.(go);
+  }
   private beat() {
-    const socks = this.state.getWebSockets(); if (!socks.length || !this.sim) { if (this.timer) clearInterval(this.timer); this.timer = null; return; }
+    const socks = this.state.getWebSockets(); if (!socks.length || !this.sim) { this.flushPay(); if (this.timer) clearInterval(this.timer); this.timer = null; return; }
     const now = Date.now(), ev = this.sim.run(now, this.players());
+    if (now - this.payT >= 3000) this.flushPay();
     const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(now) });
     for (const w of socks) { try { w.send(ms); } catch { /* closing */ } }
     for (const f of ev.fx) { const t = JSON.stringify({ t: 'mfx', ...f }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } }
@@ -371,8 +381,11 @@ export class Room {
         if (r.wb) this.announce('dead', r.mob.name, me.name);
         // the server pays: each player with a fair share gets their own reward in their own game on the server
         const n = mapOfRoom(room), need = r.boss ? 0.03 : 0.1;
-        if (n) await Promise.allSettled(Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) =>
-          this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid, key: r.mob.key, kind: r.mob.kind, boss: r.boss, elite: r.elite, share: v, ...(r.wb ? { wb: true, lv: r.lv, killer: pid === me.id } : {}) }) }))));   // (a roaming boss: items only for the one who struck it down)
+        if (n) {
+          const pays = Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) => ({ pid, p: { n, sid, key: r.mob.key, kind: r.mob.kind, boss: r.boss, elite: r.elite, share: v, ...(r.wb ? { wb: true, lv: r.lv, killer: pid === me.id } : {}) } }));
+          if (r.wb) await Promise.allSettled(pays.map(({ pid, p }) => this.payNow(pid, p)));   // (a roaming boss: at once — the killer's item)
+          else for (const { pid, p } of pays) { const q = this.payQ.get(pid) ?? []; q.push(p); this.payQ.set(pid, q); if (q.length >= 10) this.flushPay(); }
+        }
       }
     } else if (m.t === 'c') {   // chat: one line every 2 seconds (the world: every 5), filtered
       if (now - me.chatT < (room === 'chat-world' ? 5000 : 2000)) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
@@ -597,20 +610,27 @@ export class Player {
       return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
     }
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
-      const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number; wb?: boolean; lv?: number; killer?: boolean };
-      if (p.wb) {
-        if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }
-        const out = this.run('wbKill', { sid: p.sid, key: p.key, kind: p.kind, lv: p.lv, share: p.share, killer: !!p.killer });
-        await this.later(); this.send({ t: 'pay', sid: p.sid, ...out });
-        return new Response('{}');
-      }
-      const st = p.n === WILD ? null : STAGES[p.n - 1], L = st?.land, mob = L ? [...L.mobs, L.boss].find(m => m.key === p.key) : null;
-      this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }   // (memory lost / just arrived: a fresh 10 s of damage, never zero)
-      const out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });
-      await this.later(); this.send({ t: 'pay', sid: p.sid, ...out });
+      this.payOne(JSON.parse(await req.text())); await this.later();
       return new Response('{}');
     }
+    if (u.pathname === '/payb' && this.st) {   // the map room: the kills of the last few seconds in one call (saves the daily quota)
+      const b = JSON.parse(await req.text()) as { list?: unknown[] };
+      for (const p of (b.list ?? []).slice(0, 60)) this.payOne(p as never);
+      await this.later(); return new Response('{}');
+    }
     return new Response('{}', { status: 404 });
+  }
+  /** one monster's reward for this player (the game gets a 'pay' note with the loot) */
+  private payOne(p: { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number; wb?: boolean; lv?: number; killer?: boolean }) {
+    if (p.wb) {
+      if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }
+      const out = this.run('wbKill', { sid: p.sid, key: p.key, kind: p.kind, lv: p.lv, share: p.share, killer: !!p.killer });
+      this.send({ t: 'pay', sid: p.sid, ...out }); return;
+    }
+    const st = p.n === WILD ? null : STAGES[p.n - 1], L = st?.land, mob = L ? [...L.mobs, L.boss].find(m => m.key === p.key) : null;
+    this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }   // (memory lost / just arrived: a fresh 10 s of damage, never zero)
+    const out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });
+    this.send({ t: 'pay', sid: p.sid, ...out });
   }
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
     if (typeof data !== 'string' || data.length > 20000) return;
