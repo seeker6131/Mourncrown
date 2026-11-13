@@ -763,7 +763,9 @@ export class Player {
         for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
       }
       else for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
+      const cbtNew = this.cbtLetter();   // (a game that only saves — idle, or its socket never came back — gets the CBT letter too)
       this.dirty = true; await this.persist();
+      if (cbtNew) this.send({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' });
       return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
     }
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
@@ -810,7 +812,7 @@ export class Player {
     if (typeof data !== 'string' || data.length > 20000) return;
     const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
-    if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
+    if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } if (this.cbtLetter()) { await this.later(); this.send({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
     if (m.t !== 'act' || typeof m.name !== 'string') return;
     if (Date.now() - this.helloT > 300000) this.hello('/hello');
     if (this.cbtLetter()) { await this.later(); ws.send(JSON.stringify({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' })); }   // (still playing: keep counting me online)
