@@ -21,7 +21,7 @@ import { pay } from './settlement';
 import { dayKey } from './daily';
 
 export type Role = 'leader' | 'deputy' | 'member';
-export interface GMember { id: string; name: string; role: Role; pts: number; house: number; houseLv: number; houseDone?: number; houseDmg?: number; cls: string; lv: number; sim?: boolean; joined: number }
+export interface GMember { id: string; name: string; role: Role; pts: number; house: number; houseLv: number; houseDone?: number; houseDmg?: number; cls: string; lv: number; sim?: boolean; joined: number; /** the form worn (refreshed on every guild action) and the look */ t?: number; lk?: 'm' | 'f' }
 export interface GDefense { slot: number; type: DefenseId; level: number; hp: number; done?: number }
 export interface GBuilding { type: GuildBld; level: number; stored: number; last: number; done?: number; /** fire damage 0..1 after a raid (1 = burnt to a ruin) */ dmg?: number }
 export interface Treasury { gold: number; wood: number; stone: number; food: number; items: Record<string, number> }

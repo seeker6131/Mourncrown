@@ -938,6 +938,10 @@ export class Guild {
       const st: St = { ...(body.player as St), guild: { ...this.g, me: pid } };
       let m = this.mems.get(pid); if (!m) { m = newMem(); this.mems.set(pid, m); } useMem(m);
       const now = Date.now(), before0 = JSON.stringify(this.g);
+      { // the member as they are now (class / level / form were only taken when they joined: a villager forever in the war scene)
+        const p = body.player as { cls?: string; level?: number; tier?: number; useTier?: number; look?: string } | undefined, me = this.g.members.find(m => m.id === pid);
+        if (p && me) { const tier = Math.max(0, Number(p.tier) || 0); me.cls = String(p.cls ?? me.cls); me.lv = Number(p.level) || me.lv; me.t = Math.max(0, Math.min(Number(p.useTier ?? tier) || 0, tier)); if (p.look === 'f' || p.look === 'm') me.lk = p.look; }
+      }
       try { await this.match(now); await this.board(now); } catch { /* the database is busy: keep yesterday's list */ }
       // going to war with a real guild: look at their village as it is now (they may have a shield by now)
       const aid = String((body.args as { id?: string } | undefined)?.id ?? '');

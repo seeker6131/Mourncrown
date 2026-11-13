@@ -60,7 +60,7 @@ export class RaidBattle {
   }
   private addAlly(i: number) {
     const g = guildOf(S()); if (!g) return;
-    const m = g.members[i % g.members.length], key = formKeyOf(m.cls, m.lv >= 80 ? 3 : m.lv >= 40 ? 2 : m.lv >= 10 ? 1 : 0); if (!CH[key]) return;
+    const m = g.members[i % g.members.length], key = formKeyOf(m.cls, m.t ?? (m.lv >= 80 ? 3 : m.lv >= 40 ? 2 : m.lv >= 10 ? 1 : 0), m.lk); if (!CH[key]) return;   // (t: the form the member wears)
     const x = L.SOUTH_GATE.x + ((i * 29) % 90) - 45, y = L.SOUTH_GATE.y - 20 - ((i * 17) % 40);
     const sp = this.sc.add.sprite(x, y, `c_${key}_idle`).setDepth(y); setIdle(sp, key, 4);
     const tag = this.sc.add.text(x, y - 40, `🛡 ${m.name}`, { fontFamily: 'sans-serif', fontSize: '6px', color: '#9fffb0', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990);

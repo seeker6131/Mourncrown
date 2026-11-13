@@ -380,7 +380,7 @@ export class Panels implements GuildHost {
     const d = derive(s);
     const lx = x + 14, ly = y + 32;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(lx, ly, 250, H - 44, 4);
-    c.add(k.text(lx + 8, ly + 6, `${s.name} • ${formName(s.cls, s.tier)} (ร่าง ${s.tier + 1})   Lv ${s.level}   EXP ${s.exp}/${expToNext(s.level)}`, 9, '#ffe7a0'));
+    c.add(k.text(lx + 8, ly + 6, `${s.name} • ${formName(s.cls, activeTier(s))} (ร่าง ${activeTier(s) + 1})   Lv ${s.level}   EXP ${s.exp}/${expToNext(s.level)}`, 9, '#ffe7a0'));
     g.fillStyle(0x2a1d12, 1).fillRoundedRect(lx + 6, ly + 22, 238, 34, 4);
     g.lineStyle(1, GOLD, 1).strokeRoundedRect(lx + 6, ly + 22, 238, 34, 4);
     c.add(k.text(lx + 125, ly + 27, `พลังรบ  ${d.power.toLocaleString()}`, 15, '#ffd84a').setOrigin(0.5, 0));
@@ -1110,15 +1110,16 @@ export class Panels implements GuildHost {
     const s = S(), ui = this.ui, k = this.k, d = derive(s), ps = pstats(s);
     const W = Math.min(640, ui.VW - 12), H = 340;
     const { x, y, g } = this.window(c, W, H, '👤 โปรไฟล์');
-    const t = s.tier ?? 0, key = formKeyOf(s.cls, t, s.look), sx = x + 14, sy = y + 32, cw = 190;
+    // the form being WORN (the same picture as on the map / the top-left portrait) — not the highest one unlocked
+    const t = activeTier(s), pk = this.ui.world.hero.portrait().key, sx = x + 14, sy = y + 32, cw = 190;
     // left: the hero
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(sx, sy, cw, H - 44, 5);
-    if (ui.textures.exists(`c_${key}_idle`)) { const im = ui.add.image(sx + cw / 2, sy + 116, `c_${key}_idle`, 0).setOrigin(0.5, 1); im.setScale(104 / im.height); c.add(im); }
+    if (ui.textures.exists(pk)) { const im = ui.add.image(sx + cw / 2, sy + 116, pk, 0).setOrigin(0.5, 1); im.setScale(104 / im.height); c.add(im); }
     const title = titleOf(s);
     c.add(k.text(sx + cw / 2, sy + 6, s.name || 'ผู้กล้า', 12, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
     if (title) c.add(k.text(sx + cw / 2, sy + 22, `「${title}」`, 8.5, '#ffd84a').setOrigin(0.5, 0));
     const cls = s.cls && s.cls !== 'novice' ? ({ sword: '⚔ สายดาบ', archer: '🏹 สายธนู', mage: '✦ สายเวท', cleric: '✚ สายนักบวช' } as Record<string, string>)[s.cls] : 'ชาวบ้าน (ยังไม่เลือกสาย)';
-    c.add(k.text(sx + cw / 2, sy + 122, `${formName(s.cls, t)} • ร่างที่ ${t + 1}`, 10, '#ffe7a0').setOrigin(0.5, 0));
+    c.add(k.text(sx + cw / 2, sy + 122, `${formName(s.cls, t)} • ร่างที่ ${t + 1}` + ((s.tier ?? 0) > t ? ` (ปลดล็อกถึงร่าง ${(s.tier ?? 0) + 1})` : ''), (s.tier ?? 0) > t ? 8.5 : 10, '#ffe7a0').setOrigin(0.5, 0));
     c.add(k.text(sx + cw / 2, sy + 138, cls, 8.5, '#c8b898').setOrigin(0.5, 0));
     c.add(k.text(sx + cw / 2, sy + 156, `Lv ${s.level}`, 16, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
     const need = expToNext(s.level), f = Math.min(1, s.exp / need);
