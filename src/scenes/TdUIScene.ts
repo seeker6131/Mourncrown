@@ -225,7 +225,7 @@ export class TdUIScene extends Phaser.Scene {
       show(); if (Date.now() - onlineNow.at > 180000) ask();
       this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
     // 🧪 active buffs under the minimap (players: which buff is on and how long is left) — systems/buffs.ts
-    for (let i = 0; i < 4; i++) { const t = k.text(this.VW - 10, 146 + i * 12, '', 7, '#fff4c8', { backgroundColor: 'rgba(0,0,0,0.45)', padding: { x: 3, y: 1 } }).setOrigin(1, 0); this.buffTx.push(t); this.root.add(t); }
+    for (let i = 0; i < 4; i++) { const t = k.text(this.VW - 10, 145 + i * 16, '', 9, '#fff4c8', { backgroundColor: 'rgba(0,0,0,0.6)', padding: { x: 4, y: 2 }, fontStyle: 'bold' }).setOrigin(1, 0); this.buffTx.push(t); this.root.add(t); }   // (director: bigger, clearer)
     this.bandX = (topL + midR) / 2; this.bandW = Math.max(150, midR - topL - 52);
     // tutorial banner under the title
     this.tutG = this.add.graphics(); this.tutTx = k.text(this.bandX, 60, '', 8.5, '#fff4c8', { wordWrap: { width: Math.min(360, this.bandW - 16) }, align: 'center' }).setOrigin(0.5, 0);
