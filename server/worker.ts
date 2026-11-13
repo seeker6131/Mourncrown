@@ -121,6 +121,8 @@ export default {
         const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
       }
+      // 🟢 how many are playing now (the small counter at the top of the screen)
+      if (path === '/online') return json(req, await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/count'))).json());
       // 👹 roaming bosses alive now (map-select screen; no login needed)
       if (path === '/bosses') return json(req, { list: await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/bosslist'))).json() });
       // 💬 world chat / guild chat (WebSocket): the world from Lv5 (keeps throwaway spam accounts out), a guild only for its members
@@ -268,6 +270,8 @@ export class Room {
   }
   /** (chat-world) roaming bosses alive now, by map — for the map-select screen */
   bosses = new Map<number, { name: string; until: number }>();
+  /** (chat-world) who is playing now: account → last sign of life (15 min without one = gone) */
+  online = new Map<string, number>();
   async fetch(req: Request) {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? '', name = (u.searchParams.get('name') || 'ผู้กล้า#' + id.slice(0, 4)).slice(0, 16);
     if (u.pathname === '/wbnote') {   // (from a map room) a roaming boss came / left / fell: everyone in world chat hears it
@@ -280,6 +284,13 @@ export class Room {
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
       return new Response('{}');
     }
+    if (u.pathname === '/hello' || u.pathname === '/bye') {   // (from a player's object) online / gone
+      const b = await req.json() as { id: string }, now = Date.now();
+      if (u.pathname === '/hello') this.online.set(String(b.id), now); else this.online.delete(String(b.id));
+      if (this.online.size > 20000) this.online.clear();
+      return new Response('{}');
+    }
+    if (u.pathname === '/count') { const now = Date.now(); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size })); }
     if (u.pathname === '/bosslist') { const now = Date.now(); return new Response(JSON.stringify([...this.bosses].filter(([, v]) => v.until > now).map(([n, v]) => ({ n, name: v.name, left: v.until - now })))); }
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
@@ -532,6 +543,7 @@ export class Player {
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
+      await this.hello('/hello');
       if (this.st) { const c = await this.claim(); if (c.text) server.send(JSON.stringify({ t: 'note', own: c.own, text: c.text })); }   // sold while away
       const gid = (this.st as { guildId?: string } | null)?.guildId;
       if (gid) { const v = await (await this.gstub(gid).fetch(new Request('https://g/view?pid=' + this.id))).json() as St | null; if (v) this.st!.guild = v; else { delete this.st!.guild; delete this.st!.guildId; } this.dirty = true; server.send(JSON.stringify({ t: 'note', own: { guild: this.st!.guild ?? null }, text: '' })); }
@@ -578,6 +590,7 @@ export class Player {
     const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
     if (m.t !== 'act' || typeof m.name !== 'string') return;
+    if (Date.now() - this.helloT > 300000) this.hello('/hello');   // (still playing: keep counting me online)
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
     const gid = (this.st as { guildId?: string }).guildId;
     if (this.goalSend.length && gid) { const g = this.goalSend; this.goalSend = []; try { await this.gstub(gid).fetch(new Request('https://g/goal', { method: 'POST', body: JSON.stringify({ pid: this.id, ups: g }) })); } catch { /* next time */ } }
@@ -587,7 +600,13 @@ export class Player {
     if (Object.keys(out.own).length) await this.later();
     ws.send(JSON.stringify({ t: 'r', q: m.q, ...out }));
   }
-  async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); }
+  async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); if (!this.state.getWebSockets().filter(w => w !== ws).length) await this.hello('/bye'); }
+  /** the online counter (a map in the chat-world room): hello on connect and now and then while playing, bye on leaving */
+  helloT = 0;
+  private async hello(path: '/hello' | '/bye') {
+    this.helloT = Date.now();
+    try { await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) })); } catch { /* not counted this time */ }
+  }
 }
 
 // ===== a real guild: one shared copy for every member =====
