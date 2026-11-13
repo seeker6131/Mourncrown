@@ -444,13 +444,24 @@ export class Room {
   /** (chat-world) roaming bosses alive now, by map — for the map-select screen */
   bosses = new Map<number, { name: string; until: number }>();
   /** (chat-world) who is playing now: account → last sign of life (15 min without one = gone) */
-  online = new Map<string, number>();
+  online = new Map<string, number>(); onlineT = 0;
   /** (chat-world) player-minutes played today (UTC day — Cloudflare's day), kept in storage across restarts */
   use = { day: '', mins: 0 }; useT = 0; useLoaded = false;
   private get store() { return (this.state as unknown as { storage: { get(k: string): Promise<unknown>; put(k: string, v: unknown): Promise<void>; setAlarm(t: number): Promise<void> } }).storage; }
   private async useLoad(now: number) {
-    if (!this.useLoaded) { this.useLoaded = true; const v = await this.store.get('use').catch(() => null) as { day: string; mins: number } | null; if (v) this.use = v; }
+    if (!this.useLoaded) {
+      this.useLoaded = true; const v = await this.store.get('use').catch(() => null) as { day: string; mins: number } | null; if (v) this.use = v;
+      // who is online survives this object going to sleep / a deploy (it lived in memory only: the 🟢 count and the back office
+      // showed only those who had said hello since — "online 1" while others walked around)
+      const o = await this.store.get('online').catch(() => null) as Record<string, number> | null;
+      if (o) for (const [k, t] of Object.entries(o)) if (now - t < 5 * 60000 && !this.online.has(k)) this.online.set(k, t);
+    }
     const day = new Date(now).toISOString().slice(0, 10); if (this.use.day !== day) this.use = { day, mins: 0 };
+  }
+  /** write who is online: at once when someone came / left, else at most once a minute (the storage quota) */
+  private saveOnline(now: number, changed: boolean) {
+    if (!changed && now - this.onlineT < 60000) return; this.onlineT = now;
+    this.store.put('online', Object.fromEntries(this.online)).catch(() => undefined);
   }
   private credit(ms: number, now: number) {
     this.use.mins += ms / 60000;
@@ -479,9 +490,11 @@ export class Room {
     if (u.pathname === '/hello' || u.pathname === '/bye') {   // (from a player's object) online / gone
       const b = await req.json() as { id: string }, now = Date.now(); await this.useLoad(now);
       const prev = this.online.get(String(b.id)); if (prev && now - prev < 15 * 60000) this.credit(now - prev, now);   // player-minutes today (the cap)
+      const had = this.online.has(String(b.id));
       if (u.pathname === '/hello') this.online.set(String(b.id), now); else this.online.delete(String(b.id));
       if (this.online.size > 20000) this.online.clear();
-      for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k);   // (a game says hello every 2 minutes: 5 without one = gone)
+      let gone = false; for (const [k, t] of this.online) if (now - t > 5 * 60000) { this.online.delete(k); gone = true; }   // (a game says hello every 2 minutes: 5 without one = gone)
+      this.saveOnline(now, gone || had !== this.online.has(String(b.id)));
       return new Response(JSON.stringify({ n: this.online.size }));
     }
     if (u.pathname === '/onlinelist') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k); return new Response(JSON.stringify({ ids: [...this.online.keys()], h: Math.round(this.use.mins / 6) / 10 })); }   // (the back office)
