@@ -321,7 +321,9 @@ export class Room {
     for (const a of ev.atk) { const t = JSON.stringify({ t: 'matk', sid: a.sid, k: a.k }); for (const w of this.state.getWebSockets(a.to)) { try { w.send(t); } catch { /* closing */ } } }
     for (const b of ev.wb) { const t = JSON.stringify({ t: 'wb', ...b }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } if (b.k !== 'warn') this.announce(b.k, b.name); }   // a roaming boss came / left
     // nothing to move (the common monsters are on the players' devices): stop ticking, wake a minute before the next boss
-    const q = this.sim.quietUntil(now);
+    let q = this.sim.quietUntil(now);
+    const b = this.sim.boss();   // a roaming boss nobody is near: it stands still; wake when someone comes close (a position / a hit) or when it is due to leave
+    if (!q && SOLO_MONSTERS && b && !this.sim.bossNear(now, this.players())) q = Math.min(b.join + WB.idle + 500, now + 60000);
     if (q) { this.flushPay(); if (this.timer) clearInterval(this.timer); this.timer = null; if (q !== Infinity) this.store.setAlarm(Math.max(now + 1000, q)).catch(() => undefined); }
   }
   /** the boss's time is near: tick again (after a sleep the room has forgotten the map: the games send it again) */
@@ -405,7 +407,9 @@ export class Room {
       const p = { x: num(m.x, 0, 4000), y: num(m.y, 0, 4000), d: num(m.d, 0, 7), f: String(m.f ?? 'hero').slice(0, 8), mv: m.mv ? 1 : 0, hp: num(m.hp, 0, 100), a: num(m.a, 0, 3), r: String(m.r ?? '').slice(0, 8), lv: num(m.lv, 1, 999) };
       me.p = p; (ws as WSX).serializeAttachment(me);
       this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
-      if (this.sim && !this.timer) this.start();
+      // a sleeping room wakes only for a reason: a boss is due (a missed alarm) or someone came near the standing boss
+      // (not on every position — that kept the room awake all the time)
+      if (this.sim && !this.timer && ((!SOLO_MONSTERS) || (this.sim.quietUntil(now) === 0 && !this.sim.boss()) || this.sim.bossNear(now, this.players()))) this.start();
     } else if (m.t === 'hit') {   // swing / skill (for the animation others see)
       this.others(ws, JSON.stringify({ t: 'hit', id: me.id, k: String(m.k ?? 'attack').slice(0, 12), d: Math.max(0, Math.min(7, Number(m.d) || 0)) }));
     } else if (m.t === 'grid' && shared) {   // the map's walls from this player's game
@@ -426,6 +430,7 @@ export class Room {
       const n = Math.max(0, Math.min(Math.round(Number(m.n) || 0), me.bud)); if (!n) { (ws as WSX).serializeAttachment(me); return; }
       me.bud -= n; (ws as WSX).serializeAttachment(me);
       r.hp -= n; r.dmg[me.id] = (r.dmg[me.id] ?? 0) + n; this.sim.hit(sid, me.id, now, this.players());
+      if (!this.timer) this.start();
       const all = this.state.getWebSockets();
       const send = (o: unknown) => { const t = JSON.stringify(o); for (const w of all) { try { w.send(t); } catch { /* closing */ } } };
       send({ t: 'mhp', sid, hp: Math.max(0, Math.round(r.hp)), by: me.id });

@@ -123,3 +123,30 @@ describe('director "C": the common monsters are each player\'s own; the room run
     w.run(T0, [me(100, 700)]); expect(w.mons.size).toBe(0); expect(w.quietUntil(T0)).toBe(Infinity);
   });
 });
+
+describe('roaming boss costs little server time: leaves when ignored, the room sleeps when nobody is near', () => {
+  const bossUp = () => {
+    const s = new MapSim('m3', grid(), rnd); s.regular = false; const P = [me(100, 700)]; let t = T0;
+    s.run(t, P); t = s.wbAt + 10;
+    for (let i = 0; i < 5 && !s.boss(); i++, t += 200) s.run(t, P);
+    return { s, P, t };
+  };
+  it('after the warning there is nothing to do until it arrives', () => {
+    const s = new MapSim('m3', grid(), rnd); s.regular = false; const P = [me(100, 700)]; let t = T0;
+    s.run(t, P); t = s.wbAt - 59000; s.run(t, P);
+    expect(s.warned).toBe(true); expect(s.quietUntil(t)).toBe(s.wbAt);
+  });
+  it('nobody near and nobody hit it: not "near" (the room sleeps); after 3 minutes untouched it leaves', () => {
+    const { s, P, t } = bossUp(); const b = s.boss()!;
+    expect(b).toBeTruthy(); const far = [{ ...P[0], x: b.x + WB.near + 200, y: b.y }];
+    expect(s.bossNear(t, far)).toBe(false);
+    expect(s.bossNear(t, [{ ...P[0], x: b.x + 50, y: b.y }])).toBe(true);
+    const ev: string[] = []; for (const w of s.run(b.join + WB.idle + 1000, far).wb) ev.push(w.k);
+    expect(ev).toContain('leave'); expect(s.boss()).toBeNull();
+  });
+  it('once hit it stays (and counts as near for a few seconds)', () => {
+    const { s, P, t } = bossUp(); const b = s.boss()!; const far = [{ ...P[0], x: b.x + WB.near + 200, y: b.y }];
+    s.hit(b.sid, 'A', t, far); expect(s.bossNear(t + 1000, far)).toBe(true);
+    s.run(b.join + WB.idle + 1000, far); expect(s.boss()).toBeTruthy();
+  });
+});

@@ -28,7 +28,7 @@ export const BOSS_RESPAWN = 300000;
  *  follow the players farming there: level = their median (never under the map's, at most 10 above), HP 1.5x a land
  *  boss of that level for one player and +70% for each more player (a strong player can win alone, others band
  *  together); it hits 1.3x as hard as a land boss. */
-export const WB = { first: [180000, 360000], gap: [480000, 840000], life: 480000, hp: 1.5, perPlayer: 0.7, atk: 1.3, maxPlayers: 8 } as const;
+export const WB = { first: [180000, 360000], gap: [480000, 840000], life: 480000, idle: 180000, near: 420, hp: 1.5, perPlayer: 0.7, atk: 1.3, maxPlayers: 8 } as const;   // (idle: nobody hit it for 3 min = it leaves; near: a player this close wakes the room)
 export const WB_KEYS = LANDS.map(l => l.boss.key);
 /** roaming boss level and HP for these players on this map */
 export function wbStats(stageLv: number, lvs: number[], mob: StageMon) {
@@ -127,7 +127,7 @@ export class MapSim {
     if (this.wild || !this.stage || !players.length) return;
     if (!this.wbAt) { this.wbAt = now + this.between(WB.first); return; }
     const cur = [...this.mons.values()].find(m => m.wb);
-    if (cur) { if (now > (cur.until ?? 0) && !cur.hitT) { this.mons.delete(cur.sid); this.ev.wb.push({ k: 'leave', sid: cur.sid, key: cur.mob.key, name: cur.mob.name, x: Math.round(cur.x), y: Math.round(cur.y) }); this.wbAt = now + this.between(WB.gap); } return; }
+    if (cur) { if (!cur.hitT && (now > (cur.until ?? 0) || now - cur.join > WB.idle)) { this.mons.delete(cur.sid); this.ev.wb.push({ k: 'leave', sid: cur.sid, key: cur.mob.key, name: cur.mob.name, x: Math.round(cur.x), y: Math.round(cur.y) }); this.wbAt = now + this.between(WB.gap); } return; }
     if (!this.warned && now >= this.wbAt - 60000) { this.warned = true; this.ev.wb.push({ k: 'warn', sid: 0, key: '', name: '', x: 0, y: 0 }); }   // a minute's warning
     if (now < this.wbAt) return;
     this.warned = false;
@@ -227,10 +227,18 @@ export class MapSim {
   /** the players as of the last beat (for hits that land later) */
   lastPlayers: SimPlayer[] = [];
   run(now: number, players: SimPlayer[]) { this.lastPlayers = players; return this.tick(now, players); }
+  /** the roaming boss here, alive (or null) */
+  boss() { return [...this.mons.values()].find(m => m.alive && m.wb) ?? null; }
+  /** someone is near the roaming boss or fighting it: the room must move it; nobody = it stands still and the room sleeps */
+  bossNear(now: number, players: SimPlayer[]) {
+    const b = this.boss(); if (!b) return false;
+    return (b.hitT > 0 && now - b.hitT < 8000) || players.some(p => Math.hypot(p.x - b.x, p.y - b.y) < WB.near);
+  }
   /** (only the roaming boss here) nothing to move until this time: the room can sleep and wake a minute before the
    *  boss's warning. 0 = keep ticking now; Infinity = nothing will ever come (the Deepwild) */
   quietUntil(now: number) {
-    if (this.regular || [...this.mons.values()].some(m => m.alive) || this.warned) return 0;
+    if (this.regular || [...this.mons.values()].some(m => m.alive)) return 0;
+    if (this.warned) return now < this.wbAt ? this.wbAt : 0;   // (warned: nothing to do until it arrives)
     if (this.wild || !this.stage) return Infinity;
     if (!this.wbAt) return 0;   // (the next boss is set on the next tick with a player here)
     const wake = this.wbAt - 61000; return now < wake ? wake : 0;
