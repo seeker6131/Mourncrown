@@ -1,5 +1,6 @@
 // Other real players in this map (net/room.ts): their own hero form, name over the head with the HP bar under it, the
 // VIP aura by card, a chat bubble when they talk. Positions are smoothed between the updates the server relays.
+import { DELAY } from '../net/interp';
 import Phaser from 'phaser';
 import { CH, setIdle, playAnim, hasAnim, headH } from './chars';
 import { hpBar } from './hpBar';
@@ -10,7 +11,6 @@ import type { RoomLink, RoomEvent } from '../net/room';
 interface View { sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; bubble?: Phaser.GameObjects.Text; bubbleT: number; form: string; aura: number; glow?: Phaser.FX.Glow; busy: number; dir: number; moving: boolean }
 
 /** how far in the past other players are shown (a bit more than the 0.2 s between their updates) */
-const DELAY = 260;
 
 export class OtherPlayers {
   views = new Map<string, View>(); bars: Phaser.GameObjects.Graphics;
@@ -44,13 +44,10 @@ export class OtherPlayers {
       }
       // smooth: shown a little in the past (DELAY), moving at an even pace between the spots they reported
       // (the usual way online games show other players — no stops and jumps between updates)
-      const px = o.x, py = o.y, rt = performance.now() - DELAY, b = o.buf ?? [];
-      let k = b.length - 1; while (k > 0 && b[k - 1].t > rt) k--;
-      if (!b.length) { o.x = o.tx; o.y = o.ty; }
-      else if (k === 0 || rt >= b[b.length - 1].t) { const l = rt >= b[b.length - 1].t ? b[b.length - 1] : b[0]; o.x = l.x; o.y = l.y; }
-      else { const a = b[k - 1], c = b[k], f = Math.min(1, Math.max(0, (rt - a.t) / Math.max(1, c.t - a.t))); o.x = a.x + (c.x - a.x) * f; o.y = a.y + (c.y - a.y) * f; }
+      const px = o.x, py = o.y, nowP = performance.now(), b = o.tr.buf;
+      { const q = o.tr.at(nowP, dt); o.x = q.x; o.y = q.y; }   // (net/interp.ts: the sender's clock, a little in the past, no stops / jumps)
       const dist = Math.hypot(o.x - px, o.y - py) / Math.max(1, dt) * 1000;   // (shown speed, px a second)
-      const moving = dist > 12 || (!!o.mv && rt < (b[b.length - 1]?.t ?? 0));
+      const moving = dist > 12 || (!!o.mv && nowP - DELAY < (b[b.length - 1]?.t ?? 0) + 150);
       if (form !== v.form || (now > v.busy && (moving !== v.moving || o.d !== v.dir))) {
         v.form = form; v.moving = moving; v.dir = o.d;
         if (moving && hasAnim(form, 'walk')) playAnim(v.sp, form, 'walk', o.d, true); else setIdle(v.sp, form, o.d);

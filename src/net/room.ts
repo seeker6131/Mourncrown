@@ -1,10 +1,11 @@
 // The map room on the game server (server/worker.ts Room): the players in the same map see each other and talk.
 // Sends where the hero is (at most 5 times a second, only when something changed, plus a keep-alive), swings for the
 // animation, and chat lines. Reconnects by itself; offline = nothing happens and the game plays on alone.
+import { Track } from './interp';
 import { SERVER, accountToken } from './cloud';
 
 export interface Pos { x: number; y: number; d: number; f: string; mv: number; hp: number; a: number; r: string; lv: number }
-export interface Other extends Pos { id: string; name: string; tx: number; ty: number; seen: number; /** the last reported spots with their arrival time (smooth movement) */ buf: { t: number; x: number; y: number }[] }
+export interface Other extends Pos { id: string; name: string; tx: number; ty: number; seen: number; /** the reported spots on the sender's clock (smooth movement: net/interp.ts) */ tr: Track; ts?: number }
 export type RoomEvent = { t: 'hit'; id: string; k: string; d: number } | { t: 'c'; id: string; name: string; text: string } | { t: 'bye'; id: string } | { t: 'join'; id: string }
   | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number>; wb?: number; killer?: string; kname?: string } | { t: 'matk'; sid: number; k: string }
   | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv'; solo?: boolean } | { t: 'grid?' }
@@ -37,8 +38,8 @@ export class RoomLink {
   private put(o: Partial<Other> & { id: string }) {
     const cur = this.others.get(o.id), now = performance.now();
     const tx = o.x ?? cur?.tx ?? 0, ty = o.y ?? cur?.ty ?? 0;
-    if (cur) { Object.assign(cur, o, { tx, ty, seen: now }); cur.buf.push({ t: now, x: tx, y: ty }); if (cur.buf.length > 8) cur.buf.shift(); }
-    else { this.others.set(o.id, { x: 0, y: 0, d: 0, f: 'hero', mv: 0, hp: 100, a: 0, r: '', lv: 1, name: '', ...o, tx, ty, seen: now, buf: [{ t: now, x: tx, y: ty }] } as Other); this.on({ t: 'join', id: o.id }); this.lastT = -1e9; }   // (someone new: they get my spot at once)
+    if (cur) { Object.assign(cur, o, { tx, ty, seen: now }); if (o.x !== undefined) cur.tr.add(now, tx, ty, o.ts); }
+    else { const tr = new Track(); tr.add(now, tx, ty, o.ts); this.others.set(o.id, { x: 0, y: 0, d: 0, f: 'hero', mv: 0, hp: 100, a: 0, r: '', lv: 1, name: '', ...o, tx, ty, seen: now, tr } as Other); this.on({ t: 'join', id: o.id }); this.lastT = -1e9; }   // (someone new: they get my spot at once)
   }
   private got(m: Record<string, unknown>) {
     if (m.t === 'hi') { this.me = String(m.you); this.host = String(m.host ?? ''); this.others.clear(); for (const p of (m.players as Other[]) ?? []) this.put(p); this.on(m.srv ? { t: 'srv', solo: !!m.solo } : { t: 'host', id: this.host }); }
@@ -54,7 +55,7 @@ export class RoomLink {
     const now = performance.now(), key = JSON.stringify(p);
     const gap = this.others.size ? 200 : 3000;   // 5 a second when someone can see me (smooth); alone: only a sign of life (the daily quota)
     if ((key === this.last && now - this.lastT < 3000) || now - this.lastT < gap) return;
-    this.last = key; this.lastT = now; this.ws!.send(JSON.stringify({ t: 'p', ...p }));
+    this.last = key; this.lastT = now; this.ws!.send(JSON.stringify({ t: 'p', ...p, ts: Math.round(now) }));   // (ts: my clock — the others space my spots by it)
   }
   hit(k: string, d: number) { if (this.online) this.ws!.send(JSON.stringify({ t: 'hit', k, d })); }
   /** (host) the map's monsters, 5 times a second */
