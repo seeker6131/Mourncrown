@@ -169,6 +169,7 @@ const EN: Record<string, string> = {
   '⚗ ตั้งค่าการใช้ยา': '⚗ Potion settings', '👑 แอดมิน: เปลี่ยนอาชีพ / ร่าง': '👑 Admin: change class / form', 'เฉพาะบัญชีแอดมิน (ผู้กำกับ) — คนอื่นไม่เห็นปุ่มนี้': 'Admin account only (director) — nobody else sees this',
   '⚠ ลางร้าย... ฟ้าเริ่มมืด บอสเร่ร่อนกำลังจะมาที่แผนที่นี้ในอีก 1 นาที!': '⚠ An ill omen... the sky darkens — a roaming boss comes to this map in 1 minute!', '👹 บอสเร่ร่อน "': '👹 Roaming boss "', '" ปรากฏตัวแล้ว! รุมตีได้ — ทอง/EXP แบ่งตามดาเมจ ไอเท็มให้คนตีตาย': '" has appeared! Fight it together — gold/EXP by damage, items to whoever strikes it down', ' หายไปแล้ว...': ' is gone...', '👑 คุณปราบ ': '👑 You defeated ', 'ได้! ไอเท็มเป็นของคุณ': '! The items are yours', ' ปราบ ': ' defeated ', ' สำเร็จ!': '!', ' (คุณได้ส่วนแบ่ง ': ' (your share ', '👹 บอสเร่ร่อนโผล่สุ่มทุกแผนที่ — มีประกาศในแชตโลกเมื่อมันมา': '👹 Roaming bosses appear at random on any map — world chat announces them', '👹 แผนที่ ': '👹 Map ', ' อยู่ตอนนี้! (อีก ~': ' is here now! (~', ' นาที)': ' min left)', '📢 ประกาศ': '📢 News', 'ปรากฏตัวที่แผนที่ ': 'appeared on map ', '! ไปรุมกันเร็ว': '! Go fight it together', '" หายไปจากแผนที่ ': '" left map ',
   '🟢 ออนไลน์ ': '🟢 Online ', ' คน': ' players',
+  '🔍 ซูมกล้อง': '🔍 Camera zoom', 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว • ซูมในเกม: สองนิ้วถ่าง/หุบ หรือหมุนลูกกลิ้งเมาส์': 'Drag the knob • UI size changes when you let go • In game: pinch with two fingers or turn the mouse wheel to zoom',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

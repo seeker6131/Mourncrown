@@ -28,7 +28,7 @@ import { beginCast } from '../systems/skillCast';
 import { SKILL_BY_ID } from '../data/skills';
 
 import { vipActive, vipTier, VIP_AURA, VIP_WALK } from '../systems/premium';
-import { uiOpt } from '../core/uiOptions';
+import { uiOpt, setUiOpt, RANGES } from '../core/uiOptions';
 import { updateReady, reloadForUpdate } from '../core/update';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
@@ -449,14 +449,33 @@ export class TopDownScene extends Phaser.Scene {
     const cam = this.cameras.main;
     cam.postFX?.clear(); this.dayFx = null;
     cam.setBounds(0, 0, MW, MH).setBackgroundColor(this.inside >= 0 ? '#0b0d0c' : '#1b2420').startFollow(this.hero, true, 0.18, 0.18).setRoundPixels(true);
+    // the screen's own zoom × the player's (director: some find the hero too small): pinch, mouse wheel or the settings
+    // slider; kept in quarter steps so the pixel art stays crisp, never so far out that the map's edge shows
     const zoom = () => {
-      cam.setZoom(Math.max(1.5, Math.round(this.scale.height / 480 * 2) / 2));
+      const base = Math.max(1.5, Math.round(this.scale.height / 480 * 2) / 2), fit = this.inside >= 0 ? 0 : Math.max(this.scale.width / MW, this.scale.height / MH);
+      cam.setZoom(Math.max(fit, Math.round(base * this.zoomMul * 4) / 4));
       if (this.inside >= 0) {   // a room smaller than the screen sits in the middle
         const vw = this.scale.width / cam.zoom, vh = this.scale.height / cam.zoom;
         cam.setBounds(Math.min(0, (MW - vw) / 2), Math.min(0, (MH - vh) / 2), Math.max(MW, vw), Math.max(MH, vh));
       }
     };
+    this.zoomMul = uiOpt(S()).zoom;
     zoom(); this.scale.on('resize', zoom);
+    const setZoom = (m: number, save = false) => { const [lo, hi] = RANGES.zoom; this.zoomMul = Math.max(lo, Math.min(hi, m)); zoom(); if (save) { setUiOpt(S(), { zoom: Math.round(this.zoomMul * 100) / 100 }); saveGame(S()); } };
+    this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => { if (this.selectUi || this.ui?.panels.isOpen) return; setZoom(this.zoomMul * (dy > 0 ? 0.9 : 1.1), true); });
+    const onZoom = (m: number, save: boolean) => setZoom(m, save); bus.on('td:zoom', onZoom); this.events.once('shutdown', () => bus.off('td:zoom', onZoom));
+    // two fingers put down together = a pinch (not moving + attacking): spread to zoom in, close to zoom out
+    { const downs = new Map<number, number>(); let pinch: { a: number; b: number; d0: number; m0: number } | null = null;
+      const dist = () => { if (!pinch) return 0; const A = this.input.manager.pointers.find(q => q.id === pinch!.a), B = this.input.manager.pointers.find(q => q.id === pinch!.b); return A && B ? Math.hypot(A.x - B.x, A.y - B.y) : 0; };
+      this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        const now = this.time.now; for (const [id, t] of downs) if (now - t > 1500) downs.delete(id);
+        const other = [...downs].find(([id, t]) => id !== p.id && now - t < 250);
+        downs.set(p.id, now);
+        if (other) { pinch = { a: other[0], b: p.id, d0: 0, m0: this.zoomMul }; pinch.d0 = Math.max(10, dist()); this.resetJoy(); }
+      });
+      this.input.on('pointermove', () => { if (!pinch) return; const d = dist(); if (d > 0) { setZoom(pinch.m0 * d / pinch.d0); this.resetJoy(); } });
+      const end = (p: Phaser.Input.Pointer) => { downs.delete(p.id); if (pinch && (p.id === pinch.a || p.id === pinch.b)) { pinch = null; setZoom(this.zoomMul, true); } };
+      this.input.on('pointerup', end); this.input.on('pointerupoutside', end); }
 
     this.addOverlay();
     ambience(this, this.inside >= 0 ? 'room' : this.stageN && !this.wild ? this.st.land.ground : this.wild ? 'forest' : 'village');
@@ -1088,6 +1107,8 @@ export class TopDownScene extends Phaser.Scene {
   selectUi: Phaser.GameObjects.GameObject[] | null = null;
   makingUi = false;
   uiCam!: Phaser.Cameras.Scene2D.Camera;
+  /** the player's camera zoom (×, on top of the screen's own) */
+  zoomMul = 1;
   portalCool = 0;
   portalArmed = false;
 

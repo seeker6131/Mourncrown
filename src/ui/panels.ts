@@ -1262,29 +1262,32 @@ export class Panels implements GuildHost {
   }
   buildUiOpt(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k, o = uiOpt(s);
-    const W = 340, H = 262;
+    const W = 340, H = 300;
     const { x, y } = this.window(c, W, H, 'ตั้งค่าเสียง & UI');
     const apply = () => { saveGame(s); bus.emit(EV.STATE_CHANGED); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); };
     const pct = (v: number) => Math.round(v * 100) + '%';
     let yy = y + 48;
-    const row = (label: string, key: 'vol' | 'scale' | 'btn' | 'alpha', live?: (v: number) => void) => {
+    const row = (label: string, key: 'vol' | 'scale' | 'btn' | 'alpha' | 'zoom', live?: (v: number) => void) => {
       c.add(k.text(x + 18, yy - 7, label, 9.5, '#f3e6c4'));
       const [lo, hi] = RANGES[key];
       this.slider(c, x + 130, yy, 140, o[key], lo, hi, pct, v => live?.(v), v => {
         setUiOpt(s, { [key]: v } as Partial<UiOpt>);
         if (key === 'vol') { s.sfx = v > 0; audioState.sfx = s.sfx; saveGame(s); sfx.coinSoft(); return; }   // (sound: no need to redraw the screen)
+        if (key === 'zoom') { saveGame(s); bus.emit('td:zoom', v, false); return; }
         apply();
       });
       yy += 40;
     };
     row('🔊 เสียงเอฟเฟกต์', 'vol', v => { setVolume(v); audioState.sfx = v > 0; });
+    row('🔍 ซูมกล้อง', 'zoom', v => bus.emit('td:zoom', v, false));
     row('🖥 ขนาด UI', 'scale');
     row('⚔ ขนาดปุ่มต่อสู้', 'btn');
     row('🌫 ความชัดแถบบน', 'alpha');
-    c.add(k.text(x + 18, yy - 6, 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว', 7.5, '#a89878'));
+    c.add(k.text(x + 18, yy - 6, 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว • ซูมในเกม: สองนิ้วถ่าง/หุบ หรือหมุนลูกกลิ้งเมาส์', 7.5, '#a89878', { wordWrap: { width: W - 36 } }));
+    yy += 8;
     yy += 12;
     c.add(k.button(x + 18, yy, 130, 22, `ชื่อบนหัวชาวบ้าน: ${o.names ? 'แสดง' : 'ซ่อน'}`, () => { setUiOpt(s, { names: !o.names }); apply(); }, { size: 8.5 }));
-    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 0.9, btn: 1, alpha: 1, names: true, vol: 0.8 }); setVolume(0.8); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
+    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 0.9, btn: 1, alpha: 1, names: true, vol: 0.8, zoom: 1 }); setVolume(0.8); bus.emit('td:zoom', 1, false); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
     c.add(k.button(x + W - 96, yy, 80, 22, '◀ กลับเมนู', () => this.open('menu'), { size: 8.5 }));
   }
 
