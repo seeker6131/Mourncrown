@@ -22,11 +22,11 @@ import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
 import { CH, playAnim, setIdle, hasAnim, hitMs, animMs } from './chars';
 import type { MonRow, RoomEvent } from '../net/room';
-import { STAGES, WILD, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
+import { STAGES, WILD, WILD_GAME, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; /** (shared map) the other player it is after */ tgt?: string; /** (mirror) where the host has it */ nx?: number; ny?: number; mvF?: number; atF?: number; goneT?: number; bounty?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; /** (shared map) the other player it is after */ tgt?: string; /** (mirror) where the host has it */ nx?: number; ny?: number; mvF?: number; atF?: number; goneT?: number; bounty?: boolean; /** (online) this game's own monster, not the room's: the bounty lord */ local?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -49,7 +49,7 @@ const HEAVY = new Set(['jailer', 'golem', 'yeti', 'treant', 'stag', 'dragon', 'f
 const RANGED_COL: Record<string, number> = { wisp: 0x9affd8, ghost: 0x9ad8ff, skarcher: 0xe8dcc0, goblin: 0xe8dcc0, imp: 0xff8a3a };
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
 /** wild game that wanders every map (meat and hides) */
-const GAME: StageMon[] = [{ key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, { key: 'mo17', kind: 'boar', name: 'หมูป่า', size: 48 }];
+const GAME: StageMon[] = WILD_GAME;
 const RANGED = new Set(['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9']);
 const MAGIC = new Set(['hr7', 'hr8', 'hr9']);
 /** damage number styles: physical / physical crit / magic / magic crit */
@@ -88,10 +88,12 @@ export class Combat {
     if (n === WILD) {   // the Deepwild: herds of game only, at the hero's level
       this.stage = wildStage(S().level); this.pickSpot = pick; this.bossSpot = null;
       this.baseCount = 40; this.pending = [];
+      if (this.mirror) return;
       for (let i = 0; i < 40; i++) { const p = pick(); this.spawn(GAME[i % 3 === 0 ? 1 : 0], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
       return;
     }
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
+    if (this.mirror) { this.spawnBounty(n); return; }   // (the room runs this map's monsters)
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
     this.spawnBounty(n);
@@ -215,7 +217,7 @@ export class Combat {
   /** monsters keep up with the crowd: respawn on time, bring dead ones back early when the map runs low, add more
    *  when more players arrive, let extras go when they leave (never in a dungeon) */
   private keepUp(time: number) {
-    if (this.dungeon || !this.stage || !this.pickSpot) return;
+    if (this.dungeon || !this.stage || !this.pickSpot || this.mirror) return;
     const wild = this.stage.n === WILD, target = monTarget(this.baseCount, this.pop);
     const common = this.mons.filter(m => !m.boss && !m.bounty), alive = common.filter(m => m.alive).length;
     this.pending.sort((a, b) => a.at - b.at);
@@ -236,7 +238,7 @@ export class Combat {
     const r = act('bountySpawn', { n }); if (refused(r) || !this.pickSpot) return;
     const p = this.pickSpot(), mob = { ...r.mob, name: `👑 ${r.name}`, size: Math.round(r.mob.size * 1.6) };
     this.spawn(mob, p.x, p.y, false, { sid: r.sid, hpMult: r.hp });
-    const m = this.mons[this.mons.length - 1]; m.bounty = true;
+    const m = this.mons[this.mons.length - 1]; m.bounty = true; m.local = true;
     m.sp.setScale(m.sp.scaleX * 1.6);
     const ea = fx2(this.s, 'fx_elite_aura', p.x, p.y + 2, p.y + 1, mob.size / 40); ea?.setTint(0xff7a5a); if (ea) m.sp.setData('aura2', ea);
     fx2(this.s, 'fx_boss_spawn', p.x, p.y + 4, p.y - 1, 1.8);
@@ -573,7 +575,8 @@ export class Combat {
   hurtMon(m: Mon, dmg: number, crit: boolean, magic = false, fxDone = false) {
     if (!m.alive) return;
     const net = this.live;
-    if (net) { net.dmg(m.sid, dmg); m.tgt = undefined; } else m.hp -= dmg;   // online the room takes the HP off and says when it dies
+    const viaRoom = !!net && !m.local;
+    if (viaRoom) { net!.dmg(m.sid, dmg); m.tgt = undefined; } else m.hp -= dmg;   // online the room takes the HP off and says when it dies
     m.hitT = this.s.time.now;
     if (this.s.time.now > this.hitSfxT) { this.hitSfxT = this.s.time.now + 70; if (crit) sfx.crit(); else sfx.hit(); }
     const st = magic ? (crit ? DMG.magicCrit : DMG.magic) : (crit ? DMG.physCrit : DMG.phys);
@@ -584,8 +587,8 @@ export class Combat {
     m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
     const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), far = Math.hypot(m.x - h.x, m.y - h.y) > 90, kb = m.boss ? 1 : far ? 0 : 6;   // shots from afar no longer push it back
     m.x += Math.cos(a) * kb; m.y += Math.sin(a) * kb;
-    if (!net && m.hp <= 0) { this.kill(m); return; }
-    if (this.mirror) return;   // (the host's game decides how it reacts)
+    if (!viaRoom && m.hp <= 0) { this.kill(m); return; }
+    if (this.mirror && !m.local) return;   // (the host's game decides how it reacts)
     if (!m.animal && !m.boss) this.answer(m, far);
     if (m.animal) {   // game never fights: it bolts a short way, and now and then kicks the hunter back (short stun)
       m.fleeT = this.s.time.now + 1100;
@@ -616,7 +619,7 @@ export class Combat {
     if (!this.dungeon && !m.bounty && !this.mirror) this.respawn(m);
     if (share <= 0) return;   // (shared map: too little of the damage was mine — no reward)
     const at = { x: m.x, y: m.y, boss: m.boss };
-    if (this.live) { this.deadAt.set(m.sid, at); return; }   // shared map: the server pays each player (net:pay → onPay)
+    if (this.live && !m.local) { this.deadAt.set(m.sid, at); return; }   // shared map: the server pays each player (net:pay → onPay)
     const args = { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss, share };
     if (isOnline()) { actServer('kill', args).then(r => this.reward(at, r)); return; }   // the server rolls the loot
     this.reward(at, act('kill', args));
@@ -668,10 +671,10 @@ export class Combat {
     const h = this.s.hero, s = S(), d = derive(s);
     this.updateLoot(time);
     if (time > this.keepT) { this.keepT = time + 400; this.keepUp(time); }
-    if (this.mirror) { this.updateMirror(time, dt); return; }
+    if (this.mirror) this.updateMirror(time, dt);
     const net = this.live;
     for (const m of this.mons) {
-      if (!m.alive) continue;
+      if (!m.alive || (this.mirror && !m.local)) continue;
       // shared map: a monster goes after whoever hit it last (another player's spot comes from the room)
       const peer = m.tgt && net ? net.others.get(m.tgt) ?? null : null; if (m.tgt && !peer) m.tgt = undefined;
       const fx0 = peer ? peer.x : h.x, fy0 = peer ? peer.y : h.y, me0 = !peer && !this.s.dead;
@@ -796,7 +799,7 @@ export class Combat {
       this.place(m, angry);
     }
     // (host) tell the room where every monster is, 5 times a second
-    if (net?.isHost && time > this.msT) {
+    if (net?.isHost && !this.mirror && time > this.msT) {
       this.msT = time + 200;
       net.mons(this.mons.filter(q => q.alive).map(q => [q.sid, q.m.key, q.m.kind, q.boss ? 1 : 0, q.elite ? 1 : 0, Math.round(q.x), Math.round(q.y), q.dir, q.mvF ?? 0, q.atF ?? 0, Math.round(q.max)] as MonRow));
     }
@@ -805,6 +808,7 @@ export class Combat {
   updateMirror(time: number, dt: number) {
     const k = Math.min(1, dt / 1000 * 10);
     for (const m of [...this.mons]) {
+      if (m.local) { if (!m.alive && (m.goneT ?? 0) < time) this.dispose(m); continue; }   // (our own bounty lord moves in update())
       if (!m.alive) { if ((m.goneT ?? 0) < time) this.dispose(m); continue; }
       const tx = m.nx ?? m.x, ty = m.ny ?? m.y, far = Math.hypot(tx - m.x, ty - m.y);
       if (far > 160) { m.x = tx; m.y = ty; } else { m.x += (tx - m.x) * k; m.y += (ty - m.y) * k; }
@@ -835,7 +839,7 @@ export class Combat {
       if (!m.alive) continue;
       m.nx = x; m.ny = y; m.dir = d; m.mvF = mv; m.atF = at; m.max = max; if (hp !== undefined) m.hp = hp;
     }
-    for (const m of [...this.mons]) if (m.alive && !seen.has(m.sid)) { m.alive = false; m.goneT = 0; }
+    for (const m of [...this.mons]) if (m.alive && !m.local && !seen.has(m.sid)) { m.alive = false; m.goneT = 0; }
   }
   /** news from the map room */
   netEvent(e: RoomEvent) {
@@ -849,20 +853,50 @@ export class Combat {
       const m = find(e.sid); if (!m || !m.alive) return;
       const mine = net ? e.sh[net.me] ?? 0 : 1, need = m.boss || m.bounty ? 0.03 : 0.1;   // a fair share of the damage = your own reward
       m.hp = 0; this.kill(m, mine >= need ? mine : 0);
-    } else if (e.t === 'matk') {   // a monster moved by the host's game swings at me
+    } else if (e.t === 'matk') {   // a monster (run by the room) strikes me: a swing, a shot, a boss blast / charge, a kick
       const m = find(e.sid), h = this.s.hero, s = S(), d = derive(s); if (!m || !m.alive || this.s.dead) return;
-      const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
-      s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
-      if (!r.miss) { sfx.hurt(); h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
-      this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
-      if (s.hp <= 0) this.s.heroDie();
+      if (e.k === 'stun') { m.dir = dirOf(h.x - m.x, h.y - m.y); if (hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false); this.s.stunHero(700, m.x, m.y); return; }
+      const land = () => {
+        if (!m.alive || this.s.dead) return;
+        const mult = e.k === 'special' ? 2.2 : e.k === 'charge' ? 1.3 : 1, crit = e.k === 'hit' || e.k === 'shot' ? 0.05 : 0;
+        const r = calcDamage(m.atk * mult, d.def, 1, crit, Math.random, e.k === 'special' ? 0 : d.evade);
+        s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+        if (!r.miss) {
+          sfx.hurt(); h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint());
+          const heavy = m.boss || HEAVY.has(m.m.kind), left = h.x < m.x;
+          if (m.boss && hasFx2(`fx_${m.m.key}_hit`)) fx2(this.s, `fx_${m.m.key}_hit`, h.x, h.y - 14, 99953, 0.9)?.setFlipX(left);
+          else if (e.k !== 'special') playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : e.k === 'shot' ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss || heavy ? 0.6 : 0.7, flip: left });
+        }
+        this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', e.k === 'special' ? 13 : 10);
+        if (s.hp <= 0) this.s.heroDie();
+      };
+      // a shot flies from the monster first (the room already waited for it to arrive: a quick bolt)
+      if (e.k === 'shot') this.vfx.bolt(m.x, m.y - m.m.size * 0.45, h.x, h.y - 16, RANGED_COL[m.m.kind] ?? 0xc8a0ff, 0.8, 140, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin');
+      else land();
+    } else if (e.t === 'mfx') {   // a boss's move everyone sees (the damage comes from the room as matk)
+      const m = find(e.sid); if (!m || !m.alive) return;
+      if (e.k === 'special') {
+        m.atkT = this.s.time.now + 600; if (hasAnim(m.m.key, 'special')) playAnim(m.sp, m.m.key, 'special', m.dir, false);
+        const R = 46, warn = this.s.add.ellipse(e.x, e.y, R * 2, R * 1.2, 0xff2a2a, 0.18).setStrokeStyle(2, 0xff5a4a, 0.9).setDepth(2);
+        this.s.tweens.add({ targets: warn, alpha: { from: 0.4, to: 1 }, duration: 200, yoyo: true, repeat: 2 });
+        this.s.time.delayedCall(1100, () => {
+          warn.destroy(); if (!m.alive) return; this.glowTex();
+          if (hasFx2(`fx_${m.m.key}_special`)) fx2(this.s, `fx_${m.m.key}_special`, e.x, e.y + 6, 99953, m.m.key === 'bs3' ? 0.6 : 1);
+          else playPfx(this.s, BOSS_FX[this.stage?.land.id ?? 'forest'], e.x, e.y + 6, { scale: 0.95, depth: 99953 });
+          this.sparks(e.x, e.y - 6, 0xffa050, 14);
+        });
+      } else {   // the charge: it flares red, then rushes (the room moves it)
+        setIdle(m.sp, m.m.key, m.dir); m.sp.setTint(0xff5a4a);
+        this.s.tweens.add({ targets: m.sp, alpha: { from: 1, to: 0.75 }, duration: 110, yoyo: true, repeat: 1 });
+        this.s.time.delayedCall(380, () => { if (m.alive) { m.sp.clearTint(); this.vfx.dust(m.x, m.y, 8, 22); } });
+      }
     }
   }
   /** this game moves the monsters (host) or shows the host's (mirror) */
   setMirror(on: boolean) {
     if (on === this.mirror) return;
     this.mirror = on;
-    if (on) { for (const m of [...this.mons]) this.dispose(m); this.pending = []; }   // the host's monsters come in its next list
+    if (on) { for (const m of [...this.mons]) if (!m.local) this.dispose(m); this.pending = []; }   // the room's monsters come in its next list
     else for (const m of this.mons) { m.hx = m.x; m.hy = m.y; }                    // now mine to move; the map fills up as usual
   }
   /** the server made this monster golden: 5x HP, a gold aura, a little bigger */

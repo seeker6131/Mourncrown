@@ -29,6 +29,8 @@ export const STAGES: Stage[] = Array.from({ length: 50 }, (_, i) => {
 /** The Deepwild (ป่าดงดิบ): one big shared jungle for the whole server — no monsters, only game animals, trees,
  *  mine pits and rare ore veins. Animals scale to the hero's level. Entered from the map select (free, any level). */
 export const WILD = 100;
+/** the Deepwild's game (deer, boar) */
+export const WILD_GAME: StageMon[] = [{ key: 'mo16', kind: 'deer', name: 'กวางป่า', size: 48 }, { key: 'mo17', kind: 'boar', name: 'หมูป่า', size: 48 }];
 export const wildStage = (level: number): Stage => ({ n: WILD, land: LANDS[0], level: Math.max(1, level), req: 1, count: 0, boss: false, minRar: 0, mf: 0 });
 /** Daily dungeon (ถ้ำเงา): map id DUNGEON + land index. Waves of the land's monsters at the hero's level, then its boss. */
 export const DUNGEON = 200;

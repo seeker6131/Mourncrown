@@ -283,6 +283,18 @@ export class TopDownScene extends Phaser.Scene {
   heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text;
   link?: RoomLink; peers?: OtherPlayers; heroBubble?: Phaser.GameObjects.Text; heroBubbleT = 0;
   /** which shared room this scene is (null = alone): village, guild village, monster map n, the Deepwild */
+  /** the map's walls for the room (8 px cells: a cell is a wall if any part is blocked or water), its meadows and gate */
+  wallGrid() {
+    const c = 8, w = Math.floor(MW / c), h = Math.floor(MH / c), bits = new Uint8Array(Math.ceil(w * h / 8));
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      let wall = this.surfAt(i * c + 4, j * c + 4) === 'water';
+      for (let y = 0; y < c && !wall; y += CELL) for (let x = 0; x < c && !wall; x += CELL) if (this.isBlocked(i * c + x, j * c + y)) wall = true;
+      if (wall) { const k = j * w + i; bits[k >> 3] |= 1 << (k & 7); }
+    }
+    let b = ''; for (let i = 0; i < bits.length; i += 4096) b += String.fromCharCode(...bits.subarray(i, i + 4096));
+    const gate = this.portals.find(p => p.to === 0) ?? { x: 46, y: this.trailMain(24) };
+    return { w, h, c, b: btoa(b), cl: this.clearings.map(q => ({ x: Math.round(q.x), y: Math.round(q.y), r: Math.round(q.r), boss: !!q.boss })), gate: { x: Math.round(gate.x), y: Math.round(gate.y) } };
+  }
   /** a map with fighting (monster maps, the Deepwild, dungeons, raids, war): HP bars over heads show only here */
   fightMap() { return !!(this.stageN || this.wild || this.dungeon || this.raid || this.defense || this.raidMode || this.warSide); }
   roomId(): string | null {
@@ -390,8 +402,10 @@ export class TopDownScene extends Phaser.Scene {
     { const rid = this.roomId(); if (rid) {
       const shared = rid === 'w' || rid.startsWith('m');   // monster maps and the Deepwild: one set of monsters for the room
       const link = new RoomLink(rid, e => {
-        if (e.t === 'host') { if (shared) this.combat.setMirror(!!e.id && e.id !== link.me); return; }
-        if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk') { if (shared) this.combat.netEvent(e); return; }
+        // the room runs the map's monsters: this game sends the map's walls and shows what the room says
+        if (e.t === 'srv' || e.t === 'grid?') { if (shared) { this.combat.setMirror(true); link.grid(this.wallGrid()); } return; }
+        if (e.t === 'host') { if (shared) this.combat.setMirror(!!e.id && e.id !== link.me); return; }   // (an older server)
+        if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx') { if (shared) this.combat.netEvent(e); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
       });
       this.link = link; this.peers = new OtherPlayers(this, link);

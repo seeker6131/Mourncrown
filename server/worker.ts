@@ -2,6 +2,7 @@
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
 import { MONSTERS, type MonsterKind } from '../src/data/monsters';
+import { MapSim, mapOfRoom, gridOk, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { itemDef, ITEMS } from '../src/data/items';
 import { invSize, type GameState } from '../src/core/state';
 import { addItem } from '../src/systems/inventory';
@@ -181,22 +182,16 @@ const roomCap = (room: string) => room.startsWith('w') ? 100 : room.startsWith('
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
-interface RMon { hp: number; max: number; alive: boolean; boss: boolean; dmg: Record<string, number>; key: string; kind: string; elite: boolean; join: number; /** where the room lets it be (the host's word, kept to a believable speed) */ x: number; y: number; t: number; /** last swing at another player */ atk: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
-  /** the monsters of this map: the host's game spawns and moves them, the room keeps their HP (in memory: a room that
-   *  sleeps forgets, and the host's next list brings them back at full HP) */
-  mons = new Map<number, RMon>(); host = ''; bad = 0; badT = 0; asked = new Map<number, number>();
-  /** the host's game said something no fair game says: too many and another player's game takes over the monsters */
-  private strike(now: number) { if (now - this.badT > 10000) { this.badT = now; this.bad = 0; } if (++this.bad > 40) { this.bad = 0; const hw = this.state.getWebSockets(this.host)[0]; this.pickHost(hw); } }
-  /** the lowest believable HP for a monster of this map (the host's game cannot make monsters paper-thin) */
-  private minHp(room: string, key: string, kind: string, boss: boolean, elite: boolean, lv: number): number | null {
-    const n = room.startsWith('w') ? WILD : parseInt(room.slice(1), 10) || 0, base = MONSTERS[kind as MonsterKind]; if (!n || !base) return null;
-    if (n === WILD) { if (!base.animal) return null; }
-    else { const L = STAGES[n - 1]?.land; if (!L || base.animal || ![...L.mobs, L.boss].some(q => q.key === key && q.kind === kind)) return null; }
-    return Math.floor(scaleStats(base, stageOf(n, lv).level, boss).hp * (elite ? 5 : 1) * 0.95);
-  }
+  /** the map's monsters: the room runs them (src/server/mapSim.ts) — no player's game steers them. In memory: a room
+   *  that sleeps forgets, and the map fills up again when the players' games send its walls. */
+  sim: MapSim | null = null; timer: ReturnType<typeof setInterval> | null = null;
+  /** the map's walls as each player's game sent them (hash → grid + who sent it): the most players agree = used */
+  grids = new Map<string, { g: Grid; ids: Set<string> }>(); used = ''; askT = new Map<string, number>();
+  constructor(private state: DOState, private env: Env) {}
+  private all(skip?: WebSocket) { return this.state.getWebSockets().filter(w => w !== skip).map(w => ({ w, a: (w as WSX).deserializeAttachment() as Who })).filter(x => x.a); }
   private async lvOf(ws: WebSocket, me: Who, now: number) {
     if (!me.lv || now - (me.lvT ?? 0) > 60000) {   // the level from the player's character on the server (not what the game says), once a minute
       try { me.lv = ((await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/lv?id=' + me.id))).json()) as { lv: number }).lv; } catch { me.lv = me.lv ?? 1; }
@@ -204,12 +199,28 @@ export class Room {
     }
     return Math.max(1, Math.min(999, me.lv ?? 1));
   }
-  constructor(private state: DOState, private env: Env) {}
-  private all(skip?: WebSocket) { return this.state.getWebSockets().filter(w => w !== skip).map(w => ({ w, a: (w as WSX).deserializeAttachment() as Who })).filter(x => x.a); }
-  /** the host = who has been here longest; tell everyone when it changes */
-  private pickHost(skip?: WebSocket) {
-    const h = this.all(skip).sort((x, y) => x.a.join - y.a.join)[0]?.a.id ?? '';
-    if (h !== this.host) { this.host = h; const msg = JSON.stringify({ t: 'host', id: h }); for (const { w } of this.all(skip)) { try { w.send(msg); } catch { /* closing */ } } }
+  private players(): SimPlayer[] {
+    return this.all().filter(x => x.a.p).map(x => { const p = x.a.p as { x: number; y: number; hp: number; lv: number }; return { id: x.a.id, x: p.x, y: p.y, hp: p.hp, lv: Math.min(p.lv, x.a.lv ?? p.lv) }; });
+  }
+  /** the walls most of the players here agree on (a game that sends other walls changes nothing while others disagree) */
+  private choose(room: string) {
+    const here = new Set(this.all().map(x => x.a.id)); let best = '', n = -1;
+    for (const [h, v] of this.grids) { for (const id of [...v.ids]) if (!here.has(id)) v.ids.delete(id); if (!v.ids.size) { if (h !== this.used) this.grids.delete(h); continue; } if (v.ids.size > n || (v.ids.size === n && h === this.used)) { best = h; n = v.ids.size; } }
+    if (!best || best === this.used) return;
+    this.used = best; const g = this.grids.get(best)!.g;
+    if (this.sim) this.sim.grid = g; else { this.sim = new MapSim(room, g); this.start(); }
+  }
+  private start() {
+    if (this.timer) return;
+    this.timer = setInterval(() => this.beat(), 200);
+  }
+  private beat() {
+    const socks = this.state.getWebSockets(); if (!socks.length || !this.sim) { if (this.timer) clearInterval(this.timer); this.timer = null; return; }
+    const now = Date.now(), ev = this.sim.run(now, this.players());
+    const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(now) });
+    for (const w of socks) { try { w.send(ms); } catch { /* closing */ } }
+    for (const f of ev.fx) { const t = JSON.stringify({ t: 'mfx', ...f }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } }
+    for (const a of ev.atk) { const t = JSON.stringify({ t: 'matk', sid: a.sid, k: a.k }); for (const w of this.state.getWebSockets(a.to)) { try { w.send(t); } catch { /* closing */ } } }
   }
   async fetch(req: Request) {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? '', name = (u.searchParams.get('name') || 'ผู้กล้า#' + id.slice(0, 4)).slice(0, 16);
@@ -222,83 +233,58 @@ export class Room {
     this.state.acceptWebSocket(server, [id]);
     server.serializeAttachment({ id, room: u.searchParams.get('room') ?? '', name, n: 0, win: Date.now(), chatT: 0, join: Date.now(), bud: 0, budT: Date.now() } as Who);
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
-    if (!this.host || !others.some(o => o.id === this.host)) this.host = '';
-    this.pickHost();
-    server.send(JSON.stringify({ t: 'hi', you: id, name, host: this.host, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
+    // srv: the room runs this map's monsters (the game sends the map's walls and only shows them)
+    server.send(JSON.stringify({ t: 'hi', you: id, name, host: '', srv: 1, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
+    if (this.sim) { const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(Date.now()) }); try { server.send(ms); } catch { /* closing */ } this.start(); }
     return new Response(null, { status: 101, webSocket: client } as ResponseInit);
   }
   private others(ws: WebSocket, msg: string) { for (const w of this.state.getWebSockets()) if (w !== ws) { try { w.send(msg); } catch { /* closing */ } } }
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
-    const me = (ws as WSX).deserializeAttachment() as Who; if (!me || typeof data !== 'string' || data.length > 12000) return;
-    if (!this.host) this.pickHost();   // (woke from sleep: memory was cleared)
+    const me = (ws as WSX).deserializeAttachment() as Who; if (!me || typeof data !== 'string' || data.length > 24000) return;
     const now = Date.now(); if (now - me.win > 1000) { me.win = now; me.n = 0; }
     if (++me.n > 20) return;   // at most 20 messages a second
     let m: Record<string, unknown>; try { m = JSON.parse(data); } catch { return; }
+    const room = me.room ?? '', shared = mapOfRoom(room) > 0;
+    // (woke from sleep: memory was cleared) ask this game for the map's walls again
+    if (shared && !this.sim && m.t !== 'grid' && now - (this.askT.get(me.id) ?? 0) > 3000) { this.askT.set(me.id, now); try { ws.send(JSON.stringify({ t: 'grid?' })); } catch { /* closing */ } }
     if (m.t === 'p') {   // where I am / what I look like
       const num = (v: unknown, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
       const p = { x: num(m.x, 0, 4000), y: num(m.y, 0, 4000), d: num(m.d, 0, 7), f: String(m.f ?? 'hero').slice(0, 8), mv: m.mv ? 1 : 0, hp: num(m.hp, 0, 100), a: num(m.a, 0, 3), r: String(m.r ?? '').slice(0, 8), lv: num(m.lv, 1, 999) };
       me.p = p; (ws as WSX).serializeAttachment(me);
       this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
+      if (this.sim && !this.timer) this.start();
     } else if (m.t === 'hit') {   // swing / skill (for the animation others see)
       this.others(ws, JSON.stringify({ t: 'hit', id: me.id, k: String(m.k ?? 'attack').slice(0, 12), d: Math.max(0, Math.min(7, Number(m.d) || 0)) }));
-    } else if (m.t === 'ms' && me.id === this.host && Array.isArray(m.a)) {   // the host's monsters: where they are
-      const seen = new Set<number>(), out: unknown[] = [], lv = await this.lvOf(ws, me, now);
-      for (const e of (m.a as unknown[][]).slice(0, 80)) {
-        if (!Array.isArray(e)) continue;
-        const sid = Number(e[0]); if (!sid) continue;
-        const ex = Math.max(0, Math.min(4000, Number(e[5]) || 0)), ey = Math.max(0, Math.min(4000, Number(e[6]) || 0));
-        let r = this.mons.get(sid);
-        if (!r) {   // a new monster: it must belong to this map; a boss only by its picture; never golden on the host's word
-          const key = String(e[1]).slice(0, 12), kind = String(e[2]).slice(0, 16), n0 = parseInt((me.room ?? '').slice(1), 10) || 0;
-          const boss = !(me.room ?? '').startsWith('w') && STAGES[n0 - 1]?.land.boss.key === key;
-          const lo = this.minHp(me.room ?? '', key, kind, boss, false, lv); if (lo === null) { this.strike(now); continue; }
-          const max = Math.max(lo, Math.min(lo * 43, Number(e[10]) || 0));   // (a bounty lord has 40x)
-          r = { hp: max, max, alive: true, boss, dmg: {}, key, kind, elite: false, join: now, x: ex, y: ey, t: now, atk: 0 }; this.mons.set(sid, r);
-        }
-        if (e[4] && !r.elite && r.alive && now - (this.asked.get(sid) ?? 0) > 1000) {   // the host says golden: its own server rolled that, or not
-          this.asked.set(sid, now); if (this.asked.size > 300) this.asked.clear();
-          try {
-            const sp = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request(`https://p/spawned?id=${me.id}&sid=${sid}`))).json() as { key: string; elite: boolean } | null;
-            if (sp?.elite && sp.key === r.key) { r.elite = true; r.hp += r.max * 4; r.max *= 5; }
-          } catch { /* ask again next time */ }
-        }
-        if (r.t !== now) {   // it moves no faster than a monster can (a boss's charge is the fastest: ~360 px/s)
-          const dt = Math.min(2, (now - r.t) / 1000), lim = 420 * dt + 24, dx = ex - r.x, dy = ey - r.y, d = Math.hypot(dx, dy);
-          if (d > lim) { r.x += dx / d * lim; r.y += dy / d * lim; this.strike(now); } else { r.x = ex; r.y = ey; }
-          r.t = now;
-        }
-        seen.add(sid);
-        if (r.alive) out.push([sid, r.key, r.kind, r.boss ? 1 : 0, r.elite ? 1 : 0, Math.round(r.x), Math.round(r.y), Math.max(0, Math.min(7, Number(e[7]) || 0)), e[8] ? 1 : 0, e[9] ? 1 : 0, Math.round(r.max), Math.max(0, Math.round(r.hp))]);
-      }
-      for (const sid of [...this.mons.keys()]) if (!seen.has(sid)) this.mons.delete(sid);
-      this.others(ws, JSON.stringify({ t: 'ms', a: out }));
-    } else if (m.t === 'dmg') {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
-      const r = this.mons.get(Number(m.sid)); if (!r || !r.alive) return;
+    } else if (m.t === 'grid' && shared) {   // the map's walls from this player's game
+      const w = Number(m.w), h = Number(m.h), c = Number(m.c); let bits: Uint8Array;
+      try { const bin = atob(String(m.b ?? '')); bits = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bits[i] = bin.charCodeAt(i); } catch { return; }
+      const cl = (Array.isArray(m.cl) ? m.cl : []).slice(0, 30).map((q: { x: number; y: number; r: number; boss?: boolean }) => ({ x: Number(q.x) || 0, y: Number(q.y) || 0, r: Math.max(10, Math.min(300, Number(q.r) || 60)), boss: !!q.boss }));
+      const gt = m.gate as { x: number; y: number } | undefined, g: Grid = { w, h, c, bits, clear: cl, gate: { x: Number(gt?.x) || 0, y: Number(gt?.y) || 0 } };
+      if (!gridOk(g)) return;
+      let hs = 2166136261; const key = `${w},${h},${c},${m.b},${JSON.stringify(cl)},${g.gate.x},${g.gate.y}`; for (let i = 0; i < key.length; i++) { hs ^= key.charCodeAt(i); hs = Math.imul(hs, 16777619); }
+      const hk = (hs >>> 0).toString(36); for (const v of this.grids.values()) v.ids.delete(me.id);
+      const e = this.grids.get(hk) ?? { g, ids: new Set<string>() }; e.ids.add(me.id); this.grids.set(hk, e);
+      this.choose(room);
+    } else if (m.t === 'dmg' && this.sim) {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
+      const sid = Number(m.sid), r = this.sim.mons.get(sid); if (!r || !r.alive) return;
       const lv = await this.lvOf(ws, me, now), cap = (lv * 30 + 100) * 10;   // damage per second, generous
       me.bud = Math.min(cap * 4, me.bud + (now - me.budT) / 1000 * cap); me.budT = now;
       const n = Math.max(0, Math.min(Math.round(Number(m.n) || 0), me.bud)); if (!n) { (ws as WSX).serializeAttachment(me); return; }
       me.bud -= n; (ws as WSX).serializeAttachment(me);
-      r.hp -= n; r.dmg[me.id] = (r.dmg[me.id] ?? 0) + n;
+      r.hp -= n; r.dmg[me.id] = (r.dmg[me.id] ?? 0) + n; this.sim.hit(sid, me.id, now, this.players());
       const all = this.state.getWebSockets();
       const send = (o: unknown) => { const t = JSON.stringify(o); for (const w of all) { try { w.send(t); } catch { /* closing */ } } };
-      send({ t: 'mhp', sid: Number(m.sid), hp: Math.max(0, Math.round(r.hp)), by: me.id });
+      send({ t: 'mhp', sid, hp: Math.max(0, Math.round(r.hp)), by: me.id });
       if (r.hp <= 0) {   // dead: everyone's share of the damage (each one's reward is their own)
-        r.alive = false; const sh: Record<string, number> = {};
+        const sh: Record<string, number> = {};
         for (const [k, v] of Object.entries(r.dmg)) sh[k] = Math.round(v / r.max * 1000) / 1000;
-        send({ t: 'mdead', sid: Number(m.sid), sh });
+        this.sim.died(sid, now, all.length);
+        send({ t: 'mdead', sid, sh });
         // the server pays: each player with a fair share gets their own reward in their own game on the server
-        const room = me.room ?? '', n = room.startsWith('w') ? WILD : parseInt(room.slice(1), 10) || 0, need = r.boss ? 0.03 : 0.1;
+        const n = mapOfRoom(room), need = r.boss ? 0.03 : 0.1;
         if (n) await Promise.allSettled(Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) =>
-          this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid: Number(m.sid), key: r.key, kind: r.kind, boss: r.boss, elite: r.elite, share: v }) }))));
+          this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid, key: r.mob.key, kind: r.mob.kind, boss: r.boss, elite: r.elite, share: v }) }))));
       }
-    } else if (m.t === 'matk' && me.id === this.host) {   // a monster (moved by the host) swings at another player
-      // only a live monster of this room, next to that player, at most once every 0.6 s
-      const r = this.mons.get(Number(m.sid)), to = String(m.to ?? ''), tw = this.state.getWebSockets(to)[0], tp = tw && ((tw as WSX).deserializeAttachment() as Who)?.p as { x: number; y: number } | undefined;
-      const base = r && MONSTERS[r.kind as MonsterKind], reach = (base?.attackRange ?? 40) + 80;
-      if (!r || !r.alive || !tp || now - r.atk < 600 || Math.hypot(tp.x - r.x, tp.y - r.y) > reach) { this.strike(now); return; }
-      r.atk = now;
-      const msg = JSON.stringify({ t: 'matk', sid: Number(m.sid), k: String(m.k ?? 'hit').slice(0, 8) });
-      for (const w of this.state.getWebSockets(to)) { try { w.send(msg); } catch { /* closing */ } }
     } else if (m.t === 'c') {   // chat: one line every 2 seconds, filtered
       if (now - me.chatT < 2000) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
       const text = cleanChat(String(m.text ?? '')); if (!text) return;
@@ -309,7 +295,7 @@ export class Room {
   async webSocketClose(ws: WebSocket) {
     const me = (ws as WSX).deserializeAttachment() as Who; if (me) this.others(ws, JSON.stringify({ t: 'bye', id: me.id }));
     try { ws.close(); } catch { /* already */ }
-    if (me && me.id === this.host) { this.host = ''; this.pickHost(ws); }
+    if (me) { for (const v of this.grids.values()) v.ids.delete(me.id); if (mapOfRoom(me.room ?? '')) this.choose(me.room ?? ''); }
   }
   async webSocketError(ws: WebSocket) { await this.webSocketClose(ws); }
 }
@@ -503,10 +489,6 @@ export class Player {
       else for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
       this.dirty = true; await this.persist();
       return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
-    }
-    if (u.pathname === '/spawned') {   // the map room asks: did this server hand out that monster (and is it golden)?
-      const sp = this.mem.spawns.get(Number(u.searchParams.get('sid')));
-      return new Response(JSON.stringify(sp ? { key: sp.key, elite: !!sp.srv && sp.elite, boss: sp.boss, bounty: sp.bounty !== undefined } : null));
     }
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
       const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number };

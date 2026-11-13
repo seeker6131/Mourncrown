@@ -6,7 +6,8 @@ import { SERVER, accountToken } from './cloud';
 export interface Pos { x: number; y: number; d: number; f: string; mv: number; hp: number; a: number; r: string; lv: number }
 export interface Other extends Pos { id: string; name: string; tx: number; ty: number; seen: number }
 export type RoomEvent = { t: 'hit'; id: string; k: string; d: number } | { t: 'c'; id: string; name: string; text: string } | { t: 'bye'; id: string } | { t: 'join'; id: string }
-  | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number> } | { t: 'matk'; sid: number; k: string };
+  | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number> } | { t: 'matk'; sid: number; k: string }
+  | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv' } | { t: 'grid?' };
 /** one monster in the host's list: sid, key, kind, boss, elite, x, y, dir, moving, attacking, max HP, (from the room) HP */
 export type MonRow = [number, string, string, number, number, number, number, number, number, number, number, number?];
 
@@ -37,9 +38,9 @@ export class RoomLink {
     else { this.others.set(o.id, { x: 0, y: 0, d: 0, f: 'hero', mv: 0, hp: 100, a: 0, r: '', lv: 1, name: '', ...o, tx: o.x ?? 0, ty: o.y ?? 0, seen: now } as Other); this.on({ t: 'join', id: o.id }); }
   }
   private got(m: Record<string, unknown>) {
-    if (m.t === 'hi') { this.me = String(m.you); this.host = String(m.host ?? ''); this.others.clear(); for (const p of (m.players as Other[]) ?? []) this.put(p); this.on({ t: 'host', id: this.host }); }
+    if (m.t === 'hi') { this.me = String(m.you); this.host = String(m.host ?? ''); this.others.clear(); for (const p of (m.players as Other[]) ?? []) this.put(p); this.on(m.srv ? { t: 'srv' } : { t: 'host', id: this.host }); }
     else if (m.t === 'host') { this.host = String(m.id); this.on(m as unknown as RoomEvent); }
-    else if (m.t === 'ms' || m.t === 'mhp' || m.t === 'mdead' || m.t === 'matk') this.on(m as unknown as RoomEvent);
+    else if (m.t === 'ms' || m.t === 'mhp' || m.t === 'mdead' || m.t === 'matk' || m.t === 'mfx' || m.t === 'grid?') this.on(m as unknown as RoomEvent);
     else if (m.t === 'p' && m.id !== this.me) this.put(m as unknown as Other);
     else if (m.t === 'bye') { this.others.delete(String(m.id)); this.on(m as RoomEvent); }
     else if (m.t === 'hit' || m.t === 'c') this.on(m as unknown as RoomEvent);
@@ -58,6 +59,8 @@ export class RoomLink {
   dmg(sid: number, n: number) { if (this.online) this.ws!.send(JSON.stringify({ t: 'dmg', sid, n: Math.round(n) })); }
   /** (host) monster sid swings at player `to` */
   matk(to: string, sid: number, k = 'hit') { if (this.online) this.ws!.send(JSON.stringify({ t: 'matk', to, sid, k })); }
+  /** the map's walls, meadows and gate (the room runs the monsters on them) */
+  grid(g: { w: number; h: number; c: number; b: string; cl: { x: number; y: number; r: number; boss?: boolean }[]; gate: { x: number; y: number } }) { if (this.online) this.ws!.send(JSON.stringify({ t: 'grid', ...g })); }
   chat(text: string) { if (this.online && text.trim()) this.ws!.send(JSON.stringify({ t: 'c', text: text.slice(0, 90) })); }
   close() { this.closed = true; try { this.ws?.close(); } catch { /* gone */ } this.ws = null; }
 }

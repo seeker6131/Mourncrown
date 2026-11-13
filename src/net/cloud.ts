@@ -2,7 +2,9 @@
 // Google login (when GOOGLE_CLIENT_ID is set) links it, so the same hero loads on any phone. The game keeps working
 // offline: the local save is always written first, the server copy follows a few seconds later.
 // ⚠️ Step 1: the server stores what the game sends. Step 2 moves the rules (src/server/handlers.ts) to the server.
-export const SERVER = 'https://mourncrown.egowenit.workers.dev';
+/** the game server; on this machine only, ?srv=local talks to a local copy (wrangler dev, for testing) */
+export const SERVER = typeof location !== 'undefined' && ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('srv') === 'local'
+  ? 'http://127.0.0.1:8787' : 'https://mourncrown.egowenit.workers.dev';
 /** Google sign-in (Google Cloud project 'mourncrown', web client) — public, not a secret */
 export const GOOGLE_CLIENT_ID = '481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com';
 const ACC = 'mc_cloud', SAVE_KEY = 'eldergrove_save_v1', DELAY = 12_000;
