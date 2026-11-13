@@ -2,7 +2,7 @@
 
 > ใช้ได้กับ AI ทุกตัว (Claude / ChatGPT-Codex / อื่นๆ). ผู้ทำต่อต้องมีสิทธิ์ push ที่ repo `seeker6131/RPG-Newgame` และรัน `npm`, `python3`, Playwright ได้
 
-อัปเดต: 2026-11-11 · branch **`ccr-dcfcac78-b3qj60`** (push ที่นี่เท่านั้น) · เว็บ: https://seeker6131.github.io/RPG-Newgame/
+อัปเดต: 2026-11-11 · branch **`ccr-dcfcac78-b3qj60`** (push ที่นี่เท่านั้น) · เว็บ: https://seeker6131.github.io/Mourncrown/
 ประวัติงานเก่าทั้งหมด (ละเอียด แต่บางส่วนล้าสมัย): `docs/HANDOFF_HISTORY.md` · ดีไซน์: `docs/GAME_DESIGN.md` · ความเสี่ยงออนไลน์: `docs/ONLINE_RISKS.md`
 
 ---
