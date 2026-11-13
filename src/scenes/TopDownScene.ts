@@ -29,7 +29,7 @@ import { SKILL_BY_ID } from '../data/skills';
 
 import { vipActive, vipTier, VIP_AURA, VIP_WALK } from '../systems/premium';
 import { uiOpt, setUiOpt, RANGES } from '../core/uiOptions';
-import { updateReady, reloadForUpdate } from '../core/update';
+import { resumeFrom } from '../core/resume';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { potOf, pickPotion, POT_CD } from '../systems/potions';
@@ -320,7 +320,10 @@ export class TopDownScene extends Phaser.Scene {
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
   warSide: null | 'home' | 'enemy' = null; warT = 0; warShown = false;
-  init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number; raid?: boolean; war?: 'home' | 'enemy' }) {
+  /** after a reload for an update: put the hero back on the spot, the Deepwild farm back on (core/resume.ts) */
+  resumePos: { x: number; y: number } | null = null; resumeFarm = false;
+  init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number; raid?: boolean; war?: 'home' | 'enemy'; pos?: { x: number; y: number }; farm?: boolean }) {
+    this.resumePos = data?.pos && data.pos.x >= 0 ? data.pos : null; this.resumeFarm = !!data?.farm;
     this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
     const st0 = runtime.state;
     this.gv = !this.stageN && (data?.guild ?? !!(st0 && guildOf(st0)));
@@ -336,8 +339,6 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   create() {
-    // a new version of the game is out: changing map is the moment to load it (core/update.ts)
-    if (updateReady()) { saveGame(S()); showWait(); reloadForUpdate(); return; }
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)
@@ -354,6 +355,10 @@ export class TopDownScene extends Phaser.Scene {
     this.shadow = this.contact(sp0.x, sp0.y, 24, 9, 0.5);
     this.time.delayedCall(250, () => sfx.door());   // arriving on a map
     this.hero = this.add.sprite(sp0.x, sp0.y, 'c_hero_idle', 0); setIdle(this.hero, this.F.key, this.inside >= 0 ? 4 : 0);
+    // the game reloads itself for an update: where to bring the player back (a dungeon run / raid / war cannot be resumed: it waits)
+    resumeFrom(() => { saveGame(S()); return { busy: this.dungeon || this.raidMode || !!this.warSide, at: { stage: this.stageN, room: this.roomPick, guild: this.gv, inside: this.inside, x: Math.round(this.hero.x), y: Math.round(this.hero.y), farm: !!this.farm, at: Date.now() } }; });
+    if (this.resumePos) { const rp = this.resumePos; this.resumePos = null; this.time.delayedCall(60, () => { if (!this.hero?.active) return; this.hero.setPosition(rp.x, rp.y); this.cameras.main.centerOn(rp.x, rp.y); }); }   // (a spot that is blocked now is fixed by the stuck rescue in update())
+    if (this.resumeFarm && this.wild) { this.resumeFarm = false; this.time.delayedCall(1500, () => { if (this.sys.isActive() && !this.farm) this.startFarm(); }); }
     createFx2Anims(this); createMountAnims(this);
     this.time.delayedCall(300, () => this.loadLater());
     this.town = this.gv && this.inside < 0 ? new GuildTown(this as never) : undefined; this.hot = [];

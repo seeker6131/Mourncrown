@@ -12,16 +12,17 @@ function gis(): Promise<GIS | null> {
     sc.onload = () => res(w.google ?? null); sc.onerror = () => { loading = null; res(null); }; document.head.append(sc);
   });
 }
-/** show the button (bottom-left); returns a function that removes it */
-export function showGoogleButton(done: (r: 'linked' | 'switched' | 'fail') => void): () => void {
+/** show the button: at a point on the page (its centre, in CSS px), inside a box of a dialog, or bottom-left;
+ *  returns a function that removes it */
+export function showGoogleButton(done: (r: 'linked' | 'switched' | 'fail') => void, place?: { x: number; y: number; big?: boolean } | HTMLElement): () => void {
   const box = document.createElement('div');
-  box.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:20;';   // bottom-left: clear of the logo and the buttons
-  document.body.append(box);
+  if (place instanceof HTMLElement) { box.style.cssText = 'display:flex;justify-content:center;min-height:44px'; place.append(box); }
+  else { box.style.cssText = place ? `position:fixed;left:${place.x}px;top:${place.y}px;transform:translate(-50%,-50%);z-index:20;` : 'position:fixed;left:10px;bottom:10px;z-index:20;'; document.body.append(box); }
   let gone = false;
   gis().then(g => {
     if (!g || gone) return;
     g.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, ux_mode: 'popup', auto_select: false, callback: (r: { credential: string }) => googleLogin(r.credential).then(done) });
-    g.accounts.id.renderButton(box, { theme: 'filled_black', size: 'medium', text: 'signin_with', shape: 'pill', locale: lang() === 'th' ? 'th' : 'en' });
+    g.accounts.id.renderButton(box, { theme: 'filled_black', size: place instanceof HTMLElement || (place && place.big) ? 'large' : 'medium', text: 'signin_with', shape: 'pill', locale: lang() === 'th' ? 'th' : 'en' });
   });
   return () => { gone = true; box.remove(); };
 }

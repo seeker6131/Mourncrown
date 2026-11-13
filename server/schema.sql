@@ -43,3 +43,6 @@ CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at INT
 CREATE INDEX IF NOT EXISTS reports_target ON reports (target, at);
 ALTER TABLE accounts ADD COLUMN muted_until INTEGER NOT NULL DEFAULT 0;
 
+-- more devices of one account: each Google sign-in on another device adds its token here (the 5 newest kept), so the other devices stay signed in
+CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, id TEXT NOT NULL, at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS sessions_id ON sessions (id, at);

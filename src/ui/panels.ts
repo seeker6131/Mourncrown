@@ -32,7 +32,10 @@ import { mountOn, hasMount } from '../systems/mounts';
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, actServer, isOnline, refused } from '../net/client';
-import { isAdmin, SERVER } from '../net/cloud';
+import { isAdmin, SERVER, accountToken, googleLinked, accountName, signOut } from '../net/cloud';
+import { openLinkGoogle } from '../net/linkGoogle';
+import { showWait } from '../core/wait';
+import { askName } from '../net/namePrompt';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
@@ -702,10 +705,11 @@ export class Panels implements GuildHost {
   }
 
   // ---------------- MENU ----------------
+  confirmOut = false;
   buildMenu(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     // two columns so the window fits short phone screens (the close button must stay visible)
-    const W = Math.min(520, ui.VW - 16), H = 250, colW = (W - 46) / 2;
+    const W = Math.min(520, ui.VW - 16), H = 276, colW = (W - 46) / 2;
     const { x, y } = this.window(c, W, H, 'เมนู');
     let n = 0;
     const b = (label: string, cb: () => void, color?: number) => { const col = n % 2, row = Math.floor(n / 2); c.add(k.button(x + 16 + col * (colW + 14), y + 34 + row * 26, colW, 22, label, cb, { size: 8.5, color })); n++; };
@@ -715,6 +719,15 @@ export class Panels implements GuildHost {
     b('🐎 สัตว์ขี่', () => this.open('mounts'), 0x4a3a10);
     if (CBT_ACTIVE) b(`🎁 ของขวัญ CBT${cbtReady(s) ? ' (รับได้!)' : ''}`, () => this.open('cbt'), 0x5a2a6a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
+    // a guest links a Google account here and keeps everything (director)
+    if (accountToken() && !googleLinked()) b('🔗 ผูกบัญชี Google (ของไม่หาย)', () => {
+      this.close(); saveGame(s);
+      openLinkGoogle(r => {
+        if (r === 'switched') { location.reload(); return; }   // that Google account had a hero: load it
+        bus.emit(EV.TOAST, '✔ ผูก Google แล้ว — เข้าเครื่องไหนก็เล่นตัวละครนี้ต่อได้', '#9fffb0');
+        if (!accountName()) askName(n => bus.emit(EV.TOAST, `✔ ยินดีต้อนรับ ${n}!`, '#ffd84a'));
+      });
+    }, 0x1f4a6a);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
       const st = loadGame();
@@ -728,6 +741,11 @@ export class Panels implements GuildHost {
     b('🖥 ปรับ UI & เสียง (แถบเลื่อน)', () => this.open('uiopt'), 0x2a4a5a);
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
     if (isAdmin()) b('👑 แอดมิน: เปลี่ยนอาชีพ / ร่าง', () => this.open('forms'), 0x5a4a10);   // (the director's account only)
+    // sign out (Google accounts only — a guest who signs out could never come back to that hero)
+    if (googleLinked()) {
+      if (!this.confirmOut) b('🚪 ออกจากระบบ', () => { this.confirmOut = true; this.rebuild(); }, 0x4a2a2a);
+      else b('⚠ ยืนยันออกจากระบบ (ตัวละครอยู่กับ Google)', () => { saveGame(s); showWait(); signOut().then(() => location.reload()); }, 0x8a1a1a);
+    }
     if (!this.confirmNew) b('🆕 เริ่มเกมใหม่', () => { this.confirmNew = true; this.rebuild(); }, 0x5a1a1a);
     else b('⚠ ยืนยัน! ลบเซฟและเริ่มใหม่', () => { deleteSave(); location.reload(); }, 0x8a1a1a);
     c.add(k.text(x + W / 2, y + H - 16, `เวลาเล่น ${Math.floor(s.playTime / 60)} นาที  •  v0.3`, 7.5, '#8a7a60').setOrigin(0.5));

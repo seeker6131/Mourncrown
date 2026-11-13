@@ -1,20 +1,44 @@
-// A new version of the game is out (director: players with the game left open must not need to reload by hand).
-// Every 2 minutes the game asks the site for version.json; when it names another build, a note says so and the game
-// reloads by itself at the next map change (never in the middle of a fight). Offline / in development: nothing happens.
-import { bus, EV } from './events';
+// A new version of the game is out (director): a popup counts down 1 minute with a button to reload now; when the
+// minute is up the game reloads by itself. After the reload the player is back on the same map and spot, with auto
+// still on (core/resume.ts). In a dungeon run / raid / war the reload waits until it ends. Offline / dev: nothing.
+import { tr } from './i18n';
+import { keepResume, resumeBusy } from './resume';
 
-let ready = false, told = false, newest = '';
+const SECS = 60;
+let newest = '', shown = false;
 /** a new build is out and this page has not already reloaded for it (no reload loops if the site is slow to update) */
-export const updateReady = () => { if (!ready) return false; try { return sessionStorage.getItem('mcReloadFor') !== newest; } catch { return true; } };
-/** reload now for the new build (the caller saved the game) */
-export function reloadForUpdate() { try { sessionStorage.setItem('mcReloadFor', newest); } catch { /* private mode */ } location.reload(); }
+const fresh = () => { try { return sessionStorage.getItem('mcReloadFor') !== newest; } catch { return true; } };
+/** reload now for the new build: saves where the player is first */
+export function reloadForUpdate() {
+  keepResume();
+  try { sessionStorage.setItem('mcReloadFor', newest); } catch { /* private mode */ }
+  location.reload();
+}
+function popup() {
+  if (shown || document.getElementById('mc-update')) return; shown = true;
+  const box = document.createElement('div'); box.id = 'mc-update';
+  box.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1c1520f2;border:2px solid #d9b45a;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.6);color:#f3e6c4;font:14px system-ui,sans-serif;max-width:94vw';
+  box.innerHTML = `<span>🔄 <b style="color:#ffe7a0">${tr('มีอัปเดตเกมใหม่!')}</b> <span class="t"></span></span>
+    <button style="font-size:14px;padding:7px 12px;border:0;border-radius:8px;background:#2f6a3a;color:#fff;font-weight:700;white-space:nowrap">${tr('🔄 รีเกมเลย')}</button>`;
+  document.body.append(box);
+  const t = box.querySelector('.t') as HTMLElement, btn = box.querySelector('button') as HTMLButtonElement;
+  let left = SECS;
+  const tick = () => {
+    if (left > 0) t.textContent = tr('เกมจะรีเองใน') + ` ${left} ` + tr('วินาที — กลับมาที่เดิมให้');
+    else if (resumeBusy()) t.textContent = tr('จะรีให้หลังจบดันเจี้ยน/สงคราม');
+    else { reloadForUpdate(); return; }
+    left = Math.max(0, left - 1); setTimeout(tick, 1000);
+  };
+  btn.onclick = () => { if (resumeBusy()) { t.textContent = tr('จะรีให้หลังจบดันเจี้ยน/สงคราม'); left = 0; return; } btn.disabled = true; reloadForUpdate(); };
+  tick();
+}
 export function watchUpdates() {
   if (typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return;
   const check = async () => {
     try {
       const r = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
       const v = await r.json() as { b?: string };
-      if (v.b && v.b !== __BUILD__) { ready = true; newest = v.b; if (!told) { told = true; bus.emit(EV.TOAST, '🔄 มีเกมเวอร์ชันใหม่ — จะโหลดใหม่ให้เองตอนเปลี่ยนแมพ', '#9fd4ff'); } }
+      if (v.b && v.b !== __BUILD__) { newest = v.b; if (fresh()) popup(); }
     } catch { /* offline: try again later */ }
   };
   setTimeout(check, 30000); setInterval(check, 120000);

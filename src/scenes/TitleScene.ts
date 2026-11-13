@@ -14,9 +14,10 @@ import { formKeyOf } from '../world/chars';
 import { activeTier } from '../systems/stats';
 import { guildOf } from '../systems/guild';
 import { mountOn } from '../systems/mounts';
-import { cloud, googleLinked, accountName } from '../net/cloud';
+import { cloud, googleLinked, accountName, relogin } from '../net/cloud';
 import { askName } from '../net/namePrompt';
 import { showGoogleButton } from '../net/googleBtn';
+import { takeResume, type Resume } from '../core/resume';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -52,12 +53,12 @@ export class TitleScene extends Phaser.Scene {
     const title = k.text(VW / 2, 68, art ? '' : 'MOURNCROWN', 38, '#ffe7a0', { fontFamily: 'Georgia, serif', fontStyle: 'bold', strokeThickness: 7, stroke: '#2a1408' }).setOrigin(0.5);
     title.setShadow(0, 3, '#000000', 6, true, true);
     const cx = art ? Math.max(90, this.artMid) : VW / 2;
-    const sub = k.text(cx, art ? 228 : 104, lang() === 'en' ? 'Lift the curse • defend the last village' : 'ป่าต้องสาป • ชำระคำสาป ปกป้องหมู่บ้านสุดท้าย', 12, '#f3e6c4').setOrigin(0.5);
+    const sub = k.text(cx, art ? 220 : 104, lang() === 'en' ? 'Lift the curse • defend the last village' : 'ป่าต้องสาป • ชำระคำสาป ปกป้องหมู่บ้านสุดท้าย', 12, '#f3e6c4').setOrigin(0.5);
     sub.setShadow(0, 2, '#000000', 4, true, true);
     if (!art) { const lg = this.add.graphics(); k.diamond(lg, VW / 2 - 150, 70, 6); k.diamond(lg, VW / 2 + 150, 70, 6); lg.lineStyle(1, 0xd9b45a, 1).lineBetween(VW / 2 - 120, 120, VW / 2 + 120, 120); }
     this.tweens.add({ targets: title, scale: { from: 1, to: 1.03 }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    const start = (fresh: boolean) => {
+    const start = (fresh: boolean, rs?: Resume) => {
       starting = true;
       unlockAudio();
       if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen();   // full screen on start (Android / iPad / desktop)
@@ -66,26 +67,30 @@ export class TitleScene extends Phaser.Scene {
       audioState.sfx = st.sfx; setMusic(st.music); setVolume(uiOpt(st).vol);
       this.cameras.main.fadeOut(250, 0, 0, 0);
       // the village files were already coming in behind the title: let them finish here (the next scene finds them)
-      const go = () => this.time.delayedCall(30, () => this.scene.start('TopDown'));
+      const go = () => this.time.delayedCall(30, () => this.scene.start('TopDown', rs ? { stage: rs.stage, room: rs.room, guild: rs.guild, inside: (rs.inside ?? -1) >= 0 ? rs.inside : undefined, pos: { x: rs.x, y: rs.y }, farm: rs.farm } : undefined));
       this.time.delayedCall(260, () => { showWait(); if (this.load.isLoading()) this.load.once(Phaser.Loader.Events.COMPLETE, go); else go(); });
     };
-    let by = art ? 248 : 150;
-    if (hasSave()) { this.add.existing(k.button(cx - 80, by, 160, 30, '▶ เล่นต่อ', () => start(false), { size: 12, color: 0x1f4a2a })); by += 38; }
-    if (art && hasSave()) by -= 2;
-    this.add.existing(k.button(cx - 80, by, 160, 30, hasSave() ? 'เริ่มเกมใหม่' : '▶ เริ่มผจญภัย', () => start(!hasSave() ? true : true), { size: 12 }));
-    k.text(cx, 350, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
+    // a guest plays at once; a Google account keeps the hero on any device (it can be linked later in the menu — nothing is lost)
+    const linked = googleLinked(), save = hasSave();
+    let by = art ? 236 : 150, gy = -1;
+    if (!linked) { gy = by + 14; by += 34; }   // Google sign-in in the middle of the screen (Google draws it over the game)
+    if (save) {
+      this.add.existing(k.button(cx - 80, by, 160, 30, linked ? '▶ เล่นต่อ' : '▶ เล่นต่อ (แขก)', () => start(false), { size: 12, color: 0x1f4a2a }));
+      this.add.existing(k.button(cx - 55, by + 36, 110, 18, 'เริ่มเกมใหม่', () => start(true), { size: 9 }));
+    } else this.add.existing(k.button(cx - 80, by, 160, 30, linked ? '▶ เริ่มผจญภัย' : '▶ เล่นแบบแขก', () => start(true), { size: 12, color: linked ? undefined : 0x1f4a2a }));
+    k.text(cx, 351, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
     // the game server: is the save kept there (net/cloud.ts)
-    const cl = k.text(cx, 336, '', 7.5, '#9fd4ff').setOrigin(0.5);
-    // Google sign-in: the hero follows the player to any device (until linked, the account lives on this device only)
+    const cl = k.text(cx, 338, '', 7.5, '#9fd4ff').setOrigin(0.5);
     let note = '';
-    const showCloud = () => cl.active && cl.setText(note || (cloud.state === 'ok' || cloud.state === 'saving' ? (googleLinked() ? '☁ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม' : '☁ เชื่อมต่อเซิร์ฟแล้ว — เซฟเก็บบนเซิร์ฟ') : cloud.state === 'error' ? '☁ ออฟไลน์ — เล่นได้ปกติ เซฟเก็บในเครื่อง' : '☁ กำลังเชื่อมต่อเซิร์ฟ...')).setColor(cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
-    if (!googleLinked()) {
+    const showCloud = () => cl.active && cl.setText(note || (relogin ? '🔑 เข้าสู่ระบบ Google อีกครั้ง เพื่อเล่นตัวละครเดิมของคุณ' : cloud.state === 'ok' || cloud.state === 'saving' ? (googleLinked() ? '☁ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม' : '☁ เล่นแบบแขกได้เลย • ผูก Google ทีหลังได้ที่เมนู ของไม่หาย') : cloud.state === 'error' ? '☁ ยังต่อเซิร์ฟไม่ได้ — กำลังลองใหม่เอง (เล่นไปก่อนได้)' : '☁ กำลังเชื่อมต่อเซิร์ฟ...')).setColor(relogin ? '#ffd84a' : cloud.state === 'error' ? '#c8b89a' : '#9fd4ff');
+    if (gy >= 0) {
+      const b = this.game.canvas.getBoundingClientRect(), px = b.left + cx * u * (b.width / this.scale.width), py = b.top + gy * u * (b.height / this.scale.height);
       const off = showGoogleButton(r => {
         if (r === 'switched') { off(); this.scene.restart(); return; }   // the hero of that Google account is now on this device
         if (r === 'linked') { off(); note = '✔ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม'; if (!accountName()) askName(n => { note = `✔ ยินดีต้อนรับ ${n}!`; showCloud(); }); }
         else note = '✖ เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง';
         showCloud();
-      });
+      }, { x: px, y: py, big: b.height > 600 });
       this.events.once('shutdown', off);
     }
     showCloud(); this.time.addEvent({ delay: 600, loop: true, callback: showCloud });
@@ -95,6 +100,14 @@ export class TitleScene extends Phaser.Scene {
     this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));
     this.cameras.main.fadeIn(400);
     this.prefetch();
+    // the game just reloaded itself for an update: straight back to where the player was (no title in between)
+    const rs = takeResume();
+    if (rs && hasSave()) {
+      start(false, rs);
+      // full screen and sound need a tap after a reload (browser rule): the first tap brings both back
+      const back = () => { unlockAudio(); if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen(); };
+      window.addEventListener('pointerdown', back, { once: true });
+    }
   }
 
   /** fetch what the first scene (the village, or the guild village) waits for while the player looks at the title */

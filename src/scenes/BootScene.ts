@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hasResume } from '../core/resume';
 import { buildIcons, buildVfx } from '../art/iconArt';
 import { PixelCanvas } from '../art/pixel';
 import { preloadUi, applyUi } from '../ui/skin';
@@ -32,6 +33,6 @@ export class BootScene extends Phaser.Scene {
     applyUi(this);
     this.children.removeAll(true);
     const q = new URLSearchParams(location.search);
-    this.scene.start(q.has('td') || q.has('play') ? 'TopDown' : 'Title');
+    this.scene.start((q.has('td') || q.has('play')) && !hasResume() ? 'TopDown' : 'Title');   // (just reloaded for an update: the title takes the player back)
   }
 }

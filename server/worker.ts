@@ -39,9 +39,14 @@ function cors(req: Request) {
 }
 const json = (req: Request, body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...cors(req) } });
 
+/** the account a device's token belongs to: the account's first device (accounts.token_hash) or any device that signed
+ *  in with Google later (sessions) — several devices stay signed in at once (a new sign-in no longer logs the others out) */
+async function byToken(env: Env, t: string) {
+  if (!t || t.length < 32 || t.length > 128) return null;
+  return env.DB.prepare('SELECT id, google_sub, name FROM accounts WHERE banned = 0 AND (token_hash = ?1 OR id = (SELECT id FROM sessions WHERE token_hash = ?1))').bind(await sha(t)).first<{ id: string; google_sub: string | null; name: string | null }>();
+}
 async function who(req: Request, env: Env) {
-  const t = req.headers.get('x-mc-token'); if (!t || t.length < 32 || t.length > 128) return null;
-  const a = await env.DB.prepare('SELECT id, google_sub, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; google_sub: string | null; name: string | null }>();
+  const a = await byToken(env, req.headers.get('x-mc-token') ?? '');
   if (a) await env.DB.prepare('UPDATE accounts SET seen = ? WHERE id = ?').bind(Date.now(), a.id).run();
   return a;
 }
@@ -91,7 +96,10 @@ export default {
         if (linked?.banned) return json(req, { error: 'banned' }, 403);
         if (linked) {   // this Google account already has a hero: this device signs in to it (a new session token for this device)
           const token = rand(32);
-          await env.DB.prepare('UPDATE accounts SET token_hash = ?, seen = ? WHERE id = ?').bind(await sha(token), Date.now(), linked.id).run();
+          const now = Date.now();
+          await env.DB.prepare('INSERT INTO sessions (token_hash, id, at) VALUES (?, ?, ?)').bind(await sha(token), linked.id, now).run();
+          await env.DB.prepare('DELETE FROM sessions WHERE id = ?1 AND token_hash NOT IN (SELECT token_hash FROM sessions WHERE id = ?1 ORDER BY at DESC LIMIT 5)').bind(linked.id).run();   // (the 5 newest devices)
+          await env.DB.prepare('UPDATE accounts SET seen = ? WHERE id = ?').bind(now, linked.id).run();
           return json(req, { id: linked.id, token, switched: true });
         }
         const me = await who(req, env);
@@ -103,11 +111,19 @@ export default {
         return json(req, { ...(await newAccount(env, ipHash, sub)), switched: true });
       }
 
+      // sign out on this device: its key stops working (the hero stays with the account; the other devices stay signed in)
+      if (path === '/auth/logout' && req.method === 'POST') {
+        const t = req.headers.get('x-mc-token') ?? '', me = await who(req, env); if (!me) return json(req, { ok: true });
+        const h = await sha(t);
+        await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(h).run();
+        await env.DB.prepare('UPDATE accounts SET token_hash = ? WHERE id = ? AND token_hash = ?').bind(await sha(rand(32)), me.id, h).run();   // (the first device's key: replaced by one nobody has)
+        return json(req, { ok: true });
+      }
       // the player's own game on the server (Durable Object): every valuable action runs here
       if (path === '/play') {
         if (req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'play' }, 400);
         const t = url.searchParams.get('t') ?? '';
-        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string }>() : null;
+        const a = await byToken(env, t);
         if (!a) return new Response('auth', { status: 401 });
         const u = new URL(req.url); u.pathname = '/ws'; u.search = ''; u.searchParams.set('id', a.id);
         return env.PLAYER.get(env.PLAYER.idFromName(a.id)).fetch(new Request(u.toString(), req));
@@ -118,7 +134,7 @@ export default {
         const room = path.slice(6);
         if (!/^[a-z0-9-]{1,32}$/.test(room) || room.startsWith('chat') || req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'room' }, 400);   // (chat channels: /chat only)
         const t = url.searchParams.get('t') ?? '';
-        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
+        const a = await byToken(env, t);
         if (!a) return new Response('auth', { status: 401 });
         const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
@@ -131,7 +147,7 @@ export default {
       if (path === '/chat/world' || path === '/chat/guild') {
         if (req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'chat' }, 400);
         const t = url.searchParams.get('t') ?? '';
-        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
+        const a = await byToken(env, t);
         if (!a) return new Response('auth', { status: 401 });
         const info = await (await env.PLAYER.get(env.PLAYER.idFromName(a.id)).fetch(new Request('https://p/gid?id=' + a.id))).json() as { gid: string | null; lv: number };
         let room = 'chat-world';
