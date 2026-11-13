@@ -9,6 +9,9 @@ import type { RoomLink, RoomEvent } from '../net/room';
 
 interface View { sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; bubble?: Phaser.GameObjects.Text; bubbleT: number; form: string; aura: number; glow?: Phaser.FX.Glow; busy: number; dir: number; moving: boolean }
 
+/** how far in the past other players are shown (a bit more than the 0.2 s between their updates) */
+const DELAY = 260;
+
 export class OtherPlayers {
   views = new Map<string, View>(); bars: Phaser.GameObjects.Graphics;
   constructor(public sc: Phaser.Scene, public link: RoomLink) { this.bars = sc.add.graphics().setDepth(99990); }
@@ -16,7 +19,11 @@ export class OtherPlayers {
   event(e: RoomEvent, heroBubble: (text: string) => void) {
     if (e.t === 'bye') { this.drop(e.id); return; }
     if (e.t === 'c') { if (e.id === this.link.me) heroBubble(e.text); else { const v = this.views.get(e.id); if (v) this.say(v, e.text); } return; }
-    if (e.t === 'hit') { const v = this.views.get(e.id); if (v && hasAnim(v.form, e.k)) { v.dir = e.d; v.busy = this.sc.time.now + 450; playAnim(v.sp, v.form, e.k, e.d, false); } }
+    if (e.t === 'hit') {   // their swing / skill: played every time, then back to standing
+      const v = this.views.get(e.id), k = v ? (hasAnim(v.form, e.k) ? e.k : hasAnim(v.form, 'attack') ? 'attack' : '') : ''; if (!v || !k) return;
+      v.dir = e.d; v.busy = this.sc.time.now + 450; playAnim(v.sp, v.form, k, e.d, false);
+      v.sp.off('animationcomplete').once('animationcomplete', () => { if (!v.moving && v.sp.active) setIdle(v.sp, v.form, v.dir); });
+    }
   }
   say(v: View, text: string) {
     v.bubble?.destroy();
@@ -35,10 +42,15 @@ export class OtherPlayers {
         v = { sp, sh: pxShadow(this.sc, o.tx, o.ty, 18, 6, 0.5), tag: this.sc.add.text(o.tx, o.ty, o.name, { fontFamily: 'sans-serif', fontSize: '7px', color: '#bfe8ff', stroke: '#06121a', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99990), bubbleT: 0, form: '', aura: 0, busy: 0, dir: o.d, moving: false };
         this.views.set(o.id, v); o.x = o.tx; o.y = o.ty;
       }
-      // glide toward the last reported spot (a jump if far: they teleported / just arrived)
-      const dx = o.tx - o.x, dy = o.ty - o.y, dist = Math.hypot(dx, dy);
-      if (dist > 220) { o.x = o.tx; o.y = o.ty; } else { const k = Math.min(1, dt / 1000 * 10); o.x += dx * k; o.y += dy * k; }
-      const moving = !!o.mv || dist > 2;
+      // smooth: shown a little in the past (DELAY), moving at an even pace between the spots they reported
+      // (the usual way online games show other players — no stops and jumps between updates)
+      const px = o.x, py = o.y, rt = performance.now() - DELAY, b = o.buf ?? [];
+      let k = b.length - 1; while (k > 0 && b[k - 1].t > rt) k--;
+      if (!b.length) { o.x = o.tx; o.y = o.ty; }
+      else if (k === 0 || rt >= b[b.length - 1].t) { const l = rt >= b[b.length - 1].t ? b[b.length - 1] : b[0]; o.x = l.x; o.y = l.y; }
+      else { const a = b[k - 1], c = b[k], f = Math.min(1, Math.max(0, (rt - a.t) / Math.max(1, c.t - a.t))); o.x = a.x + (c.x - a.x) * f; o.y = a.y + (c.y - a.y) * f; }
+      const dist = Math.hypot(o.x - px, o.y - py) / Math.max(1, dt) * 1000;   // (shown speed, px a second)
+      const moving = dist > 12 || (!!o.mv && rt < (b[b.length - 1]?.t ?? 0));
       if (form !== v.form || (now > v.busy && (moving !== v.moving || o.d !== v.dir))) {
         v.form = form; v.moving = moving; v.dir = o.d;
         if (moving && hasAnim(form, 'walk')) playAnim(v.sp, form, 'walk', o.d, true); else setIdle(v.sp, form, o.d);
