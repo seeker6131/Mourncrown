@@ -1081,12 +1081,14 @@ export class Panels implements GuildHost {
     const info = `แผนที่ ${sel.n}${sb ? `  👹 ${sb.name} อยู่ตอนนี้! (อีก ~${Math.max(1, Math.ceil(sb.left / 60000))} นาที)` : ''}  •  มอน Lv${sel.level}  •  ${food ? `เสบียง 🍖${food}/5 นาที` : 'เสบียงฟรี'}`;
     c.add(k.text(x + 30 + Math.min(5, L.mobs.length) * 26, by + 5, info, 8.5, open ? (!food || supplyMinutes(s, sel.n) >= 10 ? '#ffe7a0' : '#ff8a6a') : '#8a7a60'));
     c.add(k.button(x + W - 12 - 118, by - 2, 114, 26, open ? `▶ เข้าแผนที่ ${sel.n}` : `🔒 ต้อง Lv${sel.req}`, () => go(sel.n), { size: 10, color: sb ? 0x7a2a14 : 0x1f4a2a, disabled: !open }));
-    // where the roaming bosses are now: tap one to jump to that map (they come at random — nobody knows ahead)
-    const now = [...wb.values()].sort((a, b2) => a.n - b2.n);
-    c.add(k.text(x + W / 2, y + 82, now.length ? '' : '👹 บอสเร่ร่อนโผล่สุ่มทุกแผนที่ — มีประกาศในแชตโลกเมื่อมันมา', 7.5, '#c8a090').setOrigin(0.5, 0));
-    now.slice(0, 4).forEach((b, i, arr) => {
-      const bw = 108, bx0 = x + W / 2 - (arr.length * (bw + 6) - 6) / 2;
-      c.add(k.button(bx0 + i * (bw + 6), y + 80, bw, 16, `👹 แผนที่ ${b.n}`, () => step(b.n - this.stSel), { size: 7.5, color: 0x7a2a14 }));
+    // where the roaming bosses are now: in the free space of the top row (between the dungeon button and the land pills),
+    // clear of the cards — tap one to jump to that map (they come at random — nobody knows ahead)
+    const now = [...wb.values()].sort((a, b2) => a.n - b2.n), mx0 = x + 218, mx1 = px0 - 6, mw = mx1 - mx0;
+    if (!now.length) c.add(k.text(mx0 + mw / 2, ty + 5, '👹 บอสเร่ร่อนสุ่มโผล่ — มีประกาศในแชตโลก', 7, '#c8a090').setOrigin(0.5, 0));
+    const fit = Math.max(1, Math.min(now.length, Math.floor((mw + 4) / 64)));
+    now.slice(0, fit).forEach((b, i, arr) => {
+      const bw = Math.min(84, (mw - (arr.length - 1) * 4) / arr.length), bx0 = mx0 + (mw - (arr.length * (bw + 4) - 4)) / 2;
+      c.add(k.button(bx0 + i * (bw + 4), ty + 1, bw, 18, `👹 แผนที่ ${b.n}`, () => step(b.n - this.stSel), { size: 7.5, color: 0x7a2a14 }));
     });
   }
 
