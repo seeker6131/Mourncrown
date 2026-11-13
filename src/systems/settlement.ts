@@ -27,6 +27,12 @@ export function underConstruction(b: { done?: number }, now = Date.now()) { retu
 
 export function buildingAt(s: GameState, plot: number) { return s.buildings.find(b => b.plot === plot) ?? null; }
 
+/** the home village's plots: each NPC building's plot, and the player's home plot (shared with the server: world/villageLayout is the guild village) */
+export const VILLAGE_PLOT_OF: Record<string, number> = { forge: 0, barn: 1, lumber: 2, tavern: 3, kitchen: 4, market: 5, warehouse: 6, quarry: 7, tower: 8 };
+export const VILLAGE_HOME_PLOT = 9;
+/** the home village as it should stand (the server runs this too — the NPC buildings must exist there, or building on /
+ *  collecting from them is refused and the device's copy loses them after a reload); true = something was added */
+export function ensureHomeVillage(s: GameState, now = Date.now()) { const n = s.buildings.length; ensureNpcVillage(s, VILLAGE_PLOT_OF, VILLAGE_HOME_PLOT, now); return s.buildings.length !== n; }
 /** Top-down village: every NPC building stands from the start (level 1) at its own plot; only the home plot is the player's.
  *  Also repairs older saves (missing types are added, the first free plot is used if theirs is taken). */
 export function ensureNpcVillage(s: GameState, plotOf: Record<string, number>, homePlot: number, now = Date.now()) {

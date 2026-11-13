@@ -40,7 +40,7 @@ import { TEST_HOOKS } from '../core/testHooks';
 import { OtherPlayers } from '../world/others';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
-import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage } from '../systems/settlement';
+import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage, VILLAGE_PLOT_OF, VILLAGE_HOME_PLOT } from '../systems/settlement';
 import { BUILDINGS, RES_NAMES, type BuildingId } from '../data/buildings';
 import type { TdUIScene } from './TdUIScene';
 import { CH, preloadChars, createCharAnims, setIdle, playAnim, hasAnim, hitMs, formKeyOf, headH } from '../world/chars';
@@ -99,8 +99,8 @@ function yardAt(x: number, y: number) {
   for (const P of [...PLOTS, ...HOUSES.map(([, hx, hy]) => ({ x: hx, y: hy }))]) { const d = Math.hypot((x - P.x) / 104, (y - P.y - 8) / 50); if (d + n * 0.9 < 1) return true; }
   return false;
 }
-const PLOT_OF: Record<string, number> = { forge: 0, barn: 1, lumber: 2, tavern: 3, kitchen: 4, market: 5, warehouse: 6, quarry: 7, tower: 8 };
-export const HOME_PLOT = 9;
+const PLOT_OF = VILLAGE_PLOT_OF;   // (systems/settlement.ts — the server uses the same)
+export const HOME_PLOT = VILLAGE_HOME_PLOT;
 /** guild village plot -> its building */
 const GUILD_BLD_AT: Record<number, GuildBld> = Object.fromEntries(Object.entries(GV.PLOT_OF).map(([t, p]) => [p, t as GuildBld]));
 /** building art level: 3 art stages over 5 building levels */

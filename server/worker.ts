@@ -12,6 +12,7 @@ import { grantAdminKit } from '../src/systems/adminKit';
 import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallLv, type RaidHit, type Rival } from '../src/systems/guild';
 import { dayKey } from '../src/systems/daily';
 import { grantCbt } from '../src/systems/cbtGift';
+import { ensureHomeVillage } from '../src/systems/settlement';
 import { GUILD_MAX } from '../src/data/guild';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
@@ -696,6 +697,7 @@ export class Player {
       this.state.acceptWebSocket(server, [id]); server.serializeAttachment({ id });
       // the director's account: everything in the game, given once by the server (src/systems/adminKit.ts)
       if (this.st && (this.env.ADMINS ?? '').split(',').includes(id) && grantAdminKit(this.st as unknown as GameState)) await this.later();
+      if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();   // the home village's NPC buildings live here too (they used to exist on the device only)
       // on (re)connect the game gets the server's whole valuable state (anything edited on the device is put back)
       const own: St = {}; if (this.st) for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
       server.send(JSON.stringify({ t: 'hi', rev: this.rev, has: !!this.st, own }));
@@ -718,7 +720,7 @@ export class Player {
       const body = JSON.parse(await req.text()) as { data?: St };
       if (!body.data || typeof body.data !== 'object' || typeof body.data.version !== 'number') return new Response(JSON.stringify({ error: 'data' }), { status: 400 });
       if (!this.st) {   // a new account's first save: a fresh character (a save edited before going online brings nothing)
-        this.st = startNewGame() as unknown as St;
+        this.st = startNewGame() as unknown as St; ensureHomeVillage(this.st as unknown as GameState);
         for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];
       }
       else for (const k of CLIENT_KEYS) if (k in body.data) this.st[k] = body.data[k];

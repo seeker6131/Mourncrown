@@ -159,3 +159,16 @@ describe('skill points (director: nobody loses points; more ways to earn them)',
     expect(s.skillPts).toBe(pts + 1);
   });
 });
+
+describe('the home village stands on the server too (its NPC buildings used to exist on the device only)', () => {
+  it('a fresh hero gets every NPC building at its plot, once; the home plot stays free for the player', async () => {
+    const { ensureHomeVillage, VILLAGE_PLOT_OF, VILLAGE_HOME_PLOT } = await import('../src/systems/settlement');
+    const { NPC_BUILDINGS } = await import('../src/data/buildings');
+    const { startNewGame } = await import('../src/core/save');
+    const s = startNewGame(); s.buildings = [];
+    expect(ensureHomeVillage(s)).toBe(true);
+    for (const t of NPC_BUILDINGS) expect(s.buildings.find(b => b.type === t)?.plot).toBe(VILLAGE_PLOT_OF[t]);
+    expect(s.buildings.some(b => b.plot === VILLAGE_HOME_PLOT)).toBe(false);
+    expect(ensureHomeVillage(s)).toBe(false);   // (nothing more the second time)
+  });
+});
