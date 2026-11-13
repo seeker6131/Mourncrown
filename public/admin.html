@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Mourncrown หลังบ้าน</title>
+<style>
+  /* The back office (director): everything in the game, for the admin accounts only. The server checks every request
+     (server/worker.ts /admin/*); this page holds no secret — it uses the game's own sign-in on this device. */
+  :root { --bg:#120c12; --card:#1f1620; --line:#4a3a2a; --text:#f3e6c4; --dim:#a89878; --gold:#ffd84a; --red:#ff6a5a; --green:#7ad88a; --blue:#8fc8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: #1a1018f2; border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  header b { color: var(--gold); font-size: 16px; letter-spacing: .5px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  nav button, .btn { background: #2a1d16; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+  nav button.on { background: #6a4a10; border-color: var(--gold); }
+  .btn.red { background: #5a1a1a; border-color: #8a3a2a; } .btn.green { background: #1f4a2a; border-color: #3a7a4a; }
+  main { padding: 14px 16px 40px; max-width: 1200px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .stat .v { font-size: 22px; font-weight: 700; color: var(--gold); } .stat .k { color: var(--dim); font-size: 12px; }
+  h2 { font-size: 15px; color: var(--gold); margin: 18px 0 8px; }
+  .tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  th, td { padding: 7px 9px; border-bottom: 1px solid #2e2228; text-align: left; white-space: nowrap; font-size: 13px; }
+  th { background: #241a1e; color: var(--dim); font-weight: 600; position: sticky; top: 0; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: #2a1d22; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: #333; }
+  .tag.vip { background: #5a3a8a; } .tag.ban { background: #8a1a1a; } .tag.mute { background: #6a4a10; } .tag.g { background: #1a4a6a; }
+  .bar { height: 8px; background: #0b0805; border-radius: 4px; overflow: hidden; margin-top: 6px; } .bar i { display: block; height: 100%; background: var(--green); }
+  input[type=search] { background: #0f0b12; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 14px; width: min(320px, 100%); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .dim { color: var(--dim); } .msg { padding: 40px 10px; text-align: center; color: var(--dim); }
+  dialog { background: var(--card); color: var(--text); border: 2px solid var(--gold); border-radius: 12px; width: min(760px, 94vw); max-height: 88vh; padding: 0; }
+  dialog::backdrop { background: #000a; }
+  .dh { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card); }
+  .db { padding: 12px 14px; overflow: auto; max-height: calc(88vh - 60px); }
+  pre { background: #0b0805; border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 300px; font-size: 12px; }
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; font-size: 13px; } .kv div:nth-child(odd) { color: var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <b>👑 MOURNCROWN หลังบ้าน</b>
+  <nav id="tabs"></nav>
+  <span class="dim" id="upd" style="margin-left:auto;font-size:12px"></span>
+</header>
+<main id="main"><div class="msg">กำลังโหลด...</div></main>
+<dialog id="dlg"><div class="dh"><b id="dt"></b><button class="btn" onclick="dlg.close()">ปิด</button></div><div class="db" id="dbody"></div></dialog>
+<script>
+const SERVER = ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('srv') === 'local' ? 'http://127.0.0.1:8787' : 'https://mourncrown.egowenit.workers.dev';   // (?srv=local: a local test copy, this machine only)
+let token = ''; try { token = JSON.parse(localStorage.getItem('mc_cloud') || 'null')?.token || ''; } catch {}
+const $ = id => document.getElementById(id), main = $('main');
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => (Number(v) || 0).toLocaleString('th-TH');
+const when = t => { if (!t) return '-'; const d = (Date.now() - t) / 1000; if (d < 60) return 'เมื่อกี้'; if (d < 3600) return Math.floor(d / 60) + ' นาทีที่แล้ว'; if (d < 86400) return Math.floor(d / 3600) + ' ชม.ที่แล้ว'; return new Date(t).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }); };
+const CLS = { novice: 'ชาวบ้าน', sword: 'ดาบ', archer: 'ธนู', mage: 'เวท', cleric: 'ผู้พิทักษ์' };
+const tags = r => [r.google ? '<span class="tag g">Google</span>' : '<span class="tag">แขก</span>', (r.vip || 0) > Date.now() ? '<span class="tag vip">VIP</span>' : '', r.banned ? '<span class="tag ban">แบน</span>' : '', (r.muted_until || 0) > Date.now() ? '<span class="tag mute">ปิดแชต</span>' : ''].join(' ');
+async function api(path, body) {
+  const r = await fetch(SERVER + path, { method: body ? 'POST' : 'GET', headers: { 'x-mc-token': token, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401 || r.status === 403) throw new Error('admin');
+  return r.json();
+}
+const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['guilds', '🏛 กิลด์'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
+let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0;
+$('tabs').innerHTML = TABS.map(([k, n]) => `<button data-k="${k}">${n}</button>`).join('');
+$('tabs').onclick = e => { const k = e.target.dataset?.k; if (k) { tab = k; page = 0; show(); } };
+const playerRow = r => `<tr class="click" data-id="${esc(r.id)}"><td>${esc(r.name || '(ยังไม่ตั้งชื่อ)')}</td><td>${r.lv ?? '-'}</td><td>${esc(CLS[r.cls] || r.cls || '-')}${r.tier ? ' ร่าง ' + (r.tier + 1) : ''}</td><td>${num(r.gold)}</td><td>${num(r.diamonds)}</td><td>${tags(r)}</td><td>${when(r.seen)}</td><td class="dim">${when(r.created)}</td></tr>`;
+const playerTable = rows => `<div class="tw"><table><tr><th>ชื่อ</th><th>Lv</th><th>อาชีพ</th><th>ทอง</th><th>💎</th><th>สถานะ</th><th>เข้าล่าสุด</th><th>สมัคร</th></tr>${rows.map(playerRow).join('') || '<tr><td colspan="8" class="dim">ไม่มี</td></tr>'}</table></div>`;
+async function show() {
+  clearTimeout(timer);
+  [...$('tabs').children].forEach(b => b.classList.toggle('on', b.dataset.k === tab));
+  if (!token) { main.innerHTML = '<div class="msg">ยังไม่ได้ล็อกอินในเครื่องนี้<br>เปิดเกมแล้ว<b>ล็อกอิน Google ด้วยบัญชีแอดมิน</b>ก่อน แล้วกลับมาหน้านี้</div>'; return; }
+  try {
+    if (tab === 'overview') {
+      const o = await api('/admin/overview'), cap = o.limits.dayHours ? Math.min(100, o.hoursToday / o.limits.dayHours * 100) : 0;
+      main.innerHTML = `<div class="grid">
+        <div class="stat"><div class="v">${o.online}${o.limits.maxOnline ? '<span class="dim" style="font-size:14px"> / ' + o.limits.maxOnline + '</span>' : ''}</div><div class="k">🟢 ออนไลน์ตอนนี้</div></div>
+        <div class="stat"><div class="v">${o.hoursToday}<span class="dim" style="font-size:14px"> / ${o.limits.dayHours || '∞'} ชม.</span></div><div class="k">⏱ ชั่วโมงเล่นวันนี้ (เพดาน รีเซ็ต 07:00)</div><div class="bar"><i style="width:${cap}%;background:${cap > 85 ? 'var(--red)' : cap > 60 ? 'var(--gold)' : 'var(--green)'}"></i></div></div>
+        <div class="stat"><div class="v">${num(o.accounts)}</div><div class="k">บัญชีทั้งหมด (Google ${num(o.google)})</div></div>
+        <div class="stat"><div class="v">${num(o.newToday)}</div><div class="k">สมัครใหม่ 24 ชม.</div></div>
+        <div class="stat"><div class="v">${num(o.activeToday)}</div><div class="k">เข้าเล่น 24 ชม.</div></div>
+        <div class="stat"><div class="v">${num(o.guilds)}</div><div class="k">🏛 กิลด์</div></div>
+        <div class="stat"><div class="v">${num(o.market)}</div><div class="k">🏪 ของวางขายอยู่</div></div>
+        <div class="stat"><div class="v" style="color:${o.reports ? 'var(--red)' : 'var(--gold)'}">${num(o.reports)}</div><div class="k">🚩 รายงานแชต 24 ชม.</div></div>
+        <div class="stat"><div class="v" style="color:${o.flags ? 'var(--red)' : 'var(--gold)'}">${num(o.flags)}</div><div class="k">🛡 กันโกงจับได้ 24 ชม.</div></div>
+        <div class="stat"><div class="v">${num(o.banned)}</div><div class="k">⛔ ถูกแบน</div></div>
+      </div>
+      <h2>👹 บอสเร่ร่อนตอนนี้</h2>
+      <div>${o.bosses.length ? o.bosses.map(b => `<span class="tag" style="background:#7a2a14;margin:2px">แผนที่ ${b.n} • ${esc(b.name)} • อีก ~${Math.max(1, Math.ceil(b.left / 60000))} นาที</span>`).join(' ') : '<span class="dim">ไม่มี</span>'}</div>
+      <h2>🟢 ใครออนไลน์อยู่ (${o.who.length})</h2>${playerTable(o.who)}`;
+      timer = setTimeout(show, 30000);
+    } else if (tab === 'players') {
+      const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}`);
+      main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ / รหัสบัญชี" value="${esc(q)}">
+        <button class="btn" id="srt">เรียง: ${sort === 'lv' ? 'เลเวล' : 'เข้าล่าสุด'}</button>
+        <button class="btn" id="pv" ${page ? '' : 'disabled'}>◀</button><span class="dim">หน้า ${page + 1}</span><button class="btn" id="nx" ${d.rows.length < 50 ? 'disabled' : ''}>▶</button></div>${playerTable(d.rows)}`;
+      const qi = $('q'); let t = 0; qi.oninput = () => { clearTimeout(t); t = setTimeout(() => { q = qi.value; page = 0; show(); }, 400); };
+      $('srt').onclick = () => { sort = sort === 'lv' ? 'seen' : 'lv'; page = 0; show(); }; $('pv').onclick = () => { page--; show(); }; $('nx').onclick = () => { page++; show(); };
+    } else if (tab === 'guilds') {
+      const d = await api('/admin/guilds');
+      main.innerHTML = `<div class="tw"><table><tr><th>กิลด์</th><th>หัวหน้า</th><th>สมาชิก</th><th>หอกิลด์</th><th>คะแนนสัปดาห์</th><th>โล่</th><th>สร้างเมื่อ</th></tr>${d.rows.map(g => `<tr><td>${esc(g.name)}</td><td>${esc(g.leader_name || '-')}</td><td>${g.members}/10</td><td>Lv${g.hall}</td><td>${num(g.score)}</td><td>${g.shield > Date.now() ? '🛡 อีก ' + Math.ceil((g.shield - Date.now()) / 3600000) + ' ชม.' : '-'}</td><td class="dim">${when(g.at)}</td></tr>`).join('') || '<tr><td colspan="7" class="dim">ยังไม่มีกิลด์</td></tr>'}</table></div>`;
+    } else if (tab === 'market') {
+      const d = await api('/admin/market'), RAR = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legend', 'SL'];
+      main.innerHTML = `<div class="tw"><table><tr><th>ของ</th><th>ระดับ</th><th>ราคา</th><th>ผู้ขาย</th><th>สถานะ</th><th>ลงขาย</th></tr>${d.rows.map(m => { let it = {}; try { it = JSON.parse(m.item); } catch {} const st = m.status === 'sold' ? '✅ ขายแล้ว' : m.status === 'open' && m.until > Date.now() ? '🟢 วางขาย' : m.status === 'open' ? '⌛ หมดเวลา' : esc(m.status); return `<tr><td>${esc(it.id)}${it.upg ? ' +' + it.upg : ''}${it.qty > 1 ? ' x' + it.qty : ''}</td><td>${RAR[m.rar] || m.rar}</td><td>💰 ${num(m.price)}</td><td>${esc(m.seller_name)}</td><td>${st}</td><td class="dim">${when(m.at)}</td></tr>`; }).join('') || '<tr><td colspan="6" class="dim">ยังไม่มีของขาย</td></tr>'}</table></div>`;
+    } else if (tab === 'reports') {
+      const d = await api('/admin/reports');
+      main.innerHTML = `<div class="tw"><table><tr><th>เมื่อ</th><th>ผู้ถูกรายงาน</th><th>ข้อความ</th><th>ห้อง</th><th>คนรายงาน</th><th>ปิดแชตอยู่</th></tr>${d.rows.map(r => `<tr class="click" data-id="${esc(r.target)}"><td class="dim">${when(r.at)}</td><td>${esc(r.target_name)}</td><td style="white-space:normal;min-width:200px">${esc(r.text)}</td><td>${esc(r.room)}</td><td>${esc(r.by_name)}</td><td>${(r.muted_until || 0) > Date.now() ? '🔇 ใช่' : '-'}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ไม่มีรายงาน</td></tr>'}</table></div>`;
+    } else if (tab === 'flags') {
+      const d = await api('/admin/flags');
+      main.innerHTML = `<p class="dim">สิ่งที่ระบบกันโกงจับได้ (ทอง/เลเวลพุ่งผิดปกติ, แก้เพชร/VIP เอง) และสิ่งที่แอดมินทำ</p><div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>เรื่อง</th><th>รายละเอียด</th></tr>${d.rows.map(f => `<tr class="click" data-id="${esc(f.id)}"><td class="dim">${when(f.at)}</td><td>${esc(f.name || f.id)}</td><td>${esc(f.what)}</td><td style="white-space:normal">${esc(f.detail)}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ไม่มี</td></tr>'}</table></div>`;
+    }
+    $('upd').textContent = 'อัปเดต ' + new Date().toLocaleTimeString('th-TH');
+  } catch (e) {
+    main.innerHTML = e.message === 'admin' ? '<div class="msg">⛔ บัญชีในเครื่องนี้ไม่ใช่แอดมิน<br>เปิดเกมแล้วล็อกอิน Google ด้วยบัญชีแอดมินก่อน</div>' : `<div class="msg">โหลดไม่สำเร็จ (${esc(e.message)}) — ลองใหม่อีกครั้ง</div>`;
+  }
+}
+main.onclick = e => { const tr = e.target.closest('tr.click'); if (tr) player(tr.dataset.id); };
+async function player(id) {
+  const d = await api('/admin/player?id=' + encodeURIComponent(id)), a = d.acc || {}, s = d.save?.data || {};
+  $('dt').textContent = (a.name || '(ยังไม่ตั้งชื่อ)') + ' • Lv' + (a.lv ?? '-');
+  const inv = (s.inventory || []).map(i => `${i.id}${i.upg ? '+' + i.upg : ''}${i.qty > 1 ? ' x' + i.qty : ''}`).join(', ');
+  const muted = (a.muted_until || 0) > Date.now();
+  $('dbody').innerHTML = `<div class="row">${tags(a)}</div>
+    <div class="kv"><div>รหัสบัญชี</div><div>${esc(a.id)}</div><div>อาชีพ</div><div>${esc(CLS[s.cls] || s.cls)} ร่าง ${(s.tier ?? 0) + 1}</div>
+    <div>ทอง</div><div>💰 ${num(s.gold)}</div><div>เพชร</div><div>💎 ${num(s.diamonds)}</div><div>VIP ถึง</div><div>${(s.vipUntil || 0) > Date.now() ? new Date(s.vipUntil).toLocaleString('th-TH') : '-'}</div>
+    <div>ไม้ / หิน / อาหาร</div><div>${num(s.res?.wood)} / ${num(s.res?.stone)} / ${num(s.res?.food)}</div><div>กิลด์</div><div>${esc(s.guild?.name || '-')}</div>
+    <div>เข้าล่าสุด</div><div>${when(a.seen)}</div><div>สมัคร</div><div>${when(a.created)}</div><div>เซฟล่าสุด</div><div>${when(d.save?.at)} (ครั้งที่ ${d.save?.rev ?? 0})</div></div>
+    <h2>⚙ จัดการ</h2><div class="row">
+      ${a.banned ? `<button class="btn green" data-a="unban">✅ ปลดแบน</button>` : `<button class="btn red" data-a="ban">⛔ แบน</button>`}
+      ${muted ? `<button class="btn green" data-a="unmute">🔊 เปิดแชต</button>` : `<button class="btn" data-a="mute" data-h="24">🔇 ปิดแชต 24 ชม.</button><button class="btn" data-a="mute" data-h="168">🔇 ปิดแชต 7 วัน</button>`}</div>
+    <h2>🎒 กระเป๋า (${(s.inventory || []).length})</h2><div style="font-size:13px">${esc(inv) || '<span class="dim">ว่าง</span>'}</div>
+    <h2>🚩 ถูกรายงาน (${d.reports.length})</h2>${d.reports.map(r => `<div style="font-size:13px"><span class="dim">${when(r.at)} • ${esc(r.by_name)}:</span> ${esc(r.text)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>🛡 กันโกง (${d.flags.length})</h2>${d.flags.map(f => `<div style="font-size:13px"><span class="dim">${when(f.at)}</span> ${esc(f.what)} — ${esc(f.detail)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>🏪 ของที่ลงขาย (${d.market.length})</h2>${d.market.map(m => `<div style="font-size:13px">${esc((() => { try { return JSON.parse(m.item).id; } catch { return '?'; } })())} • 💰 ${num(m.price)} • ${esc(m.status)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>🧾 ข้อมูลตัวละครทั้งหมด</h2><pre>${esc(JSON.stringify(s, null, 1))}</pre>`;
+  $('dbody').querySelectorAll('button[data-a]').forEach(b => b.onclick = async () => {
+    const what = b.dataset.a, label = b.textContent.trim();
+    if (!confirm(`ยืนยัน "${label}" กับ ${a.name || a.id}?`)) return;
+    const r = await api('/admin/act', { id: a.id, what, hours: Number(b.dataset.h) || 24 });
+    if (r.ok) { player(id); if (tab !== 'overview') show(); } else alert('ทำไม่สำเร็จ: ' + (r.error || '?'));
+  });
+  if (!$('dlg').open) $('dlg').showModal();
+}
+show();
+</script>
+</body>
+</html>

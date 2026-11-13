@@ -195,6 +195,60 @@ export default {
         return json(req, { ok: true });
       }
       // (admin) the latest reports: who, about whom, what was said
+      // 👑 the back office (public/admin.html): everything about the game, for the admin accounts only (server/cf.json admins)
+      if (path.startsWith('/admin/')) {
+        if (!(env.ADMINS ?? '').split(',').includes(me.id)) return json(req, { error: 'admin' }, 403);
+        const DB = env.DB, now = Date.now(), day = now - 86400000, cw = env.ROOM.get(env.ROOM.idFromName('chat-world'));
+        const one = async <T>(sql: string, ...a: unknown[]) => (await DB.prepare(sql).bind(...a).first<T>()) as T;
+        const all = async <T>(sql: string, ...a: unknown[]) => (await DB.prepare(sql).bind(...a).all<T>()).results;
+        const pick = "a.id, a.name, a.google_sub IS NOT NULL AS google, a.created, a.seen, a.banned, a.muted_until, json_extract(s.data,'$.level') AS lv, json_extract(s.data,'$.cls') AS cls, json_extract(s.data,'$.tier') AS tier, json_extract(s.data,'$.gold') AS gold, json_extract(s.data,'$.diamonds') AS diamonds, json_extract(s.data,'$.vipUntil') AS vip, s.size";
+        if (path === '/admin/overview') {
+          const on = await (await cw.fetch(new Request('https://r/onlinelist'))).json() as { ids: string[]; h: number };
+          const ids = on.ids.slice(0, 200), who = ids.length ? await all<Record<string, unknown>>(`SELECT ${pick} FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.id IN (${ids.map(() => '?').join(',')})`, ...ids) : [];
+          const bosses = await (await cw.fetch(new Request('https://r/bosslist'))).json();
+          const n = async (sql: string, ...a: unknown[]) => Number((await one<{ n: number }>(sql, ...a))?.n ?? 0);
+          return json(req, {
+            now, online: on.ids.length, hoursToday: on.h, limits: { maxOnline: Number(env.MAX_ONLINE) || 0, dayHours: Number(env.DAY_HOURS) || 0 }, who, bosses,
+            accounts: await n('SELECT COUNT(*) AS n FROM accounts'), google: await n('SELECT COUNT(*) AS n FROM accounts WHERE google_sub IS NOT NULL'),
+            newToday: await n('SELECT COUNT(*) AS n FROM accounts WHERE created > ?', day), activeToday: await n('SELECT COUNT(*) AS n FROM accounts WHERE seen > ?', day),
+            banned: await n('SELECT COUNT(*) AS n FROM accounts WHERE banned = 1'), guilds: await n('SELECT COUNT(*) AS n FROM guilds'),
+            market: await n("SELECT COUNT(*) AS n FROM market WHERE status = 'open' AND until > ?", now), reports: await n('SELECT COUNT(*) AS n FROM reports WHERE at > ?', day),
+            flags: await n('SELECT COUNT(*) AS n FROM flags WHERE at > ?', day),
+          });
+        }
+        if (path === '/admin/players') {
+          const q = (url.searchParams.get('q') ?? '').trim().toLowerCase().slice(0, 32), sort = url.searchParams.get('sort') === 'lv' ? "CAST(json_extract(s.data,'$.level') AS INTEGER) DESC" : 'a.seen DESC';
+          const page = Math.max(0, Number(url.searchParams.get('page')) || 0);
+          const rows = q ? await all(`SELECT ${pick} FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.name_key LIKE ? OR a.id = ? ORDER BY ${sort} LIMIT 50 OFFSET ?`, `%${q}%`, q, page * 50)
+            : await all(`SELECT ${pick} FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE s.id IS NOT NULL ORDER BY ${sort} LIMIT 50 OFFSET ?`, page * 50);
+          return json(req, { rows });
+        }
+        if (path === '/admin/player') {
+          const id = url.searchParams.get('id') ?? '';
+          const acc = await one(`SELECT ${pick} FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.id = ?`, id);
+          const save = await one<{ data: string; at: number; rev: number }>('SELECT data, at, rev FROM saves WHERE id = ?', id);
+          return json(req, { acc, save: save ? { at: save.at, rev: save.rev, data: JSON.parse(save.data) } : null,
+            flags: await all('SELECT at, what, detail FROM flags WHERE id = ? ORDER BY at DESC LIMIT 50', id),
+            reports: await all('SELECT r.at, r.room, r.text, b.name AS by_name FROM reports r LEFT JOIN accounts b ON b.id = r.by_id WHERE r.target = ? ORDER BY r.at DESC LIMIT 50', id),
+            market: await all('SELECT id, item, price, status, until, at FROM market WHERE seller = ? ORDER BY at DESC LIMIT 30', id) });
+        }
+        if (path === '/admin/guilds') return json(req, { rows: await all('SELECT g.id, g.name, g.members, g.hall, g.score, g.week, g.shield, g.at, a.name AS leader_name FROM guilds g LEFT JOIN accounts a ON a.id = g.leader ORDER BY g.score DESC, g.members DESC LIMIT 200') });
+        if (path === '/admin/market') return json(req, { rows: await all("SELECT id, seller_name, item, type, rar, price, until, status, buyer, at FROM market ORDER BY at DESC LIMIT 200") });
+        if (path === '/admin/flags') return json(req, { rows: await all('SELECT f.at, f.what, f.detail, f.id, a.name FROM flags f LEFT JOIN accounts a ON a.id = f.id ORDER BY f.at DESC LIMIT 200') });
+        if (path === '/admin/reports') return json(req, { rows: await all('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 200') });
+        if (path === '/admin/act' && req.method === 'POST') {   // ban / unban, mute / unmute (the admin's own account is never touched)
+          const b = await req.json().catch(() => ({})) as { id?: string; what?: string; hours?: number };
+          const id = String(b.id ?? ''); if (!id || (env.ADMINS ?? '').split(',').includes(id)) return json(req, { error: 'target' }, 400);
+          if (b.what === 'ban') await DB.prepare('UPDATE accounts SET banned = 1 WHERE id = ?').bind(id).run();
+          else if (b.what === 'unban') await DB.prepare('UPDATE accounts SET banned = 0 WHERE id = ?').bind(id).run();
+          else if (b.what === 'mute') await DB.prepare('UPDATE accounts SET muted_until = ? WHERE id = ?').bind(now + Math.max(1, Math.min(720, Number(b.hours) || 24)) * 3600000, id).run();
+          else if (b.what === 'unmute') await DB.prepare('UPDATE accounts SET muted_until = 0 WHERE id = ?').bind(id).run();
+          else return json(req, { error: 'what' }, 400);
+          await flag(env, id, 'admin:' + b.what, `by ${me.id}`);
+          return json(req, { ok: true });
+        }
+        return json(req, { error: 'not found' }, 404);
+      }
       if (path === '/reports' && (env.ADMINS ?? '').split(',').includes(me.id)) {
         const rows = (await env.DB.prepare('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 100').all()).results;
         return json(req, { reports: rows });
@@ -375,6 +429,7 @@ export class Room {
       if (this.online.size > 20000) this.online.clear();
       return new Response('{}');
     }
+    if (u.pathname === '/onlinelist') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ ids: [...this.online.keys()], h: Math.round(this.use.mins / 6) / 10 })); }   // (the back office)
     if (u.pathname === '/count') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 15 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size, h: Math.round(this.use.mins / 6) / 10 })); }
     if (u.pathname === '/bosslist') { const now = Date.now(); return new Response(JSON.stringify([...this.bosses].filter(([, v]) => v.until > now).map(([n, v]) => ({ n, name: v.name, left: v.until - now })))); }
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player

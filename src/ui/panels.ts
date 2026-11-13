@@ -742,6 +742,7 @@ export class Panels implements GuildHost {
     b('🖥 ปรับ UI & เสียง (แถบเลื่อน)', () => this.open('uiopt'), 0x2a4a5a);
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
     if (isAdmin()) b('👑 แอดมิน: เปลี่ยนอาชีพ / ร่าง', () => this.open('forms'), 0x5a4a10);   // (the director's account only)
+    if (isAdmin()) b('👑 เว็บหลังบ้าน (ดูทุกอย่างในเกม)', () => { window.open('./admin.html', '_blank'); }, 0x5a4a10);
     // sign out (Google accounts only — a guest who signs out could never come back to that hero)
     if (googleLinked()) {
       if (!this.confirmOut) b('🚪 ออกจากระบบ', () => { this.confirmOut = true; this.rebuild(); }, 0x4a2a2a);
