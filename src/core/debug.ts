@@ -6,6 +6,9 @@ import { addItem, equip } from '../systems/inventory';
 import { makeGear } from '../systems/loot';
 import { derive, gainExp, expToNext } from '../systems/stats';
 import type Phaser from 'phaser';
+import { guildOf, createGuild, devGuild, rivals } from '../systems/guild';
+import { startWar } from '../systems/war';
+import { WC } from '../world/warClient';
 
 export function installDebug(game: Phaser.Game) {
   (window as unknown as { __dbgState: unknown }).__dbgState = () => runtime.state;
@@ -31,5 +34,13 @@ export function installDebug(game: Phaser.Game) {
     },
     cls(c: string) { const s = runtime.state!; s.level = Math.max(s.level, 10); advanceClass(s, c as never); bus.emit(EV.STATE_CHANGED); },
     save() { return saveGame(runtime.state!); },
+    /** (screenshots) a guild with a full treasury at war with a pretend village — local tests only */
+    guildWar() {
+      const s = runtime.state!; s.level = Math.max(s.level, 25);
+      if (!guildOf(s)) createGuild(s, 'มังกรเพลิง', Date.now(), Math.random);
+      devGuild(s, 'guildFill');
+      const rv = rivals(s)[0], r = startWar(s, rv.id); if ('war' in r) WC.war = r.war;
+      return 'refused' in r ? r.refused : 'ok';
+    },
   };
 }
