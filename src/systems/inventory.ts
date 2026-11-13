@@ -1,5 +1,6 @@
 // Inventory / Equipment / Upgrade — pure functions over GameState.
 import type { GameState, InvItem } from '../core/state';
+import { dismantleYield } from './lootOpt';
 import { invSize } from '../core/state';
 import { baseTier, isGear } from './loot';
 import { itemDef, MAX_UPGRADE, upgradeChance, upgradeCost, type EquipSlot } from '../data/items';
@@ -124,9 +125,7 @@ export function reqLevel(_id: string): number { return 1; }
 export function dismantle(s: GameState, uid: number): { shards: number; cores: number } | null {
   const it = s.inventory.find(i => i.uid === uid);
   if (!it || !isGear(itemDef(it.id)) || isEquipped(s, uid)) return null;
-  const r = itemDef(it.id).rarity;
-  const shards = [1, 1, 2, 4, 8, 20][r] + it.upg;
-  const cores = r >= 4 ? 2 : r >= 3 ? 1 : 0;
+  const { shards, cores } = dismantleYield(itemDef(it.id).rarity, it.upg);
   removeUid(s, uid, 1);
   addItem(s, 'mana_shard', shards);
   if (cores) addItem(s, 'ancient_core', cores);

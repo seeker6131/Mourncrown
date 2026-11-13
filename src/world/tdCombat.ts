@@ -6,6 +6,8 @@ import { MONSTERS } from '../data/monsters';
 import { monTarget, respawnMs, lowWater } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
+import { lootSkip, lootDis } from '../systems/lootOpt';
+import { isGear } from '../systems/loot';
 import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
 import { addItem } from '../systems/inventory';
@@ -62,7 +64,7 @@ const DMG = {
 };
 
 const AURA = [0.32, 0.42, 0.55, 0.75, 0.95, 1.25];
-interface Loot { did: number; id: string; qty: number; rar: number; set?: string; x: number; y: number; im: Phaser.GameObjects.Image; aura: Phaser.GameObjects.Image; beam?: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; born: number; landed: boolean; busy: boolean; retryT: number; lured?: boolean }
+interface Loot { did: number; id: string; qty: number; rar: number; set?: string; /** 👑 left on the ground by the VIP loot setting */ skip?: boolean; x: number; y: number; im: Phaser.GameObjects.Image; aura: Phaser.GameObjects.Image; beam?: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; born: number; landed: boolean; busy: boolean; retryT: number; lured?: boolean }
 
 /** the map room as the fight sees it (net/room.ts RoomLink) */
 export interface NetLink { me: string; online: boolean; isHost: boolean; others: Map<string, { x: number; y: number }>; dmg(sid: number, n: number): void; mons(a: MonRow[]): void; matk(to: string, sid: number, k?: string): void }
@@ -144,8 +146,9 @@ export class Combat {
       onComplete: () => this.pickLoot(g) });
   }
   pickLoot(g: Loot) {
-    if (isOnline()) { actServer('pickup', { did: g.did }).then(r => this.picked(g, r)); return; }   // the loot is the server's
-    this.picked(g, act('pickup', { did: g.did }));
+    const dis = lootDis(S()), args = dis === undefined ? { did: g.did } : { did: g.did, dis };   // (👑 VIP auto-dismantle)
+    if (isOnline()) { actServer('pickup', args).then(r => this.picked(g, r)); return; }   // the loot is the server's
+    this.picked(g, act('pickup', args));
   }
   picked(g: Loot, r: ReturnType<typeof act<'pickup'>>) {
     const sc = this.s;
@@ -159,6 +162,8 @@ export class Combat {
     }
     this.removeLoot(g); sfx.pickup();
     const def = itemDef(r.id), col = '#' + RARITY_COLORS[r.rar].toString(16).padStart(6, '0');
+    const dz = (r as { dis?: { shards: number; cores: number } }).dis;
+    if (dz) { this.float(sc.hero.x, sc.hero.y - 52, `⚙ ${def.name} → ${itemDef('mana_shard').name} x${dz.shards}${dz.cores ? ` + ${itemDef('ancient_core').name} x${dz.cores}` : ''}`, '#b8a8ff', 7.5); bus.emit(EV.STATE_CHANGED); return; }   // (👑 dismantled on pickup)
     this.float(sc.hero.x, sc.hero.y - 52, `+${def.name}${r.qty > 1 ? ' x' + r.qty : ''}`, col, 8);
     const gear = ['weapon', 'armor', 'accessory'].includes(def.type);
     if ((gear && r.rar >= 2) || (!gear && r.rar >= 3)) bus.emit('loot:popup', { id: r.id, rar: r.rar, set: r.set });
@@ -170,7 +175,8 @@ export class Combat {
       if (time - g.born > 60000) { this.removeLoot(g, true); continue; }
       if (!g.landed || g.busy) continue;
       const d = Math.hypot(g.x - h.x, g.y - h.y);
-      if (!this.s.dead && time > g.retryT && (d < 60 || (d < 120 && time - g.born < 1500))) { this.flyLoot(g); continue; }
+      if (g.skip === undefined) g.skip = lootSkip(S(), isGear(itemDef(g.id)), g.rar);   // 👑 VIP: gear below the chosen rarity stays on the ground
+      if (!g.skip && !this.s.dead && time > g.retryT && (d < 60 || (d < 120 && time - g.born < 1500))) { this.flyLoot(g); continue; }
       // left on the ground: someone else may take it
       if (time - g.born > 3500 && d > 110 && others.length) {
         const o = others.find(q => Math.hypot(q.x - g.x, q.y - g.y) < 16);

@@ -14,6 +14,7 @@ import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/settlement';
 import { buffClash } from '../systems/buffs';
+import { lootOpt, setLootOpt } from '../systems/lootOpt';
 import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES, dayKey } from '../systems/daily';
@@ -58,7 +59,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -152,6 +153,7 @@ export class Panels implements GuildHost {
       case 'job': this.buildJob(c); break;
       case 'forms': this.buildForms(c); break;
       case 'wardrobe': this.buildWardrobe(c); break;
+      case 'lootopt': this.buildLootOpt(c); break;
       case 'dialog': this.buildDialog(c); break;
       case 'shop': this.buildShop(c); break;
       case 'smith': this.buildSmith(c); break;
@@ -231,6 +233,7 @@ export class Panels implements GuildHost {
     }
     const d = derive(s);
     c.add(k.text(ex + 6, ey + 146, `ATK ${d.atk}   MATK ${d.matk}\nDEF ${d.def}   HP ${d.maxHp}\nคริ ${(d.crit * 100).toFixed(1)}%`, 8, '#f3e6c4', { lineSpacing: 3 }));
+    c.add(k.button(ex + 4, ey + 204, 104, 20, '👑 ตั้งค่าเก็บของ', () => this.open('lootopt'), { size: 8, color: 0x4a2a6a }));   // (VIP: pick-up filter + auto-dismantle)
     c.add(ui.add.image(ex + 10, ey + H - 66, 'icon_gold').setScale(0.4));
     c.add(k.text(ex + 20, ey + H - 72, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
 
@@ -627,6 +630,34 @@ export class Panels implements GuildHost {
   }
 
   // ---------------- CHANGING ROOM ----------------
+  // ---------------- 👑 VIP loot settings (systems/lootOpt.ts) ----------------
+  buildLootOpt(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, vip = vipActive(s), o = lootOpt(s);
+    const W = Math.min(560, ui.VW - 16), H = 300;
+    const { x, y, g } = this.window(c, W, H, '👑 ตั้งค่าเก็บของ (VIP)');
+    const top = y + 34, names = RARITY_NAMES, col = (r: number) => '#' + RARITY_COLORS[r].toString(16).padStart(6, '0');
+    if (!vip) {
+      c.add(k.text(x + W / 2, top + 50, '🔒 เฉพาะ VIP\nเลือกเก็บเฉพาะอุปกรณ์ระดับที่ต้องการ + ย่อยอุปกรณ์ระดับต่ำเป็นเศษมานาอัตโนมัติ', 11, '#ffe7a0', { align: 'center' }).setOrigin(0.5, 0));
+      c.add(k.button(x + W / 2 - 70, top + 120, 140, 26, '👑 ดู VIP', () => this.open('premium'), { size: 10, color: 0x4a2a6a }));
+      return;
+    }
+    const row = (yy: number, title: string, note: string, opts: [number, string][], cur: number, pick: (v: number) => void) => {
+      c.add(k.text(x + 16, yy, title, 10.5, '#ffd84a')); c.add(k.text(x + 16, yy + 16, note, 7.5, '#c8b898', { wordWrap: { width: W - 32 } }));
+      const bw = (W - 32 - (opts.length - 1) * 6) / opts.length;
+      opts.forEach(([v, label], i) => {
+        const on = v === cur, bx = x + 16 + i * (bw + 6), by = yy + 40;
+        g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(bx, by, bw, 34, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(bx, by, bw, 34, 4);
+        c.add(k.text(bx + bw / 2, by + 10, label + (on ? ' ✔' : ''), 8.5, v > 0 && v <= 5 ? col(v) : '#f3e6c4').setOrigin(0.5, 0));
+        const z = ui.add.zone(bx, by, bw, 34).setOrigin(0).setInteractive(); z.on('pointerup', () => { sfx.click(); pick(v); saveGame(s); this.rebuild(); }); c.add(z);
+      });
+    };
+    row(top, '⛏ เก็บอุปกรณ์ตั้งแต่ระดับ', 'อุปกรณ์ที่ต่ำกว่านี้จะไม่ถูกเก็บ (ทิ้งไว้บนพื้น) • วัตถุดิบ ยา และของอื่นเก็บทุกอย่างเสมอ',
+      [[0, 'ทุกอย่าง'], [1, names[1] + '+'], [2, names[2] + '+'], [3, names[3] + '+'], [4, names[4] + '+'], [5, names[5]]], o.keep, v => setLootOpt(s, { keep: v }));
+    row(top + 92, '⚙ ย่อยอัตโนมัติเมื่อเก็บ', 'อุปกรณ์ระดับนี้หรือต่ำกว่า → กลายเป็นเศษมานาทันที (ไม่กินช่องกระเป๋า) • ไม่ย่อย Legend / SL และชุดเซ็ต',
+      [[-1, 'ปิด'], [0, '≤ ' + names[0]], [1, '≤ ' + names[1]], [2, '≤ ' + names[2]], [3, '≤ ' + names[3]]], o.dis, v => setLootOpt(s, { dis: v }));
+    const on = lootOpt(s);
+    c.add(k.text(x + W / 2, top + 196, on.dis >= 0 && on.dis >= on.keep ? `ตอนนี้: เก็บ ${on.keep ? names[on.keep] + ' ขึ้นไป' : 'ทุกระดับ'} • ย่อยถึง ${names[on.dis]} — ⚠ อุปกรณ์ ${names[on.keep]}–${names[on.dis]} จะถูกย่อยทันทีที่เก็บ` : `ตอนนี้: เก็บ ${on.keep ? names[on.keep] + ' ขึ้นไป' : 'ทุกระดับ'} • ${on.dis >= 0 ? 'ย่อย ≤ ' + names[on.dis] : 'ไม่ย่อยอัตโนมัติ'}`, 8, '#9ad8ff', { align: 'center', wordWrap: { width: W - 32 } }).setOrigin(0.5, 0));
+  }
   buildWardrobe(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(600, ui.VW - 16), H = 330;

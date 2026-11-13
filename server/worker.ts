@@ -587,7 +587,7 @@ const GUILD_ACTS = new Set(['guildSync', 'guildUpgrade', 'guildCollect', 'guildF
 const GUILD_CAP = GUILD_MAX;   // members of a real guild (the village has GUILD_MAX house plots)
 /** the CBT gift (src/systems/cbtGift.ts): only the server hands it out */
 const CBT = new Set(['cbtClaim']);
-const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name']);
+const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name', 'lootOpt']);
 type St = Record<string, unknown>;
 interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
 export class Player {
