@@ -126,13 +126,55 @@ export class UIKit {
     g.lineStyle(1, GOLD_D, 1).strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
   }
 
+  /** a glowing aura around an item slot, stronger the rarer the item (director: Rare..SL must stand apart at a glance):
+   *  Rare a soft blue glow · Super Rare a purple pulse · Legend an orange pulse + a spark running round the frame ·
+   *  SL red-gold shifting light, a bigger pulse and two sparks */
+  private slotAura(pc: Phaser.GameObjects.Container, x: number, y: number, s: number, ri: number) {
+    const sc = this.scene;
+    if (!sc.textures.exists('ui_aura')) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const q = cv.getContext('2d')!;
+      const gr = q.createRadialGradient(32, 32, 6, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      q.fillStyle = gr; q.fillRect(0, 0, 64, 64); sc.textures.addCanvas('ui_aura', cv);
+      const c2 = document.createElement('canvas'); c2.width = c2.height = 16; const q2 = c2.getContext('2d')!;
+      const g2 = q2.createRadialGradient(8, 8, 0, 8, 8, 8); g2.addColorStop(0, 'rgba(255,255,255,1)'); g2.addColorStop(0.3, 'rgba(255,255,255,0.8)'); g2.addColorStop(1, 'rgba(255,255,255,0)');
+      q2.fillStyle = g2; q2.beginPath(); q2.moveTo(8, 0); q2.lineTo(9.5, 6.5); q2.lineTo(16, 8); q2.lineTo(9.5, 9.5); q2.lineTo(8, 16); q2.lineTo(6.5, 9.5); q2.lineTo(0, 8); q2.lineTo(6.5, 6.5); q2.closePath(); q2.fill();
+      sc.textures.addCanvas('ui_spark', c2);
+    }
+    const cx = x + s / 2, cy = y + s / 2, col = RARITY_COLORS[ri], big = [0, 0, 1.6, 1.75, 1.9, 2.1][ri];
+    const glow = sc.add.image(cx, cy, 'ui_aura').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(s * big, s * big).setAlpha(ri >= 4 ? 0.85 : 0.7);
+    pc.add(glow);
+    const tws: Phaser.Tweens.Tween[] = [];
+    if (ri >= 3) tws.push(sc.tweens.add({ targets: glow, alpha: { from: 0.35, to: ri >= 5 ? 0.95 : 0.8 }, scale: { from: glow.scale * 0.92, to: glow.scale * 1.08 }, duration: ri >= 5 ? 650 : 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
+    if (ri >= 5) {   // SL: the light shifts between red and gold
+      const a = Phaser.Display.Color.ValueToColor(0xff4a5a), b = Phaser.Display.Color.ValueToColor(0xffd84a);
+      tws.push(sc.tweens.addCounter({ from: 0, to: 100, duration: 1200, yoyo: true, repeat: -1, onUpdate: t => { const c = Phaser.Display.Color.Interpolate.ColorWithColor(a, b, 100, t.getValue() ?? 0), v = Phaser.Display.Color.GetColor(c.r, c.g, c.b); glow.setTint(v); drawEdge(v); } }));
+    }
+    // a bright frame in the rarity colour on top of the slot (SL: red-gold, matching the glow)
+    const edge = sc.add.graphics(), drawEdge = (c: number) => edge.clear().lineStyle(2, c, 1).strokeRoundedRect(x - 1, y - 1, s + 2, s + 2, 4).lineStyle(1, 0xffffff, 0.35).strokeRoundedRect(x + 1, y + 1, s - 2, s - 2, 3);
+    drawEdge(col); pc.add(edge);
+    if (ri >= 3) tws.push(sc.tweens.add({ targets: edge, alpha: { from: 0.65, to: 1 }, duration: ri >= 5 ? 650 : 900, yoyo: true, repeat: -1 }));
+    const sparks: Phaser.GameObjects.Image[] = [edge as unknown as Phaser.GameObjects.Image];
+    for (let k = 0; k < (ri >= 5 ? 2 : ri >= 4 ? 1 : 0); k++) {   // a spark running round the frame
+      const sp = sc.add.image(x, y, 'ui_spark').setTint(ri >= 5 ? 0xfff0b0 : 0xffe0a0).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(s * 0.32, s * 0.32);
+      pc.add(sp); sparks.push(sp);
+      tws.push(sc.tweens.addCounter({ from: 0, to: 4, duration: ri >= 5 ? 1600 : 2200, repeat: -1, delay: k * 800, onUpdate: t => {
+        const v = (t.getValue() ?? 0) % 4, f = v % 1, side = Math.floor(v);
+        const px = side === 0 ? x + f * s : side === 1 ? x + s : side === 2 ? x + s - f * s : x, py = side === 0 ? y : side === 1 ? y + f * s : side === 2 ? y + s : y + s - f * s;
+        sp.setPosition(px, py).setAngle((t.getValue() ?? 0) * 90);
+      } }));
+    }
+    glow.once('destroy', () => { for (const t of tws) t.stop(); sparks.forEach(o => o.destroy()); });
+    return sparks;
+  }
+
   iconSlot(g: Phaser.GameObjects.Graphics, x: number, y: number, s: number, rarityColor?: number, selected = false) {
     const pc = g.parentContainer;
+    const ri0 = rarityColor === undefined ? -1 : RARITY_COLORS.indexOf(rarityColor), sparks = pc && ri0 >= 2 ? this.slotAura(pc, x, y, s, ri0) : [];   // (glow behind the slot)
     if (pc && hasSkin(this.scene)) {
       const ri = rarityColor === undefined ? -1 : RARITY_COLORS.indexOf(rarityColor);
       const im = this.scene.add.image(x + s / 2, y + s / 2, 'ui_slot' + (ri < 0 ? 0 : Math.min(5, ri + 1)));
       im.setScale((s * 1.18) / im.width);
-      pc.add(im);
+      pc.add(im); for (const sp of sparks) pc.bringToTop(sp);   // (sparks run over the frame)
       if (selected) { const hl = this.scene.add.graphics().lineStyle(2, GOLD_L, 1).strokeRoundedRect(x - 1, y - 1, s + 2, s + 2, 4); pc.add(hl); }
       return;
     }
