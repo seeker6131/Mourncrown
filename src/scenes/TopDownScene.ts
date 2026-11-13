@@ -1858,7 +1858,7 @@ export class TopDownScene extends Phaser.Scene {
     this.attacking = true;
     const done = () => {
       this.attacking = false; setIdle(h, key, this.dir);
-      const ga = { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold };
+      const ga = { node: this.nodes.indexOf(n), kind: n.kind, pit: n.vein?.pit ?? -1, rare: n.vein?.rare, gold: n.vein?.gold, w: 1 };   // (w: in the Deepwild — the server may have forgotten)
       if (isOnline()) { actServer('gather', ga).then(r => gathered(r)); return; }   // the server rolls the ore / gems
       gathered(act('gather', ga));
     };

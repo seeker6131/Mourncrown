@@ -66,10 +66,10 @@ async function api(path, body) {
   return r.json();
 }
 const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['mail', '📬 จดหมาย'], ['guilds', '🏛 กิลด์'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
-let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0;
+let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0, showTests = false;
 $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-k="${k}">${n}</button>`).join('');
 $('tabs').onclick = e => { const k = e.target.dataset?.k; if (k) { tab = k; page = 0; show(); } };
-const playerRow = r => `<tr class="click" data-id="${esc(r.id)}"><td>${esc(r.name || '(ยังไม่ตั้งชื่อ)')}</td><td>${r.lv ?? '-'}</td><td>${esc(CLS[r.cls] || r.cls || '-')}${r.tier ? ' ร่าง ' + (r.tier + 1) : ''}</td><td>${num(r.gold)}</td><td>${num(r.diamonds)}</td><td>${tags(r)}</td><td>${when(r.seen)}</td><td class="dim">${when(r.created)}</td></tr>`;
+const playerRow = r => `<tr class="click" data-id="${esc(r.id)}"><td>${r.test ? '🧪 ' : ''}${esc(r.name || '(ยังไม่ตั้งชื่อ)')}</td><td>${r.lv ?? '-'}</td><td>${esc(CLS[r.cls] || r.cls || '-')}${r.tier ? ' ร่าง ' + (r.tier + 1) : ''}</td><td>${num(r.gold)}</td><td>${num(r.diamonds)}</td><td>${tags(r)}</td><td>${when(r.seen)}</td><td class="dim">${when(r.created)}</td></tr>`;
 const playerTable = rows => `<div class="tw"><table><tr><th>ชื่อ</th><th>Lv</th><th>อาชีพ</th><th>ทอง</th><th>💎</th><th>สถานะ</th><th>เข้าล่าสุด</th><th>สมัคร</th></tr>${rows.map(playerRow).join('') || '<tr><td colspan="8" class="dim">ไม่มี</td></tr>'}</table></div>`;
 async function show() {
   clearTimeout(timer);
@@ -81,9 +81,11 @@ async function show() {
       main.innerHTML = `<div class="grid">
         <div class="stat"><div class="v">${o.online}${o.limits.maxOnline ? '<span class="dim" style="font-size:14px"> / ' + o.limits.maxOnline + '</span>' : ''}</div><div class="k">🟢 ออนไลน์ตอนนี้</div></div>
         <div class="stat"><div class="v">${o.hoursToday}<span class="dim" style="font-size:14px"> / ${o.limits.dayHours || '∞'} ชม.</span></div><div class="k">⏱ ชั่วโมงเล่นวันนี้ (เพดาน รีเซ็ต 07:00)</div><div class="bar"><i style="width:${cap}%;background:${cap > 85 ? 'var(--red)' : cap > 60 ? 'var(--gold)' : 'var(--green)'}"></i></div></div>
-        <div class="stat"><div class="v">${num(o.accounts)}</div><div class="k">บัญชีทั้งหมด (Google ${num(o.google)})</div></div>
+        <div class="stat"><div class="v">${num(o.played)}</div><div class="k">👥 ผู้เล่นจริง (เล่นเกิน 2 นาที หรือผูก Google)</div></div>
+        <div class="stat"><div class="v">${num(o.accounts)}</div><div class="k">มีตัวละคร (รวมคนเปิดแล้วออก) • Google ${num(o.google)}</div></div>
         <div class="stat"><div class="v">${num(o.newToday)}</div><div class="k">สมัครใหม่ 24 ชม.</div></div>
-        <div class="stat"><div class="v">${num(o.activeToday)}</div><div class="k">เข้าเล่น 24 ชม.</div></div>
+        <div class="stat"><div class="v">${num(o.activeToday)}</div><div class="k">ผู้เล่นจริงที่เข้า 24 ชม.</div></div>
+        <div class="stat"><div class="v dim" style="color:var(--dim)">${num(o.tests)}</div><div class="k">🧪 บัญชีทดสอบ (ซ่อนแล้ว) • ไม่มีตัวละคร ${num(o.nosave)}</div></div>
         <div class="stat"><div class="v">${num(o.guilds)}</div><div class="k">🏛 กิลด์</div></div>
         <div class="stat"><div class="v">${num(o.market)}</div><div class="k">🏪 ของวางขายอยู่</div></div>
         <div class="stat"><div class="v" style="color:${o.reports ? 'var(--red)' : 'var(--gold)'}">${num(o.reports)}</div><div class="k">🚩 รายงานแชต 24 ชม.</div></div>
@@ -95,12 +97,12 @@ async function show() {
       <h2>🟢 ใครออนไลน์อยู่ (${o.who.length})</h2>${playerTable(o.who)}`;
       timer = setTimeout(show, 30000);
     } else if (tab === 'players') {
-      const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}`);
+      const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}${showTests ? '&all=1' : ''}`);
       main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ หรือวางรหัสผู้เล่นที่เขาส่งมา" value="${esc(q)}">
-        <button class="btn" id="srt">เรียง: ${sort === 'lv' ? 'เลเวล' : 'เข้าล่าสุด'}</button>
+        <button class="btn" id="srt">เรียง: ${sort === 'lv' ? 'เลเวล' : 'เข้าล่าสุด'}</button><button class="btn" id="tst">${showTests ? '🧪 ซ่อนบัญชีทดสอบ' : '🧪 แสดงบัญชีทดสอบ'}</button>
         <button class="btn" id="pv" ${page ? '' : 'disabled'}>◀</button><span class="dim">หน้า ${page + 1}</span><button class="btn" id="nx" ${d.rows.length < 50 ? 'disabled' : ''}>▶</button></div>${playerTable(d.rows)}`;
       const qi = $('q'); let t = 0; qi.oninput = () => { clearTimeout(t); t = setTimeout(() => { q = qi.value; page = 0; show(); }, 400); };
-      $('srt').onclick = () => { sort = sort === 'lv' ? 'seen' : 'lv'; page = 0; show(); }; $('pv').onclick = () => { page--; show(); }; $('nx').onclick = () => { page++; show(); };
+      $('srt').onclick = () => { sort = sort === 'lv' ? 'seen' : 'lv'; page = 0; show(); }; $('tst').onclick = () => { showTests = !showTests; page = 0; show(); }; $('pv').onclick = () => { page--; show(); }; $('nx').onclick = () => { page++; show(); };
     } else if (tab === 'mail') {
       const d = await api('/admin/mailall'), gtext = g => { let o = {}; try { o = JSON.parse(g || '{}'); } catch {} const it = (o.items || []).map(i => ((window.ITEMS || []).find(x => x.id === i.id)?.name || i.id) + (i.qty > 1 ? ' x' + i.qty : '')); return [o.gold && '💰 ' + num(o.gold), o.wood && '🪵 ' + num(o.wood), o.stone && '🪨 ' + num(o.stone), o.food && '🍖 ' + num(o.food), ...it].filter(Boolean).join(' • ') || '-'; };
       main.innerHTML = `<h2>📬 ส่งจดหมายหาผู้เล่นทุกคน</h2>

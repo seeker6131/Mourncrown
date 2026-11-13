@@ -203,6 +203,10 @@ export default {
         const DB = env.DB, now = Date.now(), day = now - 86400000, cw = env.ROOM.get(env.ROOM.idFromName('chat-world'));
         const one = async <T>(sql: string, ...a: unknown[]) => (await DB.prepare(sql).bind(...a).first<T>()) as T;
         const all = async <T>(sql: string, ...a: unknown[]) => (await DB.prepare(sql).bind(...a).all<T>()).results;
+        // test accounts (the AI's checks — tutorial skipped with tut 99, made by a script, or a level set by a test button with no play
+        // time; never a Google account): hidden from the counts and lists so the numbers are real players
+        const TEST = "(a.google_sub IS NULL AND (json_extract(s.data,'$.tut') = 99 OR json_extract(s.data,'$.tut') IS NULL OR (CAST(json_extract(s.data,'$.level') AS INTEGER) >= 9 AND COALESCE(json_extract(s.data,'$.playTime'),0) < 120)))";
+        const REAL = `s.id IS NOT NULL AND NOT ${TEST}`, PLAYED = `${REAL} AND (a.google_sub IS NOT NULL OR COALESCE(json_extract(s.data,'$.playTime'),0) >= 120)`;
         const pick = "a.id, a.name, a.google_sub IS NOT NULL AS google, a.created, a.seen, a.banned, a.muted_until, json_extract(s.data,'$.level') AS lv, json_extract(s.data,'$.cls') AS cls, json_extract(s.data,'$.tier') AS tier, json_extract(s.data,'$.gold') AS gold, json_extract(s.data,'$.diamonds') AS diamonds, json_extract(s.data,'$.vipUntil') AS vip, s.size";
         if (path === '/admin/overview') {
           const on = await (await cw.fetch(new Request('https://r/onlinelist'))).json() as { ids: string[]; h: number };
@@ -211,8 +215,10 @@ export default {
           const n = async (sql: string, ...a: unknown[]) => Number((await one<{ n: number }>(sql, ...a))?.n ?? 0);
           return json(req, {
             now, online: on.ids.length, hoursToday: on.h, limits: { maxOnline: Number(env.MAX_ONLINE) || 0, dayHours: Number(env.DAY_HOURS) || 0 }, who, bosses,
-            accounts: await n('SELECT COUNT(*) AS n FROM accounts'), google: await n('SELECT COUNT(*) AS n FROM accounts WHERE google_sub IS NOT NULL'),
-            newToday: await n('SELECT COUNT(*) AS n FROM accounts WHERE created > ?', day), activeToday: await n('SELECT COUNT(*) AS n FROM accounts WHERE seen > ?', day),
+            accounts: await n(`SELECT COUNT(*) AS n FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE ${REAL}`), played: await n(`SELECT COUNT(*) AS n FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE ${PLAYED}`),
+            google: await n('SELECT COUNT(*) AS n FROM accounts WHERE google_sub IS NOT NULL'),
+            tests: await n(`SELECT COUNT(*) AS n FROM accounts a JOIN saves s ON s.id = a.id WHERE ${TEST}`), nosave: await n('SELECT COUNT(*) AS n FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE s.id IS NULL'),
+            newToday: await n(`SELECT COUNT(*) AS n FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.created > ? AND ${REAL}`, day), activeToday: await n(`SELECT COUNT(*) AS n FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.seen > ? AND ${PLAYED}`, day),
             banned: await n('SELECT COUNT(*) AS n FROM accounts WHERE banned = 1'), guilds: await n('SELECT COUNT(*) AS n FROM guilds'),
             market: await n("SELECT COUNT(*) AS n FROM market WHERE status = 'open' AND until > ?", now), reports: await n('SELECT COUNT(*) AS n FROM reports WHERE at > ?', day),
             flags: await n('SELECT COUNT(*) AS n FROM flags WHERE at > ?', day),
@@ -220,9 +226,9 @@ export default {
         }
         if (path === '/admin/players') {
           const q = (url.searchParams.get('q') ?? '').trim().toLowerCase().slice(0, 32), sort = url.searchParams.get('sort') === 'lv' ? "CAST(json_extract(s.data,'$.level') AS INTEGER) DESC" : 'a.seen DESC';
-          const page = Math.max(0, Number(url.searchParams.get('page')) || 0);
-          const rows = q ? await all(`SELECT ${pick} FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.name_key LIKE ? OR a.id = ? ORDER BY ${sort} LIMIT 50 OFFSET ?`, `%${q}%`, q, page * 50)
-            : await all(`SELECT ${pick} FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE s.id IS NOT NULL ORDER BY ${sort} LIMIT 50 OFFSET ?`, page * 50);
+          const page = Math.max(0, Number(url.searchParams.get('page')) || 0), only = url.searchParams.get('all') === '1' ? 's.id IS NOT NULL' : REAL;   // (all=1: the test accounts too)
+          const rows = q ? await all(`SELECT ${pick}, ${TEST} AS test FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE a.name_key LIKE ? OR a.id = ? ORDER BY ${sort} LIMIT 50 OFFSET ?`, `%${q}%`, q, page * 50)
+            : await all(`SELECT ${pick}, ${TEST} AS test FROM accounts a LEFT JOIN saves s ON s.id = a.id WHERE ${only} ORDER BY ${sort} LIMIT 50 OFFSET ?`, page * 50);
           return json(req, { rows });
         }
         if (path === '/admin/player') {

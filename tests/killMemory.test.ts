@@ -33,4 +33,10 @@ describe('a kill still counts after the server forgot this player (its object sl
     const other = STAGES[45].land.mobs[0];
     expect(refused(handlers.kill(s, { ...killArgs(1), kind: other.kind, key: other.key }, ctx))).toBe('kind');
   });
+  it('gathering in the Deepwild still works after the server forgot (the energy a day still limits it)', () => {
+    useMem(newMem()); const s = startNewGame(); s.level = 5;
+    expect(refused(handlers.gather(s, { node: 3, kind: 'wood', pit: -1 }, ctx))).toBe('map');
+    useMem(newMem());
+    expect(refused(handlers.gather(s, { node: 3, kind: 'wood', pit: -1, w: 1 }, ctx))).toBeNull();
+  });
 });

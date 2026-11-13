@@ -214,7 +214,8 @@ export const handlers = {
   /** server-wide announcements newer than `since` */
   news: (_s: GameState, a: { since: number }) => news.filter(q => q.t > a.since),
   /** one hit on a tree / rock in the Deepwild: the client sends only the node id and which pit; the ore is decided here */
-  gather(s: GameState, a: { node: number; kind: 'wood' | 'stone'; pit: number; rare?: boolean; gold?: boolean }, c: Ctx) {
+  gather(s: GameState, a: { node: number; kind: 'wood' | 'stone'; pit: number; rare?: boolean; gold?: boolean; w?: number }, c: Ctx) {
+    if (!mem.map && a.w === 1) { mem.map = WILD; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; }   // (the server forgot this player — its object slept / restarted: the game is in the Deepwild; the daily energy still limits)
     if (mem.map !== WILD) return no('map');
     if (!rateOk('gather', 3, c.now)) return no('rate');
     const nd = mem.nodes.get(a.node) ?? { hits: 0, until: 0 };
