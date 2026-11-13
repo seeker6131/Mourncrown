@@ -66,7 +66,7 @@ const cleanWreck = (w?: Wreck): Wreck | undefined => {
 };
 /** one player's server memory (spawns, drops, damage budget, map...): the game server keeps one per player and swaps it
  *  in before each action (useMem); handlers run synchronously, so this is safe even with many players in one process */
-export function newMem() { return { raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number; /** rolled by this server (not copied from the room) */ srv?: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
+export function newMem() { return { /** the first monster number registered since this memory began (older ones were spawned before a restart) */ sidLow: 0, /** forgotten monsters already paid (each counts once) */ forgot: new Set<number>(), raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number; /** rolled by this server (not copied from the room) */ srv?: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
 export type Mem = ReturnType<typeof newMem>;
 let mem: Mem = newMem();
 export function useMem(m: Mem) { mem = m; }
@@ -123,7 +123,7 @@ export const handlers = {
     if (mem.spawns.size > 400) mem.spawns.delete(mem.spawns.keys().next().value!);
     // (online the game names the number it already uses; the server keeps its count past it)
     const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = a.sid && a.sid > 0 && !mem.spawns.has(a.sid) ? a.sid : mem.sid++;
-    mem.sid = Math.max(mem.sid, sid + 1);
+    mem.sid = Math.max(mem.sid, sid + 1); if (!mem.sidLow) mem.sidLow = sid;
     mem.spawns.set(sid, { key: a.key, elite, boss: !!a.boss, srv: true });
     return { sid, elite };
   },
@@ -160,8 +160,10 @@ export const handlers = {
     // the game names the map it is on — taken when the hero's level may be there (a farming map or the Deepwild; never a dungeon)
     if (!mem.map && a.n && (a.n === WILD || (STAGES[a.n - 1] && s.level >= STAGES[a.n - 1].req))) { mem.map = a.n; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; }
     const n = mem.map, base = MONSTERS[a.kind]; if (!n || !base) return no('map');
-    // a monster the server never heard of (forgotten in a restart) counts as a plain one — never golden, never a boss
-    const sp = mem.spawns.get(a.sid) ?? (!a.boss && !isDungeon(n) ? { key: a.key, elite: false, boss: false } as { key: string; elite: boolean; boss: boolean; bounty?: number } : undefined);
+    // a monster spawned before this memory began (forgotten in a restart) counts as a plain one, once — never golden or a
+    // boss; numbers from after the restart must have been registered (an invented / replayed kill is refused)
+    const old = !mem.spawns.has(a.sid) && !a.boss && !isDungeon(n) && a.sid > 0 && (!mem.sidLow || a.sid < mem.sidLow) && !mem.forgot.has(a.sid);
+    const sp = mem.spawns.get(a.sid) ?? (old ? { key: a.key, elite: false, boss: false } as { key: string; elite: boolean; boss: boolean; bounty?: number } : undefined);
     if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
@@ -171,7 +173,7 @@ export const handlers = {
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
     if (!c.admin && mem.dmg < part) return no('dps');
-    mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid);
+    mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid); if (old) { mem.forgot.add(a.sid); if (mem.forgot.size > 2000) mem.forgot.clear(); }
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
