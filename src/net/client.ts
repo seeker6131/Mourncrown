@@ -7,9 +7,10 @@ import { TEST_HOOKS } from '../core/testHooks';
 import { handlers, type Handlers } from '../server/handlers';
 import { S } from '../core/events';
 import { play } from './play';
+import { isAdmin } from './cloud';
 
 export const refused = (r: unknown): r is { refused: string } => !!r && typeof r === 'object' && 'refused' in (r as object) && !!(r as { refused?: string }).refused;
-const local = (name: string, args: unknown) => (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name](S(), args, { now: Date.now(), rnd: Math.random, admin: TEST_HOOKS });
+const local = (name: string, args: unknown) => (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name](S(), args, { now: Date.now(), rnd: Math.random, admin: TEST_HOOKS || isAdmin() })   // (the server checks the admin for real; this only lets the device show the same result);
 /** actions the server alone decides when online (they roll dice or hand out loot) */
 export const SERVER_ONLY = new Set(['kill', 'gather', 'upgradeItem', 'craft', 'pickup', 'dungeonClear', 'marketCancel', 'marketBuy', 'marketBrowse', 'guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave']);
 export const isOnline = () => play.online;
