@@ -7,7 +7,7 @@ export const SERVER = typeof location !== 'undefined' && ['localhost', '127.0.0.
   ? 'http://127.0.0.1:8787' : 'https://mourncrown.egowenit.workers.dev';
 /** Google sign-in (Google Cloud project 'mourncrown', web client) — public, not a secret */
 export const GOOGLE_CLIENT_ID = '481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com';
-const ACC = 'mc_cloud', SAVE_KEY = 'eldergrove_save_v1', DELAY = 12_000;
+const ACC = 'mc_cloud', SAVE_KEY = 'eldergrove_save_v1', DELAY = 60_000;   // (valuable fields live on the server; this copy carries settings / position — once a minute saves the daily quota)
 
 interface Acc { id: string; token: string; rev: number; google?: boolean; name?: string; admin?: boolean }
 export const cloud = { state: 'off' as 'off' | 'ok' | 'saving' | 'error', at: 0 };

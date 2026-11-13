@@ -411,7 +411,7 @@ export class TopDownScene extends Phaser.Scene {
       const shared = rid === 'w' || rid.startsWith('m');   // monster maps and the Deepwild: one set of monsters for the room
       const link = new RoomLink(rid, e => {
         // the room runs the map's monsters: this game sends the map's walls and shows what the room says
-        if (e.t === 'srv' || e.t === 'grid?') { if (shared) { this.combat.setMirror(true); link.grid(this.wallGrid()); } return; }
+        if (e.t === 'srv' || e.t === 'grid?') { if (shared) { if (e.t === 'srv') this.combat.solo = !!e.solo; this.combat.setMirror(true); link.grid(this.wallGrid()); } return; }   // (solo: own monsters stay, the room sends roaming bosses)
         if (e.t === 'host') { if (shared) this.combat.setMirror(!!e.id && e.id !== link.me); return; }   // (an older server)
         if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx' || e.t === 'wb') { if (shared) this.combat.netEvent(e); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);

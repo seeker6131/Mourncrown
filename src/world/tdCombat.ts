@@ -71,6 +71,11 @@ export class Combat {
   mons: Mon[] = [];
   /** shared map (online): the room keeps every monster's HP; the host's game moves them, the others mirror the host */
   net: NetLink | null = null; mirror = false; msT = 0;
+  /** (director "C") the common monsters are this game's own, on this device — the room runs only roaming bosses
+   *  (much less server time on the free plan). Other players are seen, but each fights their own monsters. */
+  solo = false;
+  /** this game spawns and moves the common monsters (offline, or online with its own monsters) */
+  get ownMobs() { return !this.mirror || this.solo; }
   private get live() { return this.net?.online ? this.net : null; }
   stage: Stage | null = null;
   vfx: Vfx;
@@ -89,12 +94,12 @@ export class Combat {
     if (n === WILD) {   // the Deepwild: herds of game only, at the hero's level
       this.stage = wildStage(S().level); this.pickSpot = pick; this.bossSpot = null;
       this.baseCount = 40; this.pending = [];
-      if (this.mirror) return;
+      if (!this.ownMobs) return;
       for (let i = 0; i < 40; i++) { const p = pick(); this.spawn(GAME[i % 3 === 0 ? 1 : 0], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
       return;
     }
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
-    if (this.mirror) { this.spawnBounty(n); return; }   // (the room runs this map's monsters)
+    if (!this.ownMobs) { this.spawnBounty(n); return; }   // (the room runs this map's monsters)
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     // (no land bosses any more — director: roaming bosses come instead, online)
     this.spawnBounty(n);
@@ -199,7 +204,7 @@ export class Combat {
     if (!this.dungeon) this.respawn(m);
   }
   respawn(m: Mon) {
-    if (!m.boss) { this.pending.push({ m, at: this.s.time.now + respawnMs(m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000, this.pop) }); return; }
+    if (!m.boss) { this.pending.push({ m, at: this.s.time.now + respawnMs(m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000, this.solo ? 1 : this.pop) }); return; }
     this.s.time.delayedCall(300000, () => { if (this.s.sys.isActive() && this.s.stageN === this.stage?.n) this.revive(m); });
   }
   /** remove a dead monster's leftovers */
@@ -218,8 +223,8 @@ export class Combat {
   /** monsters keep up with the crowd: respawn on time, bring dead ones back early when the map runs low, add more
    *  when more players arrive, let extras go when they leave (never in a dungeon) */
   private keepUp(time: number) {
-    if (this.dungeon || !this.stage || !this.pickSpot || this.mirror) return;
-    const wild = this.stage.n === WILD, target = monTarget(this.baseCount, this.pop);
+    if (this.dungeon || !this.stage || !this.pickSpot || !this.ownMobs) return;
+    const wild = this.stage.n === WILD, target = monTarget(this.baseCount, this.solo ? 1 : this.pop);   // (own monsters: as many as for one player)
     const common = this.mons.filter(m => !m.boss && !m.bounty), alive = common.filter(m => m.alive).length;
     this.pending.sort((a, b) => a.at - b.at);
     let early = alive < lowWater(target) ? 3 : 0, n = 0;
@@ -278,7 +283,7 @@ export class Combat {
         : fx2(sc, 'fx_ring_mon', x, y + 1, y - 3, Math.max(0.45, m.size / 70))?.setOrigin(0.5, 0.5).setAlpha(0.4);
       if (rg) { rg.anims.setProgress(Math.random()); sp.setData('ring', rg); }
     }
-    this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite });
+    this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite, ...(this.solo && !mir ? { local: true } : {}) });
   }
 
   // ---------- skills ----------
@@ -622,7 +627,7 @@ export class Combat {
     (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
     (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
     { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) this.s.tweens.add({ targets: rg, alpha: 0, duration: 500, onComplete: () => rg.destroy() }); }
-    if (!this.dungeon && !m.bounty && !this.mirror) this.respawn(m);
+    if (!this.dungeon && !m.bounty && !m.wb && (!this.mirror || m.local)) this.respawn(m);   // (own monsters come back; the room's boss does not)
     if (share <= 0) return;   // (shared map: too little of the damage was mine — no reward)
     const at = { x: m.x, y: m.y, boss: m.boss };
     if (this.live && !m.local) { this.deadAt.set(m.sid, at); return; }   // shared map: the server pays each player (net:pay → onPay)
@@ -925,7 +930,8 @@ export class Combat {
   setMirror(on: boolean) {
     if (on === this.mirror) return;
     this.mirror = on;
-    if (on) { for (const m of [...this.mons]) if (!m.local) this.dispose(m); this.pending = []; }   // the room's monsters come in its next list
+    if (on && this.solo) { for (const m of this.mons) if (!m.wb) m.local = true; }   // own monsters stay (the room sends only roaming bosses)
+    else if (on) { for (const m of [...this.mons]) if (!m.local) this.dispose(m); this.pending = []; }   // the room's monsters come in its next list
     else for (const m of this.mons) { m.hx = m.x; m.hy = m.y; }                    // now mine to move; the map fills up as usual
   }
   /** the server made this monster golden: 5x HP, a gold aura, a little bigger */

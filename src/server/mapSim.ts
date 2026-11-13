@@ -45,6 +45,9 @@ export function gridOk(g: Grid) { return g.w > 0 && g.h > 0 && g.w <= 400 && g.h
 export class MapSim {
   mons = new Map<number, SMon>(); n: number; wild: boolean; stage: Stage | null; last = 0; sid: number;
   pending: { m: SMon; at: number }[] = []; bossAt = 0; later: { at: number; f: () => void }[] = []; wbAt = 0; warned = false;
+  /** false = the room runs only the roaming boss; the common monsters are each player's own, on their device (director:
+   *  "C" — much less server time on the free plan). true = the room runs every monster (tests / an earlier design) */
+  regular = true;
   private ev: SimEvents = { atk: [], fx: [], wb: [] };
   constructor(room: string, public grid: Grid, private rnd: () => number = Math.random) {
     this.n = mapOfRoom(room); this.wild = this.n === WILD; this.stage = this.wild ? wildStage(1) : STAGES[this.n - 1] ?? null;
@@ -103,6 +106,7 @@ export class MapSim {
     const st = this.stage; if (!st) return;
     const lv = Math.max(1, ...players.map(p => p.lv)), base = this.wild ? 40 : st.count, target = monTarget(base, players.length);
     this.roaming(now, players);
+    if (!this.regular) return;
     const common = [...this.mons.values()].filter(m => !m.boss), alive = common.length;
     this.pending.sort((a, b) => a.at - b.at);
     let early = alive < lowWater(target) ? 3 : 0, k = 0;
@@ -223,6 +227,14 @@ export class MapSim {
   /** the players as of the last beat (for hits that land later) */
   lastPlayers: SimPlayer[] = [];
   run(now: number, players: SimPlayer[]) { this.lastPlayers = players; return this.tick(now, players); }
+  /** (only the roaming boss here) nothing to move until this time: the room can sleep and wake a minute before the
+   *  boss's warning. 0 = keep ticking now; Infinity = nothing will ever come (the Deepwild) */
+  quietUntil(now: number) {
+    if (this.regular || [...this.mons.values()].some(m => m.alive) || this.warned) return 0;
+    if (this.wild || !this.stage) return Infinity;
+    if (!this.wbAt) return 0;   // (the next boss is set on the next tick with a player here)
+    const wake = this.wbAt - 61000; return now < wake ? wake : 0;
+  }
   rows(now: number): Row[] {
     return [...this.mons.values()].filter(m => m.alive).map(m => [m.sid, m.mob.key, m.mob.kind, m.boss ? 1 : 0, m.elite ? 1 : 0, Math.round(m.x), Math.round(m.y), m.dir, m.mv ? 1 : 0, now - m.atT < 500 && now >= m.atT ? 1 : 0, m.max, Math.max(0, Math.round(m.hp)), m.lv ?? 0, m.wb ? 1 : 0]);
   }

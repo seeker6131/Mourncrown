@@ -7,7 +7,7 @@ export interface Pos { x: number; y: number; d: number; f: string; mv: number; h
 export interface Other extends Pos { id: string; name: string; tx: number; ty: number; seen: number }
 export type RoomEvent = { t: 'hit'; id: string; k: string; d: number } | { t: 'c'; id: string; name: string; text: string } | { t: 'bye'; id: string } | { t: 'join'; id: string }
   | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number>; wb?: number; killer?: string; kname?: string } | { t: 'matk'; sid: number; k: string }
-  | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv' } | { t: 'grid?' }
+  | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv'; solo?: boolean } | { t: 'grid?' }
   | { t: 'wb'; k: 'warn' | 'spawn' | 'leave'; sid: number; key: string; name: string; x: number; y: number };
 /** one monster in the host's list: sid, key, kind, boss, elite, x, y, dir, moving, attacking, max HP, (from the room) HP */
 export type MonRow = [number, string, string, number, number, number, number, number, number, number, number, number?, number?, number?];
@@ -40,18 +40,19 @@ export class RoomLink {
     else { this.others.set(o.id, { x: 0, y: 0, d: 0, f: 'hero', mv: 0, hp: 100, a: 0, r: '', lv: 1, name: '', ...o, tx: o.x ?? 0, ty: o.y ?? 0, seen: now } as Other); this.on({ t: 'join', id: o.id }); }
   }
   private got(m: Record<string, unknown>) {
-    if (m.t === 'hi') { this.me = String(m.you); this.host = String(m.host ?? ''); this.others.clear(); for (const p of (m.players as Other[]) ?? []) this.put(p); this.on(m.srv ? { t: 'srv' } : { t: 'host', id: this.host }); }
+    if (m.t === 'hi') { this.me = String(m.you); this.host = String(m.host ?? ''); this.others.clear(); for (const p of (m.players as Other[]) ?? []) this.put(p); this.on(m.srv ? { t: 'srv', solo: !!m.solo } : { t: 'host', id: this.host }); }
     else if (m.t === 'host') { this.host = String(m.id); this.on(m as unknown as RoomEvent); }
     else if (m.t === 'ms' || m.t === 'mhp' || m.t === 'mdead' || m.t === 'matk' || m.t === 'mfx' || m.t === 'grid?' || m.t === 'wb') this.on(m as unknown as RoomEvent);
     else if (m.t === 'p' && m.id !== this.me) this.put(m as unknown as Other);
     else if (m.t === 'bye') { this.others.delete(String(m.id)); this.on(m as RoomEvent); }
     else if (m.t === 'hit' || m.t === 'c') this.on(m as unknown as RoomEvent);
   }
-  /** the hero's state; sent when it changed (5 a second at most) or every 3 s */
+  /** the hero's state; sent when it changed (2.5 a second at most, or every 3 s when alone in the room) */
   pos(p: Pos) {
     if (!this.online) return;
     const now = performance.now(), key = JSON.stringify(p);
-    if ((key === this.last && now - this.lastT < 3000) || now - this.lastT < 200) return;
+    const gap = this.others.size ? 400 : 3000;   // (nobody else here: only a sign of life — saves the server's daily quota)
+    if ((key === this.last && now - this.lastT < 3000) || now - this.lastT < gap) return;
     this.last = key; this.lastT = now; this.ws!.send(JSON.stringify({ t: 'p', ...p }));
   }
   hit(k: string, d: number) { if (this.online) this.ws!.send(JSON.stringify({ t: 'hit', k, d })); }

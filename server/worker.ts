@@ -2,7 +2,7 @@
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
 import { MONSTERS, type MonsterKind } from '../src/data/monsters';
-import { MapSim, mapOfRoom, gridOk, type Grid, type SimPlayer } from '../src/server/mapSim';
+import { MapSim, mapOfRoom, gridOk, WB, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { itemDef, ITEMS } from '../src/data/items';
 import { invSize, type GameState } from '../src/core/state';
 import { addItem } from '../src/systems/inventory';
@@ -250,6 +250,8 @@ export default {
 
 // ===== a map room: the players in one map see each other and talk =====
 /** players a room (the system picks the room — the next one when full): monster maps 30, the Deepwild 100 (director), villages 50 */
+/** (director "C") the common monsters are each player's own, on their device; the room runs only roaming bosses */
+const SOLO_MONSTERS = true;
 const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith('chat') ? 60 : room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
@@ -282,7 +284,11 @@ export class Room {
     for (const [h, v] of this.grids) { for (const id of [...v.ids]) if (!here.has(id)) v.ids.delete(id); if (!v.ids.size) { if (h !== this.used) this.grids.delete(h); continue; } if (v.ids.size > n || (v.ids.size === n && h === this.used)) { best = h; n = v.ids.size; } }
     if (!best || best === this.used) return;
     this.used = best; const g = this.grids.get(best)!.g;
-    if (this.sim) this.sim.grid = g; else { this.sim = new MapSim(room, g); this.start(); }
+    if (this.sim) this.sim.grid = g; else {
+      this.sim = new MapSim(room, g); this.sim.regular = !SOLO_MONSTERS;
+      if (this.wbKeep > Date.now() - WB.life) this.sim.wbAt = this.wbKeep;   // (the room slept: the boss keeps its time)
+      this.start();
+    }
   }
   private start() {
     if (this.timer) return;
@@ -293,6 +299,8 @@ export class Room {
     const n = this.sim?.n ?? 0; if (!n) return;
     this.state.waitUntil?.(this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/wbnote', { method: 'POST', body: JSON.stringify({ n, k, name, by }) })).catch(() => undefined));
   }
+  /** the next roaming boss time, kept in storage so a room that slept still brings the boss on time */
+  wbKeep = 0;
   /** monster rewards waiting to be sent, per player: one call every 3 s instead of one per kill (the daily request quota) */
   payQ = new Map<string, unknown[]>(); payT = 0;
   private payNow(pid: string, p: unknown) { return this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify(p) })); }
@@ -306,11 +314,22 @@ export class Room {
     const socks = this.state.getWebSockets(); if (!socks.length || !this.sim) { this.flushPay(); if (this.timer) clearInterval(this.timer); this.timer = null; return; }
     const now = Date.now(), ev = this.sim.run(now, this.players());
     if (now - this.payT >= 3000) this.flushPay();
+    if (this.sim.wbAt !== this.wbKeep) { this.wbKeep = this.sim.wbAt; this.store.put('wbAt', this.wbKeep).catch(() => undefined); }
     const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(now) });
     for (const w of socks) { try { w.send(ms); } catch { /* closing */ } }
     for (const f of ev.fx) { const t = JSON.stringify({ t: 'mfx', ...f }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } }
     for (const a of ev.atk) { const t = JSON.stringify({ t: 'matk', sid: a.sid, k: a.k }); for (const w of this.state.getWebSockets(a.to)) { try { w.send(t); } catch { /* closing */ } } }
     for (const b of ev.wb) { const t = JSON.stringify({ t: 'wb', ...b }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } if (b.k !== 'warn') this.announce(b.k, b.name); }   // a roaming boss came / left
+    // nothing to move (the common monsters are on the players' devices): stop ticking, wake a minute before the next boss
+    const q = this.sim.quietUntil(now);
+    if (q) { this.flushPay(); if (this.timer) clearInterval(this.timer); this.timer = null; if (q !== Infinity) this.store.setAlarm(Math.max(now + 1000, q)).catch(() => undefined); }
+  }
+  /** the boss's time is near: tick again (after a sleep the room has forgotten the map: the games send it again) */
+  async alarm() {
+    if (!this.state.getWebSockets().length) return;
+    if (!this.wbKeep) this.wbKeep = Number(await this.store.get('wbAt').catch(() => 0)) || 0;
+    if (this.sim) { if (this.sim.wbAt !== this.wbKeep && this.wbKeep) this.sim.wbAt = this.wbKeep; this.start(); return; }
+    const ask = JSON.stringify({ t: 'grid?' }); for (const w of this.state.getWebSockets()) { try { w.send(ask); } catch { /* closing */ } }
   }
   /** (chat-world) roaming bosses alive now, by map — for the map-select screen */
   bosses = new Map<number, { name: string; until: number }>();
@@ -318,7 +337,7 @@ export class Room {
   online = new Map<string, number>();
   /** (chat-world) player-minutes played today (UTC day — Cloudflare's day), kept in storage across restarts */
   use = { day: '', mins: 0 }; useT = 0; useLoaded = false;
-  private get store() { return (this.state as unknown as { storage: { get(k: string): Promise<unknown>; put(k: string, v: unknown): Promise<void> } }).storage; }
+  private get store() { return (this.state as unknown as { storage: { get(k: string): Promise<unknown>; put(k: string, v: unknown): Promise<void>; setAlarm(t: number): Promise<void> } }).storage; }
   private async useLoad(now: number) {
     if (!this.useLoaded) { this.useLoaded = true; const v = await this.store.get('use').catch(() => null) as { day: string; mins: number } | null; if (v) this.use = v; }
     const day = new Date(now).toISOString().slice(0, 10); if (this.use.day !== day) this.use = { day, mins: 0 };
@@ -367,7 +386,7 @@ export class Room {
     if ((u.searchParams.get('room') ?? '').startsWith('chat')) { server.send(JSON.stringify({ t: 'hi', you: id, name, hist: this.hist })); return new Response(null, { status: 101, webSocket: client } as ResponseInit); }
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
     // srv: the room runs this map's monsters (the game sends the map's walls and only shows them)
-    server.send(JSON.stringify({ t: 'hi', you: id, name, host: '', srv: 1, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
+    server.send(JSON.stringify({ t: 'hi', you: id, name, host: '', srv: 1, solo: SOLO_MONSTERS ? 1 : 0, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
     if (this.sim) { const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(Date.now()) }); try { server.send(ms); } catch { /* closing */ } this.start(); }
     return new Response(null, { status: 101, webSocket: client } as ResponseInit);
   }
@@ -398,6 +417,7 @@ export class Room {
       let hs = 2166136261; const key = `${w},${h},${c},${m.b},${JSON.stringify(cl)},${g.gate.x},${g.gate.y}`; for (let i = 0; i < key.length; i++) { hs ^= key.charCodeAt(i); hs = Math.imul(hs, 16777619); }
       const hk = (hs >>> 0).toString(36); for (const v of this.grids.values()) v.ids.delete(me.id);
       const e = this.grids.get(hk) ?? { g, ids: new Set<string>() }; e.ids.add(me.id); this.grids.set(hk, e);
+      if (!this.sim && !this.wbKeep) this.wbKeep = Number(await this.store.get('wbAt').catch(() => 0)) || 0;
       this.choose(room);
     } else if (m.t === 'dmg' && this.sim) {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
       const sid = Number(m.sid), r = this.sim.mons.get(sid); if (!r || !r.alive) return;
@@ -469,7 +489,7 @@ export class Player {
     const data = JSON.stringify(this.st), now = Date.now(); this.rev++; this.at = now; this.dirty = false;
     await this.env.DB.prepare('INSERT INTO saves (id, rev, at, size, data) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET rev = excluded.rev, at = excluded.at, size = excluded.size, data = excluded.data').bind(this.id, this.rev, now, data.length, data).run();
   }
-  private async later() { this.dirty = true; if (!(await this.state.storage.getAlarm())) await this.state.storage.setAlarm(Date.now() + 15000); }
+  private async later() { this.dirty = true; if (!(await this.state.storage.getAlarm())) await this.state.storage.setAlarm(Date.now() + 30000); }   // (written at most every 30 s, and when the game closes)
   async alarm() { await this.persist(); }
   /** run one action with the server's dice and clock; the answer + the top-level fields it changed */
   private run(name: string, args: unknown) {

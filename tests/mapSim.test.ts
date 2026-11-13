@@ -104,3 +104,22 @@ describe('monsters never stay stuck on a corner', () => {
     expect(Math.hypot(m.x - 700, m.y - 600)).toBeLessThan(150);
   });
 });
+
+describe('director "C": the common monsters are each player\'s own; the room runs only roaming bosses', () => {
+  it('no common monsters on the server; the room sleeps until a minute before the boss, then the boss comes', () => {
+    const s = new MapSim('m3', grid(), rnd); s.regular = false;
+    const P = [me(100, 700)]; let t = T0;
+    s.run(t, P);
+    expect([...s.mons.values()].length).toBe(0);
+    const q = s.quietUntil(t); expect(q).toBeGreaterThan(t); expect(q).toBe(s.wbAt - 61000);   // nothing to move: sleep
+    t = q + 1000; const ev: string[] = [];
+    for (let i = 0; i < 600 && !ev.includes('spawn'); i++, t += 200) for (const w of s.run(t, P).wb) ev.push(w.k);
+    expect(ev).toEqual(['warn', 'spawn']);
+    expect([...s.mons.values()].filter(m => m.alive).map(m => m.wb)).toEqual([true]);
+    expect(s.quietUntil(t)).toBe(0);   // the boss is here: keep ticking
+  });
+  it('the Deepwild has no boss: the room never needs to tick', () => {
+    const w = new MapSim('w', { ...grid(), w: 320, h: 224, bits: new Uint8Array(Math.ceil(320 * 224 / 8)) }, rnd); w.regular = false;
+    w.run(T0, [me(100, 700)]); expect(w.mons.size).toBe(0); expect(w.quietUntil(T0)).toBe(Infinity);
+  });
+});
