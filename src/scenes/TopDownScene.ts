@@ -408,7 +408,7 @@ export class TopDownScene extends Phaser.Scene {
         // the room runs the map's monsters: this game sends the map's walls and shows what the room says
         if (e.t === 'srv' || e.t === 'grid?') { if (shared) { this.combat.setMirror(true); link.grid(this.wallGrid()); } return; }
         if (e.t === 'host') { if (shared) this.combat.setMirror(!!e.id && e.id !== link.me); return; }   // (an older server)
-        if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx') { if (shared) this.combat.netEvent(e); return; }
+        if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx' || e.t === 'wb') { if (shared) this.combat.netEvent(e); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
       });
       this.link = link; this.peers = new OtherPlayers(this, link);
@@ -1388,7 +1388,7 @@ export class TopDownScene extends Phaser.Scene {
     if (tut) { tx = tut.x; ty = tut.y; label = tut.label; }
     else if (dm) { tx = dm.x; ty = dm.y; label = dm.boss ? `👑 ${dm.m.name}` : dm.m.name; }
     else if (next) { tx = next.x; ty = next.y; label = 'ประตูแผนที่'; }
-    else if (boss) { tx = boss.x; ty = boss.y; label = `👑 ${boss.m.name}`; }   // farming maps: point at the boss while it is alive
+    else if (boss) { tx = boss.x; ty = boss.y; label = `${boss.wb ? '👹' : '👑'} ${boss.m.name}`; }   // farming maps: point at the (roaming) boss while it is alive
     else return;
     const cam = this.cameras.main, z = cam.zoom, W = this.scale.width, H = this.scale.height;
     const sx = (tx - cam.worldView.x) * z, sy = (ty - cam.worldView.y) * z;

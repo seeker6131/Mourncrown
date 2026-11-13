@@ -15,7 +15,10 @@ const POOL: Omit<DailyTask, 'got' | 'done'>[] = [
 ];
 export const DAILY_NAMES: Record<DailyKind, string> = { kill: 'ล่ามอนสเตอร์', wood: 'เก็บไม้', stone: 'เก็บหิน', boss: 'ปราบบอส', craft: 'หลอมอุปกรณ์' };
 
-export function dayKey(now = Date.now()) { const d = new Date(now); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+/** the game's day, in Thai time for everyone (the server runs on UTC and phones on their own clock: a day key made from
+ *  the local clock made the server and the game disagree between midnight and 7 am, so the login gift showed again and
+ *  again — director) */
+export function dayKey(now = Date.now()) { const d = new Date(now + 7 * 3600000); return `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`; }
 
 type WithDaily = GameState & { daily?: { day: string; tasks: DailyTask[] } };
 

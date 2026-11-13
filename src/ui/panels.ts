@@ -15,7 +15,7 @@ import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mea
 import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/settlement';
 import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formKeyOf, loadIdle } from '../world/chars';
-import { ensureDaily, dailyProgress, DAILY_NAMES } from '../systems/daily';
+import { ensureDaily, dailyProgress, DAILY_NAMES, dayKey } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear } from '../systems/loot';
 import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
@@ -32,7 +32,7 @@ import { mountOn, hasMount } from '../systems/mounts';
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, actServer, isOnline, refused } from '../net/client';
-import { isAdmin } from '../net/cloud';
+import { isAdmin, SERVER } from '../net/cloud';
 import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
@@ -59,6 +59,8 @@ const NPC_INFO: Record<string, { name: string; tex: string }> = {
   smith: { name: 'ช่างตีเหล็กบรอม', tex: 'npc_smith' },
 };
 
+/** roaming bosses alive now (server /bosses), refreshed every 20 s while the map select is open */
+const stageBosses: { at: number; list: { n: number; name: string; left: number }[] } = { at: 0, list: [] };
 export class Panels implements GuildHost {
   cur: PanelId | null = null;
   guildTab: GuildTab = 'home'; guildSlot = -1; guildPick: DefenseId | null = null;
@@ -960,14 +962,16 @@ export class Panels implements GuildHost {
     const all = !!(s as unknown as { tdUnlockAll?: boolean }).tdUnlockAll;
     const canEnter = (st: (typeof STAGES)[number]) => all || s.level >= st.req;
     const best = [...STAGES].reverse().find(canEnter)?.n ?? 1;
-    const bossDone = (s as unknown as { tdCleared?: number }).tdCleared ?? 0;
+    // roaming bosses alive now (the server's list; no boss pictures any more — director: they come at random)
+    const wb = new Map((stageBosses.list ?? []).map(b => [b.n, b]));
+    if (Date.now() - stageBosses.at > 20000) { stageBosses.at = Date.now(); fetch(SERVER + '/bosses').then(r => r.json()).then((j: { list: { n: number; name: string; left: number }[] }) => { stageBosses.list = j.list; if (this.cur === 'stages') this.rebuild(); }).catch(() => undefined); }
     if (this.stSel < 1 || this.stSel > STAGES.length) this.stSel = best;
     const COL = [0x2e5a3a, 0x4a3a6a, 0x7a3a1a, 0x3a5a7a, 0x3a3a40], HI = ['#9fe0a0', '#c8a8ff', '#ffb080', '#a8d8ff', '#c8c8d0'];
     const sel = STAGES[this.stSel - 1], li = Math.floor((sel.n - 1) / 10), L = LANDS[li];
     const W = Math.min(600, ui.VW - 20), H = 236;
     const { x, y, g } = this.window(c, W, H, 'เลือกแผนที่');
     // this land's monsters + boss, and the next land's, load on demand (card portraits)
-    const near = [li, Math.min(LANDS.length - 1, li + 1), Math.max(0, li - 1)].flatMap(i => [...LANDS[i].mobs.map(m => m.key), LANDS[i].boss.key]);
+    const near = [li, Math.min(LANDS.length - 1, li + 1), Math.max(0, li - 1)].flatMap(i => LANDS[i].mobs.map(m => m.key));
     loadIdle(ui, [...new Set(near)], () => { if (this.cur === 'stages') this.rebuild(); });
     const go = (n: number) => { sfx.click(); this.close(); (ui as unknown as { enterStage?: (n: number) => void }).enterStage?.(n); };
     const step = (d: number) => { const n = Math.max(1, Math.min(STAGES.length, this.stSel + d)); if (n === this.stSel) return; sfx.click(); this.stDir = d; this.stSel = n; this.rebuild(); };
@@ -999,18 +1003,18 @@ export class Panels implements GuildHost {
       const box = ui.add.container(x + W / 2 + ox, cy); box.setAlpha(big ? 1 : Math.abs(off) === 1 ? 0.78 : 0.45);
       const cg = ui.add.graphics();
       cg.fillStyle(0x000000, 0.35).fillRoundedRect(-cw / 2 + 3, -ch / 2 + 4, cw, ch, 8);                    // drop shadow
-      cg.fillStyle(open ? (st.boss ? 0x4a1a14 : lc) : 0x15120e, 1).fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 8);
+      const rb = wb.get(st.n);   // a roaming boss is on this map right now
+      cg.fillStyle(open ? (rb ? 0x4a1a14 : lc) : 0x15120e, 1).fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 8);
       cg.fillStyle(0xffffff, open ? 0.08 : 0.03).fillRoundedRect(-cw / 2 + 3, -ch / 2 + 3, cw - 6, ch * 0.42, 6);   // glassy top
-      cg.lineStyle(big ? 2.5 : 1.5, !open ? 0x3a3228 : st.boss ? 0xff6a3a : big ? 0xffd84a : 0x8a7a5a, 1).strokeRoundedRect(-cw / 2, -ch / 2, cw, ch, 8);
+      cg.lineStyle(big ? 2.5 : 1.5, !open ? 0x3a3228 : rb ? 0xff6a3a : big ? 0xffd84a : 0x8a7a5a, 1).strokeRoundedRect(-cw / 2, -ch / 2, cw, ch, 8);
       box.add(cg);
-      const who = st.boss ? stL.boss.key : stL.mobs[(st.n - 1) % stL.mobs.length].key;
+      const who = stL.mobs[(st.n - 1) % stL.mobs.length].key;
       if (ui.textures.exists(`c_${who}_idle`)) {
-        const im = ui.add.image(0, ch / 2 - 18, `c_${who}_idle`, 0).setOrigin(0.5, 1); im.setScale((big ? 58 : 44) / im.height * (st.boss ? 1.15 : 1));
+        const im = ui.add.image(0, ch / 2 - 18, `c_${who}_idle`, 0).setOrigin(0.5, 1); im.setScale((big ? 58 : 44) / im.height);
         if (!open) im.setTint(0x101010); box.add(im);
       }
       box.add(k.text(-cw / 2 + 7, -ch / 2 + 4, String(st.n), big ? 17 : 13, open ? '#ffffff' : '#5a5040', { fontStyle: 'bold' }));
-      if (st.boss) box.add(k.text(cw / 2 - 6, -ch / 2 + 5, '👑', big ? 12 : 9).setOrigin(1, 0));
-      if (st.boss && st.n <= bossDone) box.add(k.text(cw / 2 - 6, -ch / 2 + 22, '✔', 9, '#9fffb0').setOrigin(1, 0));
+      if (rb) { const t = k.text(cw / 2 - 5, -ch / 2 + 4, '👹', big ? 14 : 10).setOrigin(1, 0); box.add(t); ui.tweens.add({ targets: t, scale: { from: 1, to: 1.25 }, duration: 450, yoyo: true, repeat: -1 }); }
       if (st.n === best && open && !big) box.add(k.text(cw / 2 - 6, -ch / 2 + 5, '★', 10, '#ffd84a').setOrigin(1, 0));
       box.add(k.text(0, ch / 2 - 15, open ? `Lv${st.level}` : `🔒 Lv${st.req}`, big ? 8.5 : 7.5, open ? '#e8dcc0' : '#8a7a60').setOrigin(0.5, 0));
       c.add(box);
@@ -1050,9 +1054,17 @@ export class Panels implements GuildHost {
       const key = `c_${m.key}_idle`; if (!ui.textures.exists(key)) return;
       const im = ui.add.image(x + 30 + i * 26, by + 24, key, 0).setOrigin(0.5, 1); im.setScale(Math.min(24 / im.height, 1)); c.add(im);
     });
-    const info = `แผนที่ ${sel.n}${sel.boss ? ' 👑 บอสดินแดน' : ''}  •  มอน Lv${sel.level}  •  ${food ? `เสบียง 🍖${food}/5 นาที` : 'เสบียงฟรี'}`;
+    const sb = wb.get(sel.n);
+    const info = `แผนที่ ${sel.n}${sb ? `  👹 ${sb.name} อยู่ตอนนี้! (อีก ~${Math.max(1, Math.ceil(sb.left / 60000))} นาที)` : ''}  •  มอน Lv${sel.level}  •  ${food ? `เสบียง 🍖${food}/5 นาที` : 'เสบียงฟรี'}`;
     c.add(k.text(x + 30 + Math.min(5, L.mobs.length) * 26, by + 5, info, 8.5, open ? (!food || supplyMinutes(s, sel.n) >= 10 ? '#ffe7a0' : '#ff8a6a') : '#8a7a60'));
-    c.add(k.button(x + W - 12 - 118, by - 2, 114, 26, open ? `▶ เข้าแผนที่ ${sel.n}` : `🔒 ต้อง Lv${sel.req}`, () => go(sel.n), { size: 10, color: sel.boss ? 0x7a2a14 : 0x1f4a2a, disabled: !open }));
+    c.add(k.button(x + W - 12 - 118, by - 2, 114, 26, open ? `▶ เข้าแผนที่ ${sel.n}` : `🔒 ต้อง Lv${sel.req}`, () => go(sel.n), { size: 10, color: sb ? 0x7a2a14 : 0x1f4a2a, disabled: !open }));
+    // where the roaming bosses are now: tap one to jump to that map (they come at random — nobody knows ahead)
+    const now = [...wb.values()].sort((a, b2) => a.n - b2.n);
+    c.add(k.text(x + W / 2, y + 82, now.length ? '' : '👹 บอสเร่ร่อนโผล่สุ่มทุกแผนที่ — มีประกาศในแชตโลกเมื่อมันมา', 7.5, '#c8a090').setOrigin(0.5, 0));
+    now.slice(0, 4).forEach((b, i, arr) => {
+      const bw = 108, bx0 = x + W / 2 - (arr.length * (bw + 6) - 6) / 2;
+      c.add(k.button(bx0 + i * (bw + 6), y + 80, bw, 16, `👹 แผนที่ ${b.n}`, () => step(b.n - this.stSel), { size: 7.5, color: 0x7a2a14 }));
+    });
   }
 
   // ---------------- PROFILE (tap the portrait) ----------------
@@ -1351,7 +1363,7 @@ export class Panels implements GuildHost {
         c.add(this.ico(cx + 20, cy + ch / 2, `icon_${def.icon}`, 30));
         c.add(k.text(cx + 38, cy + 4, def.name, 9, '#' + RARITY_COLORS[def.rarity].toString(16).padStart(6, '0')));
         c.add(k.text(cx + 38, cy + 20, statLines(def).join('  ') || def.desc, 7, '#c8b898', { wordWrap: { width: cw - 110 } }));
-        const sd = (s as unknown as { shopDay?: { d: string; shards: number } }), today = new Date().toDateString();
+        const sd = (s as unknown as { shopDay?: { d: string; shards: number } }), today = dayKey();
         if (sd.shopDay?.d !== today) sd.shopDay = { d: today, shards: 0 };
         const capped = id === 'mana_shard' && sd.shopDay.shards >= SHOP_SHARD_DAILY;
         const can = s.gold >= def.price && !capped;

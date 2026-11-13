@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MapSim, gridOk, mapOfRoom, BOSS_RESPAWN, type Grid, type SimPlayer } from '../src/server/mapSim';
+import { MapSim, gridOk, mapOfRoom, WB, WB_KEYS, wbStats, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { STAGES, WILD } from '../src/world/stages';
 
 let seed = 3; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
@@ -47,25 +47,34 @@ describe('server-run monsters (the room moves them; nobody steers them)', () => 
     for (let t = 1; t < 80; t++) s.run(T0 + t * 200, [me(900, 1300)]);
     expect(m.hitT).toBe(0); expect(Math.hypot(m.x - 500, m.y - 400)).toBeLessThan(130);
   });
-  it('a dead monster comes back after a while; the boss after 5 minutes at its meadow', () => {
+  it('a dead monster comes back after a while; no land boss any more', () => {
     const s = new MapSim('m10', grid(true), rnd); for (let t = 0; t < 30; t++) s.run(T0 - 6000 + t * 200, [me(100, 700)]);
-    const boss = [...s.mons.values()].find(m => m.boss)!; expect(boss).toBeTruthy(); expect(boss.mob.key).toBe(STAGES[9].land.boss.key);
-    const n0 = s.mons.size, one = [...s.mons.values()].find(m => !m.boss)!;
-    s.died(one.sid, T0 + 100, 1); s.died(boss.sid, T0 + 100, 1);
-    expect(s.mons.size).toBe(n0 - 2);
-    for (let t = 1; t < 100; t++) s.run(T0 + 100 + t * 200, [me(100, 700)]);
     expect([...s.mons.values()].some(m => m.boss)).toBe(false);
-    expect(s.mons.size).toBe(n0 - 1);   // the common one is back
-    s.run(T0 + 100 + BOSS_RESPAWN + 10, [me(100, 700)]);
-    expect([...s.mons.values()].some(m => m.boss)).toBe(true);
+    const n0 = s.mons.size, one = [...s.mons.values()][0];
+    s.died(one.sid, T0 + 100, 1); expect(s.mons.size).toBe(n0 - 1);
+    for (let t = 1; t < 100; t++) s.run(T0 + 100 + t * 200, [me(100, 700)]);
+    expect(s.mons.size).toBe(n0);
   });
-  it('a boss blasts the ground where its attacker stands: everyone inside is hit, others are not', () => {
-    const s = new MapSim('m10', grid(true), rnd); s.run(T0, [me(100, 700)]);
-    const b = [...s.mons.values()].find(m => m.boss)!; b.x = b.hx = 1700; b.y = b.hy = 700;
-    const A = { id: 'A', x: 1700, y: 760, hp: 100, lv: 50 }, B = { id: 'B', x: 1710, y: 765, hp: 100, lv: 50 }, C = { id: 'C', x: 1500, y: 700, hp: 100, lv: 50 };
-    s.hit(b.sid, 'A', T0 + 100, [A, B, C]);
+  it('a roaming boss: warned a minute ahead, comes on any map, scaled to the players there, leaves if nobody fights it', () => {
+    const s = new MapSim('m3', grid(), rnd), P = [me(100, 700), { id: 'B', x: 120, y: 700, hp: 100, lv: 30 }];
+    const ev: string[] = []; let t = T0;
+    for (let i = 0; i < 12000 && !ev.includes('spawn'); i++, t += 200) for (const w of s.run(t, P).wb) ev.push(w.k);
+    expect(ev[0]).toBe('warn'); expect(ev).toContain('spawn');
+    const b = [...s.mons.values()].find(m => m.wb)!;
+    expect(WB_KEYS).toContain(b.mob.key); expect(b.boss).toBe(true);
+    const w = wbStats(STAGES[2].level, [10, 30], b.mob); expect(b.lv).toBe(w.lv); expect(b.max).toBe(w.hp);
+    expect(wbStats(STAGES[2].level, [10, 10], b.mob).hp / wbStats(STAGES[2].level, [10], b.mob).hp).toBeCloseTo(1 + WB.perPlayer, 2);   // each more player: +70% HP
+    for (let i = 0; i < (WB.life / 200) + 10; i++, t += 200) for (const x of s.run(t, P).wb) ev.push(x.k);
+    expect(ev).toContain('leave'); expect([...s.mons.values()].some(m => m.wb)).toBe(false);
+  });
+  it('a roaming boss blasts the ground where its attacker stands: everyone inside is hit, others are not', () => {
+    const s = new MapSim('m10', grid(true), rnd); const A = { id: 'A', x: 1700, y: 760, hp: 100, lv: 50 }, B = { id: 'B', x: 1710, y: 765, hp: 100, lv: 50 }, C = { id: 'C', x: 1500, y: 700, hp: 100, lv: 50 };
+    let t = T0; s.run(t, [A, B, C]); s.wbAt = t + 1;
+    for (let i = 0; i < 400 && ![...s.mons.values()].some(m => m.wb); i++) s.run(t += 200, [A, B, C]);
+    const b = [...s.mons.values()].find(m => m.wb)!; b.x = b.hx = 1700; b.y = b.hy = 700;
+    s.hit(b.sid, 'A', t, [A, B, C]);
     const hits: string[] = [], fx: string[] = [];
-    for (let t = 1; t < 20; t++) { const ev = s.run(T0 + 200 + t * 200, [A, B, C]); for (const a of ev.atk) hits.push(a.to + ':' + a.k); for (const f of ev.fx) fx.push(f.k); }
+    for (let i = 1; i < 20; i++) { const ev = s.run(t + i * 200, [A, B, C]); for (const a of ev.atk) hits.push(a.to + ':' + a.k); for (const f of ev.fx) fx.push(f.k); }
     expect(fx).toContain('special');
     expect(hits).toContain('A:special'); expect(hits).toContain('B:special'); expect(hits.some(h => h.startsWith('C:'))).toBe(false);
   });

@@ -14,6 +14,7 @@ import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
 import { pickBase, makeGear, rollRarity } from '../systems/loot';
+import { WB } from './mapSim';
 import { LAND_SET } from '../data/sets';
 import { dayKey } from '../systems/daily';
 import { energy, gatherMult, huntMult, clampRes } from '../systems/economy';
@@ -125,6 +126,31 @@ export const handlers = {
     mem.spawns.set(sid, { key: a.key, elite, boss: !!a.boss, srv: true });
     return { sid, elite };
   },
+  /** (map room) a roaming boss died: gold / EXP by your share of the damage; items only for the one who struck it down —
+   *  Rare and up (Super Rare sometimes, Legend / SL rarely; never Common / Uncommon). Rates are never shown in the game. */
+  wbKill(s: GameState, a: { sid: number; key: string; kind: MonsterKind; lv: number; share: number; killer: boolean }, c: Ctx) {
+    const n = mem.map; if (!n || n === WILD || isDungeon(n) || !STAGES[n - 1]) return no('map');
+    const L = LANDS.find(l => l.boss.key === a.key && l.boss.kind === a.kind), base = MONSTERS[a.kind]; if (!L || !base) return no('kind');
+    if (!rateOk('wb', 3, c.now)) return no('rate');
+    const lv = Math.max(1, Math.min(100, Math.round(Number(a.lv) || 1))), share = Math.max(0, Math.min(1, Number(a.share) || 0)), st = scaleStats(base, lv, true), dps = dpsOf(s);
+    mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
+    const part = st.hp * WB.hp * share * 0.5;   // (lenient: the room already capped every hit)
+    if (!c.admin && mem.dmg < part) return no('dps');
+    mem.dmg = Math.max(0, mem.dmg - part);
+    const d = derive(s), vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > c.now;
+    const gold = Math.round((st.gold[0] + st.gold[1]) / 2 * 10 * share * (vip ? 1.3 : 1)), exp = Math.round(st.exp * 8 * d.expBonus * share);
+    s.gold += gold; const levels = gainExp(s, exp);
+    const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [], gear: { id: string; rar: number }[] = [];
+    if (a.killer) for (let k = 0, cnt = c.rnd() < 0.35 ? 2 : 1; k < cnt; k++) {
+      const r = c.rnd(), rar = r < 0.01 ? 5 : r < 0.06 ? 4 : r < 0.3 ? 3 : 2, slot = (['weapon', 'armor', 'accessory'] as const)[Math.floor(c.rnd() * 3)];
+      const b = pickBase(c.rnd, rar, s.cls, slot), g = makeGear(c.rnd, b.id), did = mem.did++;
+      mem.drops.set(did, { id: b.id, qty: 1, gear: g, until: c.now + 120000 }); drops.push({ did, id: b.id, qty: 1, rar: g.rar ?? b.rarity }); gear.push({ id: b.id, rar: g.rar ?? b.rarity });
+    }
+    pstats(s).kills++;
+    // the first roaming boss you help beat on each map: +1 skill point (took over from the land bosses)
+    let skillPt = 0; { const bf = ((s as { bossFirst?: number[] }).bossFirst ??= []); if (!bf.includes(n)) { bf.push(n); bonusSkillPt(s); skillPt = 1; } }
+    return { skillPt, elite: false, gold, exp, levels, wood: 0, stone: 0, food: 0, mats: [] as { id: string; qty: number }[], gear, cleared: false, drops, restExp: 0, wb: { killer: !!a.killer, share } };
+  },
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
   /** (shared map) a monster the room's host spawned: known here too, so its kill can be paid */
   mirror(_s: GameState, a: { sid: number; key: string; boss: boolean; elite: boolean }) { mem.spawns.set(a.sid, { key: a.key, elite: !!a.elite, boss: !!a.boss }); mem.sid = Math.max(mem.sid, a.sid + 1); return { ok: true }; },   // (new spawns never reuse a mirrored number)
@@ -220,7 +246,7 @@ export const handlers = {
   setTitle: (s: GameState, a: { id: string | null }) => setTitle(s, a.id),
   shopBuy(s: GameState, a: { id: string }, c: Ctx) {
     if (!SHOP_STOCK.includes(a.id)) return no('item');
-    const def = itemDef(a.id), sd = s as unknown as { shopDay?: { d: string; shards: number } }, today = new Date(c.now).toDateString();
+    const def = itemDef(a.id), sd = s as unknown as { shopDay?: { d: string; shards: number } }, today = dayKey(c.now);
     if (sd.shopDay?.d !== today) sd.shopDay = { d: today, shards: 0 };
     if (a.id === 'mana_shard' && sd.shopDay.shards >= SHOP_SHARD_DAILY) return no('cap');
     if (s.gold < def.price) return no('gold');

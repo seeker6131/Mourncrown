@@ -3,7 +3,7 @@
 // Same behaviour as the old single-player code (world/tdCombat.ts): peaceful until hit, a charge then a chase after the
 // one who hit them last, home again when that player gets away; bosses add a ground blast and a charge; game animals
 // bolt and now and then kick back. The map's walls come from the players' games (Grid, checked by the room).
-import { STAGES, WILD, WILD_GAME, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
+import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
 import { MONSTERS } from '../data/monsters';
 import { monTarget, respawnMs, lowWater } from '../systems/spawnRate';
 
@@ -14,14 +14,29 @@ export interface SMon {
   sid: number; mob: StageMon; boss: boolean; elite: boolean; animal: boolean; hp: number; max: number; dmg: Record<string, number>; alive: boolean;
   x: number; y: number; hx: number; hy: number; dir: number; mv: boolean; atT: number; last: number; hitT: number; tgt?: string;
   wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number; /** seconds it has tried to move and not got anywhere */ stuck: number;
+  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; lv?: number; until?: number;
 }
 /** what a tick wants told: a swing that lands on one player, an effect everyone sees */
-export interface SimEvents { atk: { to: string; sid: number; k: 'hit' | 'shot' | 'special' | 'charge' | 'stun' }[]; fx: { sid: number; k: 'special' | 'charge'; x: number; y: number }[] }
-/** one monster for the players' games: sid, key, kind, boss, elite, x, y, dir, moving, attacking, max HP, HP */
-export type Row = [number, string, string, number, number, number, number, number, number, number, number, number];
+export interface SimEvents { atk: { to: string; sid: number; k: 'hit' | 'shot' | 'special' | 'charge' | 'stun' }[]; fx: { sid: number; k: 'special' | 'charge'; x: number; y: number }[]; wb: { k: 'warn' | 'spawn' | 'leave'; sid: number; key: string; name: string; x: number; y: number }[] }
+/** one monster for the players' games: sid, key, kind, boss, elite, x, y, dir, moving, attacking, max HP, HP, level, roaming boss */
+export type Row = [number, string, string, number, number, number, number, number, number, number, number, number, number, number];
 
 const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
 export const BOSS_RESPAWN = 300000;
+/** roaming bosses (director): any of the five land bosses wanders into any monster map now and then — first one 3-6
+ *  minutes after players arrive, then 8-14 minutes after the last one died or left; it stays 8 minutes. HP and level
+ *  follow the players farming there: level = their median (never under the map's, at most 10 above), HP 1.5x a land
+ *  boss of that level for one player and +70% for each more player (a strong player can win alone, others band
+ *  together); it hits 1.3x as hard as a land boss. */
+export const WB = { first: [180000, 360000], gap: [480000, 840000], life: 480000, hp: 1.5, perPlayer: 0.7, atk: 1.3, maxPlayers: 8 } as const;
+export const WB_KEYS = LANDS.map(l => l.boss.key);
+/** roaming boss level and HP for these players on this map */
+export function wbStats(stageLv: number, lvs: number[], mob: StageMon) {
+  const sorted = [...lvs].sort((a, b) => a - b), med = sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : stageLv;
+  const lv = Math.max(stageLv, Math.min(100, stageLv + 10, med)), n = Math.max(1, Math.min(WB.maxPlayers, lvs.length));
+  const st = scaleStats(MONSTERS[mob.kind], lv, true);
+  return { lv, hp: Math.round(st.hp * WB.hp * (1 + WB.perPlayer * (n - 1))), atk: Math.round(st.atk * WB.atk) };
+}
 
 /** the room's map number from its name: m12 / m12-3 → 12, w / w-2 → the Deepwild, anything else 0 */
 export const mapOfRoom = (room: string) => room.startsWith('w') ? WILD : room.startsWith('m') ? parseInt(room.slice(1), 10) || 0 : 0;
@@ -29,8 +44,8 @@ export function gridOk(g: Grid) { return g.w > 0 && g.h > 0 && g.w <= 400 && g.h
 
 export class MapSim {
   mons = new Map<number, SMon>(); n: number; wild: boolean; stage: Stage | null; last = 0; sid: number;
-  pending: { m: SMon; at: number }[] = []; bossAt = 0; later: { at: number; f: () => void }[] = [];
-  private ev: SimEvents = { atk: [], fx: [] };
+  pending: { m: SMon; at: number }[] = []; bossAt = 0; later: { at: number; f: () => void }[] = []; wbAt = 0; warned = false;
+  private ev: SimEvents = { atk: [], fx: [], wb: [] };
   constructor(room: string, public grid: Grid, private rnd: () => number = Math.random) {
     this.n = mapOfRoom(room); this.wild = this.n === WILD; this.stage = this.wild ? wildStage(1) : STAGES[this.n - 1] ?? null;
     this.sid = 1_000_000 + Math.floor(rnd() * 100_000_000);
@@ -79,6 +94,7 @@ export class MapSim {
   /** it died: gone from the list, back after a while somewhere else (a boss after 5 minutes at its meadow) */
   died(sid: number, now: number, players: number) {
     const m = this.mons.get(sid); if (!m) return; m.alive = false; this.mons.delete(sid);
+    if (m.wb) { this.wbAt = now + this.between(WB.gap); return; }
     if (m.boss) { this.bossAt = now + BOSS_RESPAWN; return; }
     this.pending.push({ m, at: now + respawnMs(m.animal ? 12000 : 8000 + this.rnd() * 6000, players) });
   }
@@ -86,6 +102,7 @@ export class MapSim {
   private keepUp(now: number, players: SimPlayer[]) {
     const st = this.stage; if (!st) return;
     const lv = Math.max(1, ...players.map(p => p.lv)), base = this.wild ? 40 : st.count, target = monTarget(base, players.length);
+    this.roaming(now, players);
     const common = [...this.mons.values()].filter(m => !m.boss), alive = common.length;
     this.pending.sort((a, b) => a.at - b.at);
     let early = alive < lowWater(target) ? 3 : 0, k = 0;
@@ -98,7 +115,23 @@ export class MapSim {
       common.push(this.make(mob, false, this.spot(players), lv, now));
     }
     const bm = this.grid.clear.find(c => c.boss);
-    if (!this.wild && st.boss && bm && now >= this.bossAt && ![...this.mons.values()].some(m => m.boss)) { this.make(st.land.boss, true, bm, lv, now); this.bossAt = Infinity; }
+    void bm;   // (land bosses are gone — director: the roaming boss took their place)
+  }
+  private between(r: readonly [number, number]) { return r[0] + this.rnd() * (r[1] - r[0]); }
+  /** the roaming boss: comes, stays a while, goes (only on monster maps, only while somebody is there) */
+  private roaming(now: number, players: SimPlayer[]) {
+    if (this.wild || !this.stage || !players.length) return;
+    if (!this.wbAt) { this.wbAt = now + this.between(WB.first); return; }
+    const cur = [...this.mons.values()].find(m => m.wb);
+    if (cur) { if (now > (cur.until ?? 0) && !cur.hitT) { this.mons.delete(cur.sid); this.ev.wb.push({ k: 'leave', sid: cur.sid, key: cur.mob.key, name: cur.mob.name, x: Math.round(cur.x), y: Math.round(cur.y) }); this.wbAt = now + this.between(WB.gap); } return; }
+    if (!this.warned && now >= this.wbAt - 60000) { this.warned = true; this.ev.wb.push({ k: 'warn', sid: 0, key: '', name: '', x: 0, y: 0 }); }   // a minute's warning
+    if (now < this.wbAt) return;
+    this.warned = false;
+    const mob = LANDS[Math.floor(this.rnd() * LANDS.length)].boss, w = wbStats(this.stage.level, players.map(p => p.lv), mob), at = this.spot(players);
+    const m: SMon = { sid: this.sid++, mob, boss: true, elite: false, animal: false, hp: w.hp, max: w.hp, dmg: {}, alive: true, x: at.x, y: at.y, hx: at.x, hy: at.y, dir: 0, mv: false,
+      atT: -1e9, last: -1e9, hitT: 0, wanderT: 0, idle: false, fleeT: 0, spT: -1e9, chT: -1e9, chargeEnd: 0, cvx: 0, cvy: 0, join: now, stuck: 0, wb: true, lv: w.lv, until: now + WB.life };
+    this.mons.set(m.sid, m);
+    this.ev.wb.push({ k: 'spawn', sid: m.sid, key: mob.key, name: mob.name, x: Math.round(at.x), y: Math.round(at.y) });
   }
   private step(m: SMon, x: number, y: number) {
     let moved = false;
@@ -108,7 +141,7 @@ export class MapSim {
   }
   /** one beat of the map (5 a second): who moves where, who strikes whom */
   tick(now: number, players: SimPlayer[]): SimEvents {
-    this.ev = { atk: [], fx: [] };
+    this.ev = { atk: [], fx: [], wb: [] };
     const dt = Math.min(0.5, Math.max(0, (now - (this.last || now)) / 1000)); this.last = now;
     const due = this.later.filter(l => l.at <= now); this.later = this.later.filter(l => l.at > now); for (const l of due) l.f();
     this.keepUp(now, players);
@@ -191,6 +224,6 @@ export class MapSim {
   lastPlayers: SimPlayer[] = [];
   run(now: number, players: SimPlayer[]) { this.lastPlayers = players; return this.tick(now, players); }
   rows(now: number): Row[] {
-    return [...this.mons.values()].filter(m => m.alive).map(m => [m.sid, m.mob.key, m.mob.kind, m.boss ? 1 : 0, m.elite ? 1 : 0, Math.round(m.x), Math.round(m.y), m.dir, m.mv ? 1 : 0, now - m.atT < 500 && now >= m.atT ? 1 : 0, m.max, Math.max(0, Math.round(m.hp))]);
+    return [...this.mons.values()].filter(m => m.alive).map(m => [m.sid, m.mob.key, m.mob.kind, m.boss ? 1 : 0, m.elite ? 1 : 0, Math.round(m.x), Math.round(m.y), m.dir, m.mv ? 1 : 0, now - m.atT < 500 && now >= m.atT ? 1 : 0, m.max, Math.max(0, Math.round(m.hp)), m.lv ?? 0, m.wb ? 1 : 0]);
   }
 }

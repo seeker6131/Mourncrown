@@ -16,7 +16,7 @@ import { dayKey } from '../src/systems/daily';
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
 interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<D1Result<T>> }
-interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[] }
+interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[]; waitUntil?(p: Promise<unknown>): void }
 interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(r: Request): Promise<Response> } }
 interface Env { DB: { prepare(sql: string): D1Stmt }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
 declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
@@ -121,6 +121,8 @@ export default {
         const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
       }
+      // 👹 roaming bosses alive now (map-select screen; no login needed)
+      if (path === '/bosses') return json(req, { list: await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/bosslist'))).json() });
       // 💬 world chat / guild chat (WebSocket): the world from Lv5 (keeps throwaway spam accounts out), a guild only for its members
       if (path === '/chat/world' || path === '/chat/guild') {
         if (req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'chat' }, 400);
@@ -250,6 +252,11 @@ export class Room {
     if (this.timer) return;
     this.timer = setInterval(() => this.beat(), 200);
   }
+  /** tell the whole game (world chat + the boss list on the map-select screen) that a roaming boss came / left / fell */
+  private announce(k: 'spawn' | 'leave' | 'dead', name: string, by = '') {
+    const n = this.sim?.n ?? 0; if (!n) return;
+    this.state.waitUntil?.(this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/wbnote', { method: 'POST', body: JSON.stringify({ n, k, name, by }) })).catch(() => undefined));
+  }
   private beat() {
     const socks = this.state.getWebSockets(); if (!socks.length || !this.sim) { if (this.timer) clearInterval(this.timer); this.timer = null; return; }
     const now = Date.now(), ev = this.sim.run(now, this.players());
@@ -257,9 +264,23 @@ export class Room {
     for (const w of socks) { try { w.send(ms); } catch { /* closing */ } }
     for (const f of ev.fx) { const t = JSON.stringify({ t: 'mfx', ...f }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } }
     for (const a of ev.atk) { const t = JSON.stringify({ t: 'matk', sid: a.sid, k: a.k }); for (const w of this.state.getWebSockets(a.to)) { try { w.send(t); } catch { /* closing */ } } }
+    for (const b of ev.wb) { const t = JSON.stringify({ t: 'wb', ...b }); for (const w of socks) { try { w.send(t); } catch { /* closing */ } } if (b.k !== 'warn') this.announce(b.k, b.name); }   // a roaming boss came / left
   }
+  /** (chat-world) roaming bosses alive now, by map — for the map-select screen */
+  bosses = new Map<number, { name: string; until: number }>();
   async fetch(req: Request) {
     const u = new URL(req.url), id = u.searchParams.get('id') ?? '', name = (u.searchParams.get('name') || 'ผู้กล้า#' + id.slice(0, 4)).slice(0, 16);
+    if (u.pathname === '/wbnote') {   // (from a map room) a roaming boss came / left / fell: everyone in world chat hears it
+      const b = await req.json() as { n: number; k: string; name: string; by?: string }, now = Date.now();
+      if (b.k === 'spawn') this.bosses.set(b.n, { name: b.name, until: now + 8 * 60000 }); else this.bosses.delete(b.n);
+      const text = b.k === 'spawn' ? `👹 บอสเร่ร่อน "${b.name}" ปรากฏตัวที่แผนที่ ${b.n}! ไปรุมกันเร็ว` : b.k === 'dead' ? `👑 ${b.by} ปราบ "${b.name}" ที่แผนที่ ${b.n} สำเร็จ!` : `💨 "${b.name}" หายไปจากแผนที่ ${b.n} แล้ว`;
+      const line = { id: '', name: '📢 ประกาศ', text, at: now };
+      this.hist = [...this.hist, line].slice(-30);
+      const msg = JSON.stringify({ t: 'c', id: '', name: line.name, text });
+      for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
+      return new Response('{}');
+    }
+    if (u.pathname === '/bosslist') { const now = Date.now(); return new Response(JSON.stringify([...this.bosses].filter(([, v]) => v.until > now).map(([n, v]) => ({ n, name: v.name, left: v.until - now })))); }
     for (const old of this.state.getWebSockets(id)) { try { old.close(4000, 'again'); } catch { /* gone */ } }   // one connection per player
     const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
     if (this.all().filter(x => x.a.id !== id).length >= roomCap(u.searchParams.get('room') ?? '')) {   // full: the game moves on to the next room of this map
@@ -317,11 +338,12 @@ export class Room {
         const sh: Record<string, number> = {};
         for (const [k, v] of Object.entries(r.dmg)) sh[k] = Math.round(v / r.max * 1000) / 1000;
         this.sim.died(sid, now, all.length);
-        send({ t: 'mdead', sid, sh });
+        send({ t: 'mdead', sid, sh, ...(r.wb ? { wb: 1, killer: me.id, kname: me.name } : {}) });
+        if (r.wb) this.announce('dead', r.mob.name, me.name);
         // the server pays: each player with a fair share gets their own reward in their own game on the server
         const n = mapOfRoom(room), need = r.boss ? 0.03 : 0.1;
         if (n) await Promise.allSettled(Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) =>
-          this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid, key: r.mob.key, kind: r.mob.kind, boss: r.boss, elite: r.elite, share: v }) }))));
+          this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid, key: r.mob.key, kind: r.mob.kind, boss: r.boss, elite: r.elite, share: v, ...(r.wb ? { wb: true, lv: r.lv, killer: pid === me.id } : {}) }) }))));   // (a roaming boss: items only for the one who struck it down)
       }
     } else if (m.t === 'c') {   // chat: one line every 2 seconds (the world: every 5), filtered
       if (now - me.chatT < (room === 'chat-world' ? 5000 : 2000)) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
@@ -536,7 +558,13 @@ export class Player {
       return new Response(JSON.stringify({ rev: this.rev, at: this.at }));
     }
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
-      const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number };
+      const p = JSON.parse(await req.text()) as { n: number; sid: number; key: string; kind: string; boss: boolean; elite: boolean; share: number; wb?: boolean; lv?: number; killer?: boolean };
+      if (p.wb) {
+        if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }
+        const out = this.run('wbKill', { sid: p.sid, key: p.key, kind: p.kind, lv: p.lv, share: p.share, killer: !!p.killer });
+        await this.later(); this.send({ t: 'pay', sid: p.sid, ...out });
+        return new Response('{}');
+      }
       const st = p.n === WILD ? null : STAGES[p.n - 1], L = st?.land, mob = L ? [...L.mobs, L.boss].find(m => m.key === p.key) : null;
       this.mem.spawns.set(p.sid, { key: p.key, elite: p.elite, boss: p.boss }); if (this.mem.map !== p.n) { this.mem.map = p.n; this.mem.dmgT = Date.now() - 10000; }   // (memory lost / just arrived: a fresh 10 s of damage, never zero)
       const out = this.run('kill', { sid: p.sid, kind: p.kind, key: p.key, name: mob?.name ?? p.key, size: mob?.size ?? 40, boss: p.boss, share: p.share });

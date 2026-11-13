@@ -7,7 +7,7 @@ import { STAGES, WILD } from '../src/world/stages';
 import { BUILDINGS, type BuildingId } from '../src/data/buildings';
 import { resCap } from '../src/systems/economy';
 
-const day0 = Date.UTC(2026, 10, 10, 0, 0, 1);
+const day0 = Date.UTC(2026, 10, 9, 17, 0, 1);   // just after midnight, Thai time (the game's day)
 describe('no inflation', () => {
   it('a day of non-stop gathering yields a bounded amount', () => {
     const s = startNewGame(); s.level = 30; s.res.wood = s.res.stone = 0;

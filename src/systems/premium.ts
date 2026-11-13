@@ -3,6 +3,7 @@
 // Online later: payments are verified on the server; the client never grants diamonds or VIP by itself.
 import type { GameState } from '../core/state';
 import { addItem } from './inventory';
+import { dayKey } from './daily';
 
 export const DIAMOND_PACKS = [
   { id: 'd60', diamonds: 60, bonus: 0, thb: 29 },
@@ -71,12 +72,12 @@ export function grantDiamonds(s: GameState, n: number) { const p = s as PS; p.di
 
 /** daily VIP gift; returns false if not VIP or already claimed today */
 export function claimVipGift(s: GameState, now = Date.now()) {
-  const p = s as PS, d = new Date(now).toDateString();
+  const p = s as PS, d = dayKey(now);
   if (!vipActive(s, now) || p.vipGift === d) return false;
   p.vipGift = d; addItem(s, 'scroll_return', 3); addItem(s, 'hp_potion_l', 5);
   return true;
 }
-export const vipGiftReady = (s: GameState, now = Date.now()) => vipActive(s, now) && (s as PS).vipGift !== new Date(now).toDateString();
+export const vipGiftReady = (s: GameState, now = Date.now()) => vipActive(s, now) && (s as PS).vipGift !== dayKey(now);
 
 export type BuyResult = 'ok' | 'diamonds' | 'soon' | 'owned' | 'max';
 export function buyDiamondItem(s: GameState, id: string, now = Date.now()): BuyResult {

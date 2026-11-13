@@ -20,13 +20,14 @@ import { sellJunk } from '../systems/inventory';
 import { invSize } from '../core/state';
 import { selfEffect, skillHit } from '../systems/skillCast';
 import type { SkillDef } from '../data/skills';
-import { CH, playAnim, setIdle, hasAnim, hitMs, animMs } from './chars';
+import { CH, playAnim, setIdle, hasAnim, hitMs, animMs, preloadChars, createCharAnims } from './chars';
+import { WB } from '../server/mapSim';
 import type { MonRow, RoomEvent } from '../net/room';
-import { STAGES, WILD, WILD_GAME, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
+import { STAGES, WILD, WILD_GAME, LANDS, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon } from './stages';
 
 export interface Mon {
   sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
-  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; /** (shared map) the other player it is after */ tgt?: string; /** (mirror) where the host has it */ nx?: number; ny?: number; mvF?: number; atF?: number; goneT?: number; bounty?: boolean; /** (online) this game's own monster, not the room's: the bounty lord */ local?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; /** (shared map) the other player it is after */ tgt?: string; /** (mirror) where the host has it */ nx?: number; ny?: number; mvF?: number; atF?: number; goneT?: number; bounty?: boolean; /** (online) this game's own monster, not the room's: the bounty lord */ local?: boolean; /** a roaming boss (run by the room) */ wb?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
 }
 
 export interface Host extends Phaser.Scene {
@@ -95,7 +96,7 @@ export class Combat {
     const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
     if (this.mirror) { this.spawnBounty(n); return; }   // (the room runs this map's monsters)
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
-    if (st.boss && bossSpot) this.spawn(st.land.boss, bossSpot.x, bossSpot.y, true);
+    // (no land bosses any more — director: roaming bosses come instead, online)
     this.spawnBounty(n);
   }
   // ---------- loot on the ground: the item itself with a rarity aura; flies into the hero when close ----------
@@ -314,7 +315,7 @@ export class Combat {
     const ULT: Record<string, [string, 'land' | 'targets', number]> = { s4_judgment: ['fx_ult_sword', 'land', 360], t4_titan: ['fx_ult_tank', 'land', 340], a4_storm: ['fx_ult_bow', 'targets', 600], m4_meteor: ['fx_ult_mage', 'targets', 650] };
     const u = ULT[sk.id];
     if (u) {
-      if (u[1] === 'land') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], h.x, h.y + 4, h.y + 2, 1.3));
+      if (u[1] === 'land') { if (sk.kind !== 'leap') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], h.x, h.y + 4, h.y + 2, 1.3)); }   // (a leap's finisher starts in the leap, at the landing spot)
       else this.nearest(230).slice(0, sk.count ?? 5).forEach((m, i) => this.s.time.delayedCall(u[2] + i * 90, () => fx2(this.s, u[0], m.x, m.y + 2, m.y + 2, 0.9)));
     }
     // one designed PixelLab effect per skill (tools/gen_vfx2.py fx_sk_*): the old pixelfx layer and the code-drawn
@@ -371,6 +372,11 @@ export class Combat {
       case 'leap': {
         const r = sk.radius ?? 60, tgt = near && Math.hypot(near.x - h.x, near.y - h.y) < 170 ? { x: near.x - fx * 16, y: near.y - fy * 10 } : { x: h.x + fx * 60, y: h.y + fy * 60 };
         { const ok = this.s.landing(tgt.x, tgt.y); tgt.x = ok ? ok.x : h.x; tgt.y = ok ? ok.y : h.y; }
+        // the knight's finisher: a sword of light falls on the landing spot. Its point meets the ground at y 98 of the
+        // 144-px picture, ~350 ms in — so it starts now, pinned at that point, and strikes as the hero lands (director:
+        // it used to burst off to one side and late)
+        if (u && u[0] === 'fx_ult_sword') fx2(this.s, u[0], tgt.x, tgt.y + 2, tgt.y + 3, 1.3)?.setOrigin(0.5, 98 / 144);
+        else if (u && u[1] === 'land') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], tgt.x, tgt.y + 4, tgt.y + 2, 1.3));   // (the titan's ring is centred: on the landing spot)
         this.s.tweens.add({ targets: h, x: tgt.x, y: tgt.y, duration: 320, ease: 'Sine.easeInOut' });
         this.s.tweens.add({ targets: h, scale: 1.25, duration: 160, yoyo: true });
         this.vfx.glow(h.x, h.y - 10, col, 1, 300);
@@ -624,6 +630,8 @@ export class Combat {
     if (isOnline()) { actServer('kill', args).then(r => this.reward(at, r)); return; }   // the server rolls the loot
     this.reward(at, act('kill', args));
   }
+  /** the roaming boss on this map now (the guide arrow points there) */
+  wbAt: { x: number; y: number; name: string; sid: number } | null = null;
   /** where monsters died recently (the server's payment comes a moment later) */
   deadAt = new Map<number, { x: number; y: number; boss: boolean }>();
   /** the server paid this player for monster sid (shared map) */
@@ -823,6 +831,7 @@ export class Combat {
   /** the map's monster from its picture key (this land's monsters / boss, or the Deepwild's game) */
   private mobOf(key: string): { mob: StageMon; boss: boolean } | null {
     const L = this.stage?.land; if (L?.boss.key === key) return { mob: L.boss, boss: true };
+    const rb = LANDS.find(l => l.boss.key === key); if (rb) return { mob: rb.boss, boss: true };   // (a roaming boss from any land)
     const m = L?.mobs.find(q => q.key === key) ?? GAME.find(q => q.key === key); return m ? { mob: m, boss: false } : null;
   }
   /** (mirror) the host's list: new ones appear, gone ones go, the rest move */
@@ -830,22 +839,40 @@ export class Combat {
     if (!this.mirror) return;
     const seen = new Set<number>();
     for (const r of rows) {
-      const [sid, key, , boss, elite, x, y, d, mv, at, max, hp] = r; seen.add(sid);
+      const [sid, key, , boss, elite, x, y, d, mv, at, max, hp, lv, wb] = r; seen.add(sid);
       let m = this.mons.find(q => q.sid === sid);
       if (!m) {
         const f = this.mobOf(key); if (!f) continue;
+        if (!this.charReady(key)) continue;   // (a boss from another land: its pictures load first, it shows on the next list)
         this.spawn(f.mob, x, y, !!boss, undefined, { sid, elite: !!elite }); m = this.mons[this.mons.length - 1];
         m.animal = !!MONSTERS[f.mob.kind]?.animal; m.sp.setAlpha(0); this.s.tweens.add({ targets: m.sp, alpha: 1, duration: 400 });
+        if (wb) { m.wb = true; m.atk = Math.round(scaleStats(MONSTERS[f.mob.kind], lv || this.stage?.level || 1, true).atk * WB.atk); fx2(this.s, 'fx_boss_spawn', x, y, y + 1, 1.4); }
       }
       if (!m.alive) continue;
       m.nx = x; m.ny = y; m.dir = d; m.mvF = mv; m.atF = at; m.max = max; if (hp !== undefined) m.hp = hp;
     }
     for (const m of [...this.mons]) if (m.alive && !m.local && !seen.has(m.sid)) { m.alive = false; m.goneT = 0; }
   }
+  /** a character's pictures are here (a roaming boss from another land loads on demand) */
+  private charReady(key: string) {
+    const sc = this.s; if (sc.textures.exists(`c_${key}_idle`)) return true;
+    if (!this.loadingChars.has(key)) {
+      this.loadingChars.add(key); preloadChars(sc, [key]);
+      sc.load.once(Phaser.Loader.Events.COMPLETE, () => { createCharAnims(sc); this.loadingChars.delete(key); });
+      if (!sc.load.isLoading()) sc.load.start();
+    }
+    return false;
+  }
+  private loadingChars = new Set<string>();
   /** news from the map room */
   netEvent(e: RoomEvent) {
     const net = this.live, find = (sid: number) => this.mons.find(q => q.sid === sid);
     if (e.t === 'ms') this.applyMs(e.a);
+    else if (e.t === 'wb') {   // a roaming boss: a minute's warning, its arrival, its leaving
+      if (e.k === 'warn') { bus.emit(EV.TOAST, '⚠ ลางร้าย... ฟ้าเริ่มมืด บอสเร่ร่อนกำลังจะมาที่แผนที่นี้ในอีก 1 นาที!', '#ff9a7a'); sfx.bossRoar(); this.s.cameras.main.flash(400, 60, 0, 20); }
+      else if (e.k === 'spawn') { this.charReady(e.key); bus.emit(EV.TOAST, `👹 บอสเร่ร่อน "${e.name}" ปรากฏตัวแล้ว! รุมตีได้ — ทอง/EXP แบ่งตามดาเมจ ไอเท็มให้คนตีตาย`, '#ff6a5a'); sfx.bossRoar(); this.wbAt = { x: e.x, y: e.y, name: e.name, sid: e.sid }; }
+      else { bus.emit(EV.TOAST, `💨 ${e.name} หายไปแล้ว...`, '#c8b89a'); this.wbAt = null; }
+    }
     else if (e.t === 'mhp') {
       const m = find(e.sid); if (!m || !m.alive) return;
       m.hp = e.hp;
@@ -853,6 +880,7 @@ export class Combat {
     } else if (e.t === 'mdead') {
       const m = find(e.sid); if (!m || !m.alive) return;
       const mine = net ? e.sh[net.me] ?? 0 : 1, need = m.boss || m.bounty ? 0.03 : 0.1;   // a fair share of the damage = your own reward
+      if (e.wb) { this.wbAt = null; bus.emit(EV.TOAST, e.killer === net?.me ? `👑 คุณปราบ ${m.m.name} ได้! ไอเท็มเป็นของคุณ` : `👑 ${e.kname ?? '?'} ปราบ ${m.m.name} สำเร็จ!${mine >= need ? ` (คุณได้ส่วนแบ่ง ${Math.round(mine * 100)}%)` : ''}`, '#ffd84a'); }
       m.hp = 0; this.kill(m, mine >= need ? mine : 0);
     } else if (e.t === 'matk') {   // a monster (run by the room) strikes me: a swing, a shot, a boss blast / charge, a kick
       const m = find(e.sid), h = this.s.hero, s = S(), d = derive(s); if (!m || !m.alive || this.s.dead) return;

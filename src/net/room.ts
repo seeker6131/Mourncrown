@@ -6,10 +6,11 @@ import { SERVER, accountToken } from './cloud';
 export interface Pos { x: number; y: number; d: number; f: string; mv: number; hp: number; a: number; r: string; lv: number }
 export interface Other extends Pos { id: string; name: string; tx: number; ty: number; seen: number }
 export type RoomEvent = { t: 'hit'; id: string; k: string; d: number } | { t: 'c'; id: string; name: string; text: string } | { t: 'bye'; id: string } | { t: 'join'; id: string }
-  | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number> } | { t: 'matk'; sid: number; k: string }
-  | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv' } | { t: 'grid?' };
+  | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number>; wb?: number; killer?: string; kname?: string } | { t: 'matk'; sid: number; k: string }
+  | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv' } | { t: 'grid?' }
+  | { t: 'wb'; k: 'warn' | 'spawn' | 'leave'; sid: number; key: string; name: string; x: number; y: number };
 /** one monster in the host's list: sid, key, kind, boss, elite, x, y, dir, moving, attacking, max HP, (from the room) HP */
-export type MonRow = [number, string, string, number, number, number, number, number, number, number, number, number?];
+export type MonRow = [number, string, string, number, number, number, number, number, number, number, number, number?, number?, number?];
 
 export class RoomLink {
   ws: WebSocket | null = null; me = ''; host = ''; others = new Map<string, Other>(); closed = false;
@@ -40,7 +41,7 @@ export class RoomLink {
   private got(m: Record<string, unknown>) {
     if (m.t === 'hi') { this.me = String(m.you); this.host = String(m.host ?? ''); this.others.clear(); for (const p of (m.players as Other[]) ?? []) this.put(p); this.on(m.srv ? { t: 'srv' } : { t: 'host', id: this.host }); }
     else if (m.t === 'host') { this.host = String(m.id); this.on(m as unknown as RoomEvent); }
-    else if (m.t === 'ms' || m.t === 'mhp' || m.t === 'mdead' || m.t === 'matk' || m.t === 'mfx' || m.t === 'grid?') this.on(m as unknown as RoomEvent);
+    else if (m.t === 'ms' || m.t === 'mhp' || m.t === 'mdead' || m.t === 'matk' || m.t === 'mfx' || m.t === 'grid?' || m.t === 'wb') this.on(m as unknown as RoomEvent);
     else if (m.t === 'p' && m.id !== this.me) this.put(m as unknown as Other);
     else if (m.t === 'bye') { this.others.delete(String(m.id)); this.on(m as RoomEvent); }
     else if (m.t === 'hit' || m.t === 'c') this.on(m as unknown as RoomEvent);

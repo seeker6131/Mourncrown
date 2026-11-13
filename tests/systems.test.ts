@@ -249,3 +249,11 @@ describe('market: anti gold-laundering', () => {
     expect(listItem(s, it2.uid, 1, priceRange(it2, 1).min, now)).toBe('daily');
   });
 });
+
+describe('the game day is the same on the server (UTC) and every phone (Thai time)', () => {
+  it('a day key never depends on the device clock zone', async () => {
+    const { dayKey } = await import('../src/systems/daily');
+    expect(dayKey(Date.UTC(2026, 10, 13, 16, 59))).toBe('2026-11-13');   // 23:59 in Thailand
+    expect(dayKey(Date.UTC(2026, 10, 13, 17, 1))).toBe('2026-11-14');    // 00:01 in Thailand
+  });
+});
