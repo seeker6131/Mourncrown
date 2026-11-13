@@ -127,6 +127,26 @@ export default {
       if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub, name: me.name });
 
       // the player's name: set once (changing it later is a support / shop matter), unique ignoring case
+      // 🚩 a player reports someone's chat line: kept for the admin; 3 different players in a day = a day without chat
+      if (path === '/report' && req.method === 'POST') {
+        const b = await req.json().catch(() => ({})) as { target?: string; text?: string; room?: string };
+        const target = String(b.target ?? '').slice(0, 40), now = Date.now(), day = now - 86400000;
+        if (!target || target === me.id) return json(req, { error: 'target' }, 400);
+        if (!(await env.DB.prepare('SELECT 1 FROM accounts WHERE id = ?').bind(target).first())) return json(req, { error: 'target' }, 400);
+        const mine = await env.DB.prepare('SELECT COUNT(*) AS n, SUM(target = ?) AS same FROM reports WHERE by_id = ? AND at > ?').bind(target, me.id, day).first<{ n: number; same: number }>();
+        if ((mine?.same ?? 0) > 0) return json(req, { ok: true, again: true });   // (already reported today)
+        if ((mine?.n ?? 0) >= 10) return json(req, { error: 'limit' }, 429);
+        await env.DB.prepare('INSERT INTO reports (at, by_id, target, room, text) VALUES (?, ?, ?, ?, ?)').bind(now, me.id, target, String(b.room ?? '').slice(0, 32), String(b.text ?? '').slice(0, 120)).run();
+        const by = await env.DB.prepare('SELECT COUNT(DISTINCT by_id) AS n FROM reports WHERE target = ? AND at > ?').bind(target, day).first<{ n: number }>();
+        const muted = (by?.n ?? 0) >= 3;
+        if (muted) await env.DB.prepare('UPDATE accounts SET muted_until = ? WHERE id = ? AND muted_until < ?').bind(now + 86400000, target, now + 86400000).run();
+        return json(req, { ok: true });
+      }
+      // (admin) the latest reports: who, about whom, what was said
+      if (path === '/reports' && (env.ADMINS ?? '').split(',').includes(me.id)) {
+        const rows = (await env.DB.prepare('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 100').all()).results;
+        return json(req, { reports: rows });
+      }
       if (path === '/name' && req.method === 'POST') {
         if (me.name) return json(req, { error: 'set', name: me.name }, 409);
         const body = await req.json().catch(() => ({})) as { name?: string };
@@ -288,6 +308,9 @@ export class Room {
     } else if (m.t === 'c') {   // chat: one line every 2 seconds, filtered
       if (now - me.chatT < 2000) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
       const text = cleanChat(String(m.text ?? '')); if (!text) return;
+      // reported by several players today: no chat for a while (checked on the server, line by line)
+      const mu = await this.env.DB.prepare('SELECT muted_until FROM accounts WHERE id = ?').bind(me.id).first<{ muted_until: number }>().catch(() => null);
+      if ((mu?.muted_until ?? 0) > now) { try { ws.send(JSON.stringify({ t: 'c', id: '', name: '⚠ ระบบ', text: `คุณถูกปิดแชตชั่วคราว (ถูกรายงานหลายครั้ง) อีก ${Math.ceil(((mu?.muted_until ?? 0) - now) / 3600000)} ชม.` })); } catch { /* closing */ } return; }
       const msg = JSON.stringify({ t: 'c', id: me.id, name: me.name, text });
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
     }

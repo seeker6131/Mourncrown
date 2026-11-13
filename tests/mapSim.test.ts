@@ -77,3 +77,21 @@ describe('server-run monsters (the room moves them; nobody steers them)', () => 
     for (const m of w.mons.values()) { expect(m.elite).toBe(false); expect(m.animal).toBe(true); }
   });
 });
+
+describe('monsters never stay stuck on a corner', () => {
+  it('a chase that runs into a wall is given up after a few seconds, and it gets home', () => {
+    const s = new MapSim('m1', grid(), rnd); s.run(T0, [me(100, 700)]);
+    const m = [...s.mons.values()][0]; m.x = m.hx = 990; m.y = m.hy = 600;   // right at the wall (x 1000-1040)
+    const p = me(1060, 600);   // the player just behind the wall
+    s.hit(m.sid, 'A', T0 + 100, [p]);
+    for (let t = 1; t < 30; t++) s.run(T0 + 100 + t * 200, [p]);
+    expect(m.hitT).toBe(0); expect(m.tgt).toBeUndefined();
+    expect(m.x).toBeLessThan(1000);
+  });
+  it('one that strayed far from its spot walks back (or is put back if it cannot)', () => {
+    const s = new MapSim('m1', grid(), rnd); s.run(T0, [me(100, 700)]);
+    const m = [...s.mons.values()][0]; m.hx = 700; m.hy = 600; m.x = 990; m.y = 600;
+    for (let t = 1; t < 80; t++) s.run(T0 + t * 200, [me(100, 700)]);
+    expect(Math.hypot(m.x - 700, m.y - 600)).toBeLessThan(150);
+  });
+});

@@ -29,6 +29,7 @@ import { SKILL_BY_ID } from '../data/skills';
 
 import { vipActive, vipTier, VIP_AURA, VIP_WALK } from '../systems/premium';
 import { uiOpt } from '../core/uiOptions';
+import { updateReady, reloadForUpdate } from '../core/update';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { potOf, pickPotion, POT_CD } from '../systems/potions';
@@ -335,6 +336,8 @@ export class TopDownScene extends Phaser.Scene {
   }
 
   create() {
+    // a new version of the game is out: changing map is the moment to load it (core/update.ts)
+    if (updateReady()) { saveGame(S()); showWait(); reloadForUpdate(); return; }
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)

@@ -13,7 +13,7 @@ export interface SimPlayer { id: string; x: number; y: number; hp: number; lv: n
 export interface SMon {
   sid: number; mob: StageMon; boss: boolean; elite: boolean; animal: boolean; hp: number; max: number; dmg: Record<string, number>; alive: boolean;
   x: number; y: number; hx: number; hy: number; dir: number; mv: boolean; atT: number; last: number; hitT: number; tgt?: string;
-  wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number;
+  wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number; /** seconds it has tried to move and not got anywhere */ stuck: number;
 }
 /** what a tick wants told: a swing that lands on one player, an effect everyone sees */
 export interface SimEvents { atk: { to: string; sid: number; k: 'hit' | 'shot' | 'special' | 'charge' | 'stun' }[]; fx: { sid: number; k: 'special' | 'charge'; x: number; y: number }[] }
@@ -60,7 +60,7 @@ export class MapSim {
     const elite = !boss && !base.animal && !this.wild && this.rnd() < 0.03;   // golden: the server's roll
     const max = Math.max(1, Math.round(scaleStats(base, st.level, boss).hp * (elite ? 5 : 1)));
     const m: SMon = { sid: this.sid++, mob, boss, elite, animal: !!base.animal, hp: max, max, dmg: {}, alive: true, x: at.x, y: at.y, hx: at.x, hy: at.y, dir: 0, mv: false,
-      atT: -1e9, last: -1e9, hitT: 0, wanderT: 0, idle: false, fleeT: 0, spT: -1e9, chT: -1e9, chargeEnd: 0, cvx: 0, cvy: 0, join: now };
+      atT: -1e9, last: -1e9, hitT: 0, wanderT: 0, idle: false, fleeT: 0, spT: -1e9, chT: -1e9, chargeEnd: 0, cvx: 0, cvy: 0, join: now, stuck: 0 };
     this.mons.set(m.sid, m); return m;
   }
   /** a player hit it: it turns on that player (game bolts away, and now and then kicks back) */
@@ -143,13 +143,24 @@ export class MapSim {
         m.dir = dirOf(tx, ty); m.mv = true;
       }
     }
+    const ox = m.x, oy = m.y; let want: 'chase' | 'home' | '' = '';
+    const homeD = Math.hypot(m.hx - m.x, m.hy - m.y), wanderLim = m.boss ? 60 : 110;
     if (angry && p && !busy && dist < aggro && dist > reach * 0.8 && now - m.hitT > 120) {
+      want = 'chase';
       const rush = now - m.hitT < 1600;
       const sp = Math.min(dist - reach * 0.7, (rush ? (m.boss ? Math.min((base.speed + 20) * 1.4, 72) : Math.min((base.speed + 20) * 2.2, 150)) : Math.min((base.speed + 8) * 1.35, 96)) * dt);   // (stops at arm's length, never on top of the player)
       this.step(m, m.x + dx / dist * sp, m.y + dy / dist * sp); m.dir = dirOf(dx, dy); m.mv = true;
-    } else if (!busy && m.hitT > 0 && !m.animal && dist >= aggro) {
+    } else if (!busy && ((m.hitT > 0 && !m.animal && dist >= aggro) || (!angry && !(m.animal && m.fleeT > now) && homeD > wanderLim + 30))) {
+      // back home: after a chase, or a calm one that strayed (a fleeing animal, a charge) far from its spot
       const bx = m.hx - m.x, by = m.hy - m.y, bd = Math.hypot(bx, by);
-      if (bd > 6) { const sp = base.speed * 0.6 * dt; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); m.mv = true; }
+      if (bd > 6) { want = 'home'; const sp = base.speed * 0.6 * dt; this.step(m, m.x + bx / bd * sp, m.y + by / bd * sp); m.dir = dirOf(bx, by); m.mv = true; }
+    }
+    // stuck on a corner (tried for 3 s, went nowhere): a chase is given up; on the way home it is simply back home
+    if (want && Math.hypot(m.x - ox, m.y - oy) < 0.3) m.stuck += dt; else m.stuck = 0;
+    if (m.stuck > 3) {
+      m.stuck = 0;
+      if (want === 'chase') { m.hitT = 0; m.tgt = undefined; return; }
+      m.x = m.hx; m.y = m.hy; m.hitT = 0; m.tgt = undefined; m.mv = false; return;
     }
     if (!angry || !p) return;
     const who = p.id, sid = m.sid;

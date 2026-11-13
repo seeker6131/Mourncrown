@@ -21,6 +21,11 @@ async function req(path: string, init: RequestInit = {}, a = acc()) {
   const r = await fetch(SERVER + path, { ...init, headers: { 'content-type': 'application/json', ...(a ? { 'x-mc-token': a.token } : {}), ...(init.headers ?? {}) } });
   return { status: r.status, body: await r.json().catch(() => ({})) as Record<string, unknown> };
 }
+/** 🚩 report a player's chat line (the server keeps it for the admin; 3 reporters in a day = no chat for a day) */
+export async function reportChat(target: string, text: string, room: string): Promise<'ok' | 'again' | 'limit' | 'fail'> {
+  if (!ok() || !acc()) return 'fail';
+  try { const r = await req('/report', { method: 'POST', body: JSON.stringify({ target, text, room }) }); return r.status === 429 ? 'limit' : r.status !== 200 ? 'fail' : r.body.again ? 'again' : 'ok'; } catch { return 'fail'; }
+}
 async function account(): Promise<Acc | null> {
   const a = acc(); if (a) return a;
   const r = await req('/auth/guest', { method: 'POST' }, null);

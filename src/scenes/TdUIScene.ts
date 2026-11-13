@@ -19,6 +19,7 @@ import { tdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { potCount, POT_CD } from '../systems/potions';
+import { openReport } from '../net/report';
 import { askChat } from '../net/chatInput';
 import { play } from '../net/play';
 import { accountToken } from '../net/cloud';
@@ -61,7 +62,7 @@ export class TdUIScene extends Phaser.Scene {
   warBtn?: Phaser.GameObjects.Container; warBg?: Phaser.GameObjects.Graphics; warTx?: Phaser.GameObjects.Text;
   autoBtn!: Phaser.GameObjects.Container; autoBg!: Phaser.GameObjects.Graphics; autoTx!: Phaser.GameObjects.Text;
   questG!: Phaser.GameObjects.Graphics; questText!: Phaser.GameObjects.Text; questZone!: Phaser.GameObjects.Zone;
-  offText?: Phaser.GameObjects.Text; offSince = 0;
+  offText?: Phaser.GameObjects.Text; offSince = 0; offShown = false; chatLog: { id: string; name: string; text: string }[] = [];
   chatLines: { line: string; t: number }[] = []; chatText?: Phaser.GameObjects.Text;
   /** the last chat lines (fade 15 s after the newest) */
   drawChat() { if (!this.chatText) return; const live = this.chatLines.filter(l => this.time.now - l.t < 15000); this.chatText.setText(live.map(l => l.line).join('\n')).setAlpha(live.length ? 1 : 0); }
@@ -133,7 +134,14 @@ export class TdUIScene extends Phaser.Scene {
   }
   updateSkills(now: number) {
     const s = S();
-    { const off = !!accountToken() && !play.online; if (!off) this.offSince = 0; else if (!this.offSince) this.offSince = now; this.offText?.setVisible(off && now - this.offSince > 4000); }
+    { // the server restarts for an update / the network drops: first "reconnecting" (it comes back by itself), after a while the plain warning
+      const off = !!accountToken() && !play.online;
+      if (!off) { if (this.offSince && this.offShown) this.toast('✔ เชื่อมต่อเซิร์ฟแล้ว', '#9fffb0'); this.offSince = 0; this.offShown = false; }
+      else if (!this.offSince) this.offSince = now;
+      const long = now - this.offSince > 12000, show = off && now - this.offSince > 1500;
+      if (show) { this.offShown = true; this.offText?.setText(long ? '⚠ ออฟไลน์ — กำลังเชื่อมต่อเซิร์ฟ... ของที่ได้ตอนนี้จะไม่ถูกบันทึก' : '🔄 กำลังเชื่อมต่อเซิร์ฟใหม่... รอสักครู่').setBackgroundColor(long ? 'rgba(110,20,20,0.85)' : 'rgba(20,60,110,0.85)'); }
+      this.offText?.setVisible(show);
+    }
     if (this.chatLines.length && (Math.floor(now / 500) % 2 === 0)) this.drawChat();
     for (const b of this.potBtns) {
       if (!b.r) continue;
@@ -249,7 +257,13 @@ export class TdUIScene extends Phaser.Scene {
     { const cb = k.button(8, 94, 30, 20, '💬', () => { const link = (this.td as unknown as { link?: { chat(t: string): void; online: boolean } }).link; if (!link?.online) { this.toast('ยังไม่ได้เชื่อมต่อเซิร์ฟ (เล่นออฟไลน์อยู่)', '#c8b89a'); return; } askChat(t => link.chat(t)); }, { size: 10, color: 0x2a4a5a }); this.root.add(cb); }
     this.chatText = k.text(44, 96, '', 7, '#e8f4ff', { lineSpacing: 2, backgroundColor: 'rgba(0,0,0,0.35)', padding: { x: 3, y: 2 }, wordWrap: { width: 230 } }).setAlpha(0);
     this.root.add(this.chatText);
-    const onChat = (e: { name: string; text: string }) => { this.chatLines = [...this.chatLines, { line: `${e.name}: ${e.text}`, t: this.time.now }].slice(-4); this.drawChat(); };
+    const onChat = (e: { id: string; name: string; text: string }) => {
+      this.chatLines = [...this.chatLines, { line: `${e.name}: ${e.text}`, t: this.time.now }].slice(-4); this.drawChat();
+      const link = (this.td as unknown as { link?: { me: string } }).link;
+      if (e.id && e.id !== link?.me) this.chatLog = [...this.chatLog, { id: e.id, name: e.name, text: e.text }].slice(-10);   // (for 🚩 reports)
+    };
+    // 🚩 report a chat line (net/report.ts)
+    { const rb = k.button(8, 118, 30, 18, '🚩', () => { const link = (this.td as unknown as { link?: { room: string } }).link; openReport([...this.chatLog].reverse(), link?.room ?? '', (t, c) => this.toast(t, c)); }, { size: 9, color: 0x4a2a2a }); this.root.add(rb); }
     bus.on('td:chat', onChat); this.events.once('shutdown', () => bus.off('td:chat', onChat));
 
     // top-right menu: icon buttons

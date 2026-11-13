@@ -38,3 +38,7 @@ ALTER TABLE guilds ADD COLUMN week INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE guilds ADD COLUMN score INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE guilds ADD COLUMN pweek INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE guilds ADD COLUMN pscore INTEGER NOT NULL DEFAULT 0;
+-- chat reports (players flag a chat line); an account reported by 3 different players in a day cannot chat for a day
+CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, by_id TEXT NOT NULL, target TEXT NOT NULL, room TEXT, text TEXT);
+CREATE INDEX IF NOT EXISTS reports_target ON reports (target, at);
+ALTER TABLE accounts ADD COLUMN muted_until INTEGER NOT NULL DEFAULT 0;
