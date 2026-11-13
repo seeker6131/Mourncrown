@@ -23,7 +23,7 @@ import { gatherReward, brew, type Vein } from '../systems/alchemy';
 import { derive } from '../systems/stats';
 import { addItem, sellUid, sellJunk, tryUpgrade, dismantle, equip, unequipUid, useItem } from '../systems/inventory';
 import { itemDef, SHOP_STOCK, SHOP_SHARD_DAILY } from '../data/items';
-import { build, upgrade, collect, craft, cook } from '../systems/settlement';
+import { build, upgrade, collect, craft, cook, tick as settleTick } from '../systems/settlement';
 import {
   guildOf, homeOf, donate, upgradeVillage, collectVillage, setRole, simInvite, kick, defBuild, defUpgrade, defRepair, defRemove, createGuild, joinGuild,
   houseBuild, hireGuard, dismissGuard, sleep, wake, trophyPut, trophyTake, stashPut, stashTake, shopBuy as guildShopBuy, goals, goalProgress, guildTick, rivals,
@@ -288,8 +288,10 @@ export const handlers = {
   craft: (s: GameState, a: { slot: 'weapon' | 'armor' | 'accessory' }, c: Ctx) => craft(s, a.slot, c.rnd),
   cook: (s: GameState, a: { meal: MealId }, c: Ctx) => cook(s, a.meal, c.now),
   build: (s: GameState, a: { plot: number; id: BuildingId }, c: Ctx) => build(s, a.plot, a.id, c.now),
-  upgradeBuilding: (s: GameState, a: { plot: number }) => upgrade(s, a.plot),
-  collect: (s: GameState, a: { plot: number }) => collect(s, a.plot),
+  // production runs here too (it used to run on the device only: the server's buildings never filled, so collecting was
+  // refused — and before the resync, the device kept wood the server never had): catch up to now first
+  upgradeBuilding: (s: GameState, a: { plot: number }, c: Ctx) => { settleTick(s, c.now); return upgrade(s, a.plot); },
+  collect: (s: GameState, a: { plot: number }, c: Ctx) => { settleTick(s, c.now); return collect(s, a.plot); },
   // ---------------- guild (docs/GUILD_WAR.md) ----------------
   /** entering the village: catch up the simulated members / incoming raids, then the guild data for the UI */
   guildSync(s: GameState, _a: object, c: Ctx) {

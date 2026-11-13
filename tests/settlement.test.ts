@@ -191,3 +191,16 @@ describe('the lost-house bug: heroes stuck at "build your home" get the home bac
     expect(homeFix(late, HOME_FIX_UNTIL)).toBe(0);   // (only for a few days)
   });
 });
+
+describe('collecting from a building on the server (production used to run on the device only)', () => {
+  it('the server catches production up to now before collecting', async () => {
+    const { handlers } = await import('../src/server/handlers');
+    const { ensureHomeVillage, VILLAGE_PLOT_OF } = await import('../src/systems/settlement');
+    const { startNewGame } = await import('../src/core/save');
+    const s = startNewGame(); s.buildings = []; const t0 = 1_800_000_000_000; ensureHomeVillage(s, t0);
+    const q = s.buildings.find(b => b.type === 'quarry')!; expect(q.stored).toBe(0);
+    const stone = s.res.stone;
+    const r = handlers.collect(s, { plot: VILLAGE_PLOT_OF.quarry }, { now: t0 + 3 * 3600000, rnd: () => 0.5, admin: false });
+    expect(r).toMatchObject({ res: 'stone' }); expect(s.res.stone).toBeGreaterThan(stone);
+  });
+});
