@@ -122,10 +122,13 @@ export class Panels implements GuildHost {
     this.c?.destroy();
     if (!this.cur) return;
     const ui = this.ui;
-    const c = ui.add.container(0, 0);
+    // windows are laid out for a 360-high screen: a bigger UI size (fewer units on screen) shrinks them to fit, never off
+    // the screen (director: windows ran off the bottom); a smaller one centres them
+    const VH = (ui as unknown as { VH?: number }).VH ?? 360, f = Math.min(1, (VH - 4) / 360);
+    const c = ui.add.container(ui.VW * (1 - f) / 2, (VH - 360 * f) / 2).setScale(f);
     this.c = c;
-    // backdrop
-    const bd = ui.add.rectangle(0, 0, ui.VW, 360, 0x000000, this.cur === 'dialog' ? 0.25 : 0.55).setOrigin(0).setInteractive();
+    // backdrop (the whole screen, whatever the shrink)
+    const bd = ui.add.rectangle(-c.x / f, -c.y / f, ui.VW / f, VH / f, 0x000000, this.cur === 'dialog' ? 0.25 : 0.55).setOrigin(0).setInteractive();
     bd.on('pointerup', () => { if (this.cur === 'dialog') this.close(); });
     c.add(bd);
     switch (this.cur) {
@@ -378,15 +381,27 @@ export class Panels implements GuildHost {
     c.add(k.text(lx + 8, ly + H - 70, 'พลังมาจาก เลเวล (ปลดล็อกอุปกรณ์ขั้นสูง + แต้มสกิล) และอุปกรณ์ (ยิ่งแรร์ ขาว→เขียว→ฟ้า→ม่วง→ส้ม ยิ่งแรง)' + (s.buff && s.buff.until > Date.now() ? `\n🍲 บัฟอาหาร +${s.buff.pct}% เหลือ ${Math.ceil((s.buff.until - Date.now()) / 60000)} นาที` : ''), 7.5, '#d8ccb0', { wordWrap: { width: 232 } }));
     const rx = lx + 260, rw = x + W - 14 - rx;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, ly, rw, H - 44, 4);
-    c.add(k.text(rx + 8, ly + 6, `สกิล   แต้มสกิล: ${s.skillPts}`, 10, s.skillPts ? '#9fffb0' : '#ffe7a0'));
+    // skill points: big and clear; every + shows what it gives, uses a point, and greys out with no points / at the top
+    g.fillStyle(s.skillPts ? 0x1f3a1f : 0x2a1d12, 1).fillRoundedRect(rx + 6, ly + 4, rw - 12, 20, 4);
+    c.add(k.text(rx + 12, ly + 7, `✨ แต้มสกิล: ${s.skillPts}`, 10, s.skillPts ? '#9fffb0' : '#a89878'));
+    c.add(k.text(rx + rw - 12, ly + 9, s.skillPts ? 'กด + เพื่ออัปสกิล' : 'ได้แต้มเพิ่มเมื่อเลเวลอัป', 7.5, s.skillPts ? '#c8f0c0' : '#8a7a60').setOrigin(1, 0));
     currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
-      const sy = ly + 24 + i * 56;
-      const locked = false;
-      c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30).setAlpha(locked ? 0.4 : 1));
-      const slv = s.skillLv[sk.id] ?? 1;
-      c.add(k.text(rx + 38, sy + 2, sk.name + `  Lv ${slv}`, 9, locked ? '#8a7a60' : '#9ad8ff'));
-      if (!locked && slv < SKILL_MAX) c.add(k.button(x + W - 50, sy + 2, 30, 20, '+', () => { if (act('upSkill', { id: sk.id })) { sfx.levelUp(); bus.emit(EV.STATE_CHANGED); } }, { size: 11, disabled: s.skillPts < 1, color: 0x1f4a2a }));
-      c.add(k.text(rx + 38, sy + 15, `${sk.desc}\nMP ${sk.mp}  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 46 }, lineSpacing: 1 }));
+      const sy = ly + 30 + i * 62;
+      c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30));
+      const slv = s.skillLv[sk.id] ?? 1, max = slv >= SKILL_MAX, can = !max && s.skillPts >= 1;
+      const pct = (lv: number) => Math.round(sk.power * (1 + 0.15 * (lv - 1)) * 100), st = sk.stat === 'matk' ? 'MATK' : 'ATK';
+      c.add(k.text(rx + 38, sy, `${sk.name}  Lv ${slv}${max ? ' (MAX)' : `/${SKILL_MAX}`}`, 9, '#9ad8ff'));
+      c.add(k.text(rx + 38, sy + 13, `ตอนนี้: ${pct(slv)}% ${st}  •  MP ${sk.mp}  •  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 90 } }));
+      c.add(k.text(rx + 38, sy + 26, max ? '✔ อัปเต็มแล้ว' : `อัป Lv ${slv + 1}: ${pct(slv)}% → ${pct(slv + 1)}% ${st} (แรงขึ้น +${pct(slv + 1) - pct(slv)}%)`, 7.5, max ? '#ffd84a' : can ? '#9fffb0' : '#8a7a60', { wordWrap: { width: rw - 90 } }));
+      c.add(k.button(x + W - 54, sy + 4, 34, 24, max ? 'MAX' : '+', () => {
+        if (!can) { sfx.error(); bus.emit(EV.TOAST, max ? 'สกิลนี้อัปเต็มแล้ว' : 'แต้มสกิลไม่พอ — เลเวลอัปเพื่อรับแต้มเพิ่ม', '#ffb080'); return; }
+        const before = s.skillPts;
+        if (act('upSkill', { id: sk.id })) {
+          sfx.levelUp(); bus.emit(EV.STATE_CHANGED);
+          bus.emit(EV.TOAST, `✨ ${sk.name} Lv ${slv + 1}! ${pct(slv)}% → ${pct(slv + 1)}% ${st} • แต้มสกิล ${before} → ${s.skillPts}`, '#9fffb0');
+          this.rebuild();   // the points and the button change at once
+        }
+      }, { size: max ? 8 : 12, disabled: !can, color: 0x1f4a2a }));
     });
   }
 
@@ -1260,7 +1275,7 @@ export class Panels implements GuildHost {
     c.add(k.text(x + 18, yy - 6, 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว', 7.5, '#a89878'));
     yy += 12;
     c.add(k.button(x + 18, yy, 130, 22, `ชื่อบนหัวชาวบ้าน: ${o.names ? 'แสดง' : 'ซ่อน'}`, () => { setUiOpt(s, { names: !o.names }); apply(); }, { size: 8.5 }));
-    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 1, btn: 1, alpha: 1, names: true, vol: 0.8 }); setVolume(0.8); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
+    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 0.9, btn: 1, alpha: 1, names: true, vol: 0.8 }); setVolume(0.8); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
     c.add(k.button(x + W - 96, yy, 80, 22, '◀ กลับเมนู', () => this.open('menu'), { size: 8.5 }));
   }
 
