@@ -80,7 +80,8 @@ let dirty = false, timer: ReturnType<typeof setTimeout> | null = null, busy = fa
 /** the local save was just written: send it to the server a little later (many saves in a row = one upload) */
 export function cloudSaved() {
   if (!ok()) return; dirty = true;
-  if (!timer) timer = setTimeout(() => { timer = null; flush(); }, DELAY);
+  const first = (acc()?.rev ?? 0) === 0;   // (the server has no save yet: a new player — send it now, or the game waits a minute to go online)
+  if (!timer) timer = setTimeout(() => { timer = null; flush(); }, first ? 1500 : DELAY);
 }
 export async function flush(keepalive = false) {
   if (!ok() || !dirty || busy) return;
