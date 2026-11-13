@@ -42,3 +42,6 @@ ALTER TABLE guilds ADD COLUMN pscore INTEGER NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, by_id TEXT NOT NULL, target TEXT NOT NULL, room TEXT, text TEXT);
 CREATE INDEX IF NOT EXISTS reports_target ON reports (target, at);
 ALTER TABLE accounts ADD COLUMN muted_until INTEGER NOT NULL DEFAULT 0;
+
+-- CBT testers: the highest level of each account, copied from the saves just before the OBT wipe; claimed = when the gift was taken (0 = not yet)
+CREATE TABLE IF NOT EXISTS cbt (id TEXT PRIMARY KEY, lv INTEGER NOT NULL, claimed INTEGER NOT NULL DEFAULT 0);

@@ -37,7 +37,8 @@ import { canBrew, activeElixir } from '../systems/alchemy';
 import { LOGIN_REWARDS, loginInfo } from '../systems/progress';
 import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
 import { vipActive, vipLeftMs as vipLeft2 } from '../systems/premium';
-import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats } from '../data/achievements';
+import { CBT_TIERS, CBT_VIP_DAYS, CBT_TITLE, cbtTier, cbtGot } from '../systems/cbtGift';
+import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
@@ -51,7 +52,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -162,6 +163,7 @@ export class Panels implements GuildHost {
       case 'trophy': buildTrophy(this, c); break;
       case 'bounty': this.buildBounty(c); break;
       case 'mounts': this.buildMounts(c); break;
+      case 'cbt': this.buildCbt(c); break;
     }
   }
 
@@ -711,6 +713,7 @@ export class Panels implements GuildHost {
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
     b('🐎 สัตว์ขี่', () => this.open('mounts'), 0x4a3a10);
+    b(`🎁 รางวัลผู้ทดสอบ CBT${this.cbtInfo?.open && !this.cbtInfo.claimed && cbtTier(this.cbtInfo.lv) ? ' (รับได้!)' : ''}`, () => this.open('cbt'), 0x5a2a6a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
@@ -1107,7 +1110,7 @@ export class Panels implements GuildHost {
     const sv = s as unknown as { tdMaxMap?: number; login?: { n: number } };
     const rec: [string, string][] = [['ปราบมอน', ps.kills.toLocaleString()], ['มอนทอง', ps.golden.toLocaleString()], ['ปราบบอส', String(s.bossDefeated ?? 0)], ['ผ่านดันเจี้ยน', String(ps.dungeons)],
       ['ล่าสัตว์', ps.animals.toLocaleString()], ['ขุดแร่', ps.ore.toLocaleString()], ['แร่หายาก', String(ps.gems)], ['ปรุงยา', String(ps.brews)], ['แผนที่ไกลสุด', String(sv.tdMaxMap ?? 0)],
-      ['ความสำเร็จ', `${titlesOf(s).length}/${ACHS.length}`], ['สมุดมอน', `${CODEX.filter(m => (ps.kinds[m.kind] ?? 0) > 0).length}/${CODEX.length}`], ['ล็อกอิน', `${sv.login?.n ?? 0} วัน`], ['เวลาเล่น', `${Math.floor(s.playTime / 3600)} ชม. ${Math.floor(s.playTime / 60) % 60} นาที`]];
+      ['ความสำเร็จ', `${achDone(s)}/${ACHS.length}`], ['สมุดมอน', `${CODEX.filter(m => (ps.kinds[m.kind] ?? 0) > 0).length}/${CODEX.length}`], ['ล็อกอิน', `${sv.login?.n ?? 0} วัน`], ['เวลาเล่น', `${Math.floor(s.playTime / 3600)} ชม. ${Math.floor(s.playTime / 60) % 60} นาที`]];
     rec.forEach(([a, b], i) => { const ry = sy + 26 + i * 17; c.add(k.text(rx + 12, ry, a, 8.5, '#c8b898')); c.add(k.text(rx + rw - 12, ry, b, 8.5, '#ffffff').setOrigin(1, 0)); });
   }
 
@@ -1143,6 +1146,11 @@ export class Panels implements GuildHost {
     ([['ach', '🏆 ความสำเร็จ / ฉายา'], ['codex', '📖 สมุดมอน']] as const).forEach(([id, label], i) => c.add(k.button(x + 14 + i * 150, y + 28, 144, 20, label, () => { this.colTab = id; this.colPage = 0; this.rebuild(); }, { size: 9, color: this.colTab === id ? 0x6a4a10 : 0x2a1d12 })));
     const cur = titleOf(s);
     c.add(k.text(x + W - 16, y + 32, `ฉายาตอนนี้: ${cur ?? '-'}`, 8.5, '#ffd84a').setOrigin(1, 0));
+    // event titles (the CBT testers' title) are not goals: a button to wear it again
+    Object.entries(SPECIAL_TITLES).filter(([id]) => titlesOf(s).includes(id)).forEach(([id, name], i) => {
+      const using = (s as unknown as { title?: string }).title === id;
+      c.add(k.button(x + 320 + i * 136, y + 28, 130, 20, using ? `「${name}」ใช้อยู่` : `ใช้ฉายา「${name}」`, () => { act('setTitle', { id: using ? null : id }); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, { size: 8, color: using ? 0x3a5a2a : 0x5a2a6a }));
+    });
     const top = y + 56;
     if (this.colTab === 'ach') {
       const per = 10, pages = Math.ceil(ACHS.length / per), list = ACHS.slice(this.colPage * per, this.colPage * per + per);
@@ -1199,6 +1207,48 @@ export class Panels implements GuildHost {
       if (refused(r)) { sfx.error(); return; }
       sfx.levelUp(); bus.emit(EV.TOAST, `รับของล็อกอินวันที่ ${info.day + 1}: ${r.label}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
     }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));
+  }
+
+  // ---------------- CBT TESTERS' GIFT ----------------
+  cbtInfo: { open: boolean; lv: number; claimed: boolean; google: boolean } | null = null; cbtAsked = 0;
+  buildCbt(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, online = isOnline();
+    const W = Math.min(600, ui.VW - 16), H = 300;
+    const { x, y, g } = this.window(c, W, H, '🎁 รางวัลผู้ทดสอบ CBT');
+    if (online && Date.now() - this.cbtAsked > 5000) { this.cbtAsked = Date.now(); actServer('cbtInfo', {}).then(r => { this.cbtInfo = refused(r) ? { open: false, lv: S().level, claimed: false, google: true } : r; if (this.cur === 'cbt') this.rebuild(); }); }   // (an older server that does not know it yet: show the tier from this character)
+    const inf = this.cbtInfo, lv = inf ? inf.lv : s.level, mine = cbtTier(lv);
+    c.add(k.text(x + W / 2, y + 30, 'ขอบคุณที่ช่วยทดสอบเกม! ทุกคนที่ถึง Lv10 ในช่วง CBT รับรางวัลตอนเปิด OBT', 8.5, '#ffe7a0').setOrigin(0.5, 0));
+    const cw = (W - 28 - 2 * 8) / 3, ch = 150, top = y + 50;
+    CBT_TIERS.forEach((t, i) => {
+      const cx = x + 14 + i * (cw + 8), on = mine === t, col = [0xc87a3a, 0xc8d0e0, 0xffd84a][i];
+      g.fillStyle(on ? 0x3a2a10 : 0x1a140e, 0.95).fillRoundedRect(cx, top, cw, ch, 5).lineStyle(on ? 2 : 1, on ? col : 0x4a3a2a, 1).strokeRoundedRect(cx, top, cw, ch, 5);
+      c.add(k.text(cx + cw / 2, top + 6, `ระดับ${t.name}`, 10, '#' + col.toString(16).padStart(6, '0')).setOrigin(0.5, 0));
+      c.add(k.text(cx + cw / 2, top + 22, `ถึง Lv${t.lv}+ ในช่วง CBT`, 7.5, '#c8b898').setOrigin(0.5, 0));
+      [`👑 VIP ${CBT_VIP_DAYS} วัน`, `🏷 ฉายาพิเศษ「${CBT_TITLE.title}」`, `💰 ${t.gold.toLocaleString()} ทอง`, `🧪 ยาฟื้นพลังใหญ่ x${t.potL}`, `📜 ม้วนกลับหมู่บ้าน x${t.scroll}`]
+        .forEach((line, j) => c.add(k.text(cx + 10, top + 42 + j * 20, line, 8, on ? '#ffffff' : '#a89878')));
+      if (on) c.add(k.text(cx + cw - 6, top + 4, '★', 12, '#ffd84a').setOrigin(1, 0));
+    });
+    const say = (t: string, col = '#e8dcc0', dy = 0) => c.add(k.text(x + W / 2, top + ch + 10 + dy, t, 8.5, col, { align: 'center', wordWrap: { width: W - 30 } }).setOrigin(0.5, 0));
+    say(`ฉายา「${CBT_TITLE.title}」มีเฉพาะผู้ทดสอบ CBT เท่านั้น — หลังจากนี้ไม่มีทางได้อีก`, '#c89cff');
+    if (!online) { say('ต้องเล่นแบบออนไลน์ (ล็อกอิน) เพื่อดูสิทธิ์ของคุณ', '#ff9a8a', 20); return; }
+    if (!inf) { say('กำลังเช็กสิทธิ์...', '#a89878', 20); return; }
+    if (!inf.open) {
+      say(mine ? `ตอนนี้คุณ Lv${lv} → ได้รางวัลระดับ${mine.name}${cbtTier(lv + 999) !== mine ? ' (เก็บเลเวลต่อ ได้ระดับสูงขึ้น!)' : ''}` : `ตอนนี้คุณ Lv${lv} — อีก ${10 - lv} เลเวลถึง Lv10 ก็ได้รางวัลแล้ว!`, mine ? '#9fffb0' : '#ffd84a', 20);
+      say(inf.google ? 'ตอนเปิด OBT ตัวละคร CBT จะถูกล้าง แต่รางวัลจะรอคุณในเกมใหม่' : '⚠ ผูกบัญชี Google ที่หน้าแรกของเกมไว้ด้วย — ต้องผูกถึงจะรับรางวัลได้', inf.google ? '#e8dcc0' : '#ff9a8a', 40);
+      return;
+    }
+    if (inf.claimed || cbtGot(s)) { say('✔ รับรางวัลแล้ว ขอบคุณที่ร่วมทดสอบ!', '#9fffb0', 20); return; }
+    if (!mine) { say('บัญชีนี้ไม่ได้ถึง Lv10 ในช่วง CBT', '#a89878', 20); return; }
+    if (!inf.google) say('⚠ ผูกบัญชี Google ที่หน้าแรกของเกมก่อน แล้วกลับมารับ', '#ff9a8a', 20);
+    c.add(k.button(x + W / 2 - 90, y + H - 36, 180, 26, `🎁 รับรางวัลระดับ${mine.name}`, () => {
+      if (this.busyAct) return; this.busyAct = true;
+      actServer('cbtClaim', {}).then(r => {
+        this.busyAct = false;
+        if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'google' ? 'ผูกบัญชี Google ก่อนนะ' : r.refused === 'claimed' ? 'รับไปแล้ว' : 'รับไม่ได้', '#ff8a8a'); }
+        else { sfx.levelUp(); bus.emit(EV.TOAST, `🎁 ได้รางวัล CBT ระดับ${r.tier}! VIP ${CBT_VIP_DAYS} วัน + ฉายา「${CBT_TITLE.title}」`, '#ffd84a'); if (this.cbtInfo) this.cbtInfo.claimed = true; }
+        saveGame(s); bus.emit(EV.STATE_CHANGED); if (this.cur === 'cbt') this.rebuild();
+      });
+    }, { size: 10, color: 0x6a4a10, disabled: !inf.google }));
   }
 
   // ---------------- ALCHEMY (kitchen) ----------------

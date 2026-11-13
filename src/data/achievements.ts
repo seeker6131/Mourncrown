@@ -41,7 +41,11 @@ export const ACHS: Ach[] = [
 export const achProgress = (s: GameState, a: Ach) => Math.min(a.need, M[a.metric](s));
 type TS = GameState & { titles?: string[]; title?: string | null };
 export const titlesOf = (s: GameState) => ((s as TS).titles ??= []);
-export const titleOf = (s: GameState) => { const id = (s as TS).title; return id ? ACHS.find(a => a.id === id)?.title ?? null : null; };
+/** titles given by events, not by a goal (the CBT testers' title — src/systems/cbtGift.ts) */
+export const SPECIAL_TITLES: Record<string, string> = { cbt: 'ผู้บุกเบิก' };
+export const titleOf = (s: GameState) => { const id = (s as TS).title; return id ? ACHS.find(a => a.id === id)?.title ?? SPECIAL_TITLES[id] ?? null : null; };
+/** goal titles won (event titles not counted) */
+export const achDone = (s: GameState) => titlesOf(s).filter(id => ACHS.some(a => a.id === id)).length;
 export function claimAch(s: GameState, id: string) {
   const a = ACHS.find(q => q.id === id); if (!a) return 'missing';
   const t = titlesOf(s); if (t.includes(id)) return 'claimed';
