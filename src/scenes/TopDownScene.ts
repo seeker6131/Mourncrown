@@ -1645,7 +1645,7 @@ export class TopDownScene extends Phaser.Scene {
       this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false); this.link?.hit(this.swing, this.dir);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
     }
-    sfx.cast(); playSkill(r);
+    sfx.cast(r.stat === 'matk'); playSkill(r);
     this.combat.castSkill(r);
     this.raid?.skill(r);
     this.defense?.skill(r);

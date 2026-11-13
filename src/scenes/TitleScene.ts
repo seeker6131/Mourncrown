@@ -5,7 +5,8 @@ import { toggleFullscreen, isFullscreen } from '../core/fullscreen';
 import { UIKit } from '../ui/kit';
 import { hasSave, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
-import { unlockAudio, audioState, setMusic } from '../audio/sfx';
+import { unlockAudio, audioState, setMusic, setVolume } from '../audio/sfx';
+import { uiOpt } from '../core/uiOptions';
 import { newGameState } from '../core/state';
 import { queueTd } from './TopDownScene';
 import { loadAtlas } from '../world/atlas';
@@ -62,7 +63,7 @@ export class TitleScene extends Phaser.Scene {
       if (!isFullscreen() && !/iPhone|iPod/.test(navigator.userAgent)) toggleFullscreen();   // full screen on start (Android / iPad / desktop)
       const st = fresh ? startNewGame() : (loadGame() ?? startNewGame());
       runtime.state = st;
-      audioState.sfx = st.sfx; setMusic(st.music);
+      audioState.sfx = st.sfx; setMusic(st.music); setVolume(uiOpt(st).vol);
       this.cameras.main.fadeOut(250, 0, 0, 0);
       // the village files were already coming in behind the title: let them finish here (the next scene finds them)
       const go = () => this.time.delayedCall(30, () => this.scene.start('TopDown'));

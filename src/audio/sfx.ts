@@ -2,13 +2,16 @@
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 export const audioState = { sfx: true, music: true };
+let volume = 0.8;
+/** sound effects volume 0..1 (settings slider) */
+export function setVolume(v: number) { volume = Math.max(0, Math.min(1, v)); if (master) master.gain.value = 0.6 * volume; }
 
 function ac(): AudioContext | null {
   if (!ctx) {
     try {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       ctx = new AC();
-      master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = 0.6 * volume; master.connect(ctx.destination);
     } catch { return null; }
   }
   if (ctx.state === 'suspended') ctx.resume();
@@ -69,7 +72,8 @@ function noise(dur: number, vol = 0.2, freq = 1000, delay = 0, q = 1) {
 export const sfx = {
   swing() { if (!audioState.sfx) return; if (!sample(['knifeSlice', 'knifeSlice2'], 0.45)) noise(0.12, 0.25, 2400, 0, 0.7); },
   chop() { if (!audioState.sfx) return; if (!sample(['chop'], 0.6, 0.1)) noise(0.1, 0.3, 700); },
-  mine() { if (!audioState.sfx) return; if (!sample(['metalPot1', 'metalPot2', 'metalPot3'], 0.4, 0.12)) noise(0.08, 0.3, 2500); },
+  // pickaxe on rock: a dry stone 'tock' with grit (tools/gen_sfx.py) — not the old metal pot
+  mine() { if (!audioState.sfx) return; if (!sample(['g_mine1', 'g_mine2', 'g_mine3', 'g_mine4'], 0.6, 0.08)) noise(0.08, 0.3, 1600); },
   step() { if (!audioState.sfx) return; sample(STEPS, 0.18, 0.1); },
   equip() { if (!audioState.sfx) return; if (!sample(['beltHandle1', 'beltHandle2'], 0.55)) tone(500, 0.08, 'triangle', 0.12); },
   cloth() { if (!audioState.sfx) return; if (!sample(['cloth1', 'cloth2', 'cloth3'], 0.55)) noise(0.15, 0.2, 1200); },
@@ -78,10 +82,11 @@ export const sfx = {
   page() { if (!audioState.sfx) return; if (!sample(['bookFlip1', 'bookFlip2', 'bookFlip3'], 0.45)) tone(1200, 0.04, 'square', 0.06); },
   door() { if (!audioState.sfx) return; sample(['doorOpen_1', 'doorOpen_2'], 0.5); },
   chest() { if (!audioState.sfx) return; sample(['creak1', 'creak2'], 0.55); sample(['metalLatch'], 0.5); },
-  cast() { if (!audioState.sfx) return; sample(['drawKnife1', 'drawKnife2', 'drawKnife3'], 0.45); },
-  hit() { if (!audioState.sfx) return; noise(0.08, 0.35, 900); tone(140, 0.1, 'square', 0.12, -60); },
-  crit() { if (!audioState.sfx) return; noise(0.12, 0.4, 1400); tone(220, 0.15, 'sawtooth', 0.14, -120); tone(880, 0.08, 'square', 0.06, 0, 0.02); },
-  hurt() { if (!audioState.sfx) return; tone(220, 0.18, 'sawtooth', 0.15, -140); },
+  /** a skill starts: a blade drawn for weapon skills, a soft magic swell for spells */
+  cast(magic = false) { if (!audioState.sfx) return; if (magic) sample(['g_spell'], 0.5, 0.05); else sample(['drawKnife1', 'drawKnife2', 'drawKnife3'], 0.45); },
+  hit() { if (!audioState.sfx) return; if (!sample(['g_hit1', 'g_hit2', 'g_hit3'], 0.55, 0.1)) { noise(0.08, 0.35, 900); tone(140, 0.1, 'square', 0.12, -60); } },
+  crit() { if (!audioState.sfx) return; if (!sample(['g_crit1', 'g_crit2'], 0.65, 0.08)) { noise(0.12, 0.4, 1400); tone(220, 0.15, 'sawtooth', 0.14, -120); } },
+  hurt() { if (!audioState.sfx) return; if (!sample(['g_hurt1', 'g_hurt2'], 0.55, 0.1)) tone(220, 0.18, 'sawtooth', 0.15, -140); },
   die() { if (!audioState.sfx) return; tone(300, 0.25, 'square', 0.12, -250); noise(0.25, 0.2, 500); },
   coin() { if (!audioState.sfx) return; if (!sample(['handleCoins', 'handleCoins2'], 0.5)) { tone(988, 0.07, 'square', 0.08); tone(1318, 0.12, 'square', 0.08, 0, 0.06); } },
   coinSoft() { if (!audioState.sfx) return; sample(['handleCoins', 'handleCoins2'], 0.18, 0.15); },

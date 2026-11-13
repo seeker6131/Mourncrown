@@ -44,8 +44,8 @@ import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../sys
 import { farmGoal, setFarmGoal, farmDone, FARM_KEYS, FARM_NAMES, FARM_STEPS } from '../systems/farm';
 import { energyLeft } from '../systems/economy';
 import { lang, setLang } from '../core/i18n';
-import { uiOpt, setUiOpt, cycle, UI_SCALES, BTN_SCALES, ALPHAS } from '../core/uiOptions';
-import { sfx, audioState } from '../audio/sfx';
+import { uiOpt, setUiOpt, RANGES, type UiOpt } from '../core/uiOptions';
+import { sfx, audioState, setVolume } from '../audio/sfx';
 import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
@@ -704,9 +704,9 @@ export class Panels implements GuildHost {
       this.close();
       ui.reloadWorld();
     });
-    b(`🔊 เสียงเอฟเฟกต์: ${s.sfx ? 'เปิด' : 'ปิด'}`, () => { s.sfx = !s.sfx; audioState.sfx = s.sfx; this.rebuild(); });
+    b(`🔊 เสียง: ${s.sfx ? Math.round(uiOpt(s).vol * 100) + '%' : 'ปิด'} (แตะเพื่อปรับ)`, () => this.open('uiopt'));
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
-    b('🖥 ปรับ UI (ขนาด / ปุ่ม / ความโปร่ง)', () => this.open('uiopt'), 0x2a4a5a);
+    b('🖥 ปรับ UI & เสียง (แถบเลื่อน)', () => this.open('uiopt'), 0x2a4a5a);
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
     b('🧪 ทดสอบ: สลับร่างตัวละคร', () => this.open('forms'), 0x2a3a5a);
     b('🧪 ทดสอบ: ชุด SL + ทรัพยากร + ปลดล็อก 50 ด่าน', () => { const got = act('dev', { op: 'kit' }); if (refused(got)) { sfx.error(); bus.emit(EV.TOAST, 'ปิดปุ่มทดสอบแล้ว', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, `ได้รับ SL: ${got.got.join(', ')} • ทอง/ไม้/หิน/วัตถุดิบ • ปลดล็อกครบ 50 ด่าน`, '#ff4a5a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }, 0x5a1a2a);
@@ -1212,23 +1212,56 @@ export class Panels implements GuildHost {
   }
 
   // ---------------- UI SETTINGS ----------------
+  /** a slider the player drags (not just taps): track, gold fill, knob, live value; onDone when let go */
+  slider(c: Phaser.GameObjects.Container, x: number, y: number, w: number, v: number, lo: number, hi: number, fmt: (v: number) => string, onMove: (v: number) => void, onDone: (v: number) => void) {
+    const ui = this.ui, k = this.k, g = ui.add.graphics(), lab = k.text(x + w + 10, y - 7, fmt(v), 10, '#ffe7a0');
+    let cur = v;
+    const draw = () => {
+      const f = (cur - lo) / (hi - lo), kx = x + f * w;
+      g.clear().fillStyle(0x0b0805, 0.9).fillRoundedRect(x - 2, y - 5, w + 4, 10, 5).fillStyle(0x3a2a18, 1).fillRoundedRect(x, y - 3, w, 6, 3)
+        .fillStyle(0xd9b45a, 1).fillRoundedRect(x, y - 3, Math.max(6, f * w), 6, 3)
+        .fillStyle(0x1a1006, 1).fillCircle(kx, y, 9).fillStyle(0xffe7a0, 1).fillCircle(kx, y, 7).fillStyle(0xd9b45a, 1).fillCircle(kx, y, 4);
+      lab.setText(fmt(cur));
+    };
+    const zone = ui.add.zone(x - 12, y - 14, w + 24, 28).setOrigin(0).setInteractive({ useHandCursor: true });
+    let drag = false;
+    const at = (p: Phaser.Input.Pointer) => {
+      const pt = zone.getWorldTransformMatrix().applyInverse(p.worldX, p.worldY);   // (the window may be scaled: use the zone's own space)
+      const f = Math.max(0, Math.min(1, (pt.x - 12) / w)); cur = Math.round((lo + f * (hi - lo)) * 100) / 100; draw(); onMove(cur);
+    };
+    zone.on('pointerdown', (p: Phaser.Input.Pointer) => { drag = true; at(p); });
+    const move = (p: Phaser.Input.Pointer) => { if (drag && p.isDown) at(p); };
+    const up = () => { if (drag) { drag = false; onDone(cur); } };
+    ui.input.on('pointermove', move); ui.input.on('pointerup', up); ui.input.on('pointerupoutside', up);
+    zone.once('destroy', () => { ui.input.off('pointermove', move); ui.input.off('pointerup', up); ui.input.off('pointerupoutside', up); });
+    draw(); c.add([g, zone, lab]);
+  }
   buildUiOpt(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k, o = uiOpt(s);
-    const W = 300, H = 250;
-    const { x, y } = this.window(c, W, H, 'ปรับ UI');
-    let yy = y + 40;
-    const row = (label: string, val: string, cb: () => void) => {
-      c.add(k.text(x + 22, yy + 5, label, 10, '#ffe7a0'));
-      c.add(k.button(x + W - 130, yy, 108, 24, val, () => { cb(); saveGame(s); bus.emit(EV.STATE_CHANGED); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); this.rebuild(); }, { size: 10 }));
-      yy += 36;
-    };
+    const W = 340, H = 262;
+    const { x, y } = this.window(c, W, H, 'ตั้งค่าเสียง & UI');
+    const apply = () => { saveGame(s); bus.emit(EV.STATE_CHANGED); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); };
     const pct = (v: number) => Math.round(v * 100) + '%';
-    row('ขนาด UI', pct(o.scale), () => setUiOpt(s, { scale: cycle(UI_SCALES, o.scale) }));
-    row('ขนาดปุ่มต่อสู้', pct(o.btn), () => setUiOpt(s, { btn: cycle(BTN_SCALES, o.btn) }));
-    row('ความชัดแถบบน', pct(o.alpha), () => setUiOpt(s, { alpha: cycle(ALPHAS, o.alpha) }));
-    row('ชื่อบนหัวชาวบ้าน', o.names ? 'แสดง' : 'ซ่อน', () => setUiOpt(s, { names: !o.names }));
-    c.add(k.button(x + 22, yy + 4, 120, 24, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 1, btn: 1, alpha: 1, names: true }); saveGame(s); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); this.rebuild(); }, { size: 9.5, color: 0x5a3a1a }));
-    c.add(k.button(x + W - 130, yy + 4, 108, 24, '◀ กลับเมนู', () => this.open('menu'), { size: 9.5 }));
+    let yy = y + 48;
+    const row = (label: string, key: 'vol' | 'scale' | 'btn' | 'alpha', live?: (v: number) => void) => {
+      c.add(k.text(x + 18, yy - 7, label, 9.5, '#f3e6c4'));
+      const [lo, hi] = RANGES[key];
+      this.slider(c, x + 130, yy, 140, o[key], lo, hi, pct, v => live?.(v), v => {
+        setUiOpt(s, { [key]: v } as Partial<UiOpt>);
+        if (key === 'vol') { s.sfx = v > 0; audioState.sfx = s.sfx; saveGame(s); sfx.coinSoft(); return; }   // (sound: no need to redraw the screen)
+        apply();
+      });
+      yy += 40;
+    };
+    row('🔊 เสียงเอฟเฟกต์', 'vol', v => { setVolume(v); audioState.sfx = v > 0; });
+    row('🖥 ขนาด UI', 'scale');
+    row('⚔ ขนาดปุ่มต่อสู้', 'btn');
+    row('🌫 ความชัดแถบบน', 'alpha');
+    c.add(k.text(x + 18, yy - 6, 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว', 7.5, '#a89878'));
+    yy += 12;
+    c.add(k.button(x + 18, yy, 130, 22, `ชื่อบนหัวชาวบ้าน: ${o.names ? 'แสดง' : 'ซ่อน'}`, () => { setUiOpt(s, { names: !o.names }); apply(); }, { size: 8.5 }));
+    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 1, btn: 1, alpha: 1, names: true, vol: 0.8 }); setVolume(0.8); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
+    c.add(k.button(x + W - 96, yy, 80, 22, '◀ กลับเมนู', () => this.open('menu'), { size: 8.5 }));
   }
 
   // ---------------- DIALOG ----------------

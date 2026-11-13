@@ -162,6 +162,7 @@ const EN: Record<string, string> = {
   '⚔ กิลด์ ': '⚔ Guild ', '🛡 กิลด์ ': '🛡 Guild ', 'ซ่อมได้ที่หน้าต่างกิลด์': 'repair in the guild window',
   '🔄 กำลังเชื่อมต่อเซิร์ฟใหม่... รอสักครู่': '🔄 Reconnecting to the server... one moment', '✔ เชื่อมต่อเซิร์ฟแล้ว': '✔ Connected to the server', '🔄 มีเกมเวอร์ชันใหม่ — จะโหลดใหม่ให้เองตอนเปลี่ยนแมพ': '🔄 A new version is out — it loads by itself at the next map change',
   'รายงาน': 'Report', 'ยังไม่มีข้อความจากผู้เล่นคนอื่น': 'No messages from other players yet', 'รายงานแชตไม่เหมาะสม': 'Report bad chat', 'ถูกรายงานจาก 3 คนขึ้นไปใน 1 วัน = ปิดแชต 1 วัน • แอดมินดูรายงานทุกข้อความ': 'Reported by 3+ players in a day = no chat for a day • the admin reads every report', 'แล้ว — ขอบคุณที่ช่วยดูแล': 'sent — thank you for helping', 'รายงานคนนี้ไปแล้ววันนี้': 'You already reported this player today', 'วันนี้รายงานครบ 10 ครั้งแล้ว': 'You have used all 10 reports today', 'ส่งรายงานไม่สำเร็จ ลองใหม่อีกครั้ง': 'Could not send the report, try again',
+  'ตั้งค่าเสียง & UI': 'Sound & UI settings', '🔊 เสียงเอฟเฟกต์': '🔊 Sound effects', '🖥 ขนาด UI': '🖥 UI size', '⚔ ขนาดปุ่มต่อสู้': '⚔ Battle buttons', '🌫 ความชัดแถบบน': '🌫 Top bar opacity', 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว': 'Drag the knob • UI size changes when you let go', 'ชื่อบนหัวชาวบ้าน: ': 'Villager names: ', '🔊 เสียง: ': '🔊 Sound: ', ' (แตะเพื่อปรับ)': ' (tap to adjust)', '🖥 ปรับ UI & เสียง (แถบเลื่อน)': '🖥 UI & sound (sliders)',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 
