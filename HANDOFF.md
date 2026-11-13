@@ -1,6 +1,6 @@
 # HANDOFF — Mourncrown (ป่าต้องสาป) · อ่านไฟล์นี้ก่อนเริ่มงาน
 
-> ใช้ได้กับ AI ทุกตัว (Claude / ChatGPT-Codex / อื่นๆ). ผู้ทำต่อต้องมีสิทธิ์ push ที่ repo `seeker6131/RPG-Newgame` และรัน `npm`, `python3`, Playwright ได้
+> ใช้ได้กับ AI ทุกตัว (Claude / ChatGPT-Codex / อื่นๆ). ผู้ทำต่อต้องมีสิทธิ์ push ที่ repo `seeker6131/Mourncrown` (เดิมชื่อ RPG-Newgame) และรัน `npm`, `python3`, Playwright ได้
 
 อัปเดต: 2026-11-11 · branch **`ccr-dcfcac78-b3qj60`** (push ที่นี่เท่านั้น) · เว็บ: https://seeker6131.github.io/Mourncrown/
 ประวัติงานเก่าทั้งหมด (ละเอียด แต่บางส่วนล้าสมัย): `docs/HANDOFF_HISTORY.md` · ดีไซน์: `docs/GAME_DESIGN.md` · ความเสี่ยงออนไลน์: `docs/ONLINE_RISKS.md`
@@ -183,7 +183,7 @@ npx vite --port 5173        # dev server (ทดสอบด้วย Playwright
 
 ## 9. Prompt เริ่มงาน (ก๊อปวางให้ AI ตัวใหม่)
 ```
-คุณคือผู้พัฒนาเกม Mourncrown (Phaser 3 + TypeScript + Vite) ใน repo seeker6131/RPG-Newgame
+คุณคือผู้พัฒนาเกม Mourncrown (Phaser 3 + TypeScript + Vite) ใน repo seeker6131/Mourncrown (เดิม RPG-Newgame)
 branch ccr-dcfcac78-b3qj60 (ทำงานและ push ที่ branch นี้เท่านั้น)
 1) อ่าน HANDOFF.md ให้ครบก่อนแก้อะไร แล้วทำตามกฎในข้อ 1 ทุกข้อ
 2) ผู้ใช้คือ Game Director ไม่เขียนโค้ด คุยภาษาไทย สั้น ตรง — คุณแก้โค้ด รันเทส commit push เองทั้งหมด
