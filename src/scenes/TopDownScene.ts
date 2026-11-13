@@ -38,7 +38,6 @@ import { accountName } from '../net/cloud';
 import { RoomLink } from '../net/room';
 import { TEST_HOOKS } from '../core/testHooks';
 import { OtherPlayers } from '../world/others';
-import { FireSteps } from '../world/fireSteps';
 import { formName } from '../data/classes';
 import { bus, EV } from '../core/events';
 import { tick as settleTick, buildingAt, underConstruction, ensureNpcVillage, VILLAGE_PLOT_OF, VILLAGE_HOME_PLOT } from '../systems/settlement';
@@ -316,7 +315,7 @@ export class TopDownScene extends Phaser.Scene {
   aura?: { key: string; on: Phaser.GameObjects.Sprite; glow: Phaser.FX.Glow; fire: Phaser.GameObjects.Particles.ParticleEmitter };
   heroRing?: Phaser.GameObjects.Sprite | null;
   /** riding a mount (world/mount.ts); fighting / gathering gets off for a moment */
-  riding?: Riding; rideBlockT = 0; heroMoving = false; fireSteps?: FireSteps;
+  riding?: Riding; rideBlockT = 0; heroMoving = false;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -2014,7 +2013,6 @@ export class TopDownScene extends Phaser.Scene {
     if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.panelBlocks && !this.selectUi) [mx, my] = this.autoStep(time);
     const len = Math.hypot(mx, my);
     const h = this.hero; this.heroMoving = false;
-    const trailOn = (S() as { trail?: string }).trail === 'fire';
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
       const sp = 108 * (this.riding ? MOUNTS[this.riding.id].speed : vipActive(S()) ? VIP_WALK : 1) * dt / 1000;   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
@@ -2076,7 +2074,6 @@ export class TopDownScene extends Phaser.Scene {
     // (the circle lies flat: a wide, low ellipse — touching any of it is enough, no hunting for the middle)
     const onGate = (p: { x: number; y: number }, k: number) => Math.hypot((p.x - h.x) / 32, (p.y - h.y) / 18) < k;
     if (!this.portalArmed && this.portals.every(p => !onGate(p, 1.5))) this.portalArmed = true;
-    if (trailOn || this.fireSteps) { this.fireSteps ??= new FireSteps(this); this.fireSteps.update(time, this.hero.x, this.hero.y, trailOn && this.heroMoving && !this.riding); }   // 🔥 fashion: fire footprints
     for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && onGate(p, 1) && time > this.portalCool) {
       this.portalArmed = false;
       if (p.to === 'select') this.stageSelect();
