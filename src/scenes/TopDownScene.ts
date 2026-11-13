@@ -1661,8 +1661,10 @@ export class TopDownScene extends Phaser.Scene {
   }
   skillReady: Record<string, number> = {};
   /** skill button i (0-2): pay MP / check cooldown in systems, then play it */
+  /** a window is open: the hero waits — unless AUTO is on (players: open the bag / shop while auto keeps fighting) */
+  get panelBlocks() { return !!this.ui?.panels.isOpen && !S().auto; }
   castSkill(i: number) {
-    if (this.dead || this.ui?.panels.isOpen || this.selectUi) return;
+    if (this.dead || this.panelBlocks || this.selectUi) return;
     this.rideBlockT = this.time.now + 2500;
     const s = S(), id = currentSkills(s)[i]; if (!id) return;
     const r = beginCast(s, id, this.time.now, this.skillReady);
@@ -1970,7 +1972,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.time.now < this.stunUntil) return;
     this.rideBlockT = this.time.now + 2500;   // off the mount to fight / gather
     this.tutAttacked = true;
-    if (this.dead || this.attacking || this.ui?.panels.isOpen || this.selectUi) return;
+    if (this.dead || this.attacking || this.panelBlocks || this.selectUi) return;
     const node = this.nearNode();
     if (node && this.gathering()) { this.gather(node); return; }
     if (node && this.time.now > this.gatherTipT && !this.combat.nearest(90).length) { this.gatherTipT = this.time.now + 20000; bus.emit(EV.TOAST, 'อยากตัดไม้/ขุดหิน? สวมชุดหาทรัพยากรที่ปุ่ม 👕 ชุด ด้านบน', '#ffd8a0'); }
@@ -2008,7 +2010,7 @@ export class TopDownScene extends Phaser.Scene {
       if (l > 6) { mx = this.joy.dx / l; my = this.joy.dy / l; }
     }
     if (mx || my) this.manualT = time;
-    if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.ui?.panels.isOpen && !this.selectUi) [mx, my] = this.autoStep(time);
+    if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.panelBlocks && !this.selectUi) [mx, my] = this.autoStep(time);
     const len = Math.hypot(mx, my);
     const h = this.hero; this.heroMoving = false;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
