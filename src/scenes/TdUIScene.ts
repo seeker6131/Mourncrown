@@ -21,6 +21,7 @@ import { saveGame } from '../core/save';
 import { potCount, POT_CD } from '../systems/potions';
 import { openReport } from '../net/report';
 import { askChat } from '../net/chatInput';
+import { chatHub, WORLD_LV } from '../net/chatHub';
 import { play } from '../net/play';
 import { accountToken } from '../net/cloud';
 import { uiOpt } from '../core/uiOptions';
@@ -135,7 +136,7 @@ export class TdUIScene extends Phaser.Scene {
   updateSkills(now: number) {
     const s = S();
     { // the server restarts for an update / the network drops: first "reconnecting" (it comes back by itself), after a while the plain warning
-      const off = !!accountToken() && !play.online;
+      const off = !!accountToken() && !(play.ws && play.ws.readyState === WebSocket.OPEN);   // (connected but a brand-new save still seeding: not 'offline')
       if (!off) { if (this.offSince && this.offShown) this.toast('✔ เชื่อมต่อเซิร์ฟแล้ว', '#9fffb0'); this.offSince = 0; this.offShown = false; }
       else if (!this.offSince) this.offSince = now;
       const long = now - this.offSince > 12000, show = off && now - this.offSince > 1500;
@@ -254,17 +255,25 @@ export class TdUIScene extends Phaser.Scene {
     this.root.add(this.offText); this.offSince = 0;
     // chat with the players in this map (net/room.ts): 💬 opens the typing box, the last lines show under it
     this.chatLines = [];
-    { const cb = k.button(8, 94, 30, 20, '💬', () => { const link = (this.td as unknown as { link?: { chat(t: string): void; online: boolean } }).link; if (!link?.online) { this.toast('ยังไม่ได้เชื่อมต่อเซิร์ฟ (เล่นออฟไลน์อยู่)', '#c8b89a'); return; } askChat(t => link.chat(t)); }, { size: 10, color: 0x2a4a5a }); this.root.add(cb); }
+    { const cb = k.button(8, 94, 30, 20, '💬', () => {
+        // channels: this map (the room), the whole world (Lv5+), my guild
+        const link = (this.td as unknown as { link?: { chat(t: string): void; online: boolean } }).link, s = S() as { level: number; guildId?: string };
+        const open = { map: !!link?.online, world: chatHub.online('world'), guild: chatHub.online('guild') };
+        if (!open.map && !open.world && !open.guild) { this.toast('ยังไม่ได้เชื่อมต่อเซิร์ฟ (เล่นออฟไลน์อยู่)', '#c8b89a'); return; }
+        askChat((t, ch) => { if (ch === 'map') link?.chat(t); else chatHub.send(ch, t); }, open,
+          { map: 'ที่นี่ไม่มีแชตแมพ (ในอาคาร / ดันเจี้ยน)', world: s.level < WORLD_LV ? `แชตโลกเปิดที่เลเวล ${WORLD_LV}` : 'กำลังเชื่อมต่อแชตโลก...', guild: s.guildId ? 'กำลังเชื่อมต่อแชตกิลด์...' : 'ยังไม่มีกิลด์' });
+      }, { size: 10, color: 0x2a4a5a }); this.root.add(cb); }
     this.chatText = k.text(44, 96, '', 7, '#e8f4ff', { lineSpacing: 2, backgroundColor: 'rgba(0,0,0,0.35)', padding: { x: 3, y: 2 }, wordWrap: { width: 230 } }).setAlpha(0);
     this.root.add(this.chatText);
-    const onChat = (e: { id: string; name: string; text: string }) => {
-      this.chatLines = [...this.chatLines, { line: `${e.name}: ${e.text}`, t: this.time.now }].slice(-4); this.drawChat();
+    const onChat = (e: { id: string; name: string; text: string; ch?: 'map' | 'world' | 'guild'; old?: boolean }) => {
+      const tag = e.ch === 'world' ? '[โลก] ' : e.ch === 'guild' ? '[กิลด์] ' : '';
+      if (!e.old) { this.chatLines = [...this.chatLines, { line: `${tag}${e.name}: ${e.text}`, t: this.time.now }].slice(-4); this.drawChat(); }
       const link = (this.td as unknown as { link?: { me: string } }).link;
       if (e.id && e.id !== link?.me) this.chatLog = [...this.chatLog, { id: e.id, name: e.name, text: e.text }].slice(-10);   // (for 🚩 reports)
     };
     // 🚩 report a chat line (net/report.ts)
     { const rb = k.button(8, 118, 30, 18, '🚩', () => { const link = (this.td as unknown as { link?: { room: string } }).link; openReport([...this.chatLog].reverse(), link?.room ?? '', (t, c) => this.toast(t, c)); }, { size: 9, color: 0x4a2a2a }); this.root.add(rb); }
-    bus.on('td:chat', onChat); this.events.once('shutdown', () => bus.off('td:chat', onChat));
+    bus.on('td:chat', onChat); bus.on('chat:line', onChat); this.events.once('shutdown', () => { bus.off('td:chat', onChat); bus.off('chat:line', onChat); });
 
     // top-right menu: icon buttons
     if (!this.textures.exists('ui_diamond')) {   // 💎 icon drawn once

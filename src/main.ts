@@ -54,7 +54,8 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator && (location.protocol =
 
 // the save on the game server: an account for this device, the newer save taken before the player presses start
 import('./net/cloud').then(m => m.cloudBoot(() => !!game.scene.getScene('TopDown')?.sys.isActive()).then(took => {
-  import('./net/play').then(p => p.play.start());
-  import('./core/update').then(u => u.watchUpdates());   // the character on the server (every valuable action runs there)
+  import('./net/play').then(p => p.play.start());   // the character on the server (every valuable action runs there)
+  import('./core/update').then(u => u.watchUpdates());   // a new version: reload at the next map change
+  import('./net/chatHub').then(c => c.chatHub.start());   // world chat + guild chat
   const t = game.scene.getScene('Title'); if (took && t?.sys.isActive()) t.scene.restart();   // a save from another device: show 'continue'
 }));

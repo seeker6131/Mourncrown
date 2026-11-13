@@ -113,10 +113,23 @@ export default {
       // because a browser cannot set headers on a WebSocket)
       if (path.startsWith('/room/')) {
         const room = path.slice(6);
-        if (!/^[a-z0-9-]{1,32}$/.test(room) || req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'room' }, 400);
+        if (!/^[a-z0-9-]{1,32}$/.test(room) || room.startsWith('chat') || req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'room' }, 400);   // (chat channels: /chat only)
         const t = url.searchParams.get('t') ?? '';
         const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
         if (!a) return new Response('auth', { status: 401 });
+        const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
+        return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
+      }
+      // 💬 world chat / guild chat (WebSocket): the world from Lv5 (keeps throwaway spam accounts out), a guild only for its members
+      if (path === '/chat/world' || path === '/chat/guild') {
+        if (req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'chat' }, 400);
+        const t = url.searchParams.get('t') ?? '';
+        const a = t.length >= 32 && t.length <= 128 ? await env.DB.prepare('SELECT id, name FROM accounts WHERE token_hash = ? AND banned = 0').bind(await sha(t)).first<{ id: string; name: string | null }>() : null;
+        if (!a) return new Response('auth', { status: 401 });
+        const info = await (await env.PLAYER.get(env.PLAYER.idFromName(a.id)).fetch(new Request('https://p/gid?id=' + a.id))).json() as { gid: string | null; lv: number };
+        let room = 'chat-world';
+        if (path === '/chat/guild') { if (!info.gid) return new Response('guild', { status: 403 }); room = 'chat-g-' + String(info.gid).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24); }
+        else if (info.lv < 5) return new Response('level', { status: 403 });
         const u = new URL(req.url); u.search = ''; u.searchParams.set('id', a.id); u.searchParams.set('name', a.name ?? ''); u.searchParams.set('room', room);
         return env.ROOM.get(env.ROOM.idFromName(room)).fetch(new Request(u.toString(), req));
       }
@@ -198,7 +211,7 @@ export default {
 
 // ===== a map room: the players in one map see each other and talk =====
 /** players a room (the system picks the room — the next one when full): monster maps 30, the Deepwild 100 (director), villages 50 */
-const roomCap = (room: string) => room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
+const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith('chat') ? 60 : room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
@@ -210,6 +223,8 @@ export class Room {
   sim: MapSim | null = null; timer: ReturnType<typeof setInterval> | null = null;
   /** the map's walls as each player's game sent them (hash → grid + who sent it): the most players agree = used */
   grids = new Map<string, { g: Grid; ids: Set<string> }>(); used = ''; askT = new Map<string, number>();
+  /** (chat channels) the last lines, for whoever joins */
+  hist: { id: string; name: string; text: string; at: number }[] = [];
   constructor(private state: DOState, private env: Env) {}
   private all(skip?: WebSocket) { return this.state.getWebSockets().filter(w => w !== skip).map(w => ({ w, a: (w as WSX).deserializeAttachment() as Who })).filter(x => x.a); }
   private async lvOf(ws: WebSocket, me: Who, now: number) {
@@ -252,6 +267,7 @@ export class Room {
     }
     this.state.acceptWebSocket(server, [id]);
     server.serializeAttachment({ id, room: u.searchParams.get('room') ?? '', name, n: 0, win: Date.now(), chatT: 0, join: Date.now(), bud: 0, budT: Date.now() } as Who);
+    if ((u.searchParams.get('room') ?? '').startsWith('chat')) { server.send(JSON.stringify({ t: 'hi', you: id, name, hist: this.hist })); return new Response(null, { status: 101, webSocket: client } as ResponseInit); }
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
     // srv: the room runs this map's monsters (the game sends the map's walls and only shows them)
     server.send(JSON.stringify({ t: 'hi', you: id, name, host: '', srv: 1, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
@@ -264,7 +280,8 @@ export class Room {
     const now = Date.now(); if (now - me.win > 1000) { me.win = now; me.n = 0; }
     if (++me.n > 20) return;   // at most 20 messages a second
     let m: Record<string, unknown>; try { m = JSON.parse(data); } catch { return; }
-    const room = me.room ?? '', shared = mapOfRoom(room) > 0;
+    const room = me.room ?? '', shared = mapOfRoom(room) > 0, chat = room.startsWith('chat');
+    if (chat && m.t !== 'c') return;   // a chat channel carries chat only
     // (woke from sleep: memory was cleared) ask this game for the map's walls again
     if (shared && !this.sim && m.t !== 'grid' && now - (this.askT.get(me.id) ?? 0) > 3000) { this.askT.set(me.id, now); try { ws.send(JSON.stringify({ t: 'grid?' })); } catch { /* closing */ } }
     if (m.t === 'p') {   // where I am / what I look like
@@ -305,13 +322,14 @@ export class Room {
         if (n) await Promise.allSettled(Object.entries(sh).filter(([, v]) => v >= need).map(([pid, v]) =>
           this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/pay?id=' + pid, { method: 'POST', body: JSON.stringify({ n, sid, key: r.mob.key, kind: r.mob.kind, boss: r.boss, elite: r.elite, share: v }) }))));
       }
-    } else if (m.t === 'c') {   // chat: one line every 2 seconds, filtered
-      if (now - me.chatT < 2000) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
+    } else if (m.t === 'c') {   // chat: one line every 2 seconds (the world: every 5), filtered
+      if (now - me.chatT < (room === 'chat-world' ? 5000 : 2000)) return; me.chatT = now; (ws as WSX).serializeAttachment(me);
       const text = cleanChat(String(m.text ?? '')); if (!text) return;
       // reported by several players today: no chat for a while (checked on the server, line by line)
       const mu = await this.env.DB.prepare('SELECT muted_until FROM accounts WHERE id = ?').bind(me.id).first<{ muted_until: number }>().catch(() => null);
       if ((mu?.muted_until ?? 0) > now) { try { ws.send(JSON.stringify({ t: 'c', id: '', name: '⚠ ระบบ', text: `คุณถูกปิดแชตชั่วคราว (ถูกรายงานหลายครั้ง) อีก ${Math.ceil(((mu?.muted_until ?? 0) - now) / 3600000)} ชม.` })); } catch { /* closing */ } return; }
       const msg = JSON.stringify({ t: 'c', id: me.id, name: me.name, text });
+      if (chat) this.hist = [...this.hist, { id: me.id, name: me.name, text, at: now }].slice(-30);
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
     }
   }
@@ -501,6 +519,7 @@ export class Player {
       return new Response('{}');
     }
     if (u.pathname === '/claim') { const c = await this.claim(); if (c.text) this.send({ t: 'note', own: c.own, text: c.text }); return new Response('{}'); }
+    if (u.pathname === '/gid') return new Response(JSON.stringify({ gid: (this.st as { guildId?: string } | null)?.guildId ?? null, lv: Number(this.st?.level) || 1 }));
     if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1 }));   // (rooms ask: the damage cap uses the server's level)
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
       const body = JSON.parse(await req.text()) as { data?: St };
