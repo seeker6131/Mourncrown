@@ -694,7 +694,10 @@ export class Panels implements GuildHost {
     wg.lineStyle(4, 0xd9b45a, 1).strokeCircle(0, 0, R).fillStyle(0x2a1d12, 1).fillCircle(0, 0, 16).lineStyle(2, 0xd9b45a, 1).strokeCircle(0, 0, 16);
     for (let i = 0; i < N; i++) { const a = -Math.PI / 2 + i * step - step / 2; wg.fillStyle(0xffe7a0, 1).fillCircle(Math.cos(a) * (R - 5), Math.sin(a) * (R - 5), 2.5); }
     // the pointer at the top
-    g.fillStyle(0xffd84a, 1).fillTriangle(cx - 10, cy - R - 14, cx + 10, cy - R - 14, cx, cy - R + 8).lineStyle(2, 0x5a3a10, 1).strokeTriangle(cx - 10, cy - R - 14, cx + 10, cy - R - 14, cx, cy - R + 8);
+    { const pg = ui.add.graphics(); c.add(pg);   // (on top of the wheel — director: it was covered)
+      pg.fillStyle(0x000000, 0.35).fillTriangle(cx - 12, cy - R - 13, cx + 12, cy - R - 13, cx + 1, cy - R + 13);
+      pg.fillStyle(0xffd84a, 1).fillTriangle(cx - 12, cy - R - 16, cx + 12, cy - R - 16, cx, cy - R + 12).lineStyle(2.5, 0x5a3a10, 1).strokeTriangle(cx - 12, cy - R - 16, cx + 12, cy - R - 16, cx, cy - R + 12);
+      pg.fillStyle(0xfff4c8, 1).fillCircle(cx, cy - R - 10, 3); }
     // right side: price, buttons, prizes, last result
     const rx = cx + R + 24, rw = x + W - 14 - rx;
     c.add(k.text(rx, y + 36, `หมุนด้วยทอง • ครั้งละ 💰 ${WHEEL_PRICE.toLocaleString()}`, 10, '#ffe7a0'));
@@ -719,7 +722,7 @@ export class Panels implements GuildHost {
       });
     };
     c.add(k.button(rx, y + 70, rw, 26, `หมุน 1 ครั้ง  •  💰 ${WHEEL_PRICE.toLocaleString()}`, () => spin(1), { size: 9.5, color: 0x6a4a10, disabled: this.wheelBusy }));
-    c.add(k.button(rx, y + 100, rw, 26, `หมุน 10 ครั้ง  •  💰 ${(WHEEL_PRICE * 10).toLocaleString()}  (การันตี Rare+)`, () => spin(10), { size: 9, color: 0x8a5a10, disabled: this.wheelBusy }));
+    c.add(k.button(rx, y + 100, rw, 26, `หมุน 10 ครั้ง  •  💰 ${(WHEEL_PRICE * 10).toLocaleString()}`, () => spin(10), { size: 9, color: 0x8a5a10, disabled: this.wheelBusy }));
     c.add(k.text(rx, y + 134, 'รางวัลในกงล้อ', 9, '#ffd84a'));
     c.add(k.text(rx, y + 150, WHEEL_SEGS.map(q => q.label).join(' • '), 7.5, '#c8b898', { wordWrap: { width: rw } }));
     c.add(k.text(rx, y + 196, this.wheelLast.length ? 'รอบล่าสุดได้:' : 'กระเป๋าต้องว่างเท่าจำนวนครั้งที่หมุน', 9, this.wheelLast.length ? '#9fffb0' : '#8a7a60'));
