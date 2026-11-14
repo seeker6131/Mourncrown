@@ -580,13 +580,14 @@ export class Combat {
   }
 
   /** director: ranged heroes (mages, archers) must not win before monsters even reach them. A monster shot from afar
-   *  leaps at the hero (every 2.5 s), and the ones standing near it come along as a pack (the 4 nearest). */
+   *  leaps at the hero (every 2.5 s), and the ones standing near it come along as a pack (the 2 nearest — director 14 Nov:
+   *  hit one and 2-3 rush you; walking by, only one comes over slowly). */
   answer(m: Mon, far: boolean) {
     const now = this.s.time.now, h = this.s.hero;
     if (!m.packed) {
       m.packed = true;
       this.mons.filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.bounty && now - o.hitT > 1600 && Math.hypot(o.x - m.x, o.y - m.y) < 150)
-        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, 4)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, 2)
         .forEach((o, i) => this.s.time.delayedCall(120 + i * 140, () => { if (o.alive) { o.hitT = this.s.time.now; o.packed = true; } }));
     }
     if (!far || now - (m.leapT ?? 0) < 2500 || this.dungeon) return;
