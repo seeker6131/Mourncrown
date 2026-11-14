@@ -35,7 +35,7 @@ import { loadAtlas, unpackAtlas } from '../world/atlas';
 /** the PixelLab item icons have been loaded and swapped in (they stay for the whole session) */
 let ICONS_SWAPPED = false;
 import { mountOn, mountsOf, nextRide } from '../systems/mounts';
-import { vipActive } from '../systems/premium';
+import { vipActive, diamonds } from '../systems/premium';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
@@ -213,7 +213,7 @@ export class TdUIScene extends Phaser.Scene {
     this.hpText = k.text(128, 9.5, '', 7, '#ffffff').setOrigin(0.5, 0);
     this.expText = k.text(128, 29, '', 6, '#e0d0ff').setOrigin(0.5, 0);
     this.mpText = k.text(128, 20.5, '', 6, '#d8ecff').setOrigin(0.5, 0);
-    const topL = 216, topR = this.VW - 224, midR = this.VW - 152;
+    const topL = 216, topR = this.VW - 332, midR = this.VW - 152;   // (topR: left of the 9 top-bar buttons)
     this.stageText = k.text((topL + topR) / 2, 8, '', topR - topL < 300 ? 8 : 10, '#ffe7a0', { wordWrap: { width: Math.max(120, topR - topL - 6) }, align: 'center' }).setOrigin(0.5, 0);
     // 🟢 how many are playing now (director: small, at the top) — kept across map changes
     { const t = k.text((topL + topR) / 2, topR - topL < 300 ? 19 : 22, '', 6.5, '#9fffb0').setOrigin(0.5, 0).setAlpha(0.85); this.root.add(t);
@@ -234,9 +234,16 @@ export class TdUIScene extends Phaser.Scene {
     this.root.add([this.hud, this.portrait, ring, this.lvText, this.hpText, this.expText, this.mpText, this.stageText]);
     // tap the portrait for the profile
     { const pz = this.add.zone(6, 6, 46, 48).setOrigin(0).setInteractive({ useHandCursor: true }); pz.on('pointerup', () => this.panels.open('profile')); this.root.add(pz); }
-    this.resTexts = (['res0', 'res1', 'res2', 'res3'] as const).map((ic, i) => {
-      const x = 56 + i * 38, im = this.add.image(x, 44, 'ui_' + ic); im.setScale(11 / im.height);
-      const t = k.text(x + 7, 44, '0', 7.5, '#ffe7a0').setOrigin(0, 0.5);
+    if (!this.textures.exists('ui_diamond')) {   // 💎 icon drawn once
+      const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40; const q = cv.getContext('2d')!;
+      const gr = q.createLinearGradient(0, 4, 0, 36); gr.addColorStop(0, '#d8fbff'); gr.addColorStop(0.5, '#5ad2f0'); gr.addColorStop(1, '#1a6aa8');
+      q.fillStyle = gr; q.beginPath(); q.moveTo(8, 14); q.lineTo(14, 5); q.lineTo(26, 5); q.lineTo(32, 14); q.lineTo(20, 36); q.closePath(); q.fill();
+      q.strokeStyle = '#0b2a40'; q.lineWidth = 2; q.stroke(); q.strokeStyle = 'rgba(255,255,255,0.6)'; q.lineWidth = 1; q.beginPath(); q.moveTo(8, 14); q.lineTo(32, 14); q.moveTo(14, 5); q.lineTo(18, 14); q.lineTo(20, 36); q.moveTo(26, 5); q.lineTo(22, 14); q.stroke();
+      this.textures.addCanvas('ui_diamond', cv);
+    }
+    this.resTexts = (['res0', 'res1', 'res2', 'res3', 'diamond'] as const).map((ic, i) => {   // (💎 too — director)
+      const x = 54 + i * 31, im = this.add.image(x, 44, 'ui_' + ic); im.setScale(11 / im.height);
+      const t = k.text(x + 7, 44, '0', 7, i === 4 ? '#8fe8ff' : '#ffe7a0').setOrigin(0, 0.5);
       this.root.add([im, t]); return t;
     });
     this.resText = this.resTexts[0];
@@ -297,12 +304,21 @@ export class TdUIScene extends Phaser.Scene {
     bus.on('td:chat', onChat); bus.on('chat:line', onChat); this.events.once('shutdown', () => { bus.off('td:chat', onChat); bus.off('chat:line', onChat); });
 
     // top-right menu: icon buttons
-    if (!this.textures.exists('ui_diamond')) {   // 💎 icon drawn once
+    if (!this.textures.exists('ui_shop')) {   // 🏪 the shop button: a little market stall with a striped awning (drawn here)
       const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40; const q = cv.getContext('2d')!;
-      const gr = q.createLinearGradient(0, 4, 0, 36); gr.addColorStop(0, '#d8fbff'); gr.addColorStop(0.5, '#5ad2f0'); gr.addColorStop(1, '#1a6aa8');
-      q.fillStyle = gr; q.beginPath(); q.moveTo(8, 14); q.lineTo(14, 5); q.lineTo(26, 5); q.lineTo(32, 14); q.lineTo(20, 36); q.closePath(); q.fill();
-      q.strokeStyle = '#0b2a40'; q.lineWidth = 2; q.stroke(); q.strokeStyle = 'rgba(255,255,255,0.6)'; q.lineWidth = 1; q.beginPath(); q.moveTo(8, 14); q.lineTo(32, 14); q.moveTo(14, 5); q.lineTo(18, 14); q.lineTo(20, 36); q.moveTo(26, 5); q.lineTo(22, 14); q.stroke();
-      this.textures.addCanvas('ui_diamond', cv);
+      q.fillStyle = '#7a4a22'; q.fillRect(7, 18, 26, 18); q.fillStyle = '#4a2a10'; q.fillRect(7, 34, 26, 3);
+      q.fillStyle = '#f3e6c4'; q.fillRect(11, 22, 18, 9); q.fillStyle = '#d8a030'; q.fillRect(13, 26, 4, 4); q.fillStyle = '#c0392b'; q.fillRect(19, 25, 4, 5); q.fillStyle = '#5ab04a'; q.fillRect(24, 26, 3, 4);
+      for (let i = 0; i < 5; i++) { q.fillStyle = i % 2 ? '#f3e6c4' : '#c0392b'; q.beginPath(); q.moveTo(4 + i * 6.4, 8); q.lineTo(10.4 + i * 6.4, 8); q.lineTo(10.4 + i * 6.4, 16); q.arc(7.2 + i * 6.4, 16, 3.2, 0, Math.PI); q.closePath(); q.fill(); }
+      q.strokeStyle = '#3a1a08'; q.lineWidth = 1.5; q.strokeRect(4, 8, 32, 8); q.strokeRect(7, 18, 26, 19);
+      this.textures.addCanvas('ui_shop', cv);
+    }
+    if (!this.textures.exists('ui_wheel')) {   // 🎡 the lucky wheel button: a coloured wheel with a pointer (drawn here)
+      const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40; const q = cv.getContext('2d')!, cols = ['#e04a3a', '#f0c040', '#4aa0e0', '#9a5ad8', '#5ab04a', '#f08a30'];
+      for (let i = 0; i < 6; i++) { q.fillStyle = cols[i]; q.beginPath(); q.moveTo(20, 22); q.arc(20, 22, 15, i * Math.PI / 3, (i + 1) * Math.PI / 3); q.closePath(); q.fill(); }
+      q.strokeStyle = '#ffe7a0'; q.lineWidth = 2.5; q.beginPath(); q.arc(20, 22, 15, 0, Math.PI * 2); q.stroke();
+      q.fillStyle = '#ffe7a0'; q.beginPath(); q.arc(20, 22, 3.5, 0, Math.PI * 2); q.fill();
+      q.fillStyle = '#ffffff'; q.strokeStyle = '#3a1a08'; q.lineWidth = 1.5; q.beginPath(); q.moveTo(15, 2); q.lineTo(25, 2); q.lineTo(20, 10); q.closePath(); q.fill(); q.stroke();
+      this.textures.addCanvas('ui_wheel', cv);
     }
     if (!this.textures.exists('ui_mail')) {   // the mailbox button's envelope (drawn here: no picture file needed)
       const g = this.add.graphics();
@@ -316,7 +332,7 @@ export class TdUIScene extends Phaser.Scene {
       for (const [x, y, dx, dy] of [[2, 2, 1, 1], [20, 2, -1, 1], [2, 20, 1, -1], [20, 20, -1, -1]]) g.lineBetween(x, y, x + 7 * dx, y).lineBetween(x, y, x, y + 7 * dy);
       g.generateTexture('ui_fs', 22, 22); g.destroy();
     }
-    const menu: [string, string, () => void][] = [['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_diamond', 'ร้าน💎', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    const menu: [string, string, () => void][] = [['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_wheel', 'กงล้อ', () => this.panels.open(this.panels.lastWheel)], ['ui_shop', 'ร้านค้า', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
       const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
       const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
@@ -421,7 +437,7 @@ export class TdUIScene extends Phaser.Scene {
     this.expText.setText(`EXP ${Math.floor(s.exp)}/${need}`);
     this.mpText.setText(`MP ${Math.round(s.mp ?? 0)}/${d.maxMp}`);
     this.lvText.setText(`Lv${s.level}${vipActive(s) ? ' 👑' : ''}`).setColor(vipActive(s) ? '#ffd84a' : '#ffe7a0');
-    [s.gold, s.res.wood, s.res.stone, s.res.food].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
+    [s.gold, s.res.wood, s.res.stone, s.res.food, diamonds(s)].forEach((v, i) => this.resTexts[i]?.setText(v >= 10000 ? Math.floor(v / 1000) + 'k' : String(v)));
     { const cap = resCap(s); [1, 2].forEach(i => this.resTexts[i]?.setColor([0, s.res.wood, s.res.stone][i] >= cap ? '#ff6a5a' : '#ffe7a0'));   // warehouse full = red
       this.resTexts[3]?.setColor((s as unknown as { hungry?: boolean }).hungry || s.res.food >= cap ? '#ff6a5a' : '#ffe7a0'); }
     const key = this.td.heroKey();

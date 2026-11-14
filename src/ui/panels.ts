@@ -217,7 +217,7 @@ export class Panels implements GuildHost {
   // ---------------- BAG ----------------
   buildBag(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
-    const W = Math.min(640, ui.VW - 20), H = 320;
+    const W = Math.min(640, ui.VW - 20), H = 344;
     const { x, y, g } = this.window(c, W, H, 'กระเป๋า & อุปกรณ์');
     // equipment column
     const ex = x + 14, ey = y + 32;
@@ -250,7 +250,10 @@ export class Panels implements GuildHost {
     // director: bigger items, 6 to a row; pages of 6 rows when the bag holds more
     const N = invSize(s), cols = 6, cs = 38, gap = 4, rows = 6, per = cols * rows, pages = Math.ceil(N / per);
     this.bagPage = Math.min(this.bagPage, pages - 1);
-    const gx = ex + 122, gy = ey;
+    const gx = ex + 122, gy = ey + 24;
+    // tabs: items / mounts / followers (director: use and take off right from the bag)
+    ([['items', '🎒 ไอเทม'], ['mounts', '🐎 พาหนะ'], ['pets', '⛈ ผู้ติดตาม']] as const).forEach(([id, label], i) => c.add(k.button(gx + i * 86, ey - 2, 82, 20, label, () => { this.bagTab = id; this.rebuild(); }, { size: 8.5, color: this.bagTab === id ? 0x6a4a10 : 0x2a1d12 })));
+    if (this.bagTab !== 'items') { this.bagRides(c, g, gx, gy, x + W - 14 - gx, H - 44 - 24); return; }
     for (let j = 0; j < Math.min(per, N - this.bagPage * per); j++) {
       const i = this.bagPage * per + j;
       const cx = gx + (j % cols) * (cs + gap), cy = gy + Math.floor(j / cols) * (cs + gap);
@@ -278,6 +281,50 @@ export class Panels implements GuildHost {
     const dx = gx + cols * (cs + gap) + 6, dw = x + W - 14 - dx;
     if (dw > 80) this.itemDetail(c, g, dx, ey, dw, H - 44, 'bag');
   }
+
+  /** the bag's 🐎 mounts / ⛈ followers tabs: what you own, tap one, ride / take off — use / put away */
+  bagRides(c: Phaser.GameObjects.Container, g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
+    const s = S(), ui = this.ui, k = this.k, pets = this.bagTab === 'pets';
+    type E = { id: string; name: string; desc: string; tex: string; frame: number; tint?: number; on: boolean; use: () => void; off: () => void; emoji?: string };
+    const list: E[] = [];
+    if (pets) {
+      if (cosOwned(s, 'pet')) list.push({ id: 'cloud', name: '⛈ เมฆพายุ', desc: 'ลอยเหนือหัว มีฟ้าแลบ ผู้เล่นคนอื่นเห็น\n💨 วิ่งเร็วขึ้น 5%\n⚡ ลูกศรชี้ทางไปบอสเร่ร่อน + จุดบนแผนที่เล็ก\n⚡ บอกเมื่อบอสโผล่แผนที่อื่น', tex: 'pet_cloud', frame: 0, emoji: '⛈', on: cosOn(s, 'pet'),
+        use: () => act('cosmetic', { k: 'pet', on: true }), off: () => act('cosmetic', { k: 'pet', on: false }) });
+    } else {
+      const ride = mountOn(s), black = !!activeHorseSkin(s);
+      for (const id of MOUNT_ORDER) {
+        if (!hasMount(s, id)) continue;
+        const d = MOUNTS[id], vs: (string | null)[] = id === 'horse' && cosOwned(s, 'horse') ? [null, 'horse_black'] : [null];
+        for (const skin of vs) list.push({ id: id + (skin ?? ''), name: skin ? '🐴 ม้าดำนิล' : d.name, desc: `💨 วิ่งเร็วขึ้น ${Math.round((rideSpeed(d.speed, skin) - 1) * 100)}%\n${skin ? 'ม้าศึกสีดำนิล — เร็วกว่าม้าปกติ' : d.desc}`, tex: `m_${d.key}_idle`, frame: 1, tint: skin ? SKIN_TINT[skin] : undefined,
+          on: ride === id && (id !== 'horse' || black === !!skin),
+          use: () => { if (id === 'horse' && cosOwned(s, 'horse')) act('cosmetic', { k: 'horse', on: !!skin }); act('mountSelect', { id }); },
+          off: () => act('mountSelect', { id: null }) });
+      }
+    }
+    if (!list.length) { c.add(k.text(x + w / 2, y + h / 2, pets ? 'ยังไม่มีผู้ติดตาม\nได้จาก 💎 กงล้อเพชร (หรือแลกดาว ⭐)' : 'ยังไม่มีพาหนะ\nซื้อม้าได้ที่ เมนู → 🐎 สัตว์ขี่', 9, '#8a7a60', { align: 'center' }).setOrigin(0.5)); return; }
+    const sel = list.find(q => q.id === this.rideSel) ?? list[0], cs = 56, gap = 6, gw = Math.min(3, list.length) * (cs + gap);
+    list.forEach((q, i) => {
+      const cx = x + (i % 3) * (cs + gap), cy = y + Math.floor(i / 3) * (cs + gap + 12);
+      k.iconSlot(g, cx, cy, cs, q.on ? 0xffd84a : 0x8a6a40, q === sel);
+      if (ui.textures.exists(q.tex)) { const im = ui.add.image(cx + cs / 2, cy + cs / 2 + (pets ? 0 : 6), q.tex, ui.textures.get(q.tex).has(String(q.frame)) || pets ? (pets ? undefined : q.frame) : undefined); im.setScale(Math.min((cs - 6) / im.width, (cs - 6) / im.height) * (pets ? 1.3 : 1.25)); if (q.tint) im.setTint(q.tint); c.add(im); }
+      else c.add(k.text(cx + cs / 2, cy + cs / 2, q.emoji ?? '🐎', 22).setOrigin(0.5));
+      if (q.on) c.add(k.text(cx + 3, cy + 2, 'E', 9, '#ffd84a'));
+      c.add(k.text(cx + cs / 2, cy + cs + 1, q.name.replace(/^[^\s]+ /, ''), 7, q.on ? '#ffd84a' : '#d9c8a0').setOrigin(0.5, 0));
+      const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
+      z.on('pointerup', () => { if (this.dbl(i + 9000)) { (q.on ? q.off : q.use)(); this.rideDone(); return; } sfx.click(); this.rideSel = q.id; this.rebuild(); });   // double tap = use / take off
+      c.add(z);
+    });
+    // the detail on the right
+    const dx = x + gw + 6, dw = x + w - dx;
+    if (dw < 90) return;
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(dx, y, dw, h, 4).lineStyle(1, GOLD_D, 1).strokeRoundedRect(dx, y, dw, h, 4);
+    c.add(k.text(dx + 8, y + 8, sel.name, 11, '#ffe7a0'));
+    c.add(k.text(dx + 8, y + 28, sel.on ? (pets ? '✅ กำลังใช้อยู่' : '✅ กำลังขี่อยู่') : '✔ เป็นของคุณ', 8, '#9fffb0'));
+    c.add(k.text(dx + 8, y + 46, sel.desc, 8, '#e8dcc0', { wordWrap: { width: dw - 16 }, lineSpacing: 3 }));
+    c.add(k.button(dx + 8, y + h - 32, dw - 16, 24, sel.on ? (pets ? '📦 ถอด (เก็บ)' : '🚶 ลงจากหลัง') : (pets ? '✨ ใช้' : '🐎 ขี่'), () => { (sel.on ? sel.off : sel.use)(); this.rideDone(); }, { size: 9.5, color: sel.on ? 0x3a2a2a : 0x1f4a2a }));
+  }
+  rideDone() { sfx.click(); bus.emit(EV.STATE_CHANGED); saveGame(S()); this.rebuild(); }
+  bagTab: 'items' | 'mounts' | 'pets' = 'items'; rideSel = '';
 
   itemDetail(c: Phaser.GameObjects.Container, g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, mode: 'bag' | 'sell' | 'smith') {
     const s = S(), k = this.k, ui = this.ui;
@@ -698,6 +745,10 @@ export class Panels implements GuildHost {
     const ui = this.ui, k = this.k;
     const W = Math.min(620, ui.VW - 16), H = 330;
     const { x, y } = this.window(c, W, H, o.title);
+    { // switch between the two wheels (both reachable from the top bar's 🎡 button)
+      const gold = this.cur === 'wheel', other = gold ? 'dwheel' : 'wheel'; this.lastWheel = this.cur as 'wheel' | 'dwheel';
+      if (gold ? DWHEEL_OPEN || isAdmin() : WHEEL_OPEN || isAdmin()) c.add(k.button(x + W - 140, y + 6, 104, 20, gold ? '💎 กงล้อเพชร ▸' : '🎡 กงล้อทอง ▸', () => this.open(other), { size: 8.5, color: gold ? 0x3a2a6a : 0x6a4a10 }));
+    }
     const R = 112, cx = x + 20 + R, cy = y + 40 + R + 6, N = o.segs.length, step = Math.PI * 2 / N;
     // the wheel: a container turned by the spin (segment i is centred at angle i*step from the top, clockwise)
     const wh = ui.add.container(cx, cy); c.add(wh); wh.rotation = this.wheelRot;
@@ -952,7 +1003,7 @@ export class Panels implements GuildHost {
   buildPremium(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(620, ui.VW - 16), H = 330;
-    const { x, y, g } = this.window(c, W, H, '💎 ร้านพรีเมียม');
+    const { x, y, g } = this.window(c, W, H, '🏪 ร้านค้า');
     const tabs: [typeof this.premTab, string][] = [['vip', '👑 บัตร VIP'], ['shop', '💎 ร้านเพชร'], ['topup', '💳 เติมเพชร']];
     tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 104, y + 30, 98, 22, label, () => { this.premTab = id; this.rebuild(); }, { size: 9, color: this.premTab === id ? 0x6a4a10 : 0x2a1d12 })));
     c.add(k.text(x + W - 16, y + 34, `💎 ${diamonds(s).toLocaleString()}`, 11, '#8fe8ff').setOrigin(1, 0));
@@ -1010,6 +1061,8 @@ export class Panels implements GuildHost {
     }
   }
   premPage = 0;
+  /** the wheel the top bar's 🎡 opens (the one looked at last) */
+  lastWheel: 'wheel' | 'dwheel' = DWHEEL_OPEN ? 'dwheel' : 'wheel';
 
   // ---------------- 🏪 PLAYER MARKET ----------------
   mkKey = ''; mkLoaded: { list: import('../systems/market').Listing[]; total: number } | null = null;
