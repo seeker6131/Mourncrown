@@ -10,7 +10,7 @@
   ],
   "limits": {
     "maxOnline": 50,
-    "dayHours": 90,
-    "_note": "money cap (director, budget 600 THB/month): max players online at once, and player-hours per UTC day (resets 07:00 Thai). Workers Paid $5 since 2026-11-14. Measured 2026-11-14: ~21k DO requests + ~58 GB-s per player-hour, so the bill is mostly DO requests ($0.15/M over the 1M included). dayHours 90 = about 460 THB/month at that rate (600 THB budget leaves room if the rate is 1.3x higher). Free plan was 30. 0 = no limit. Then python3 -I tools/deploy_server.py"
+    "dayHours": 120,
+    "_note": "money cap (director, budget 600 THB/month): max players online at once, and player-hours per UTC day (resets 07:00 Thai). Workers Paid $5 since 2026-11-14. Measured 2026-11-14: ~21k DO requests + ~58 GB-s per player-hour, so the bill is mostly DO requests ($0.15/M over the 1M included). Re-measured 2026-11-14 afternoon: ~15.8k DO requests + ~62 GB-s per player-hour. dayHours 120 = about 460 THB/month (raised from 90, director). Free plan was 30. 0 = no limit. Then python3 -I tools/deploy_server.py"
   }
 }
