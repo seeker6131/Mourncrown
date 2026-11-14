@@ -26,6 +26,7 @@ MAP = {
     'mt_stag2': {d: (d, False) for d in DIRS},
     'mt_panther2': {d: (d, False) for d in DIRS},
     'mt_gdragon': {d: (d, False) for d in DIRS},
+    'mt_gdragon2': {d: (d, False) for d in DIRS},
 }
 def load(z, n): return Image.open(io.BytesIO(z.read(n))).convert('RGBA')
 def centre(im, n): c = Image.new('RGBA', (n, n)); c.paste(im, ((n - im.width) // 2, (n - im.height) // 2)); return c

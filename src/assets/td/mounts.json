@@ -36,23 +36,28 @@
   "foot": 92
  },
  "mt_wolf2": {
-  "fs": 76,
-  "n": 1,
-  "foot": 75
+  "fs": 108,
+  "n": 8,
+  "foot": 91
  },
  "mt_bear2": {
-  "fs": 84,
-  "n": 1,
-  "foot": 81
+  "fs": 120,
+  "n": 8,
+  "foot": 99
  },
  "mt_stag2": {
-  "fs": 84,
-  "n": 1,
-  "foot": 80
+  "fs": 112,
+  "n": 8,
+  "foot": 94
  },
  "mt_panther2": {
-  "fs": 76,
+  "fs": 104,
+  "n": 8,
+  "foot": 85
+ },
+ "mt_gdragon2": {
+  "fs": 96,
   "n": 1,
-  "foot": 71
+  "foot": 91
  }
 }

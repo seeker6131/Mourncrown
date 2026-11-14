@@ -63,7 +63,9 @@ Known dead ends (do not try again): `/create-room` is refused; PixelLab sounds n
    rider size vs animal looks like a real rider (scale the animal, never the hero) · same outline weight and light.
 4. Saddles: read the seat point by eye on the grid (`tools/mount_seats_manual.json`); colour guessing (`mount_seats.py`)
    mistakes saddle cloths and fur for the seat.
-5. One honest sentence about what is still wrong goes with every picture — never "looks good" unless it passes 1-3.
+5. Importing the walk grows the canvas (the walk is wider): every seat / front point read on the standing picture moves by
+   (new canvas − old) / 2 — shift them, then check again WHILE WALKING (hold the keys in Playwright, open ground: the village plaza).
+6. One honest sentence about what is still wrong goes with every picture — never "looks good" unless it passes 1-3.
 
 ## 5. Batch, import, audit
 - Run batches with ≤3 parallel workers (429 → the client backs off), 1 direction per request.
