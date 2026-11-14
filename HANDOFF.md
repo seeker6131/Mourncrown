@@ -27,6 +27,8 @@
 - BACKLOG: รางวัลออฟไลน์ (สลับแท็บแล้วเกมหยุด), เพิ่มช่องสวมอุปกรณ์ (ทำทีหลัง), รีวิวเพดาน 21 พ.ย.
 - ไอเดียที่เสนอแล้วยังไม่ตอบ: บัตรรายเดือน 99฿, ชุดอุปกรณ์ใหม่ (ต้องเติม PixelLab), หอคอย/แผนที่สมบัติ
 - ระบบเติมเงินรอผู้กำกับกด 🟢 เปิดในหลังบ้าน · มอนบุก: ถ้าไม่มีใครเข้าห้อง รอบนั้นไม่เกิด (อาคารไม่พัง) — ผู้กำกับยังไม่สั่งเปลี่ยน
+- เครื่องมือ (อ่านอย่างเดียว): `python3 -I tools/d1_read.py "SELECT ..."` (D1 จริง) · `python3 -I tools/cf_usage.py <เริ่ม UTC> <จบ UTC>` (ค่าเซิร์ฟรายชั่วโมง) · ชั่วโมงเล่นวันนี้ `curl https://mourncrown.egowenit.workers.dev/online`
+- **AI/บัญชีใหม่ที่มาทำต่อ ต้องมี:** (1) GitHub เข้าถึง repo `seeker6131/Mourncrown` แบบ push (2) network secret ของ environment: Cloudflare API token (host `api.cloudflare.com`) และ PixelLab (host `api.pixellab.ai`) — ผู้กำกับใส่เองในหน้าตั้งค่า environment ห้ามวางในแชต (3) ทำงานทีละคน (อย่าให้ 2 AI แก้ branch เดียวกันพร้อมกัน) · Thunder key / QR อยู่ที่ Cloudflare แล้ว ไม่ต้องใช้
 - เทส: `npm test` 205 ข้อ · ตรวจ type เซิร์ฟแยก (6 error เดิมเป็นปกติ): `npx tsc --noEmit --strict --target es2022 --module esnext --moduleResolution bundler --skipLibCheck --resolveJsonModule server/worker.ts`
 
 ## 1. ผู้ใช้ (Game Director) — กฎที่ต้องทำตามเสมอ
