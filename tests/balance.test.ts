@@ -23,7 +23,7 @@ it('every stage stays balanced (normal ~3 hits, boss ~120 hits, survivable)', ()
     const heroHit = avg(() => calcDamage(d.atk, ms.def, 1, d.crit).dmg), monHit = avg(() => calcDamage(ms.atk, d.def, 1, 0.05, Math.random, d.evade).dmg);
     const hitsToKill = ms.hp / heroHit, secToKill = hitsToKill * d.attackInterval / 1000;
     const monCd = (base as unknown as { attackCooldown: number }).attackCooldown / 1000, secToDie = d.maxHp / monHit * monCd;
-    if (st.boss) { expect(hitsToKill).toBeGreaterThan(55); expect(hitsToKill).toBeLessThan(180); expect(secToDie).toBeGreaterThan(15); }
+    if (st.boss) { const lb = 1 + 1.5 * lateGame(st.level); expect(hitsToKill).toBeGreaterThan(55); expect(hitsToKill).toBeLessThan(180 * lb); expect(secToDie).toBeGreaterThan(st.level >= 65 ? 8 : 15); }   // (late-game bosses: tougher on purpose)
     else { const late = 1 + 3 * lateGame(st.level); expect(hitsToKill).toBeGreaterThan(1); expect(hitsToKill).toBeLessThan(5 * late); expect(secToDie).toBeGreaterThan(st.level >= 65 ? 8 : 25); }   // (late game: tougher on purpose — upgrades matter)
     rows.push(`stage ${n}${st.boss ? ' BOSS' : ''} mobLv ${st.level} | hero HP ${d.maxHp} ATK ${d.atk} DEF ${d.def} | mon HP ${ms.hp} ATK ${ms.atk} DEF ${ms.def} | kill ${secToKill.toFixed(1)}s (${hitsToKill.toFixed(1)} hits) | die in ${secToDie.toFixed(0)}s vs 1 mon`);
   }

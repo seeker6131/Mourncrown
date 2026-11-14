@@ -78,7 +78,9 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   // gold is scarce (director: no inflation) — and only ~40% of kills drop any (rewards.ts)
   // ⚔ the late game (director 2026-11-14): from monster level 65 normal monsters get tougher step by step (HP up to x4,
   // attack up to x3 at level 84+) so gear upgrades (+1..+10) clearly matter. EXP stays the same: the late levels take
-  // longer on purpose (director: a game that lasts — Lv100 should not come in 2–3 days). Bosses keep their own numbers.
-  const f = boss ? 0 : lateGame(L);
-  return { hp: Math.round(hp * (1 + 3 * f)), atk: Math.round(atk * (1 + 2 * f)), def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
+  // longer on purpose (director: a game that lasts — Lv100 should not come in 2–3 days).
+  // (bosses — roaming and dungeon — too, a little less: HP up to x2.5, attack up to x2 — director: the roaming boss on a
+  //  high-level map must hit harder)
+  const f = lateGame(L), hm = boss ? 1 + 1.5 * f : 1 + 3 * f, am = boss ? 1 + f : 1 + 2 * f;
+  return { hp: Math.round(hp * hm), atk: Math.round(atk * am), def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
 }
