@@ -90,6 +90,7 @@ export class Panels implements GuildHost {
   shopTab: 'buy' | 'sell' = 'buy';
   shopPage = 0;
   junkRar = 0; junkConfirm = false;
+  multiSell = false; multiPick = new Set<number>(); multiConfirm = false;   // (player feedback: tick several items, sell them at once)
   dialogNpc = '';
   dialogText = '';
   confirmNew = false;
@@ -497,7 +498,7 @@ export class Panels implements GuildHost {
     c.add(k.text(rx + rw - 12, ly + 9, s.skillPts ? 'กด + เพื่ออัปสกิล' : 'แต้มได้จาก: เลเวลอัป • บอสครั้งแรก • เควสต์หลัก • ล็อกอิน 7 วัน', 7.5, s.skillPts ? '#c8f0c0' : '#8a7a60').setOrigin(1, 0));
     currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const sy = ly + 30 + i * 62;
-      c.add(ui.add.image(rx + 20, sy + 16, ui.textures.exists('sk_' + sk.id) ? 'sk_' + sk.id : skillIconKey(ui, sk)).setDisplaySize(30, 30));   // (the same picture as the skill button — a player saw different ones)
+      c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30));   // (the painted round icon, the same as the skill button — players liked these best)
       const slv = s.skillLv[sk.id] ?? 1, max = slv >= SKILL_MAX, can = !max && s.skillPts >= 1;
       const pct = (lv: number) => Math.round(sk.power * (1 + 0.15 * (lv - 1)) * 100), st = sk.stat === 'matk' ? 'MATK' : 'ATK';
       c.add(k.text(rx + 38, sy, `${sk.name}  Lv ${slv}${max ? ' (MAX)' : `/${SKILL_MAX}`}`, 9, '#9ad8ff'));
@@ -1921,6 +1922,7 @@ export class Panels implements GuildHost {
     const { x, y, g } = this.window(c, W, H, 'ร้านค้าของมิร่า');
     c.add(k.button(x + 14, y + 28, 70, 20, 'ซื้อ', () => { this.shopTab = 'buy'; this.selUid = null; this.rebuild(); }, { size: 9.5, color: this.shopTab === 'buy' ? 0x6a4a10 : 0x2a1d12 }));
     c.add(k.button(x + 88, y + 28, 70, 20, 'ขาย', () => { this.shopTab = 'sell'; this.selUid = null; this.rebuild(); }, { size: 9.5, color: this.shopTab === 'sell' ? 0x6a4a10 : 0x2a1d12 }));
+    if (this.shopTab === 'sell') c.add(k.button(x + 170, y + 28, 92, 20, this.multiSell ? '☑ เลือกหลายชิ้น' : '☐ เลือกหลายชิ้น', () => { this.multiSell = !this.multiSell; this.multiPick.clear(); this.multiConfirm = false; this.selUid = null; this.rebuild(); }, { size: 8.5, color: this.multiSell ? 0x6a4a10 : 0x2a1d12 }));
     c.add(ui.add.image(x + W - 90, y + 38, 'icon_gold').setScale(0.4));
     c.add(k.text(x + W - 80, y + 31, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
     const top = y + 54;
@@ -1965,8 +1967,17 @@ export class Panels implements GuildHost {
         c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs));
         if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 7.5, '#ffffff').setOrigin(1, 1));
         if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
+        if (this.multiSell && this.multiPick.has(it.uid)) { g.lineStyle(2, 0x7aff8a, 1).strokeRect(cx + 1, cy + 1, cs - 2, cs - 2); c.add(k.text(cx + cs - 2, cy + 1, '✔', 9, '#7aff8a').setOrigin(1, 0)); }
         const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
-        z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
+        z.on('pointerup', () => {
+          sfx.click(); this.selUid = it.uid;
+          if (this.multiSell) {
+            this.multiConfirm = false;
+            if (isEquipped(s, it.uid)) bus.emit(EV.TOAST, '⚠ ใส่อยู่ — ถอดก่อนจึงจะขายได้', '#ff9a8a');
+            else if (this.multiPick.has(it.uid)) this.multiPick.delete(it.uid); else this.multiPick.add(it.uid);
+          }
+          this.rebuild();
+        });
         c.add(z);
       });
       const dx = x + 14 + cols * (cs + 3) + 6;
@@ -1974,6 +1985,20 @@ export class Panels implements GuildHost {
       // quick bulk sale of unequipped gear up to a rarity (tap twice to confirm)
       const junk = s.inventory.filter(it => { const d = itemDef(it.id); return (d.type === 'weapon' || d.type === 'armor' || d.type === 'accessory') && !isEquipped(s, it.uid) && (it.rar ?? 0) <= this.junkRar; });
       const jg = junk.reduce((a, it) => a + sellPrice(it) * it.qty, 0);
+      if (this.multiSell) {   // the ticked items: whole stacks, never what is worn
+        const picked = s.inventory.filter(it => this.multiPick.has(it.uid) && !isEquipped(s, it.uid));
+        const pg = picked.reduce((a, it) => a + sellPrice(it) * it.qty, 0);
+        c.add(k.button(x + 14, y + H - 34, 96, 22, picked.length ? 'ล้างที่เลือก' : 'แตะช่องเพื่อติ๊ก', () => { this.multiPick.clear(); this.multiConfirm = false; this.rebuild(); }, { size: 8, disabled: !picked.length }));
+        c.add(k.button(x + 114, y + H - 34, cols * (cs + 3) - 100, 22, this.multiConfirm ? `ยืนยัน! ขาย ${picked.length} รายการ (+${pg.toLocaleString()} G)` : `ขายที่ติ๊ก ${picked.length} รายการ (+${pg.toLocaleString()} G)`, () => {
+          if (!this.multiConfirm) { this.multiConfirm = true; this.rebuild(); return; }
+          let n = 0, gold = 0;
+          for (const it of picked) { const got = act('sell', { uid: it.uid, qty: it.qty }) as number; if (got) { n++; gold += got; } }
+          this.multiPick.clear(); this.multiConfirm = false; this.selUid = null;
+          if (n) { sfx.coin(); bus.emit(EV.TOAST, `ขาย ${n} รายการ ได้ ${gold.toLocaleString()} G`, '#ffd84a'); refreshCollect(s); saveGame(s); bus.emit(EV.STATE_CHANGED); } else sfx.error();
+          this.rebuild();
+        }, { size: 8.5, color: this.multiConfirm ? 0x8a2a1a : 0x5a3a10, disabled: !picked.length }));
+        return;
+      }
       c.add(k.button(x + 14, y + H - 34, 96, 22, `ระดับ: ${['Common', '≤ Uncommon', '≤ Rare'][this.junkRar]}`, () => { this.junkRar = (this.junkRar + 1) % 3; this.junkConfirm = false; this.rebuild(); }, { size: 8 }));
       c.add(k.button(x + 114, y + H - 34, cols * (cs + 3) - 100, 22, this.junkConfirm ? `ยืนยัน! ขาย ${junk.length} ชิ้น (+${jg.toLocaleString()} G)` : `ขายอุปกรณ์ที่ไม่ได้ใส่ ${junk.length} ชิ้น`, () => {
         if (!this.junkConfirm) { this.junkConfirm = true; this.rebuild(); return; }

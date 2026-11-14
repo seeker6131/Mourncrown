@@ -109,7 +109,7 @@ export class TdUIScene extends Phaser.Scene {
       const x = ax + pos[i][0], y = ay + pos[i][1], R = 17 * bs * this.VH / 400;
       const c = this.add.container(x, y);
       const bg = this.add.circle(0, 0, R + 2, 0x0b0806, 0.8).setStrokeStyle(2, 0x8a6a40, 1);
-      const key = this.textures.exists('sk_' + id) ? 'sk_' + id : skillIconKey(this, sk);
+      const key = skillIconKey(this, sk);   // player feedback: the painted round icons (ui/skill0-7) look better than the small pixel ones
       const icon = this.add.image(0, 0, key); icon.setScale((R * 2 - 4) / Math.max(icon.width, icon.height));
       const mask = this.add.graphics().fillCircle(x, y, R).setVisible(false); icon.setMask(mask.createGeometryMask());
       const cd = this.add.graphics();

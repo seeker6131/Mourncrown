@@ -1677,6 +1677,7 @@ export class TopDownScene extends Phaser.Scene {
     this.aura.fire.emitting = vis;
   }
   /** Deepwild auto farm session: the order and what has come in since it started */
+  farmJob: object | null = null;
   farm: { goal: FarmGoal; got: FarmGoal; base: { wood: number; stone: number; food: number } } | null = null;
   startFarm() {
     const s = S(), goal = farmGoal(s);
@@ -1708,12 +1709,15 @@ export class TopDownScene extends Phaser.Scene {
       if (want) cands.push({ x: n.x, y: n.y, reach: 26, obj: n });
     }
     if (left.food > 0) for (const m of this.combat.alive()) if (m.animal && !bad(m)) cands.push({ x: m.x, y: m.y, reach: 20 + m.m.size * 0.25, obj: m });
-    const t = cands.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
+    // player report: hunting an animal, the hero walked past a tree and went to chop it, leaving the animal half dead —
+    // keep the job picked until it is done (felled / mined out / killed) or no longer wanted
+    const t = cands.find(q => q.obj === this.farmJob) ?? cands.reduce<T | null>((b, q) => !b || Math.hypot(q.x - h.x, q.y - h.y) < Math.hypot(b.x - h.x, b.y - h.y) ? q : b, null);
+    this.farmJob = t?.obj ?? null;
     if (!t) return [0, 0];
     const isAnimal = !(this.nodes as object[]).includes(t.obj);
     if (s.outfit !== 'gather' && !isAnimal) s.outfit = 'gather';
     const dx = t.x - h.x, dy = t.y - h.y, dist = Math.hypot(dx, dy * (isAnimal ? 1 : 1.3));
-    if (dist <= t.reach) { this.dir = (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8; this.path = null; this.attack(); return [0, 0]; }
+    if (dist <= t.reach) { this.dir = (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8; this.path = null; this.attack(isAnimal); return [0, 0]; }
     return this.steer(t.obj, t.x, t.y, time) ?? [0, 0];
   }
   toggleAuto() {
@@ -2161,13 +2165,13 @@ export class TopDownScene extends Phaser.Scene {
       n.timer.setVisible(near).setText(near ? `⏳ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : '');
     }
   }
-  attack() {
+  attack(noGather = false) {   // (noGather: AUTO is after an animal — do not chop the tree it happens to stand by)
     if (this.time.now < this.stunUntil) return;
     this.rideBlockT = this.time.now + 2500;   // off the mount to fight / gather
     this.tutAttacked = true;
     if (this.dead || this.attacking || this.panelBlocks || this.selectUi) return;
     const node = this.nearNode();
-    if (node && this.gathering()) { this.gather(node); return; }
+    if (node && this.gathering() && !noGather) { this.gather(node); return; }
     if (node && this.time.now > this.gatherTipT && !this.combat.nearest(90).length) { this.gatherTipT = this.time.now + 20000; bus.emit(EV.TOAST, 'อยากตัดไม้/ขุดหิน? สวมชุดหาทรัพยากรที่ปุ่ม 👕 ชุด ด้านบน', '#ffd8a0'); }
     if (!hasAnim(this.F.key, this.swing)) return;
     this.attacking = true;
