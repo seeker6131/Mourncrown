@@ -299,6 +299,15 @@ const EN: Record<string, string> = {
   'ไปป่าดงดิบ — ตัดไม้ (ชุดชาวบ้าน)': 'To the Deepwild — chop wood',
   'ไปป่าดงดิบ — ขุดหิน / แร่': 'To the Deepwild — mine stone / ore',
   'กลับหมู่บ้าน — เข้าโรงหลอมแล้วหลอมอุปกรณ์ 1 ชิ้น': 'Back to the village — craft 1 item at the forge',
+  '⚔ ใหม่! มอนบุกหมู่บ้านกลาง ทุกวัน 12:00 • 18:00 • 21:00 — 6 คลื่น ถึกขึ้นเรื่อยๆ ทุกเลเวลสู้ห้องเดียวกัน • งดยาฮีล มานาไม่หมด • กำจัดครบ 5 ตัวได้ 🎁 หีบผู้พิทักษ์ (ส่งเข้าจดหมาย) • แถบสีทองขึ้นบนจอ 5 นาทีก่อนเริ่ม': '⚔ New! Monsters raid the Central Village every day at 12:00 • 18:00 • 21:00 — 6 ever-tougher waves, every level in one room • no healing potions, endless mana • defeat 5 to earn a 🎁 Guardian Chest (by mail) • a gold bar appears 5 minutes before',
+  '🏘 อาคารกลางที่ถูกมอนทำลาย ทุกคนในเซิร์ฟใช้ไม่ได้ จนกว่าจะช่วยกันบริจาคซ่อม (แตะแถบ 🏘) หรือรอซ่อมเอง 2 ชม.': '🏘 Central buildings destroyed in a raid cannot be used by anyone until repaired with donations (tap the 🏘 bar) or after 2 hours',
+  '📜 หน้าต่างแชตใหม่: กด 💬 ย้อนอ่านแชตเก่าได้ แยกแท็บ โลก / กิลด์ / แมพ': '📜 New chat window: tap 💬 to scroll back through old messages, with world / guild / map tabs',
+  '⌨ แก้พิมพ์แชตบนคอม (ไ ฟ ห ก พิมพ์ได้แล้ว ไม่เดินแทน) • 🖱 คลิกพื้นเพื่อเดิน คลิกมอนหรือคลิกขวาเพื่อตี': '⌨ Fixed typing in chat on PC (letters no longer move the hero) • 🖱 click the ground to walk, click a monster or right-click to attack',
+  '🧭 แตะแถบเควสต์ = พาไปทำเลย (เควสต์ตีมอนเปิด AUTO ให้) • หน้าต่างเควสต์ใหม่ แตะเควสต์ไหนก็พาไปทำ': '🧭 Tap the quest bar to be taken there (fighting quests turn AUTO on) • new quest window: tap any quest to go do it',
+  '🌀 ทุกมุมแผนที่มอนและป่าดงดิบ มีประตูกลับบ้าน + ประตูเลือกแผนที่ (เปลี่ยนด่านได้ไม่ต้องกลับบ้าน) • เข้าแผนที่แล้วโผล่จุดสุ่ม': '🌀 Every corner of monster maps and the Deepwild has a gate home + a map-select gate (change maps without going home) • you arrive at a random spot',
+  '🪨 เดินทะลุก้อนหินได้ทุกชนิด ไม่ติดหินอีกแล้ว': '🪨 Walk over every kind of rock — no more getting stuck',
+  '🎞 เครื่องกระตุก? ตั้งค่า FPS 30 / กราฟิกต่ำ ได้ที่ เมนู → 🔊 เสียง': '🎞 Laggy? Set 30 FPS / low graphics in Menu → 🔊 Sound',
+  '🔧 แก้ดันเจี้ยนรายวันเคลียร์แล้วไม่นับเควสต์ • รูปสกิลในหน้าตัวละครตรงกับปุ่มสกิลแล้ว': '🔧 Fixed daily dungeon clears not counting for quests • skill pictures in the character window now match the skill buttons',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 
