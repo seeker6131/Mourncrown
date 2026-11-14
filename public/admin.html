@@ -192,7 +192,7 @@ async function show() {
       const TN = { lumber: '🪵 โรงไม้', kitchen: '🍲 โรงครัว', forge: '⚒ โรงหลอม', barn: '🐄 คอกสัตว์', tavern: '🍺 โรงเตี๊ยม' };
       const rPlan = rd.plan && rd.plan.at + 180000 > Date.now() ? `กำหนดแล้ว: ${new Date(rd.plan.at).toLocaleString('th-TH')} ${rd.plan.at > Date.now() ? '(อีก ' + Math.ceil((rd.plan.at - Date.now()) / 60000) + ' นาที)' : '(กำลังบุก!)'}` : 'ยังไม่มีกำหนด';
       main.innerHTML = `<h2>⚔ มอนบุกหมู่บ้านกลาง</h2>
-        <p class="dim">ผู้เล่นเห็นแถบเตือน + ปุ่มเข้าร่วม 5 นาทีก่อนเริ่ม (แถบมาถึงภายใน ~1 นาที) • บุก 3 นาที • อาคารที่พังใช้ไม่ได้ทั้งเซิร์ฟจนกว่าจะซ่อม (หรือ 2 ชม.)</p>
+        <p class="dim">⏰ อัตโนมัติวันละ 3 รอบ: 12:00 • 18:00 • 21:00 (ตั้งเวลาเองด้านล่าง = แทรกรอบพิเศษ / ยกเลิก = กลับไปใช้ตารางปกติ) • ผู้เล่นเห็นแถบเตือน + ปุ่มเข้าร่วม 5 นาทีก่อนเริ่ม (แถบมาถึงภายใน ~1 นาที) • บุก 3 นาที • อาคารที่พังใช้ไม่ได้ทั้งเซิร์ฟจนกว่าจะซ่อม (หรือ 2 ชม.)</p>
         <div class="row"><label>เริ่มในอีก <input type="number" id="rMins" min="1" max="1440" value="6" style="width:70px"> นาที</label><button class="btn green" id="rGo">⚔ ตั้งเวลามอนบุก</button><button class="btn" id="rNo">ยกเลิก</button></div>
         <div class="dim" style="font-size:13px;margin-bottom:8px">${rPlan}</div>
         <div class="tw"><table><tr><th>อาคารกลาง</th><th>สถานะ</th><th>หลอดซ่อม</th><th></th></tr>${['lumber','kitchen','forge','barn','tavern'].map(b => { const r = (rd.rows || []).find(x => x.bid === b); const br = r && r.broken; return `<tr><td>${TN[b]}</td><td>${br ? '🔥 พัง' : '✅ ปกติ'}</td><td>${r ? r.donated + ' / ' + r.need : '-'}</td><td>${br ? `<button class="btn" data-fix="${b}">ซ่อมทันที</button>` : `<button class="btn" data-brk="${b}">ทำให้พัง (ทดสอบ)</button>`}</td></tr>`; }).join('')}</table></div>

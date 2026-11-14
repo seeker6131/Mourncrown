@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MapSim, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { RAID, RAID_LAND } from '../src/world/stages';
-import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp, raidRoom, raidAtk, raidHpMult, RAID_EXP_MULT } from '../src/systems/townRaid';
+import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp, raidRoom, raidAtk, raidHpMult, RAID_EXP_MULT, nextRaid } from '../src/systems/townRaid';
 import { STAGES } from '../src/world/stages';
 import { handlers, useMem, newMem } from '../src/server/handlers';
 import { startNewGame } from '../src/core/save';
@@ -63,6 +63,17 @@ describe('⚔ village raid (the room runs it)', () => {
     handlers.enterMap(s, { n: RAID }, c); const sid2 = handlers.spawn(s, { key: m.key, boss: false }, c).sid;
     const e1 = s.exp; handlers.kill(s, { sid: sid2, kind: m.kind, key: m.key, name: m.name, size: m.size, boss: false }, c); const raid = s.exp - e1;
     expect(raid).toBeLessThanOrEqual(Math.ceil(normal * RAID_EXP_MULT * 1.6)); expect(raid).toBeGreaterThan(0);
+  });
+  it('⏰ 3 raids a day at 12:00 / 18:00 / 21:00 Thai time; a time the admin set comes first', () => {
+    const th = (d: number, h: number, m = 0) => Date.UTC(2026, 10, d, h - 7, m);   // (Thai clock → ms)
+    expect(nextRaid(th(14, 9)).at).toBe(th(14, 12));
+    expect(nextRaid(th(14, 12, 3)).at).toBe(th(14, 12));   // (under way: still this one)
+    expect(nextRaid(th(14, 12, 6)).at).toBe(th(14, 18));
+    expect(nextRaid(th(14, 19)).at).toBe(th(14, 21));
+    expect(nextRaid(th(14, 22)).at).toBe(th(15, 12));
+    expect(nextRaid(th(15, 2)).at).toBe(th(15, 12));   // (after midnight)
+    expect(nextRaid(th(14, 9), { at: th(14, 10) }).at).toBe(th(14, 10));
+    expect(nextRaid(th(14, 11), { at: th(14, 10) }).at).toBe(th(14, 12));   // (an old one is ignored)
   });
   it('a fallen hero (hp 0) is left alone', () => {
     const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, dead: SimPlayer = { id: 'd', x: 768, y: 590, hp: 0, lv: 20 };

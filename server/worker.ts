@@ -21,7 +21,7 @@ import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
-import { RAID_SECS, RAID_MIN_KILLS, RAID_BANDS, raidChest, type RaidPlan } from '../src/systems/townRaid';
+import { RAID_SECS, RAID_MIN_KILLS, RAID_BANDS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
 import { gainExp } from '../src/systems/stats';
 import type { RaidRun } from '../src/server/mapSim';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
@@ -44,7 +44,8 @@ async function townInfo(env: Env, fresh = false) {
   if (fresh || now - townC.at > 20000) {
     try {
       const rows = (await env.DB.prepare('SELECT bid, broken, at, donated, need, donors FROM town').all<TownRow & { donors: string | null }>()).results;
-      const pv = await kvGet(env, 'raid_plan'); let plan: RaidPlan | null = null; try { plan = pv ? JSON.parse(pv) : null; } catch { plan = null; }
+      const pv = await kvGet(env, 'raid_plan'); let set: RaidPlan | null = null; try { set = pv ? JSON.parse(pv) : null; } catch { set = null; }
+      const plan = nextRaid(now, set);   // (the daily 12:00 / 18:00 / 21:00 raid, or a time the admin set)
       townC = { at: now, rows, plan };
     } catch { townC.at = now - 10000; }   // (the database is busy: try again in 10 s)
     setTown(townC.rows, now);

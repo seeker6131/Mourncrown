@@ -71,5 +71,14 @@ export const raidFlag = { on: false, wave: 0 };
 /** the raid's time, from the server (null = none planned) */
 export interface RaidPlan { at: number }
 export const raidLive = (p: RaidPlan | null, now: number) => !!p && now >= p.at && now < p.at + RAID_SECS * 1000;
+/** the daily raids (director: 3 a day at set times) — Thai time */
+export const RAID_HOURS = [12, 18, 21];
+/** the raid now or next: a time the admin set (still to come or under way) wins, otherwise the next daily slot */
+export function nextRaid(now: number, set: RaidPlan | null = null): RaidPlan {
+  if (set && set.at + RAID_SECS * 1000 > now) return set;
+  const TH = 7 * 3600000, day = Math.floor((now + TH) / 86400000) * 86400000 - TH;   // (midnight in Thailand)
+  for (let d = 0; d < 2; d++) for (const h of RAID_HOURS) { const at = day + d * 86400000 + h * 3600000; if (at + RAID_SECS * 1000 > now) return { at }; }
+  return { at: day + 86400000 + RAID_HOURS[0] * 3600000 };
+}
 /** the warning before it (the gold bar + the join button): 5 minutes */
 export const RAID_WARN_MS = 5 * 60000;
