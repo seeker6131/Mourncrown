@@ -70,6 +70,27 @@ describe('daily dungeon', () => {
     expect(r.gear.length).toBeGreaterThan(0); expect(r.gear[0].set).toBe('root');
     expect(handlers.dungeonClear(s, {}, c())).toEqual({ refused: 'map' });   // only once
   });
+  it('a wave dropped at once by an area skill still counts, even when the kills\' pay is refused (damage budget)', async () => {
+    const { LANDS, DUNGEON_WAVES } = await import('../src/world/stages');
+    for (const k of Object.keys(s.equip)) (s.equip as Record<string, number | null>)[k] = null; for (const k of Object.keys(s.base)) (s.base as Record<string, number>)[k] = 0;   // (a weak hero: its damage budget runs out)
+    handlers.enterMap(s, { n: D }, c());
+    const L = LANDS[0], mobs = DUNGEON_WAVES.reduce((a, b) => a + b, 0), now = t, at = { now, rnd: () => 0.5 };   // (everything in the same instant)
+    const one = (m: { kind: typeof L.boss.kind; key: string; name: string; size: number; boss: boolean }) => ({ ...m, sid: handlers.spawn(s, { key: m.key, boss: m.boss }, at).sid });
+    const all = [...Array(mobs)].map((_, i) => L.mobs[i % L.mobs.length]).map(m => one({ kind: m.kind, key: m.key, name: m.name, size: m.size, boss: false }));
+    all.push(one({ kind: L.boss.kind, key: L.boss.key, name: L.boss.name, size: L.boss.size, boss: true }));
+    const out = all.map(a => handlers.kill(s, a, at));
+    expect(out.some(r => (r as { refused?: string }).refused)).toBe(true);   // some pay was refused…
+    t = now + 30000; expect((handlers.dungeonClear(s, {}, c()) as { gold: number }).gold).toBeGreaterThan(0);   // …the chest still opens
+  });
+  it('a server restart mid-run does not lose the clear; leaving the dungeon does', async () => {
+    const { useMem, newMem } = await import('../src/server/handlers');
+    handlers.enterMap(s, { n: D }, c()); t += 60000;
+    useMem(newMem());   // (the Player object slept / the server was updated)
+    expect((handlers.dungeonClear(s, {}, c()) as { gold: number }).gold).toBeGreaterThan(0);
+    expect(handlers.dungeonClear(s, {}, c())).toEqual({ refused: 'map' });
+    handlers.enterMap(s, { n: D }, c()); t += 60000; handlers.enterMap(s, { n: 0 }, c());
+    useMem(newMem()); expect(handlers.dungeonClear(s, {}, c())).toEqual({ refused: 'map' });
+  });
 });
 
 describe('loot on the ground', () => {

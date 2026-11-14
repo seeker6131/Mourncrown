@@ -12,6 +12,7 @@ import { buyMount, selectMount, grantMount, hasMount } from '../systems/mounts';
 import { setCosmetic, type CosKind } from '../systems/cosmetics';
 import { createChar, switchChar, buySlot, nameOk, giveToChar } from '../systems/chars';
 import { fodderList, fuseBonus } from '../systems/fusion';
+import { townBroken, plotTown } from '../systems/town';
 import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
@@ -72,7 +73,7 @@ const cleanWreck = (w?: Wreck): Wreck | undefined => {
 };
 /** one player's server memory (spawns, drops, damage budget, map...): the game server keeps one per player and swaps it
  *  in before each action (useMem); handlers run synchronously, so this is safe even with many players in one process */
-export function newMem() { return { /** the first monster number registered since this memory began (older ones were spawned before a restart) */ sidLow: 0, /** forgotten monsters already paid (each counts once) */ forgot: new Set<number>(), raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number; /** rolled by this server (not copied from the room) */ srv?: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
+export function newMem() { return { /** the first monster number registered since this memory began (older ones were spawned before a restart) */ sidLow: 0, /** forgotten monsters already paid (each counts once) */ forgot: new Set<number>(), raid: null as null | { rival: Rival; start: number; hp: number }, drops: new Map<number, Drop>(), did: 1, dungeon: null as null | { li: number; start: number; kills: number; /** the dungeon monsters seen dying (counted even when a kill's pay is refused) */ sids?: Set<number> }, spawns: new Map<number, { key: string; elite: boolean; boss: boolean; bounty?: number; /** rolled by this server (not copied from the room) */ srv?: boolean }>(), sid: 1, dmg: 0, dmgT: 0, map: 0, supAt: 0, nodes: new Map<number, { hits: number; until: number }>(), rate: new Map<string, number[]>() }; }
 export type Mem = ReturnType<typeof newMem>;
 let mem: Mem = newMem();
 export function useMem(m: Mem) { mem = m; }
@@ -95,12 +96,13 @@ export const handlers = {
   /** entering a map (server remembers where the player is) */
   enterMap(s: GameState, a: { n: number }, c: Ctx) {
     mem.spawns.clear(); mem.drops.clear();
+    { const t = s as { dng?: { run?: unknown } }; if (t.dng) delete t.dng.run; }   // (left the dungeon: its run is over)
     if (a.n === 0) { mem.map = 0; heroFed(s); return { ok: true }; }   // home: the hero has eaten
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
     if (isDungeon(a.n)) {   // daily dungeon: 2 runs a day (VIP 3), land by level
       const li = a.n - DUNGEON; if (li > dungeonLand(s.level)) return no('level');
       const d = dungeonRuns(s, c.now); if (d.used >= d.max) return no('runs');
-      d.used++; mem.map = a.n; mem.dungeon = { li, start: c.now, kills: 0 }; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now;
+      d.used++; mem.map = a.n; mem.dungeon = { li, start: c.now, kills: 0, sids: new Set() }; (d as { run?: { li: number; at: number } }).run = { li, at: c.now }; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now;
       return { ok: true };
     }
     const st = STAGES[a.n - 1]; if (!st) return no('map');
@@ -175,7 +177,7 @@ export const handlers = {
     if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
-    else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
+    else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); mem.dungeon?.sids?.add(a.sid); }   // (the wave counts even when this kill's pay is refused below: area skills drop a whole wave at once)
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
@@ -269,7 +271,7 @@ export const handlers = {
     const counts = fillRooms((a.bots ?? 0) + 1, MAP_ROOM_CAP);
     return { room: 1, rooms: counts.length, players: counts[0], cap: MAP_ROOM_CAP, total: (a.bots ?? 0) + 1 };
   },
-  brew(s: GameState, a: { out: string }) { const r = brew(s, a.out); if (r === 'ok') pstats(s).brews++; return r; },
+  brew(s: GameState, a: { out: string }) { if (townBroken.has('kitchen')) return no('broken'); const r = brew(s, a.out); if (r === 'ok') pstats(s).brews++; return r; },
   achClaim: (s: GameState, a: { id: string }) => claimAch(s, a.id),
   setTitle: (s: GameState, a: { id: string | null }) => setTitle(s, a.id),
   shopBuy(s: GameState, a: { id: string; qty?: number }, c: Ctx) {
@@ -301,6 +303,7 @@ export const handlers = {
   sellJunk: (s: GameState, a: { maxRar: number }) => sellJunk(s, Math.min(2, a.maxRar)),
   /** ⚒ +1 at the forge; fodder = spare gear sacrificed for a better chance (systems/fusion.ts) — gone whatever the result */
   upgradeItem: (s: GameState, a: { uid: number; fodder?: number[] }, c: Ctx) => {
+    if (townBroken.has('forge')) return 'broken' as const;   // (🏘 the shared forge is broken: docs/VILLAGE_RAID.md)
     const list = fodderList(s, a.fodder, a.uid); if (!list) return 'invalid' as const;
     const bonus = fuseBonus(s, list, a.uid), r = tryUpgrade(s, a.uid, c.rnd, bonus);
     if ((r === 'ok' || r === 'fail') && bonus > 0) for (const u of list) { const it = s.inventory.find(i => i.uid === u); if (it) s.inventory.splice(s.inventory.indexOf(it), 1); }
@@ -310,13 +313,13 @@ export const handlers = {
   equip: (s: GameState, a: { uid: number }) => equip(s, a.uid),
   unequip: (s: GameState, a: { uid: number }) => unequipUid(s, a.uid),
   useItem: (s: GameState, a: { uid: number }, c: Ctx) => useItem(s, a.uid, c.now),
-  craft: (s: GameState, a: { slot: 'weapon' | 'armor' | 'accessory' }, c: Ctx) => craft(s, a.slot, c.rnd),
-  cook: (s: GameState, a: { meal: MealId }, c: Ctx) => cook(s, a.meal, c.now),
+  craft: (s: GameState, a: { slot: 'weapon' | 'armor' | 'accessory' }, c: Ctx) => townBroken.has('forge') ? no('broken') : craft(s, a.slot, c.rnd),
+  cook: (s: GameState, a: { meal: MealId }, c: Ctx) => townBroken.has('kitchen') ? no('broken') : cook(s, a.meal, c.now),
   build: (s: GameState, a: { plot: number; id: BuildingId }, c: Ctx) => build(s, a.plot, a.id, c.now),
   // production runs here too (it used to run on the device only: the server's buildings never filled, so collecting was
   // refused — and before the resync, the device kept wood the server never had): catch up to now first
   upgradeBuilding: (s: GameState, a: { plot: number }, c: Ctx) => { settleTick(s, c.now); return upgrade(s, a.plot); },
-  collect: (s: GameState, a: { plot: number }, c: Ctx) => { settleTick(s, c.now); return collect(s, a.plot); },
+  collect: (s: GameState, a: { plot: number }, c: Ctx) => { const t = plotTown(s.buildings.find(b => b.plot === a.plot)?.type); if (t && townBroken.has(t)) return no('broken'); settleTick(s, c.now); return collect(s, a.plot); },
   // ---------------- guild (docs/GUILD_WAR.md) ----------------
   /** entering the village: catch up the simulated members / incoming raids, then the guild data for the UI */
   guildSync(s: GameState, _a: object, c: Ctx) {
@@ -446,12 +449,15 @@ export const handlers = {
   completeQuest: (s: GameState, a: { id: string }) => completeQuest(s, a.id),
   /** dungeon cleared: the server checks every wave died in a believable time, then opens the chest */
   dungeonClear(s: GameState, _a: object, c: Ctx) {
-    const d = mem.dungeon; if (!d || !isDungeon(mem.map)) return no('map');
+    // (the server's memory is lost when it restarts mid-run: the run kept on the character still counts, its waves taken on trust)
+    const run = (s as { dng?: { run?: { li: number; at: number } } }).dng?.run;
+    const d = mem.dungeon && isDungeon(mem.map) ? mem.dungeon : run && c.now - run.at < (DUNGEON_SECS + 30) * 1000 ? { li: run.li, start: run.at, kills: DUNGEON_NEED, sids: undefined } : null;
+    if (!d) return no('map');
     const secs = (c.now - d.start) / 1000;
-    if (d.kills < DUNGEON_NEED) return no('waves');
-    if (!c.admin && secs < 40) return no('fast');
+    if (Math.max(d.kills, d.sids?.size ?? 0) < DUNGEON_NEED) return no('waves');
+    if (!c.admin && secs < 20) return no('fast');
     if (secs > DUNGEON_SECS + 30) return no('time');
-    mem.dungeon = null; pstats(s).dungeons++;
+    mem.dungeon = null; if (run) delete (s as { dng?: { run?: unknown } }).dng!.run; pstats(s).dungeons++;
     const st = stageOf(DUNGEON + d.li, s.level), set = LAND_SET[LANDS[d.li].id], gear: { id: string; rar: number; set?: string }[] = [];
     for (let i = 0; i < (c.rnd() < 0.3 ? 2 : 1); i++) {   // set pieces: Rare or better
       const rar = Math.max(2, Math.min(5, rollRarity(c.rnd, st.mf, 2))), b = pickBase(c.rnd, rar, s.cls);

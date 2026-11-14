@@ -744,6 +744,7 @@ export class Panels implements GuildHost {
           crafted(act('craft', { slot }));
         }, { size: 10, color: 0x6a3a10 }));
         const crafted = (res: ReturnType<typeof act<'craft'>>) => {
+          if (refused(res)) { sfx.error(); bus.emit(EV.TOAST, '🔥 โรงหลอมกลางถูกทำลาย — ช่วยกันซ่อมที่หมู่บ้านกลางก่อน', '#ff9a6a'); return; }
           if (res.ok) {
             for (const t of dailyProgress(s, 'craft')) bus.emit(EV.TOAST, `✔ ภารกิจประจำวัน: ${DAILY_NAMES[t.kind]} สำเร็จ! +${t.gold} G`, '#9fffb0');
             sfx.upgradeOk(); bus.emit('td:fx', res.rar >= 4 ? 'fx_ore_rare' : 'fx_upgrade_ok'); const col = '#' + RARITY_COLORS[res.rar].toString(16).padStart(6, '0');
@@ -1766,6 +1767,7 @@ export class Panels implements GuildHost {
       c.add(k.button(cx + cw - 52, cy + 6, 46, 22, lock ? `🔒ครัว${r.kitchen}` : 'ปรุง', () => {
         const res = act('brew', { out: r.out });
         if (res === 'ok') { sfx.upgradeOk(); bus.emit(EV.TOAST, `ปรุงสำเร็จ! ${d.name} — ดื่มได้ในกระเป๋า`, rc); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }
+        else if (refused(res)) { sfx.error(); bus.emit(EV.TOAST, '🍲 โรงครัวกลางพัง — ช่วยกันซ่อมก่อนถึงจะปรุงได้', '#ff8a8a'); }
         else { sfx.error(); bus.emit(EV.TOAST, { kitchen: `ต้องอัปเกรดครัวเป็น Lv${r.kitchen}`, items: 'แร่ไม่พอ — ไปขุดที่เหมืองใน 🌿 ป่าดงดิบ', gold: 'ทองไม่พอ', food: 'อาหารไม่พอ — ล่าสัตว์ใน 🌿 ป่าดงดิบ', bag: 'กระเป๋าเต็ม' }[res], '#ff8a8a'); }
       }, { size: lock ? 7 : 9.5, color: d.rarity >= 3 ? 0x6a1a8a : 0x5a3a10, disabled: lock || !!f }));
     });

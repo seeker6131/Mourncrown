@@ -1818,7 +1818,7 @@ export class TopDownScene extends Phaser.Scene {
       // walk up to a building to collect what it made
       if (show && Math.hypot(P.x - this.hero.x, P.y + 10 - this.hero.y) < 46) {
         const r = act('collect', { plot: i });
-        if (r) { this.combat.float(P.x, P.y - 60, `+${r.amount} ${RES_NAMES[r.res]}`, '#9fffb0', 10); saveGame(s); bus.emit(EV.STATE_CHANGED); }
+        if (r && 'amount' in r) { this.combat.float(P.x, P.y - 60, `+${r.amount} ${RES_NAMES[r.res]}`, '#9fffb0', 10); saveGame(s); bus.emit(EV.STATE_CHANGED); }
       }
     });
   }

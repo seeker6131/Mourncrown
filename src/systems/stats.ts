@@ -1,3 +1,4 @@
+import { townBroken } from './town';
 import { TROPHY_BONUS } from '../data/guild';
 import { setBonus } from '../data/sets';
 // Character / Stats / Progression — pure functions over GameState.
@@ -60,7 +61,7 @@ export function derive(s: GameState): Derived {
   // trophies displayed in the player's house: small permanent bonuses by rarity (docs/GUILD_WAR.md 5)
   const tro = { atk: 0, def: 0, hp: 0 };
   for (const it of (s as GameState & { home?: { trophies?: { id: string; rar?: number }[] } }).home?.trophies ?? []) { const b = TROPHY_BONUS[Math.min(5, it.rar ?? itemDef(it.id).rarity)]; if (b) { tro.atk += b.atk; tro.def += b.def; tro.hp += b.hp; } }
-  const tav = bl('tavern'), tow = bl('tower');
+  const tav = townBroken.has('tavern') ? 0 : bl('tavern'), tow = bl('tower');   // (🏘 the shared tavern broken: no bonus)
   g.exp += tav * 4;
   const buff = s.buff && s.buff.until > Date.now() ? s.buff : null;
   const starve = (s as { heroHungry?: boolean }).heroHungry ? 0.8 : 1;   // out of supplies on a monster map (supplies.ts)
