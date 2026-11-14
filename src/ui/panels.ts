@@ -49,6 +49,7 @@ import { CBT_ACTIVE, CBT_VIP_DAYS, CBT_TITLE, CBT_PACK, cbtGot, cbtReady } from 
 import { mailOf, mailWaiting, hasGift, mailLive, giftText } from '../systems/mail';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
+import { openTopup } from './topupDom';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
 import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../systems/potions';
@@ -972,10 +973,10 @@ export class Panels implements GuildHost {
         c.add(k.text(cx + cw / 2, top + 50, p.diamonds.toLocaleString(), 15, '#8fe8ff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
         if (p.bonus) c.add(k.text(cx + cw / 2, top + 72, `+${p.bonus} โบนัส`, 8, '#9fffb0').setOrigin(0.5, 0));
         c.add(k.text(cx + cw / 2, top + 100, `฿${p.thb.toLocaleString()}`, 13, '#ffffff').setOrigin(0.5, 0));
-        c.add(k.button(cx + 6, top + 138, cw - 12, 22, 'เติม', () => bus.emit(EV.TOAST, notice, '#ffd84a'), { size: 9, color: 0x1f4a5a }));
+        c.add(k.button(cx + 6, top + 138, cw - 12, 22, 'เติม', () => { void openTopup(p.id, (t, col) => bus.emit(EV.TOAST, t, col ?? '#ffd84a'), () => { if (this.cur === 'premium') this.rebuild(); }); }, { size: 9, color: 0x1f4a5a }));
       });
-      c.add(k.text(x + 14, top + 184, 'เพชรได้จากการเติมเงินจริงเท่านั้น • เติมครั้งแรกได้เพชร x2 • ใช้ซื้อของในร้านเพชร (ความสะดวก / ความสวย)', 8, '#c8b898', { wordWrap: { width: W - 28 } }));
-      c.add(k.text(x + 14, top + 214, notice, 8, '#ff9a6a', { wordWrap: { width: W - 28 } }));
+      c.add(k.text(x + 14, top + 184, 'เพชรได้จากการเติมเงินจริงเท่านั้น • เติมครั้งแรก (ครั้งเดียวต่อไอดี) ได้เพชรหลัก x2 • ใช้ซื้อของในร้านเพชร (ความสะดวก / ความสวย)', 8, '#c8b898', { wordWrap: { width: W - 28 } }));
+      c.add(k.text(x + 14, top + 214, 'กดเติม → สแกน QR ด้วยแอปธนาคาร (ยอดขึ้นเอง) → อัปโหลดสลิป → ระบบตรวจและส่งเพชรให้อัตโนมัติ', 8, '#9fe8ff', { wordWrap: { width: W - 28 } }));
     } else {
       const cols = 3, cw = (W - 28 - (cols - 1) * 6) / cols, ch = 56;
       const pageN = Math.ceil(DIAMOND_SHOP.length / 12); this.premPage = Math.min(this.premPage, pageN - 1);

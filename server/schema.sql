@@ -53,3 +53,9 @@ CREATE TABLE IF NOT EXISTS econ (day TEXT NOT NULL, id TEXT NOT NULL, src TEXT N
 CREATE INDEX IF NOT EXISTS econ_id ON econ (id, day);
 -- the whole economy once a day (taken when the back office opens 💰): totals of real players, to see what inflates
 CREATE TABLE IF NOT EXISTS econ_snap (day TEXT PRIMARY KEY, at INTEGER NOT NULL, players INTEGER NOT NULL, gold INTEGER NOT NULL, dia INTEGER NOT NULL, wood INTEGER NOT NULL, stone INTEGER NOT NULL, food INTEGER NOT NULL, med_gold INTEGER NOT NULL, items INTEGER NOT NULL DEFAULT 0);
+-- 💳 top-ups: each checked slip once (ref = the bank's transaction ref), every check (rate limit + the admin's log), small settings
+CREATE TABLE IF NOT EXISTS payments (ref TEXT PRIMARY KEY, id TEXT NOT NULL, pack TEXT NOT NULL, thb REAL NOT NULL, dia INTEGER NOT NULL, at INTEGER NOT NULL, status TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS payments_id ON payments (id, status);
+CREATE TABLE IF NOT EXISTS pay_try (id TEXT NOT NULL, at INTEGER NOT NULL, pack TEXT, why TEXT NOT NULL, code TEXT);
+CREATE INDEX IF NOT EXISTS pay_try_id ON pay_try (id, at);
+CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT, at INTEGER);

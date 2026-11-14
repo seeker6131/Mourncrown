@@ -66,7 +66,7 @@ async function api(path, body) {
   if (r.status === 401 || r.status === 403) throw new Error('admin');
   return r.json();
 }
-const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['mail', '📬 จดหมาย'], ['guilds', '🏛 กิลด์'], ['econ', '💰 เศรษฐกิจ'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
+const TABS = [['overview', '📊 ภาพรวม'], ['players', '👥 ผู้เล่น'], ['mail', '📬 จดหมาย'], ['guilds', '🏛 กิลด์'], ['econ', '💰 เศรษฐกิจ'], ['pay', '💳 เติมเงิน'], ['market', '🏪 ตลาด'], ['reports', '🚩 รายงานแชต'], ['flags', '🛡 กันโกง']];
 let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0, showTests = false;
 $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-k="${k}">${n}</button>`).join('');
 $('tabs').onclick = e => { const k = e.target.dataset?.k; if (k) { tab = k; page = 0; show(); } };
@@ -80,7 +80,7 @@ const SRC = { kill: 'ฆ่ามอน', roomKill: 'ฆ่ามอน (แม�
   tutorialDone: 'จบบทสอน', dungeonClear: 'ดันเจี้ยน', mailClaim: 'จดหมาย / ของจากแอดมิน', cbtClaim: 'ของขวัญ CBT', marketBuy: 'ซื้อในตลาด (จ่ายผู้เล่น)', marketSold: 'ขายในตลาด (ได้จากผู้เล่น)',
   marketList: 'ลงขายตลาด', marketCancel: 'ยกเลิกขาย', donate: 'บริจาคกิลด์', guildCreate: 'ตั้งกิลด์', guildUpgrade: 'อัปกิลด์', guildShop: 'ร้านกิลด์', houseBuild: 'บ้านในกิลด์', bldRepair: 'ซ่อมอาคารกิลด์',
   houseRepair: 'ซ่อมบ้านกิลด์', hireGuard: 'จ้างทหาร', defBuild: 'ป้อมกิลด์', defUpgrade: 'อัปป้อม', defRepair: 'ซ่อมป้อม', raidEnd: 'ปล้นหมู่บ้าน', warEnd: 'สงครามกิลด์', warDone: 'สงครามกิลด์', seasonClaim: 'รางวัลฤดูกาล',
-  mountBuy: 'ซื้อสัตว์ขี่', buyDiamond: 'เติมเพชร (เงินจริง)', vipGift: 'ของขวัญ VIP', supplyTick: 'เสบียงบนแมพ', upSkill: 'อัปสกิล', advanceClass: 'เปลี่ยนร่าง', adminKit: 'ชุดแอดมิน', bountySpawn: 'ค่าหัว',
+  mountBuy: 'ซื้อสัตว์ขี่', buyDiamond: 'ซื้อของร้านเพชร', topup: '💳 เติมเงินจริง', vipGift: 'ของขวัญ VIP', supplyTick: 'เสบียงบนแมพ', upSkill: 'อัปสกิล', advanceClass: 'เปลี่ยนร่าง', adminKit: 'ชุดแอดมิน', bountySpawn: 'ค่าหัว',
   sleep: 'นอนพัก', useItem: 'ใช้ไอเทม', stashPut: 'หีบเก็บของ', stashTake: 'หีบเก็บของ', dev: 'ปุ่มทดสอบ (แอดมิน)', wheelSpin: 'กงล้อนำโชค (ทอง)', dwheelSpin: 'กงล้อเพชร', starTrade: 'แลกเหรียญดาว' };
 const srcName = k => SRC[k] ? `${SRC[k]} <span class="dim" style="font-size:11px">${esc(k)}</span>` : esc(k);
 const sgn = v => { v = Math.round(Number(v) || 0); return v > 0 ? `<span style="color:var(--green)">+${num(v)}</span>` : v < 0 ? `<span style="color:var(--red)">−${num(-v)}</span>` : '<span class="dim">0</span>'; };
@@ -148,6 +148,37 @@ async function show() {
       <div>${o.bosses.length ? o.bosses.map(b => `<span class="tag" style="background:#7a2a14;margin:2px">แผนที่ ${b.n} • ${esc(b.name)} • อีก ~${Math.max(1, Math.ceil(b.left / 60000))} นาที</span>`).join(' ') : '<span class="dim">ไม่มี</span>'}</div>
       <h2>🟢 ใครออนไลน์อยู่ (${o.who.length})</h2>${playerTable(o.who)}`;
       timer = setTimeout(show, 30000);
+    } else if (tab === 'pay') {   // 💳 top-ups (server/worker.ts /admin/pay*, src/systems/topup.ts)
+      const d = await api('/admin/pay'), WHY = { ok: '✅ ผ่าน', dup: 'สลิปซ้ำ', account: 'ไม่ได้โอนเข้าบัญชีเกม', amount: 'ยอดไม่ตรง', old: 'สลิปเก่า', bad: 'อ่านไม่ได้', image: 'รูปไม่ชัด/ไม่ใช่สลิป', service: '⚠️ ระบบตรวจสลิปขัดข้อง' };
+      const ST = { ok: '✅ ได้เพชรแล้ว', paid: '⚠️ ตรวจผ่าน แต่ยังไม่ได้เพชร' };
+      main.innerHTML = `<div class="grid">
+          <div class="stat"><div class="v">฿${num(d.today.thb)}</div><div class="k">เติม 24 ชม. (${num(d.today.n)} ครั้ง)</div></div>
+          <div class="stat"><div class="v">฿${num(d.sum.thb)}</div><div class="k">เติมทั้งหมด (${num(d.sum.n)} ครั้ง)</div></div>
+          <div class="stat"><div class="v" style="font-size:18px">${d.key ? '✅ ใส่แล้ว' : '❌ ยังไม่ใส่'}</div><div class="k">คีย์ตรวจสลิป (THUNDER_API_KEY ใน Cloudflare)</div></div>
+          <div class="stat"><div class="v" style="font-size:18px">${d.qr ? '✅ ' + esc(d.qr.kind) + ' …' + esc(d.qr.tail) : '❌ ยังไม่ตั้ง'}</div><div class="k">QR รับเงิน</div></div>
+          <div class="stat"><div class="v" style="font-size:18px;color:${d.open ? 'var(--green)' : 'var(--red)'}">${d.open ? '🟢 เปิดให้ทุกคน' : '🔒 เฉพาะแอดมิน'}</div><div class="k">สถานะระบบเติมเงิน</div></div>
+        </div>
+        <h2>🧾 ตั้ง QR รับเงิน</h2>
+        <p class="dim">เปิดแอปธนาคาร → รับเงิน / QR ของฉัน → บันทึกรูป QR (แบบไม่ระบุยอด) แล้วเลือกรูปที่นี่ • ระบบเก็บไว้บนเซิร์ฟเวอร์ ไม่อยู่ในโค้ด/GitHub • เกมจะใส่ยอดให้เองตามแพ็ก</p>
+        <div class="row"><input type="file" accept="image/*" id="qrFile"><span id="qrMsg" class="dim"></span></div>
+        <details><summary class="dim">อ่านรูปไม่ได้? วางข้อความ QR เอง</summary><div class="row"><input id="qrText" placeholder="000201..." style="width:min(520px,100%)"><button class="btn" id="qrSave">บันทึก</button></div></details>
+        <div class="row" style="margin-top:10px"><button class="btn ${d.open ? '' : 'green'}" id="payOpen" ${!d.open && (!d.qr || !d.key) ? 'disabled' : ''}>${d.open ? '🔒 ปิด (เหลือเฉพาะแอดมิน)' : '🟢 เปิดให้ผู้เล่นทุกคนเติมได้'}</button>
+          <span class="dim">ก่อนเปิด: ทดสอบเติมจริงด้วยบัญชีแอดมิน 1 ครั้ง (29 บาท) และลองสแกน QR จากแอปธนาคารอื่นด้วย</span></div>
+        <h2>💳 รายการเติมเงิน</h2>
+        <div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>แพ็ก</th><th>บาท</th><th>💎</th><th>สถานะ</th><th></th></tr>${d.rows.map(r => `<tr><td class="dim">${when(r.at)}</td><td>${esc(r.name || r.id)}</td><td>${esc(r.pack)}</td><td>฿${num(r.thb)}</td><td>${num(r.dia)}</td><td>${ST[r.status] || esc(r.status)}</td><td>${r.status === 'paid' ? `<button class="btn" data-ref="${esc(r.ref)}">ส่งเพชรอีกครั้ง</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="dim">ยังไม่มีการเติม</td></tr>'}</table></div>
+        <h2>🔎 การตรวจสลิปล่าสุด (รวมที่ไม่ผ่าน)</h2>
+        <div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>แพ็ก</th><th>ผล</th><th>รหัสจากระบบตรวจ</th></tr>${d.tries.map(r => `<tr><td class="dim">${when(r.at)}</td><td>${esc(r.name || r.id)}</td><td>${esc(r.pack)}</td><td>${WHY[r.why] || esc(r.why)}</td><td class="dim">${esc(r.code || '')}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มี</td></tr>'}</table></div>`;
+      const saveQr = async text => { const r = await api('/admin/payqr', { qr: text }); if (r.ok) { alert('บันทึก QR แล้ว: ' + r.qr.kind + ' …' + r.qr.tail); show(); } else alert('QR นี้ใช้ไม่ได้ (' + r.error + ') — ต้องเป็น QR รับเงินของธนาคารไทย/พร้อมเพย์'); };
+      $('qrFile').onchange = async () => {
+        const f = $('qrFile').files[0]; if (!f) return;
+        if (!('BarcodeDetector' in window)) { $('qrMsg').textContent = 'เบราว์เซอร์นี้อ่าน QR จากรูปไม่ได้ — ใช้ Chrome บนมือถือ Android หรือวางข้อความ QR ด้านล่าง'; return; }
+        try { const bmp = await createImageBitmap(f), codes = await new BarcodeDetector({ formats: ['qr_code'] }).detect(bmp);
+          if (!codes.length) { $('qrMsg').textContent = 'ไม่เจอ QR ในรูป — ลองรูปที่ชัดกว่านี้'; return; } await saveQr(codes[0].rawValue);
+        } catch (e) { $('qrMsg').textContent = 'อ่านรูปไม่ได้: ' + e; }
+      };
+      $('qrSave').onclick = () => saveQr($('qrText').value.trim());
+      $('payOpen').onclick = async () => { if (!d.open && !confirm('เปิดให้ผู้เล่นทุกคนเติมเงินจริงได้เลย?')) return; await api('/admin/payopen', { open: !d.open }); show(); };
+      main.querySelectorAll('[data-ref]').forEach(b => b.onclick = async () => { const r = await api('/admin/paycredit', { ref: b.dataset.ref }); alert(r.ok ? 'ส่งเพชรแล้ว' : 'ยังส่งไม่ได้ — ผู้เล่นต้องมีตัวละครบนเซิร์ฟ'); show(); });
     } else if (tab === 'players') {
       const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}${showTests ? '&all=1' : ''}`);
       main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ หรือวางรหัสผู้เล่นที่เขาส่งมา" value="${esc(q)}">

@@ -16,6 +16,8 @@ import { ensureHomeVillage, homeFix } from '../src/systems/settlement';
 import { addMail, takeMailAll, cleanGift, giftText, mailOf, type Gift } from '../src/systems/mail';
 import { CBT_ACTIVE, cbtGot } from '../src/systems/cbtGift';
 import { GUILD_MAX } from '../src/data/guild';
+import { packOf, packDiamonds, qrCheck, qrWithAmount, slipVerdict, SLIP_PER_HOUR, type SlipData } from '../src/systems/topup';
+import { grantDiamonds } from '../src/systems/premium';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -23,9 +25,21 @@ interface D1Result<T> { results: T[] }
 interface D1Stmt { bind(...v: unknown[]): D1Stmt; first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<D1Result<T>> }
 interface DOState { acceptWebSocket(ws: WebSocket, tags?: string[]): void; getWebSockets(tag?: string): WebSocket[]; waitUntil?(p: Promise<unknown>): void }
 interface DONamespace { idFromName(n: string): unknown; get(id: unknown): { fetch(r: Request): Promise<Response> } }
-interface Env { DB: { prepare(sql: string): D1Stmt; batch(list: D1Stmt[]): Promise<unknown> }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; MAX_ONLINE?: string; DAY_HOURS?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
+interface Env { DB: { prepare(sql: string): D1Stmt; batch(list: D1Stmt[]): Promise<unknown> }; GOOGLE_CLIENT_ID?: string; ADMINS?: string; MAX_ONLINE?: string; DAY_HOURS?: string; THUNDER_API_KEY?: string; THUNDER_URL?: string; ROOM: DONamespace; PLAYER: DONamespace; GUILD: DONamespace }
 declare const WebSocketPair: { new(): { 0: WebSocket; 1: WebSocket } };
 type WSX = WebSocket & { serializeAttachment(v: unknown): void; deserializeAttachment(): unknown; accept?: () => void };
+
+/** small settings kept in D1 (the top-up QR, open / closed) */
+async function kvGet(env: Env, k: string) { return (await env.DB.prepare('SELECT v FROM kv WHERE k = ?').bind(k).first<{ v: string }>())?.v ?? ''; }
+async function kvSet(env: Env, k: string, v: string) { await env.DB.prepare('INSERT INTO kv (k, v, at) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at').bind(k, v, Date.now()).run(); }
+/** a paid slip → the player's diamonds (the Player object skips a ref it already has) → the record says 'ok' */
+async function payCredit(env: Env, id: string, ref: string, dia: number, thb: number, pack: string) {
+  try {
+    const r = await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/topup?id=' + id, { method: 'POST', body: JSON.stringify({ ref, dia, thb, pack }) }));
+    if (!(await r.json() as { ok?: boolean }).ok) throw new Error('credit');
+    await env.DB.prepare("UPDATE payments SET status = 'ok' WHERE ref = ?").bind(ref).run(); return true;
+  } catch { await flag(env, id, 'pay:credit', `${ref} ${pack} ${dia}💎 — not given yet (back office → 💳 → ส่งเพชรอีกครั้ง)`); return false; }
+}
 
 const ORIGINS = ['https://seeker6131.github.io', 'http://localhost:5174', 'http://localhost:5180', 'http://localhost:4173', 'http://localhost:5173'];
 const MAX_SAVE = 900_000;          // bytes of save JSON
@@ -181,6 +195,45 @@ export default {
 
       if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub, name: me.name, admin: (env.ADMINS ?? '').split(',').includes(me.id) });
 
+      // 💳 top-up (src/systems/topup.ts): the director's bank QR with the price written in → the player pays and uploads the slip →
+      // Thunder checks it (to the registered account, the amount, not used before) → diamonds. Admin-only until opened in the back office.
+      if (path === '/pay/qr' || path === '/pay/slip') {
+        const admin = (env.ADMINS ?? '').split(',').includes(me.id);
+        if (!admin && (await kvGet(env, 'pay_open')) !== '1') return json(req, { error: 'closed' }, 403);
+        const qr = await kvGet(env, 'pay_qr'); if (!qr || !env.THUNDER_API_KEY) return json(req, { error: 'noqr' }, 503);
+        const first = !(await env.DB.prepare("SELECT 1 AS x FROM payments WHERE id = ? AND status = 'ok' LIMIT 1").bind(me.id).first());
+        if (path === '/pay/qr') {
+          const p = packOf(String(url.searchParams.get('pack') ?? '')); if (!p) return json(req, { error: 'pack' }, 400);
+          return json(req, { qr: qrWithAmount(qr, p.thb), thb: p.thb, dia: packDiamonds(p, first), first });
+        }
+        if (req.method !== 'POST') return json(req, { error: 'method' }, 405);
+        const b = await req.json().catch(() => ({})) as { pack?: string; img?: string };
+        const p = packOf(String(b.pack ?? '')); if (!p) return json(req, { error: 'pack' }, 400);
+        const img = String(b.img ?? '').replace(/^data:image\/[a-z]+;base64,/, '');
+        if (!img) return json(req, { error: 'image' }, 400); if (img.length > 4_000_000) return json(req, { error: 'big' }, 400);
+        const now = Date.now(), tries = (await env.DB.prepare("SELECT COUNT(*) AS n FROM pay_try WHERE id = ? AND at > ? AND why <> 'service'").bind(me.id, now - 3600000).first<{ n: number }>())?.n ?? 0;
+        if (tries >= (admin ? 30 : SLIP_PER_HOUR)) return json(req, { error: 'limit' }, 429);
+        let d: SlipData | null = null, code = '';
+        try {
+          const r = await fetch((env.THUNDER_URL || 'https://api.thunder.in.th') + '/v2/verify/bank',   // (THUNDER_URL: a local test stand-in only)
+             { method: 'POST', headers: { authorization: 'Bearer ' + env.THUNDER_API_KEY, 'content-type': 'application/json' }, body: JSON.stringify({ base64: img, matchAccount: true, matchAmount: p.thb, checkDuplicate: true }) });
+          const j = await r.json().catch(() => ({})) as { data?: SlipData; error?: { code?: string }; code?: string; message?: string };
+          if (r.ok) d = j.data ?? null;
+          else { code = String(j.error?.code ?? j.code ?? j.message ?? 'http' + r.status).slice(0, 60); if (/duplicate/i.test(code)) d = { isDuplicate: true, rawSlip: { transRef: 'dup' } }; }
+        } catch { code = 'network'; }
+        const IMG = /IMAGE|SLIP_NOT_FOUND|SLIP_PENDING|invalid_payload|VALIDATION/i;
+        const v = d ? slipVerdict(d, p.thb, now) : { ok: false as const, why: IMG.test(code) ? 'image' : 'service' };
+        const why = v.ok ? 'ok' : v.why;
+        await env.DB.prepare('INSERT INTO pay_try (id, at, pack, why, code) VALUES (?, ?, ?, ?, ?)').bind(me.id, now, p.id, why, code || null).run();
+        if (why === 'service') await flag(env, me.id, 'pay:service', code);
+        if (!v.ok) return json(req, { error: v.why }, 400);
+        const dia = packDiamonds(p, first);
+        const ins = await env.DB.prepare("INSERT OR IGNORE INTO payments (ref, id, pack, thb, dia, at, status) VALUES (?, ?, ?, ?, ?, ?, 'paid')").bind(v.ref, me.id, p.id, v.thb, dia, now).run() as { meta?: { changes?: number } };
+        if (!ins.meta?.changes) return json(req, { error: 'dup' }, 400);   // (our own record: the same slip twice, even if Thunder missed it)
+        const out = await payCredit(env, me.id, v.ref, dia, v.thb, p.id);
+        return out ? json(req, { ok: true, dia, first }) : json(req, { error: 'credit' }, 500);
+      }
+
       // the player's name: set once (changing it later is a support / shop matter), unique ignoring case
       // 🚩 a player reports someone's chat line: kept for the admin; 3 different players in a day = a day without chat
       if (path === '/report' && req.method === 'POST') {
@@ -272,6 +325,31 @@ export default {
         if (path === '/admin/flags') return json(req, { rows: await all('SELECT f.at, f.what, f.detail, f.id, a.name FROM flags f LEFT JOIN accounts a ON a.id = f.id ORDER BY f.at DESC LIMIT 200') });
         if (path === '/admin/reports') return json(req, { rows: await all('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 200') });
         if (path === '/admin/items') return json(req, { items: Object.values(ITEMS).map(i => ({ id: i.id, name: i.name, type: i.type, rarity: i.rarity, stack: !!i.stack })) });
+        // 💳 top-ups: the record, the QR to receive money (uploaded once, kept in D1 — never in the code), open / closed for players
+        if (path === '/admin/pay') {
+          const q = await kvGet(env, 'pay_qr'), info = q ? qrCheck(q) : null;
+          const sum = await one<{ n: number; thb: number }>("SELECT COUNT(*) AS n, COALESCE(SUM(thb),0) AS thb FROM payments WHERE status = 'ok'");
+          const today = await one<{ n: number; thb: number }>("SELECT COUNT(*) AS n, COALESCE(SUM(thb),0) AS thb FROM payments WHERE status = 'ok' AND at > ?", day);
+          return json(req, { open: (await kvGet(env, 'pay_open')) === '1', key: !!env.THUNDER_API_KEY, qr: info, sum, today,
+            rows: await all('SELECT p.ref, p.id, p.pack, p.thb, p.dia, p.at, p.status, a.name FROM payments p LEFT JOIN accounts a ON a.id = p.id ORDER BY p.at DESC LIMIT 200'),
+            tries: await all('SELECT t.id, t.at, t.pack, t.why, t.code, a.name FROM pay_try t LEFT JOIN accounts a ON a.id = t.id ORDER BY t.at DESC LIMIT 100') });
+        }
+        if (path === '/admin/payqr' && req.method === 'POST') {
+          const b = await req.json().catch(() => ({})) as { qr?: string }; const q = String(b.qr ?? '').trim().slice(0, 512), info = qrCheck(q);
+          if (!info.ok) return json(req, { error: info.why ?? 'format' }, 400);
+          await kvSet(env, 'pay_qr', q); await flag(env, me.id, 'admin:payqr', `${info.kind} ...${info.tail}`);
+          return json(req, { ok: true, qr: info });
+        }
+        if (path === '/admin/payopen' && req.method === 'POST') {
+          const b = await req.json().catch(() => ({})) as { open?: boolean }; await kvSet(env, 'pay_open', b.open ? '1' : '0');
+          await flag(env, me.id, 'admin:payopen', b.open ? 'open' : 'closed'); return json(req, { ok: true, open: !!b.open });
+        }
+        if (path === '/admin/paycredit' && req.method === 'POST') {   // a checked slip whose diamonds did not arrive: send them again
+          const b = await req.json().catch(() => ({})) as { ref?: string };
+          const r = await one<{ ref: string; id: string; pack: string; thb: number; dia: number }>("SELECT ref, id, pack, thb, dia FROM payments WHERE ref = ? AND status = 'paid'", String(b.ref ?? ''));
+          if (!r) return json(req, { error: 'ref' }, 400);
+          return (await payCredit(env, r.id, r.ref, r.dia, r.thb, r.pack)) ? json(req, { ok: true }) : json(req, { error: 'credit' }, 500);
+        }
         if (path === '/admin/give' && req.method === 'POST') {   // send gold / wood / stone / food / items to a player (bug compensation) — no diamonds (real money only)
           const b = await req.json().catch(() => ({})) as { id?: string; gold?: number; wood?: number; stone?: number; food?: number; items?: { id: string; qty: number }[]; note?: string };
           const id = String(b.id ?? ''); if (!id || !(await one('SELECT 1 AS x FROM saves WHERE id = ?', id))) return json(req, { error: 'target' }, 400);
@@ -811,6 +889,18 @@ export class Player {
       const v = JSON.parse(await req.text()) as St | null;
       if (this.st) { if (v) this.st.guild = v; else { delete this.st.guild; delete this.st.guildId; } this.dirty = true; this.send({ t: 'note', own: { guild: v }, text: '' }); }
       return new Response('{}');
+    }
+    if (u.pathname === '/topup' && req.method === 'POST') {   // (the worker, after Thunder said the slip is good) diamonds — once per slip
+      if (!this.st) return new Response(JSON.stringify({ error: 'nosave' }), { status: 400 });
+      const t = JSON.parse(await req.text()) as { ref: string; dia: number; thb: number; pack: string };
+      const st = this.st as St & { payRefs?: string[]; topups?: number; topupThb?: number };
+      if ((st.payRefs ?? []).includes(t.ref)) return new Response(JSON.stringify({ ok: true, again: true }));
+      const eb = this.eSnap(), b = this.snap();
+      grantDiamonds(st as unknown as GameState, Math.max(0, Math.floor(Number(t.dia) || 0)));
+      st.payRefs = [...(st.payRefs ?? []), String(t.ref)].slice(-50); st.topups = (st.topups ?? 0) + 1; st.topupThb = (st.topupThb ?? 0) + (Number(t.thb) || 0);
+      this.eAdd('topup', eb); this.dirty = true; await this.persist(); await this.eFlush(true);
+      this.send({ t: 'note', own: this.diff(b), text: `💎 เติมเงินสำเร็จ! ได้รับ ${t.dia.toLocaleString()} เพชร — ขอบคุณที่สนับสนุนเกม` });
+      return new Response(JSON.stringify({ ok: true }));
     }
     if (u.pathname === '/gift') {   // (the back office) the admin sends resources / items — written at once, the game is told
       if (!this.st) return new Response(JSON.stringify({ error: 'nosave' }), { status: 400 });
