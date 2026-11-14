@@ -32,5 +32,5 @@ export function pxShadowKey(scene: Phaser.Scene, w: number, h: number) {
 }
 /** a pixel oval shadow centred on (x, y) — darker than before (director) */
 export function pxShadow(scene: Phaser.Scene, x: number, y: number, w: number, h: number, alpha = 0.4, depth = 1) {
-  return scene.add.image(Math.round(x), Math.round(y), pxShadowKey(scene, w, h)).setAlpha(Math.min(0.9, alpha * 1.6)).setDepth(depth);
+  return scene.add.image(Math.round(x), Math.round(y), pxShadowKey(scene, w, h)).setAlpha(Math.min(0.92, alpha * 2)).setDepth(depth);   // (darker again — director: shadows must hold the feet to the ground)
 }

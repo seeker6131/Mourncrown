@@ -2236,9 +2236,9 @@ export class TopDownScene extends Phaser.Scene {
       const t = upgTier(weaponUpg(S()));
       if (this.upgRing && this.upgRing.tier !== t) { this.upgRing.destroy(); this.upgRing = undefined; }
       if (t && !this.upgRing) this.upgRing = new UpgRing(this, t);
-      this.upgRing?.update(Math.round(h.x), Math.round(h.y + 1), time, (h.visible || !!this.riding) && !this.dead);
+      this.upgRing?.update(Math.round(h.x), Math.round(h.y), time, (h.visible || !!this.riding) && !this.dead);
     }
-    if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead && !this.upgRing).setPosition(h.x, h.y + 1).setDepth(h.y - 3); }
+    if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead && !this.upgRing).setPosition(h.x, h.y - 1).setDepth(h.y - 3); }   // (centred on the feet — 2px lower read as floating, director)
     { // riding: on when a mount is chosen, outdoors, not in a fight / at work (attacks and gathering get off for 2.5 s)
       const want = mountOn(S()), can = !!want && this.inside < 0 && !this.dead && time > this.rideBlockT && mountReady(this, want);
       const skin = want === 'horse' ? activeHorseSkin(S()) : null;

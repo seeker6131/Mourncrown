@@ -294,7 +294,7 @@ export class Combat {
     // flames under bosses so they stand out from everything else on the map
     if (!base.animal) {
       const rg = boss ? fx2(sc, 'fx_boss_aura', x, y + 1, y - 3, Math.max(0.8, m.size / 140))?.setOrigin(0.5, 0.64).setAlpha(0.95)
-        : fx2(sc, 'fx_ring_mon', x, y + 1, y - 3, Math.max(0.45, m.size / 70))?.setOrigin(0.5, 0.5).setAlpha(0.4);
+        : fx2(sc, 'fx_ring_mon', x, y, y - 3, Math.max(0.45, m.size / 70))?.setOrigin(0.5, 0.5).setAlpha(0.4);
       if (rg) { rg.anims.setProgress(Math.random()); sp.setData('ring', rg); }
     }
     this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite, ...(this.solo && !mir ? { local: true } : {}) });
@@ -966,7 +966,7 @@ export class Combat {
       m.sp.setPosition(m.x, m.y).setDepth(m.y);
       (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
       (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.setPosition(m.x, m.y + 2).setDepth(m.y + 1);
-      { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) { rg.setPosition(m.x, m.y + 1).setDepth(m.y - 3); if (!m.boss) rg.setAlpha(angry ? 0.95 : 0.4); } }
+      { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) { rg.setPosition(m.x, m.y).setDepth(m.y - 3); if (!m.boss) rg.setAlpha(angry ? 0.95 : 0.4); } }
       (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
       const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
       if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);

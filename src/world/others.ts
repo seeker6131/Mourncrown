@@ -90,7 +90,7 @@ export class OtherPlayers {
       // the top of the head: the name sits on it; the HP bar only on monster maps / the Deepwild (villages: the name only)
       const fight = /^[mw]/.test(this.link.room), head = v.ride ? v.ride.headY() : o.y - headH(this.sc, form) * v.sp.scaleY;
       v.pet?.update(o.x, o.y, o.d, now, true, head - (fight ? 6 : 1));
-      { const t = Math.max(0, Math.min(2, o.wu ?? 0)); if (v.ring && v.ring.tier !== t) { v.ring.destroy(); v.ring = undefined; } if (t && !v.ring) v.ring = new UpgRing(this.sc, t); v.ring?.update(Math.round(o.x), Math.round(o.y + 1), now, true); }   // (⚔ their +5 / +10 weapon circle)
+      { const t = Math.max(0, Math.min(2, o.wu ?? 0)); if (v.ring && v.ring.tier !== t) { v.ring.destroy(); v.ring = undefined; } if (t && !v.ring) v.ring = new UpgRing(this.sc, t); v.ring?.update(Math.round(o.x), Math.round(o.y), now, true); }   // (⚔ their +5 / +10 weapon circle)
       if (!!o.nc !== !!v.gold) { v.gold = !!o.nc; nameStyle(v.tag, v.gold, '#bfe8ff', '#06121a'); }
       if (fight) hpBar(this.bars, o.x, head - 5, o.hp / 100, 22);
       v.tag.setText(o.name).setPosition(Math.round(o.x), Math.round(head - (fight ? 6 : 1)));
