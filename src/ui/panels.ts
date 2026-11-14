@@ -51,6 +51,7 @@ import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_T
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { openTopup } from './topupDom';
 import { askCharName } from './charDom';
+import { askQty } from './qtyDom';
 import { charList, slotCount, MAX_SLOTS, SLOT_PRICE } from '../systems/chars';
 import { TICKET_PRICES } from '../server/handlers';
 import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKind } from '../systems/cosmetics';
@@ -1883,9 +1884,13 @@ export class Panels implements GuildHost {
         const can = s.gold >= def.price && !capped;
         if (id === 'mana_shard') c.add(k.text(cx + cw - 70, cy + ch - 9, `วันนี้ ${sd.shopDay.shards}/${SHOP_SHARD_DAILY}`, 6.5, capped ? '#ff8a6a' : '#c8b898').setOrigin(1, 0.5));
         c.add(k.button(cx + cw - 66, cy + 9, 60, 22, `${def.price} G`, () => {
-          const br = act('shopBuy', { id });
+          const most = Math.min(def.stack ? 99 : 1, Math.floor(s.gold / Math.max(1, def.price)), id === 'mana_shard' ? SHOP_SHARD_DAILY - sd.shopDay!.shards : 99);
+          const buy = (n: number) => {
+          const br = act('shopBuy', { id, qty: n });
           if (refused(br)) { sfx.error(); bus.emit(EV.TOAST, ({ gold: 'ทองไม่พอ', bag: 'กระเป๋าเต็ม', cap: 'วันนี้ซื้อครบแล้ว' } as Record<string, string>)[br.refused] ?? 'ซื้อไม่ได้', '#ff8a8a'); return; }
-          sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${def.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+          sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${def.name}${n > 1 ? ' x' + n : ''}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+          };
+          if (most > 1) askQty({ title: `ซื้อ ${def.name} (ชิ้นละ ${def.price} G)`, price: def.price, max: most }, buy); else buy(1);   // (stacks: how many — director)
         }, { size: 9, disabled: !can, color: 0x5a3a10 }));
       });
     } else {

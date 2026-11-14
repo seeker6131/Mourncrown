@@ -271,15 +271,16 @@ export const handlers = {
   brew(s: GameState, a: { out: string }) { const r = brew(s, a.out); if (r === 'ok') pstats(s).brews++; return r; },
   achClaim: (s: GameState, a: { id: string }) => claimAch(s, a.id),
   setTitle: (s: GameState, a: { id: string | null }) => setTitle(s, a.id),
-  shopBuy(s: GameState, a: { id: string }, c: Ctx) {
+  shopBuy(s: GameState, a: { id: string; qty?: number }, c: Ctx) {
     if (!SHOP_STOCK.includes(a.id)) return no('item');
     const def = itemDef(a.id), sd = s as unknown as { shopDay?: { d: string; shards: number } }, today = dayKey(c.now);
     if (sd.shopDay?.d !== today) sd.shopDay = { d: today, shards: 0 };
-    if (a.id === 'mana_shard' && sd.shopDay.shards >= SHOP_SHARD_DAILY) return no('cap');
-    if (s.gold < def.price) return no('gold');
-    if (!addItem(s, a.id, 1)) return no('bag');
-    s.gold -= def.price; if (a.id === 'mana_shard') sd.shopDay.shards++;
-    return { ok: true };
+    let n = Math.max(1, Math.min(def.stack ? 99 : 1, Math.floor(Number(a.qty) || 1)));   // (how many at once: stacks only)
+    if (a.id === 'mana_shard') { if (sd.shopDay.shards >= SHOP_SHARD_DAILY) return no('cap'); n = Math.min(n, SHOP_SHARD_DAILY - sd.shopDay.shards); }
+    if (s.gold < def.price * n) return no('gold');
+    if (!addItem(s, a.id, n)) return no('bag');
+    s.gold -= def.price * n; if (a.id === 'mana_shard') sd.shopDay.shards += n;
+    return { ok: true, qty: n };
   },
   /** VIP perk: buy a potion when out, by itself (the player's choice in the potion settings) */
   autoPotion(s: GameState, a: { id?: string }, c: Ctx) {

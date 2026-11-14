@@ -202,6 +202,8 @@ const EN: Record<string, string> = {
   "📤 ส่งของให้ตัวละคร": "📤 Send to a character", "ยังไม่มีตัวละครอื่นในไอดีนี้": "No other characters on this account yet", "ส่งให้:": "Send to:", "ถอดอุปกรณ์ออกก่อนส่ง": "Take it off before sending", "แตะไอเทมในกระเป๋า\nเพื่อส่งให้": "Tap an item in the bag\nto send it to", "📤 ส่ง": "📤 Send", "กระเป๋าของ": "Bag of", "ส่งไม่สำเร็จ ลองใหม่": "Could not send, try again", "แล้ว — อยู่ในกระเป๋าของเขา": "— now in their bag",
   "ล็อกอิน Google และตั้งชื่อตัวละครแรกก่อน": "Sign in with Google and name your first character first",
   "👥 มีได้หลายตัวละครแล้ว! ปุ่ม 👥 ฝั่งซ้ายจอ • ฟรี 2 ตัว (ซื้อช่องเพิ่ม 💎300 สูงสุด 4 ตัว) • สลับตัวได้ในหมู่บ้าน": "👥 Several characters per account! The 👥 button on the left • 2 free (more slots 💎300, up to 4) • switch in the village", "🤝 ใช้ร่วมกันทุกตัว: ทอง เพชร VIP หมู่บ้าน หีบเก็บของ พาหนะ ของพิเศษ • แยกกัน: อาชีพ เลเวล อุปกรณ์ กระเป๋า สกิล เควส": "🤝 Shared by all: gold, diamonds, VIP, village, chest, mounts, specials • Own: class, level, gear, bag, skills, quests", "📤 ส่งของให้ตัวละครอื่นของเราได้ตรงเข้ากระเป๋า (👥 → ส่งของให้ตัวละคร)": "📤 Send items straight into another of your characters' bags (👥 → Send to a character)",
+  "ชิ้นละ": "each",
+  "🛒 ร้านค้า: ซื้อยา / ของใช้ใส่จำนวนได้ทีละหลายชิ้น": "🛒 Shop: buy potions / supplies several at a time",
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 
