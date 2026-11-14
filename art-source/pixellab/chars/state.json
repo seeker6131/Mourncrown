@@ -1081,5 +1081,11 @@
  },
  "mt_bear": {
   "cid": "aaa5f13b-2687-4976-a8e4-2b2baa158d36"
+ },
+ "mt_panther": {
+  "cid": "7831287a-a0e0-4476-be0f-5b52a4df9a05"
+ },
+ "mt_hydra": {
+  "cid": "17748c28-05d5-4d82-848e-5a958e2eb2d0"
  }
 }

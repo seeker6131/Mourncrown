@@ -13,7 +13,7 @@ MOUNTS = {   # key: (size, quadruped template, description)
     'mt_stag': (84, 'horse', 'a large white spirit stag with huge antlers glowing soft green and wrapped in vines, an EMPTY carved wooden saddle with green cloth on its back, nobody riding it, standing calmly'),
     'mt_bear': (84, 'bear', 'a huge brown war bear wearing iron armour plates on its head and shoulders, an EMPTY heavy leather war saddle on its back, nobody riding it, standing on four legs'),
     'mt_panther': (76, 'lion', 'a sleek black panther with faint purple stripes and glowing yellow eyes, an EMPTY slim purple leather saddle on its back, nobody riding it, standing on four legs'),
-    'mt_nightmare': (80, 'horse', 'a black nightmare horse with a burning violet flame mane and flame tail, glowing red eyes, dark iron horseshoes, an EMPTY black and silver saddle on its back, nobody riding it, standing proudly'),
+    'mt_hydra': (96, None, 'a three-headed dragon flying in the air with all three long necks and three horned heads clearly visible, big leathery wings spread wide, dark crimson and black scales with glowing orange cracks, an EMPTY ornate black and gold saddle on its back between the wings, nobody riding it, legs tucked under the body, hovering'),   # (Limited 150%: flies — wings flap, never walks)
     'mt_dragon': (88, 'lion', 'a young four-legged riding dragon with emerald green scales, golden belly, small folded wings, short horns, an EMPTY ornate red-and-gold saddle on its back, nobody riding it, proud and majestic'),
 }
 def bal(): return P.call('GET', '/balance')['credits']['usd']
@@ -22,7 +22,7 @@ def create(key):
     size, tpl, desc = MOUNTS[key]; st = G.STATE.setdefault(key, {})
     if 'cid' in st: return 'exists'
     r = P.call('POST', '/create-character-v3', {'description': desc + PL, 'image_size': {'width': size, 'height': size}, 'view': 'low top-down', 'n_directions': 8,
-                                                 'template_id': tpl, 'outline': 'single color black outline', 'detail': 'high detail', 'name': key, 'no_background': True})
+                                                 **({'template_id': tpl} if tpl else {}), 'outline': 'single color black outline', 'detail': 'high detail', 'name': key, 'no_background': True})
     st['cid'] = r['character_id']; G.save()
     return G.jwait(r['background_job_id'])['status']
 
