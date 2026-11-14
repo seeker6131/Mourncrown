@@ -45,7 +45,7 @@ export function qrCheck(p: string): QrInfo {
   if (m.get('53') !== '764') return { ok: false, why: 'currency' };
   const pp = m.get('29'), bill = m.get('30');
   if (pp) {
-    const sub = new Map(tlv(pp) ?? []); const KIND: Record<string, string> = { '01': 'พร้อมเพย์ (เบอร์โทร)', '02': 'พร้อมเพย์ (เลขบัตร/ภาษี)', '03': 'พร้อมเพย์ (e-wallet)', '04': 'บัญชีธนาคาร' };
+    const sub = new Map(tlv(pp) ?? []); const KIND: Record<string, string> = { '01': 'พร้อมเพย์ (เบอร์โทร)', '02': 'พร้อมเพย์ (เลขบัตร/ภาษี)', '03': 'QR พร้อมเพย์ (รหัส 15 หลัก)', '04': 'บัญชีธนาคาร' };
     const k = ['01', '02', '03', '04'].find(x => sub.has(x)); if (!k) return { ok: false, why: 'account' };
     return { ok: true, kind: KIND[k], tail: sub.get(k)!.slice(-4) };
   }
