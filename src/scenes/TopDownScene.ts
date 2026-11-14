@@ -462,7 +462,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined; this.autoRing = undefined;   // (scene objects are made anew on restart)
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined; this.autoRing = undefined; this.navGo = null;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -1970,23 +1970,41 @@ export class TopDownScene extends Phaser.Scene {
   /** Demo: the hero dies with the code-made death effect, then respawns. */
   /** 🧭 take the hero where the main quest is done (a player: "the guidance is hard") — a monster map of the right level,
    *  the Deepwild, the dungeon, the land of the roaming boss, or the village with a hint of whom / what to visit */
+  /** 🧭 the quest guide walks to a gate instead of jumping (player feedback 14 Nov: warping was too easy) —
+   *  to a gate that leads straight there, else the map-select gate (stepping on it then enters map n) */
+  navGo: { at: object; then: () => void; until: number } | null = null;
+  navTo(n: number) {
+    const h = this.hero, d = (p: { x: number; y: number }) => Math.hypot(p.x - h.x, p.y - h.y);
+    const p = this.portals.filter(q => q.to === n).sort((a, b) => d(a) - d(b))[0] ?? this.portals.filter(q => q.to === 'select').sort((a, b) => d(a) - d(b))[0];
+    if (!p || this.inside >= 0) { this.enterStage(n); return; }   // (no gate here: as before)
+    this.navGo = { at: p, then: () => this.enterStage(n), until: this.time.now + 180000 };
+    this.walkTo(p.x, p.y, true); bus.emit(EV.TOAST, '🚶 กำลังเดินไปที่ประตู — ขยับจอยเพื่อยกเลิก', '#ffe7a0');
+  }
+  navHome() {
+    const h = this.hero, d = (p: { x: number; y: number }) => Math.hypot(p.x - h.x, p.y - h.y);
+    const p = this.portals.filter(q => q.to === 0).sort((a, b) => d(a) - d(b))[0];
+    const go = () => { this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
+    if (!p) { go(); return; }
+    this.navGo = { at: p, then: go, until: this.time.now + 180000 };
+    this.walkTo(p.x, p.y, true); bus.emit(EV.TOAST, '🚶 กำลังเดินกลับประตูหมู่บ้าน — ขยับจอยเพื่อยกเลิก', '#ffe7a0');
+  }
   questNav(spec?: NavSpec) {   // (navAuto: AUTO goes on when the hero arrives on the map; spec: a quest picked in the quest window)
     const s = S();
     if (this.dungeon || this.townRaid || this.raidMode || this.warSide || this.dead) { bus.emit(EV.TOAST, 'ตอนนี้นำทางไม่ได้ — จบกิจกรรมที่ทำอยู่ก่อน', '#ffb08a'); return; }
     const best = STAGES.filter(st => st.req <= s.level).pop()?.n ?? 1;
     if (spec) {
-      if (spec.village) { bus.emit(EV.TOAST, `🧭 ${spec.village}`, '#c8e8ff'); if (!this.stageN && !this.gv) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); return; }
+      if (spec.village) { bus.emit(EV.TOAST, `🧭 ${spec.village}`, '#c8e8ff'); if (!this.stageN && !this.gv) return; this.navHome(); return; }
       const n = spec.wild ? WILD : spec.map ?? best, why = spec.wild ?? (n === best ? `ไปแผนที่ ${n} (เหมาะกับเลเวลคุณ) — กด AUTO เพื่อสู้เอง` : `ไปแผนที่ ${n}`);
       bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff');
       if (this.stageN === n) { if (!spec.wild && !s.auto) this.toggleAuto(); return; }
-      navAuto.on = !spec.wild; this.enterStage(n); return;
+      navAuto.on = !spec.wild; this.navTo(n); return;
     }
     const t = tdQuest(s); if (!t) return;
     if (t.done) { bus.emit(EV.TOAST, '✔ เควสต์นี้ครบแล้ว — แตะแถบเควสต์มุมซ้ายบนเพื่อรับรางวัล', '#9fffb0'); return; }
     const q = t.q;
     const fight = !['animals', 'ore', 'home', 'tier', 'brews', 'dungeons'].includes(q.metric);
-    const go = (n: number, why: string) => { bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff'); if (this.stageN === n) { if (fight && !s.auto) this.toggleAuto(); return; } navAuto.on = fight; this.enterStage(n); };
-    const village = (why: string) => { bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff'); if (!this.stageN && !this.gv) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
+    const go = (n: number, why: string) => { bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff'); if (this.stageN === n) { if (fight && !s.auto) this.toggleAuto(); return; } navAuto.on = fight; this.navTo(n); };
+    const village = (why: string) => { bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff'); if (!this.stageN && !this.gv) return; this.navHome(); };
     switch (q.metric) {
       case 'animals': case 'ore': go(WILD, q.metric === 'ore' ? 'ไปป่าดงดิบ — ขุดแร่ที่เหมือง (กด AUTO ในชุดชาวบ้านได้)' : 'ไปป่าดงดิบ — ล่ากวาง / หมูป่า'); break;
       case 'map': { const n = Math.min(q.need, best); go(n, n < q.need ? `ไปแผนที่ ${n} (แผนที่ ${q.need} ต้องเลเวลสูงกว่านี้)` : `ไปแผนที่ ${n}`); break; }
@@ -2229,7 +2247,7 @@ export class TopDownScene extends Phaser.Scene {
       if (l > 6) { mx = this.joy.dx / l; my = this.joy.dy / l; }
     }
     if (mx || my) this.manualT = time;
-    if ((mx || my || S().auto) && this.walkGoal) this.walkStop();   // (the stick or AUTO takes over)
+    if ((mx || my || S().auto) && this.walkGoal) { this.walkStop(); this.navGo = null; }   // (the stick or AUTO takes over — and the quest walk is called off)
     if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.panelBlocks && !this.selectUi) [mx, my] = this.autoStep(time);
     else if (this.walkGoal && !this.dead && !this.attacking && !this.panelBlocks && !this.selectUi) [mx, my] = this.walkStep(time);
     const len = Math.hypot(mx, my);
@@ -2310,7 +2328,8 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.portalArmed && this.portals.every(p => !onGate(p, 1.5))) this.portalArmed = true;
     for (const p of this.portals) if (!this.dead && this.portalArmed && (!S().auto || time - this.manualT < 500) && onGate(p, 1) && time > this.portalCool) {
       this.portalArmed = false;
-      if (p.to === 'select') this.stageSelect();
+      if (this.navGo && this.navGo.at === p && time < this.navGo.until) { const f = this.navGo.then; this.navGo = null; this.walkStop(); f(); }   // (🧭 the quest guide walked here)
+      else if (p.to === 'select') this.stageSelect();
       else if (p.to === WILD) this.enterStage(WILD);
       else if (p.to === 0) { this.portalCool = time + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); }
       else if (p.to === 'leave') { this.portalCool = time + 99999; this.raid?.finish('leave'); }
