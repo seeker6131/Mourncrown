@@ -605,7 +605,7 @@ export class Room {
     if (shared && !this.sim && m.t !== 'grid' && now - (this.askT.get(me.id) ?? 0) > 3000) { this.askT.set(me.id, now); try { ws.send(JSON.stringify({ t: 'grid?' })); } catch { /* closing */ } }
     if (m.t === 'p') {   // where I am / what I look like
       const num = (v: unknown, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
-      const p = { x: num(m.x, 0, 4000), y: num(m.y, 0, 4000), d: num(m.d, 0, 7), f: String(m.f ?? 'hero').slice(0, 8), mv: m.mv ? 1 : 0, hp: num(m.hp, 0, 100), a: num(m.a, 0, 3), r: String(m.r ?? '').slice(0, 8), lv: num(m.lv, 1, 999), ...(m.ts !== undefined ? { ts: num(m.ts, 0, 4e9) } : {}) };   // (ts: the sender's clock, for smooth movement)
+      const p = { x: num(m.x, 0, 4000), y: num(m.y, 0, 4000), d: num(m.d, 0, 7), f: String(m.f ?? 'hero').slice(0, 8), mv: m.mv ? 1 : 0, hp: num(m.hp, 0, 100), a: num(m.a, 0, 4), r: String(m.r ?? '').slice(0, 8), lv: num(m.lv, 1, 999), pe: m.pe ? 1 : 0, nc: m.nc ? 1 : 0, sk: m.sk ? 1 : 0, ...(m.ts !== undefined ? { ts: num(m.ts, 0, 4e9) } : {}) };   // (ts: the sender's clock, for smooth movement)
       me.p = p; (ws as WSX).serializeAttachment(me);
       this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
       // a sleeping room wakes only for a reason: a boss is due (a missed alarm) or someone came near the standing boss

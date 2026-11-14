@@ -16,9 +16,9 @@ export const DWHEEL_PRICE = 30, DWHEEL_PRICE10 = 270, STAR_TRADE = 150;
 export const DWHEEL_SEGS = [
   { key: 'dragon', label: '🐉 มังกรเพลิงนิรันดร์', item: '', color: 0xd03a1a, w: 3, keep: true },
   { key: 'potion', label: 'ยาใหญ่ x10', item: 'hp_potion_l', color: 0x6a2a3a, w: 304 },
-  { key: 'cloud', label: '⛈ เมฆพายุ (สัตว์เลี้ยง)', item: '', color: 0x4a3a7a, w: 10, keep: true },
+  { key: 'cloud', label: '⛈ เมฆพายุ (เร็ว +5% • นำทางบอส)', item: '', color: 0x4a3a7a, w: 10, keep: true },
   { key: 'fx', label: '⚔ เอฟเฟกต์ดาบ', item: '', color: 0x8a3aaa, w: 100 },
-  { key: 'horse', label: '🐎 สกินม้าดำนิล', item: '', color: 0x2a2a3a, w: 40, keep: true },
+  { key: 'horse', label: '🐎 ม้าดำนิล (เร็ว +35%)', item: '', color: 0x2a2a3a, w: 40, keep: true },
   { key: 'bag', label: '🎒 กระเป๋า +5 ช่อง', item: '', color: 0x6a4a1a, w: 100 },
   { key: 'title', label: '🏷 ฉายา "ผู้บุกเบิกพายุ" + ชื่อสีทอง', item: '', color: 0xb08a20, w: 60, keep: true },
   { key: 'aura', label: '✨ ออร่าพายุ 30 วัน', item: '', color: 0x3a6aaa, w: 80 },

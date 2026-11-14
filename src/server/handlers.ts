@@ -9,6 +9,7 @@ import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
 import { fillRooms, pickRoom } from '../systems/rooms';
 import { startWar, warTick, warHit, warKill, warEnd, warDone } from '../systems/war';
 import { buyMount, selectMount, grantMount, hasMount } from '../systems/mounts';
+import { setCosmetic, type CosKind } from '../systems/cosmetics';
 import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
@@ -324,6 +325,7 @@ export const handlers = {
   /** mounts: buy the horse with gold, choose what you ride (the dragon only comes from playing) */
   mountBuy: (s: GameState, a: { id: MountId }) => buyMount(s, a.id),
   mountSelect: (s: GameState, a: { id: MountId | null }) => selectMount(s, a.id),
+  cosmetic: (s: GameState, a: { k: CosKind; on: boolean }) => setCosmetic(s, a.k, !!a.on),   // (the diamond wheel's looks: on / off)
   /** guild war (mixed): the server runs the whole war; heroes add hits / kills (systems/war.ts) */
   warStart(s: GameState, a: { id: string }, c: Ctx) { const r = startWar(s, a.id, c.now); if (!('refused' in r)) { mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; } return r; },
   warSync: (s: GameState, _a: object, c: Ctx) => ({ war: warTick(s, c.now) }),

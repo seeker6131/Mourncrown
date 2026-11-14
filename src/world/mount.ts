@@ -44,11 +44,14 @@ function bodyTop(sc: Phaser.Scene, key: string, frame: number) {
   TOP.set(id, top); return top;
 }
 
+/** mount skins (diamond wheel): a tint over the animal */
+export const SKIN_TINT: Record<string, number> = { horse_black: 0x5a5866 };
+
 export class Riding {
   back: Phaser.GameObjects.Sprite; front: Phaser.GameObjects.Sprite; fronts: Phaser.GameObjects.Sprite[] = []; rider: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image;
   embers?: Phaser.GameObjects.Particles.ParticleEmitter;
   info: MInfo; key: string; dir = -1; form = ''; moving = false; cut = 0; riderTop = 0;
-  constructor(public sc: Phaser.Scene, public id: MountId, x: number, y: number) {
+  constructor(public sc: Phaser.Scene, public id: MountId, x: number, y: number, public skin: string | null = null) {
     const def = MOUNTS[id]; this.key = def.key; this.info = MAN[def.key];
     const tex = `m_${this.key}_idle`, oy = this.info.foot / this.info.fs;
     this.sh = pxShadow(sc, x, y, 46 * def.scale, 12 * def.scale, 0.5);
@@ -56,6 +59,7 @@ export class Riding {
     this.rider = sc.add.sprite(x, y, '__DEFAULT');
     this.front = sc.add.sprite(x, y, tex, 0).setOrigin(0.5, oy).setScale(def.scale);
     for (let i = 0; i < 2; i++) this.fronts.push(sc.add.sprite(x, y, tex, 0).setOrigin(0.5, oy).setScale(def.scale).setVisible(false));
+    if (skin && SKIN_TINT[skin]) for (const sp of [this.back, this.front, ...this.fronts]) sp.setTint(SKIN_TINT[skin]);   // (the black horse: the same animal, darkened)
     if (def.fire) {
       if (!sc.textures.exists('px_ember')) { const c = document.createElement('canvas'); c.width = 2; c.height = 2; const k = c.getContext('2d')!; k.fillStyle = '#ffb040'; k.fillRect(0, 0, 2, 2); sc.textures.addCanvas('px_ember', c); }
       this.embers = sc.add.particles(x, y, 'px_ember', { x: { min: -14, max: 14 }, speedY: { min: -38, max: -18 }, speedX: { min: -8, max: 8 }, lifespan: { min: 500, max: 900 }, alpha: { start: 1, end: 0 }, scale: { start: 1, end: 0.4 }, tint: [0xffd060, 0xff8030, 0xff4020], frequency: 70, blendMode: Phaser.BlendModes.ADD });

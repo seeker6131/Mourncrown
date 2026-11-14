@@ -68,6 +68,7 @@ export const VIP_AURA: Record<number, { name: string; col: number; tints: number
   1: { name: 'ฟ้าคราม', col: 0x5ad8ff, tints: [0xe0faff, 0x5ad8ff, 0x1a8aff] },
   2: { name: 'ม่วงทมิฬ', col: 0xb05aff, tints: [0xf0c8ff, 0xb05aff, 0x6a1aff] },
   3: { name: 'ทองราชันย์', col: 0xffd23a, tints: [0xfff2a0, 0xffd23a, 0xff9a1a] },
+  4: { name: 'พายุ', col: 0x9ad8ff, tints: [0xffffff, 0xfff27a, 0x9ad8ff, 0x8a6aff] },   // (the diamond wheel's 30-day storm aura)
 };
 export function grantDiamonds(s: GameState, n: number) { const p = s as PS; p.diamonds = (p.diamonds ?? 0) + n; }
 

@@ -63,6 +63,10 @@ import { hpBar } from '../world/hpBar';
 import { makeRuin } from '../world/ruin';
 import { loadAtlas, unpackAtlas } from '../world/atlas';
 import { preloadMounts, createMountAnims, Riding, mountReady } from '../world/mount';
+import { StormCloud } from '../world/petCloud';
+import { nameStyle } from '../world/nameTag';
+import { activePet, activeNameColor, activeHorseSkin, auraOf, CLOUD_SPEED, rideSpeed } from '../systems/cosmetics';
+import { SERVER } from '../net/cloud';
 import { mountOn } from '../systems/mounts';
 import { MOUNTS } from '../data/mounts';
 import { WC, syncWar, newFeed, warLine } from '../world/warClient';
@@ -164,6 +168,8 @@ function surface(x: number, y: number) {
 /** queue the files a TopDown scene waits for, on any scene's loader (textures are shared by the whole game, so the title
  *  screen can fetch the village while the player is still on it — director: 'please wait' after start was too long).
  *  form = the player's own hero form (null: every form — guild village, test bots, no state yet) */
+/** the storm cloud's boss sense: when it last asked, which bosses it already told about (kept across map changes) */
+const bossPoll = { next: 0, seen: new Set<string>() };
 export function queueTd(sc: Phaser.Scene, o: { gv: boolean; stageN: number; st: ReturnType<typeof stageOf> | null; boss: boolean; mount: boolean; form: string | null }) {
   for (const [p, u] of Object.entries(VFX_FILES)) { const k = 'px_' + p.split('/').pop()!.replace('.png', ''); if (!sc.textures.exists(k)) sc.load.image(k, u); }   // PixelLab skill effects
   loadAtlas(sc, 'obj');   // every map object in one page (tools/pack_atlas.py)
@@ -316,6 +322,8 @@ export class TopDownScene extends Phaser.Scene {
   heroRing?: Phaser.GameObjects.Sprite | null;
   /** riding a mount (world/mount.ts); fighting / gathering gets off for a moment */
   riding?: Riding; rideBlockT = 0; heroMoving = false;
+  /** ⛈ the storm-cloud pet (systems/cosmetics.ts) and its lightning guide to the roaming boss */
+  pet?: StormCloud; guide?: Phaser.GameObjects.Graphics; guideTx?: Phaser.GameObjects.Text; heroTagGold = false;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -422,7 +430,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0;
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -1342,6 +1350,7 @@ export class TopDownScene extends Phaser.Scene {
     if (!this.hero || !this.sys.isActive()) return null;
     const exits = this.portals.map(p => ({ x: p.x, y: p.y, label: p.to === 0 ? 'หมู่บ้าน' : p.to === 'select' ? 'แผนที่มอน' : p.to === WILD ? 'ป่าดงดิบ' : p.to === 'starter' ? 'หมู่บ้านเริ่มต้น' : p.to === 'guild' ? 'หมู่บ้านกิลด์' : p.to === 'out' ? 'ทางออก' : `แผนที่ ${p.to}` }));
     const marks = this.wild ? this.pits.map(p => ({ x: p.x, y: p.y, label: `⛏ ${PITS[p.i].name} Lv${PITS[p.i].req}`, col: S().level >= PITS[p.i].req ? '#ffe8a0' : '#a89878' })) : [];
+    { const wb = this.stageN && activePet(S()) ? this.combat.wbAt : null, m = wb ? this.combat.mons.find(q => q.sid === wb.sid && q.alive) : undefined; if (wb) marks.push({ x: m?.x ?? wb.x, y: m?.y ?? wb.y, label: `⚡ ${wb.name}`, col: '#fff27a' }); }   // (⛈ storm cloud: the roaming boss on the minimap)
     const dots: { x: number; y: number; kind: 'mon' | 'boss' | 'animal' | 'player' }[] = [];
     if (this.stageN) for (const m of this.combat.mons) if (m.alive) dots.push({ x: m.x, y: m.y, kind: m.boss ? 'boss' : m.animal ? 'animal' : 'mon' });
     for (const c of this.crowd?.list ?? []) dots.push({ x: c.x, y: c.y, kind: 'player' });
@@ -1492,10 +1501,42 @@ export class TopDownScene extends Phaser.Scene {
   autoStuck = { x: 0, y: 0, t: 0 };
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
+  /** ⛈ the storm cloud floating with the hero, the lightning arrow to this map's roaming boss, and a word when one
+   *  appears on another map (polled once a minute, only for cloud owners) */
+  updatePet(time: number) {
+    const s = S(), h = this.hero, want = !!activePet(s) && !this.dead;
+    if (want && !this.pet) this.pet = new StormCloud(this, h.x, h.y - 30);
+    else if (!want && this.pet) { this.pet.destroy(); this.pet = undefined; }
+    const vis = h.visible || !!this.riding, top = this.riding ? this.riding.headY() : h.y - headH(this, this.F.key) * h.scaleY;
+    this.pet?.update(h.x, h.y, this.dir, time, vis, top - (this.fightMap() ? 6 : 1));   // (above the name tag)
+    // the guide: an arrow of lightning round the hero pointing at the boss (hidden once it is on screen nearby)
+    const wb = want && this.stageN ? this.combat.wbAt : null, boss = wb ? this.combat.mons.find(m => m.sid === wb.sid && m.alive) : undefined;
+    const bx = boss?.x ?? wb?.x ?? 0, by = boss?.y ?? wb?.y ?? 0, dist = wb ? Math.hypot(bx - h.x, by - h.y) : 0;
+    if (!wb || dist < 70) { this.guide?.clear(); this.guideTx?.setVisible(false); }
+    else {
+      this.guide ??= this.add.graphics().setDepth(99980);
+      this.guideTx ??= this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '8px', color: '#fff27a', stroke: '#1a1430', strokeThickness: 3, resolution: 6 }).setOrigin(0.5).setDepth(99981);
+      const a = Math.atan2(by - h.y, bx - h.x), r = 36, cx = h.x + Math.cos(a) * r, cy = h.y - 12 + Math.sin(a) * r, pulse = 0.65 + Math.sin(time / 120) * 0.35;
+      const g = this.guide.clear(), Z = 1.7, px = (d: number, o: number) => [cx + Math.cos(a) * d * Z - Math.sin(a) * o * Z, cy + Math.sin(a) * d * Z + Math.cos(a) * o * Z] as const;   // (Z: the arrow's size)
+      g.lineStyle(6, 0xfff27a, 0.3 * pulse); g.beginPath(); g.moveTo(...px(-9, 0)); g.lineTo(...px(-3, 3)); g.lineTo(...px(1, -2)); g.lineTo(...px(8, 0)); g.strokePath();
+      g.lineStyle(2, 0xfff8c0, pulse); g.beginPath(); g.moveTo(...px(-9, 0)); g.lineTo(...px(-3, 3)); g.lineTo(...px(1, -2)); g.lineTo(...px(8, 0)); g.strokePath();
+      g.fillStyle(0xfff27a, pulse); g.fillTriangle(...px(12, 0), ...px(6, -4), ...px(6, 4));
+      this.guideTx.setText(`⚡ ${wb.name} ${Math.round(dist / 16)}m`).setPosition(Math.round(h.x + Math.cos(a) * (r + 26)), Math.round(h.y - 12 + Math.sin(a) * (r + 18))).setVisible(true);
+    }
+    if (want && time > bossPoll.next) {
+      bossPoll.next = time + 60000;
+      fetch(SERVER + '/bosses').then(r => r.json()).then((j: { list: { n: number; name: string; left: number }[] }) => {
+        for (const b of j.list ?? []) {
+          const k = `${b.n}:${b.name}:${Math.round((Date.now() + b.left) / 60000)}`; if (bossPoll.seen.has(k)) continue; bossPoll.seen.add(k);
+          if (b.n !== this.stageN) bus.emit(EV.TOAST, `⚡ เมฆพายุสัมผัสได้! บอส ${b.name} อยู่ที่แผนที่ ${b.n} (อีก ~${Math.max(1, Math.round(b.left / 60000))} นาที)`, '#fff27a');
+        }
+      }).catch(() => undefined);
+    }
+  }
   /** the VIP aura (director: a thin aura hugging the hero's outline, not a bonfire): a glow traced around the hero's own
    *  picture that pulses like breathing energy, and thin flame streaks rising off the body. Colour by VIP card (premium.ts). */
   updateAura() {
-    const s = S(), tier = (s as { auraOff?: boolean }).auraOff ? 0 : vipTier(s), want = tier ? String(tier) : undefined;   // colour by VIP card
+    const s = S(), tier = auraOf(s, vipTier(s)), want = tier ? String(tier) : undefined;   // colour by VIP card (or the 30-day storm aura)
     const target = (this.riding ? this.riding.rider : this.hero) as Phaser.GameObjects.Sprite;
     if (this.aura && (this.aura.key !== want || this.aura.on !== target)) { this.aura.on.preFX?.remove(this.aura.glow); this.aura.fire.destroy(); this.aura = undefined; }
     if (!want || !VIP_AURA[tier]) return;
@@ -2015,7 +2056,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero; this.heroMoving = false;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
-      const sp = 108 * (this.riding ? MOUNTS[this.riding.id].speed : vipActive(S()) ? VIP_WALK : 1) * dt / 1000;   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
+      const sp = 108 * (this.riding ? rideSpeed(MOUNTS[this.riding.id].speed, this.riding.skin) : vipActive(S()) ? VIP_WALK : 1) * (activePet(S()) ? CLOUD_SPEED : 1) * dt / 1000;   // (⛈ storm cloud +5%)   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
       this.heroMoving = true;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
       const ok = (x: number, y: number) => this.canStand(x, y);
@@ -2035,14 +2076,16 @@ export class TopDownScene extends Phaser.Scene {
     if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead).setPosition(h.x, h.y + 1).setDepth(h.y - 3); }
     { // riding: on when a mount is chosen, outdoors, not in a fight / at work (attacks and gathering get off for 2.5 s)
       const want = mountOn(S()), can = !!want && this.inside < 0 && !this.dead && time > this.rideBlockT && mountReady(this, want);
-      if (can && (!this.riding || this.riding.id !== want)) { this.riding?.destroy(); this.riding = new Riding(this, want!, h.x, h.y); this.combat.vfx.dust(h.x, h.y, 6, 16); }
+      const skin = want === 'horse' ? activeHorseSkin(S()) : null;
+      if (can && (!this.riding || this.riding.id !== want || this.riding.skin !== skin)) { this.riding?.destroy(); this.riding = new Riding(this, want!, h.x, h.y, skin); this.combat.vfx.dust(h.x, h.y, 6, 16); }
       else if (!can && this.riding) { this.riding.destroy(); this.riding = undefined; this.combat.vfx.dust(h.x, h.y, 6, 16); if (h.alpha === 0) h.setAlpha(1); }
       if (this.riding) { this.riding.update(h.x, h.y, this.dir, this.heroMoving, this.F.key, h.scaleX, time); h.setAlpha(0); }
     }
     this.updateAura();
+    this.updatePet(time);
     if (this.link) {
       const s0 = S(), d0 = derive(s0);
-      this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: (s0 as { auraOff?: boolean }).auraOff ? 0 : vipTier(s0), r: this.riding?.id ?? '', lv: s0.level });
+      this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: auraOf(s0, vipTier(s0)), r: this.riding?.id ?? '', lv: s0.level, pe: activePet(s0) ? 1 : 0, nc: activeNameColor(s0) ? 1 : 0, sk: this.riding?.skin ? 1 : 0 });
       this.peers?.update(dt);
     }
     // the top of the head (director: the name sits ON the head, never over the face); the HP bar only where there is fighting
@@ -2052,7 +2095,7 @@ export class TopDownScene extends Phaser.Scene {
       const s0 = S(); this.heroBar.clear();
       if (h.visible && fight) hpBar(this.heroBar, h.x, head - 5, s0.hp / Math.max(1, derive(s0).maxHp), 24);
       const nm = accountName(); if (nm && s0.name !== nm) s0.name = nm;   // the server's name (it can arrive after the scene opened)
-      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); this.heroTag.setPosition(Math.round(h.x), Math.round(head - (fight ? 6 : 1))).setVisible(h.visible || !!this.riding); }
+      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); const gold = !!activeNameColor(s0); if (gold !== this.heroTagGold) { this.heroTagGold = gold; nameStyle(this.heroTag, gold, '#ffe7a0', '#1a1006'); } this.heroTag.setPosition(Math.round(h.x), Math.round(head - (fight ? 6 : 1))).setVisible(h.visible || !!this.riding); }
     }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);

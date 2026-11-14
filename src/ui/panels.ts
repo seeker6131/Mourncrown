@@ -50,6 +50,8 @@ import { mailOf, mailWaiting, hasGift, mailLive, giftText } from '../systems/mai
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { openTopup } from './topupDom';
+import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKind } from '../systems/cosmetics';
+import { SKIN_TINT } from '../world/mount';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
 import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../systems/potions';
@@ -456,23 +458,33 @@ export class Panels implements GuildHost {
   /** mounts: the horse for gold, the limited fire dragon from playing; choose what you ride */
   buildMounts(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k, on = mountOn(s);
-    const W = Math.min(560, ui.VW - 16), H = 270, { x, y, g } = this.window(c, W, H, '🐎 สัตว์ขี่');
+    const kinds = (['pet', 'horse', 'name'] as CosKind[]).filter(q => cosOwned(s, q)), aura = stormAuraLeft(s), extra = kinds.length || aura ? 40 : 0;
+    const W = Math.min(560, ui.VW - 16), H = 270 + extra, { x, y, g } = this.window(c, W, H, '🐎 สัตว์ขี่');
     c.add(k.text(x + 16, y + 30, 'ขี่แล้ววิ่งเร็วขึ้น • ฮีโร่ทุกร่างขึ้นขี่ได้ • ตี/ใช้สกิล/เก็บของ = ลงจากหลังชั่วครู่ แล้วขึ้นขี่ต่อเอง • ในอาคารลงเดิน', 8, '#9ad8ff', { wordWrap: { width: W - 32 } }));
     const cw = (W - 44) / 2;
     MOUNT_ORDER.forEach((id, i) => {
-      const d = MOUNTS[id], cx = x + 16 + i * (cw + 12), cy = y + 54, ch = H - 70, own = hasMount(s, id), riding = on === id;
+      const d = MOUNTS[id], cx = x + 16 + i * (cw + 12), cy = y + 54, ch = H - 70 - extra, own = hasMount(s, id), riding = on === id;
       g.fillStyle(d.limited ? 0x2a1210 : 0x2a1d12, 0.95).fillRoundedRect(cx, cy, cw, ch, 6).lineStyle(d.limited ? 2 : 1, d.limited ? 0xff7a3a : GOLD_D, 1).strokeRoundedRect(cx, cy, cw, ch, 6);
       const tk = `m_${d.key}_idle`;
-      if (ui.textures.exists(tk)) { const im = ui.add.image(cx + cw / 2, cy + 74, tk, 1).setOrigin(0.5, 0.75); im.setScale(Math.min(1.25, 110 / im.width)); c.add(im); }
+      const skin = id === 'horse' ? activeHorseSkin(s) : null;
+      if (ui.textures.exists(tk)) { const im = ui.add.image(cx + cw / 2, cy + 74, tk, 1).setOrigin(0.5, 0.75); im.setScale(Math.min(1.25, 110 / im.width)); if (skin && SKIN_TINT[skin]) im.setTint(SKIN_TINT[skin]); c.add(im); }
       if (d.limited) c.add(k.text(cx + cw - 8, cy + 6, '✦ LIMITED ✦', 8, '#ffb04a').setOrigin(1, 0));
-      c.add(k.text(cx + 10, cy + 96, `${d.name}`, 11, d.limited ? '#ffb04a' : '#ffe7a0'));
-      c.add(k.text(cx + 10, cy + 114, `💨 วิ่งเร็วขึ้น ${Math.round((d.speed - 1) * 100)}%`, 9, '#9fffb0'));
+      c.add(k.text(cx + 10, cy + 96, `${d.name}${skin ? ' (ดำนิล)' : ''}`, 11, d.limited ? '#ffb04a' : '#ffe7a0'));
+      c.add(k.text(cx + 10, cy + 114, `💨 วิ่งเร็วขึ้น ${Math.round((rideSpeed(d.speed, skin) - 1) * 100)}%`, 9, '#9fffb0'));
       c.add(k.text(cx + 10, cy + 130, own ? (riding ? '✅ กำลังใช้อยู่' : '✔ เป็นของคุณแล้ว') : d.price ? `ราคา 💰${d.price.gold.toLocaleString()} • ต้อง Lv${d.price.lv}` : `ได้จาก: ${d.limited}`, 8, own ? '#9fffb0' : '#e8dcc0', { wordWrap: { width: cw - 20 } }));
       const bx = cx + 10, by = cy + ch - 34, bw = cw - 20;
       if (own) c.add(k.button(bx, by, bw, 24, riding ? '🚶 ลงเดิน' : '🐎 ขี่ตัวนี้', () => { act('mountSelect', { id: riding ? null : id }); sfx.click(); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 9.5, color: riding ? 0x3a2a2a : 0x1f4a2a }));
       else if (d.price) c.add(k.button(bx, by, bw, 24, `🛒 ซื้อ 💰${d.price.gold.toLocaleString()}`, () => { const r = act('mountBuy', { id }); if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'gold' ? 'ทองไม่พอ' : r.refused === 'level' ? `ต้องเลเวล ${d.price!.lv}` : 'ซื้อไม่ได้', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, `🐎 ได้ ${d.name} แล้ว! ขึ้นขี่เลย`, '#9fffb0'); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 9.5, color: 0x4a3a10, disabled: s.gold < d.price.gold || s.level < d.price.lv }));
-      else c.add(k.text(cx + cw / 2, by + 6, '🔒 ยังไม่ได้รับ — ซื้อด้วยเงินจริงไม่ได้', 8, '#a89878').setOrigin(0.5, 0));
+      else c.add(k.text(cx + cw / 2, by + 6, DWHEEL_OPEN ? '🔒 ยังไม่ได้รับ' : '🔒 ยังไม่ได้รับ — ซื้อด้วยเงินจริงไม่ได้', 8, '#a89878').setOrigin(0.5, 0));
     });
+    // ✨ the diamond wheel's looks (systems/cosmetics.ts): each on / off
+    if (extra) {
+      const ry = y + H - 46, NAMES: Record<CosKind, string> = { pet: '⛈ เมฆพายุ', horse: '🐴 สกินม้าดำนิล', name: '🏷 ชื่อสีทอง' };
+      c.add(k.text(x + 16, ry, '✨ ของพิเศษ', 9, '#ffe7a0'));
+      const bw = Math.min(150, (W - 110) / Math.max(1, kinds.length));
+      kinds.forEach((q, i) => { const isOn = cosOn(s, q); c.add(k.button(x + 92 + i * (bw + 6), ry - 4, bw, 22, `${NAMES[q]}: ${isOn ? 'เปิด' : 'ปิด'}`, () => { act('cosmetic', { k: q, on: !isOn }); sfx.click(); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 8.5, color: isOn ? 0x1f4a2a : 0x3a2a2a })); });
+      c.add(k.text(x + 16, ry + 22, (aura ? `🌩 ออร่าพายุ เหลือ ${Math.floor(aura / 86400000)} วัน ${Math.floor(aura / 3600000) % 24} ชม. • ` : '') + (kinds.includes('pet') ? 'เมฆพายุ: วิ่งเร็วขึ้น 5% + ⚡ ลูกศรชี้ทางไปบอสเร่ร่อน และบอกเมื่อบอสโผล่แผนที่อื่น' : '') + (kinds.includes('horse') ? ' • ม้าดำนิล: วิ่งเร็วขึ้น 35% (ม้าปกติ 30%)' : ''), 7.5, '#c8b898', { wordWrap: { width: W - 32 } }));
+    }
   }
   /** the guild window on a tab (and a defense slot picked) */
   openGuild(tab: GuildTab, slot = -1) { this.guildTab = tab; if (slot >= 0) this.guildSlot = slot; this.guildPick = null; this.open('guild'); }
