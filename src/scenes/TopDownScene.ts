@@ -1668,7 +1668,7 @@ export class TopDownScene extends Phaser.Scene {
       if (this.wild) { if (this.farm && vipActive(s)) return this.farmStep(time); if (this.farm) this.stopFarm('👑 VIP หมดอายุ — หยุดฟาร์มออโต้'); s.auto = false; return [0, 0]; }
       if (!this.stageN || this.wild) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง', '#e8c872'); } return [0, 0]; }
       // pick up loot lying close by before the next fight
-      const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));
+      const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && !g.skip && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));   // (never walk to loot the VIP setting leaves on the ground: it went back and forth)
       if (lt) { const st = this.steer(lt, lt.x, lt.y, time); if (st) return st; }
       const alive = this.combat.alive().filter(m => !bad(m));
       const foes = alive.filter(m => !m.animal);

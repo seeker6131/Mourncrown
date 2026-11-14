@@ -24,14 +24,14 @@ async function req(path: string, init: RequestInit = {}, a = acc()) {
   return { status: r.status, body: await r.json().catch(() => ({})) as Record<string, unknown> };
 }
 /** 💳 top-up: the director's bank QR with the pack's price written in (or why not: closed / noqr / login / net) */
-export async function payQr(pack: string): Promise<{ qr: string; thb: number; dia: number; first: boolean } | { error: string }> {
+export async function payQr(pack: string): Promise<{ qr: string; thb: number; dia: number; days?: number; first: boolean } | { error: string }> {
   if (!ok() || !acc()) return { error: 'login' };
-  try { const r = await req('/pay/qr?pack=' + encodeURIComponent(pack)); return r.status === 200 ? r.body as { qr: string; thb: number; dia: number; first: boolean } : { error: String(r.body.error ?? 'service') }; } catch { return { error: 'net' }; }
+  try { const r = await req('/pay/qr?pack=' + encodeURIComponent(pack)); return r.status === 200 ? r.body as { qr: string; thb: number; dia: number; days?: number; first: boolean } : { error: String(r.body.error ?? 'service') }; } catch { return { error: 'net' }; }
 }
 /** 💳 top-up: the slip picture (base64 JPEG) → the server checks it with Thunder → diamonds arrive by the game's connection */
-export async function paySlip(pack: string, img: string): Promise<{ ok: true; dia: number } | { error: string }> {
+export async function paySlip(pack: string, img: string): Promise<{ ok: true; dia: number; days?: number } | { error: string }> {
   if (!ok() || !acc()) return { error: 'login' };
-  try { const r = await req('/pay/slip', { method: 'POST', body: JSON.stringify({ pack, img }) }); return r.status === 200 && r.body.ok ? { ok: true, dia: Number(r.body.dia) } : { error: String(r.body.error ?? 'service') }; } catch { return { error: 'net' }; }
+  try { const r = await req('/pay/slip', { method: 'POST', body: JSON.stringify({ pack, img }) }); return r.status === 200 && r.body.ok ? { ok: true, dia: Number(r.body.dia), days: Number(r.body.days) || 0 } : { error: String(r.body.error ?? 'service') }; } catch { return { error: 'net' }; }
 }
 /** 🚩 report a player's chat line (the server keeps it for the admin; 3 reporters in a day = no chat for a day) */
 export async function reportChat(target: string, text: string, room: string): Promise<'ok' | 'again' | 'limit' | 'fail'> {

@@ -17,7 +17,7 @@ import { addMail, takeMailAll, cleanGift, giftText, mailOf, type Gift } from '..
 import { CBT_ACTIVE, cbtGot } from '../src/systems/cbtGift';
 import { GUILD_MAX } from '../src/data/guild';
 import { packOf, packDiamonds, qrCheck, qrWithAmount, slipVerdict, SLIP_PER_HOUR, type SlipData } from '../src/systems/topup';
-import { grantDiamonds } from '../src/systems/premium';
+import { grantDiamonds, grantVip } from '../src/systems/premium';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -201,10 +201,10 @@ export default {
         const admin = (env.ADMINS ?? '').split(',').includes(me.id);
         if (!admin && (await kvGet(env, 'pay_open')) !== '1') return json(req, { error: 'closed' }, 403);
         const qr = await kvGet(env, 'pay_qr'); if (!qr || !env.THUNDER_API_KEY) return json(req, { error: 'noqr' }, 503);
-        const first = !(await env.DB.prepare("SELECT 1 AS x FROM payments WHERE id = ? AND status = 'ok' LIMIT 1").bind(me.id).first());
+        const first = !(await env.DB.prepare("SELECT 1 AS x FROM payments WHERE id = ? AND status = 'ok' AND pack LIKE 'd%' LIMIT 1").bind(me.id).first());   // (the first diamond top-up doubles; a VIP card does not use it up)
         if (path === '/pay/qr') {
           const p = packOf(String(url.searchParams.get('pack') ?? '')); if (!p) return json(req, { error: 'pack' }, 400);
-          return json(req, { qr: qrWithAmount(qr, p.thb), thb: p.thb, dia: packDiamonds(p, first), first });
+          return json(req, { qr: qrWithAmount(qr, p.thb), thb: p.thb, dia: p.days ? 0 : packDiamonds(p, first), days: p.days, first: first && !p.days });
         }
         if (req.method !== 'POST') return json(req, { error: 'method' }, 405);
         const b = await req.json().catch(() => ({})) as { pack?: string; img?: string };
@@ -227,11 +227,11 @@ export default {
         await env.DB.prepare('INSERT INTO pay_try (id, at, pack, why, code) VALUES (?, ?, ?, ?, ?)').bind(me.id, now, p.id, why, code || null).run();
         if (why === 'service') await flag(env, me.id, 'pay:service', code);
         if (!v.ok) return json(req, { error: v.why }, 400);
-        const dia = packDiamonds(p, first);
+        const dia = p.days ? 0 : packDiamonds(p, first);
         const ins = await env.DB.prepare("INSERT OR IGNORE INTO payments (ref, id, pack, thb, dia, at, status) VALUES (?, ?, ?, ?, ?, ?, 'paid')").bind(v.ref, me.id, p.id, v.thb, dia, now).run() as { meta?: { changes?: number } };
         if (!ins.meta?.changes) return json(req, { error: 'dup' }, 400);   // (our own record: the same slip twice, even if Thunder missed it)
         const out = await payCredit(env, me.id, v.ref, dia, v.thb, p.id);
-        return out ? json(req, { ok: true, dia, first }) : json(req, { error: 'credit' }, 500);
+        return out ? json(req, { ok: true, dia, days: p.days, first: first && !p.days }) : json(req, { error: 'credit' }, 500);
       }
 
       // the player's name: set once (changing it later is a support / shop matter), unique ignoring case
@@ -910,10 +910,10 @@ export class Player {
       const st = this.st as St & { payRefs?: string[]; topups?: number; topupThb?: number };
       if ((st.payRefs ?? []).includes(t.ref)) return new Response(JSON.stringify({ ok: true, again: true }));
       const eb = this.eSnap(), b = this.snap();
-      grantDiamonds(st as unknown as GameState, Math.max(0, Math.floor(Number(t.dia) || 0)));
+      const card = packOf(String(t.pack)); if (card?.days) grantVip(st as unknown as GameState, card.days); else grantDiamonds(st as unknown as GameState, Math.max(0, Math.floor(Number(t.dia) || 0)));
       st.payRefs = [...(st.payRefs ?? []), String(t.ref)].slice(-50); st.topups = (st.topups ?? 0) + 1; st.topupThb = (st.topupThb ?? 0) + (Number(t.thb) || 0);
       this.eAdd('topup', eb); this.dirty = true; await this.persist(); await this.eFlush(true);
-      this.send({ t: 'note', own: this.diff(b), text: `💎 เติมเงินสำเร็จ! ได้รับ ${t.dia.toLocaleString()} เพชร — ขอบคุณที่สนับสนุนเกม` });
+      this.send({ t: 'note', own: this.diff(b), text: card?.days ? `👑 ซื้อ VIP ${card.days} วัน สำเร็จ! — ขอบคุณที่สนับสนุนเกม` : `💎 เติมเงินสำเร็จ! ได้รับ ${t.dia.toLocaleString()} เพชร — ขอบคุณที่สนับสนุนเกม` });
       return new Response(JSON.stringify({ ok: true }));
     }
     if (u.pathname === '/gift') {   // (the back office) the admin sends resources / items — written at once, the game is told

@@ -3,10 +3,14 @@
 // price written into it (Thai QR / EMVCo; the stored QR is uploaded once in the back office, never in the code) → the
 // player pays in their bank app and uploads the slip → the server asks Thunder (slip check API) whether the money went to
 // the director's registered account, the amount is right and the slip was not used before → diamonds.
-import { DIAMOND_PACKS } from './premium';
+import { DIAMOND_PACKS, VIP_CARDS } from './premium';
 
-export type Pack = (typeof DIAMOND_PACKS)[number];
-export const packOf = (id: string): Pack | undefined => DIAMOND_PACKS.find(p => p.id === id);
+/** a diamond pack or a VIP card (both bought the same way: QR → slip) */
+export type Pack = { id: string; thb: number; diamonds: number; bonus: number; days: number };
+export const packOf = (id: string): Pack | undefined => {
+  const d = DIAMOND_PACKS.find(p => p.id === id); if (d) return { ...d, days: 0 };
+  const v = VIP_CARDS.find(p => p.id === id); return v ? { id: v.id, thb: v.thb, diamonds: 0, bonus: 0, days: v.days } : undefined;
+};
 /** diamonds for a pack: the pack + its bonus, and the base doubled on the account's very first top-up ("เติมครั้งแรก x2") */
 export const packDiamonds = (p: Pack, first: boolean) => p.diamonds + p.bonus + (first ? p.diamonds : 0);
 /** slips checked per account per hour (each check spends the Thunder quota) */

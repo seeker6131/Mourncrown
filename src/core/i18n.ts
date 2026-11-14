@@ -195,6 +195,8 @@ const EN: Record<string, string> = {
   "🗺 แตะมินิแมพ (ซูม) แล้วแตะจุดที่อยากไป — ตัวละครเดินไปเองอ้อมกำแพงให้ • ขยับจอยเพื่อยกเลิก": "🗺 Tap the minimap (zoomed), then tap where to go — your hero walks there round the walls • move the stick to cancel", "📅 ล็อกอินรายวัน: เด้งให้รับทุกแผนที่ (เดิมเด้งแค่ในหมู่บ้าน) และเด้งวันละครั้ง • กระเป๋าเต็มจะรอให้รับทีหลัง ของไม่หาย": "📅 Daily login: pops up on any map (was the village only), once a day • a full bag waits — nothing is lost", "14 พ.ย. (ดึก)": "14 Nov (late)",
   "ประกาศจากแอดมิน": "Admin announcement",
   "📢 ประกาศจากแอดมิน": "📢 Admin announcement",
+  "👑 ซื้อ VIP": "👑 Buy VIP", "กดซื้อ → สแกน QR ด้วยแอปธนาคาร → อัปโหลดสลิป → ได้ VIP อัตโนมัติ": "Tap Buy → scan the QR with your bank app → upload the slip → VIP arrives by itself",
+  "👑 ซื้อบัตร VIP ด้วยเงินจริงได้แล้ว — ร้านค้า → บัตร VIP → ซื้อ → สแกน QR → อัปสลิป": "👑 VIP cards can now be bought with real money — Shop → VIP Cards → Buy → scan the QR → upload the slip", "🎁 ของดรอปลอยเข้าหาตัวจากระยะไกลขึ้น (เท่าระยะสกิลยิงไกล) • ของที่ตกในพุ่มไม้/กำแพงจะเลื่อนมาที่ที่เดินถึง • AUTO ไม่เดินวนไปหาของที่ตั้งค่าไม่เก็บแล้ว": "🎁 Loot flies to you from farther (as far as a ranged skill) • loot that lands in bushes / walls moves to a reachable spot • AUTO no longer walks back and forth to loot your settings leave behind", "🖥 เล่นบน PC หน้าต่างแนวตั้งได้แล้ว (ไม่ขึ้น \"หมุนจอ\")": "🖥 Play on PC in a tall window (no more \"rotate your phone\")", "📢 ประกาศจากแอดมินจะขึ้นเป็นแถบสีทองเล็กๆ ใต้ชื่อแผนที่": "📢 Admin announcements show as a small gold banner under the map name", "14 พ.ย. (บ่ายแก่)": "14 Nov (afternoon)",
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

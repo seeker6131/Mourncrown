@@ -1007,7 +1007,7 @@ export class Panels implements GuildHost {
     const tabs: [typeof this.premTab, string][] = [['vip', '👑 บัตร VIP'], ['shop', '💎 ร้านเพชร'], ['topup', '💳 เติมเพชร']];
     tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 104, y + 30, 98, 22, label, () => { this.premTab = id; this.rebuild(); }, { size: 9, color: this.premTab === id ? 0x6a4a10 : 0x2a1d12 })));
     c.add(k.text(x + W - 16, y + 34, `💎 ${diamonds(s).toLocaleString()}`, 11, '#8fe8ff').setOrigin(1, 0));
-    const top = y + 60, notice = '🔒 ซื้อด้วยเงินจริงได้เมื่อระบบออนไลน์ + ชำระเงินเปิด (ตอนนี้แสดงตัวอย่างร้าน)';
+    const top = y + 60;
     if (this.premTab === 'vip') {
       const left = vipLeftMs(s), on = left > 0;
       g.fillStyle(on ? 0x3a2a08 : 0x1a140e, 0.9).fillRoundedRect(x + 14, top, 236, H - 76, 5).lineStyle(1.5, on ? 0xffd84a : 0x6a5a40, 1).strokeRoundedRect(x + 14, top, 236, H - 76, 5);
@@ -1023,10 +1023,10 @@ export class Panels implements GuildHost {
         c.add(k.text(cx + cw / 2, top + 78, `฿${v.thb}`, 16, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 0));
         c.add(k.text(cx + cw / 2, top + 100, `ตกวันละ ฿${per}`, 7.5, i ? '#9fffb0' : '#c8b898').setOrigin(0.5, 0));
         if (i) c.add(k.text(cx + cw / 2, top + 112, `ประหยัด ${Math.round((1 - v.thb / v.days / (VIP_CARDS[0].thb / 3)) * 100)}%`, 7.5, '#ffb070').setOrigin(0.5, 0));
-        c.add(k.button(cx + 6, top + 124, cw - 12, 20, 'ซื้อ', () => bus.emit(EV.TOAST, notice, '#ffd84a'), { size: 9, color: 0x1f4a2a }));
+        c.add(k.button(cx + 6, top + 124, cw - 12, 20, 'ซื้อ', () => { void openTopup(v.id, (t, col) => bus.emit(EV.TOAST, t, col ?? '#ffd84a'), () => { if (this.cur === 'premium') this.rebuild(); }); }, { size: 9, color: 0x1f4a2a }));
       });
       c.add(k.text(cx0, top + 160, 'บัตรใหม่ต่อเวลาจากที่เหลือได้ • ไม่ขายของแรงหรือเพิ่มโอกาสดรอปของแรร์ (ไม่ pay to win)', 7.5, '#c8b898', { wordWrap: { width: W - 276 } }));
-      c.add(k.text(cx0, top + 196, notice, 7.5, '#ff9a6a', { wordWrap: { width: W - 276 } }));
+      c.add(k.text(cx0, top + 196, 'กดซื้อ → สแกน QR ด้วยแอปธนาคาร → อัปโหลดสลิป → ได้ VIP อัตโนมัติ', 7.5, '#9fe8ff', { wordWrap: { width: W - 276 } }));
     } else if (this.premTab === 'topup') {
       const cw = (W - 28 - 4 * 6) / 5;
       DIAMOND_PACKS.forEach((p, i) => {

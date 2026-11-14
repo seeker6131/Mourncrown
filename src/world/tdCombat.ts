@@ -32,7 +32,11 @@ export interface Mon {
   x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; /** (shared map) the other player it is after */ tgt?: string; /** (mirror) where the host has it */ nx?: number; ny?: number; mvF?: number; atF?: number; goneT?: number; bounty?: boolean; /** (online) this game's own monster, not the room's: the bounty lord */ local?: boolean; /** a roaming boss (run by the room) */ wb?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
 }
 
+/** loot flies to the hero from this far (px) — the reach of a ranged skill */
+export const LOOT_REACH = 150;
 export interface Host extends Phaser.Scene {
+  /** a spot the hero can stand on (loot never lands in a tree / wall) */
+  canStand?(x: number, y: number): boolean;
   hero: Phaser.GameObjects.Sprite; dir: number; isBlocked(x: number, y: number): boolean; surfAt(x: number, y: number): string;
   burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean; stageN: number;
   /** an animal kicks back: push the hero away and stun for ms */
@@ -114,7 +118,10 @@ export class Combat {
     const sc = this.s;
     drops.forEach((d, i) => {
       const def = itemDef(d.id), key = sc.textures.exists(`icon_${def.icon}`) ? `icon_${def.icon}` : 'td_glow', col = RARITY_COLORS[d.rar];
-      const tx = x + (Math.random() - 0.5) * 50, ty = y + 4 + (Math.random() - 0.5) * 26;
+      let tx = x + (Math.random() - 0.5) * 50, ty = y + 4 + (Math.random() - 0.5) * 26;
+      if (sc.canStand && !sc.canStand(tx, ty)) {   // (landed in a tree / wall: the nearest spot one can walk to — a player could not reach it)
+        outer: for (let r = 6; r <= 120; r += 6) for (let a = 0; a < 12; a++) { const px = tx + Math.cos(a / 12 * Math.PI * 2) * r, py = ty + Math.sin(a / 12 * Math.PI * 2) * r; if (sc.canStand(px, py)) { tx = px; ty = py; break outer; } }
+      }
       const aura = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(ty - 1).setScale(AURA[d.rar]);
       sc.tweens.add({ targets: aura, alpha: { from: 0.55, to: 1 }, scale: { from: AURA[d.rar] * 0.85, to: AURA[d.rar] * 1.15 }, duration: 600 - d.rar * 40, yoyo: true, repeat: -1 });
       let beam: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite | undefined;
@@ -176,7 +183,7 @@ export class Combat {
       if (!g.landed || g.busy) continue;
       const d = Math.hypot(g.x - h.x, g.y - h.y);
       if (g.skip === undefined) g.skip = lootSkip(S(), isGear(itemDef(g.id)), g.rar);   // 👑 VIP: gear below the chosen rarity stays on the ground
-      if (!g.skip && !this.s.dead && time > g.retryT && (d < 60 || (d < 120 && time - g.born < 1500))) { this.flyLoot(g); continue; }
+      if (!g.skip && !this.s.dead && time > g.retryT && d < LOOT_REACH) { this.flyLoot(g); continue; }   // (director: as far as a ranged skill reaches)
       // left on the ground: someone else may take it
       if (time - g.born > 3500 && d > 110 && others.length) {
         const o = others.find(q => Math.hypot(q.x - g.x, q.y - g.y) < 16);

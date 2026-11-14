@@ -30,8 +30,8 @@ export async function openTopup(packId: string, toast: (text: string, color?: st
   wrap.innerHTML = `
     <div style="position:relative;width:min(360px,92vw);padding:16px 16px 14px;background:#141c22;border:2px solid #5ac8e8;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.6);color:#e8f4f8;display:grid;gap:9px;text-align:center">
       <button class="x" aria-label="close" style="position:absolute;top:6px;right:8px;background:none;border:0;color:#9ab;font-size:22px;cursor:pointer">✕</button>
-      <b style="font-size:18px;color:#8fe8ff">${tr('💳 เติมเพชร')}</b>
-      <div style="font-size:15px">${tr('ได้รับ')} <b style="color:#8fe8ff">💎 ${q.dia.toLocaleString()}</b>${q.first ? `<br><span style="font-size:12px;color:#9fffb0">${tr('รวมโบนัสเติมครั้งแรก (เพชรหลัก x2)')}</span>` : ''}</div>
+      <b style="font-size:18px;color:#8fe8ff">${q.days ? tr('👑 ซื้อ VIP') : tr('💳 เติมเพชร')}</b>
+      <div style="font-size:15px">${tr('ได้รับ')} <b style="color:#8fe8ff">${q.days ? `👑 VIP ${q.days} ${tr('วัน')}` : `💎 ${q.dia.toLocaleString()}`}</b>${q.first ? `<br><span style="font-size:12px;color:#9fffb0">${tr('รวมโบนัสเติมครั้งแรก (เพชรหลัก x2)')}</span>` : ''}</div>
       <img src="${img}" alt="QR" style="width:min(240px,70vw);margin:0 auto;border-radius:6px;image-rendering:pixelated;background:#fff">
       <div style="font-size:20px;font-weight:700;color:#fff">${tr('ยอดโอน')} ฿${q.thb.toFixed(2)}</div>
       <div style="font-size:12.5px;color:#b8c8d0;line-height:1.5">${tr('สแกนด้วยแอปธนาคาร ยอดจะขึ้นเอง — ห้ามแก้ยอด')}<br>${tr('เล่นบนมือถือเครื่องเดียวกัน: กดบันทึกรูป QR แล้วเปิดแอปธนาคาร → สแกน → เลือกรูปจากเครื่อง')}</div>
@@ -53,7 +53,7 @@ export async function openTopup(packId: string, toast: (text: string, color?: st
     try { r = await paySlip(packId, await shrink(f)); } catch { r = { error: 'image' }; }
     busy = false; up.style.opacity = '1';
     if ('ok' in r) {
-      msg.style.color = '#9fffb0'; msg.textContent = `✅ ${tr('เติมสำเร็จ! ได้รับ')} 💎 ${r.dia.toLocaleString()}`;
+      msg.style.color = '#9fffb0'; msg.textContent = `✅ ${tr('เติมสำเร็จ! ได้รับ')} ${r.days ? `👑 VIP ${r.days} ${tr('วัน')}` : `💎 ${r.dia.toLocaleString()}`}`;
       up.style.display = 'none'; (wrap.querySelector('.save') as HTMLElement).style.display = 'none';
     } else { msg.style.color = '#ff8a6a'; msg.textContent = tr(SLIP_WHY[r.error] ?? SLIP_WHY.service); }
   });
