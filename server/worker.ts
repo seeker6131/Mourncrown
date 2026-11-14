@@ -326,6 +326,11 @@ export default {
         if (path === '/admin/reports') return json(req, { rows: await all('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 200') });
         if (path === '/admin/items') return json(req, { items: Object.values(ITEMS).map(i => ({ id: i.id, name: i.name, type: i.type, rarity: i.rarity, stack: !!i.stack })) });
         // 💳 top-ups: the record, the QR to receive money (uploaded once, kept in D1 — never in the code), open / closed for players
+        if (path === '/admin/ann') {   // 📢 the megaphone: a short line shown in every game (sent with the next heartbeat, ≤ 2 min)
+          const r = await cw.fetch(new Request('https://r/ann', req.method === 'POST' ? { method: 'POST', body: await req.text() } : {})); const out = await r.json() as { ann: unknown };
+          if (req.method === 'POST') await flag(env, me.id, 'admin:ann', JSON.stringify(out.ann ?? 'cleared').slice(0, 200));
+          return json(req, out);
+        }
         if (path === '/admin/pay') {
           const q = await kvGet(env, 'pay_qr'), info = q ? qrCheck(q) : null;
           const sum = await one<{ n: number; thb: number }>("SELECT COUNT(*) AS n, COALESCE(SUM(thb),0) AS thb FROM payments WHERE status = 'ok'");
@@ -525,10 +530,13 @@ export class Room {
   online = new Map<string, number>(); onlineT = 0;
   /** (chat-world) player-minutes played today (UTC day — Cloudflare's day), kept in storage across restarts */
   use = { day: '', mins: 0 }; useT = 0; useLoaded = false;
+  /** 📢 the admin's megaphone (back office): one announcement, shown in every game (handed out with the online count) */
+  ann: { id: number; text: string; until: number } | null = null;
   private get store() { return (this.state as unknown as { storage: { get(k: string): Promise<unknown>; put(k: string, v: unknown): Promise<void>; setAlarm(t: number): Promise<void> } }).storage; }
   private async useLoad(now: number) {
     if (!this.useLoaded) {
       this.useLoaded = true; const v = await this.store.get('use').catch(() => null) as { day: string; mins: number } | null; if (v) this.use = v;
+      this.ann = await this.store.get('ann').catch(() => null) as typeof this.ann;
       // who is online survives this object going to sleep / a deploy (it lived in memory only: the 🟢 count and the back office
       // showed only those who had said hello since — "online 1" while others walked around)
       const o = await this.store.get('online').catch(() => null) as Record<string, number> | null;
@@ -573,7 +581,13 @@ export class Room {
       if (this.online.size > 20000) this.online.clear();
       let gone = false; for (const [k, t] of this.online) if (now - t > 5 * 60000) { this.online.delete(k); gone = true; }   // (a game says hello every 2 minutes: 5 without one = gone)
       this.saveOnline(now, gone || had !== this.online.has(String(b.id)));
-      return new Response(JSON.stringify({ n: this.online.size }));
+      return new Response(JSON.stringify({ n: this.online.size, ...(this.ann && this.ann.until > now ? { ann: this.ann } : {}) }));
+    }
+    if (u.pathname === '/ann') {   // (the back office) set / clear the announcement, or read it
+      const now = Date.now(); await this.useLoad(now);
+      if (req.method === 'POST') { const b = await req.json() as { text?: string; mins?: number }, text = String(b.text ?? '').trim().slice(0, 160), mins = Math.max(0, Math.min(1440, Number(b.mins) || 0));
+        this.ann = text && mins ? { id: now, text, until: now + mins * 60000 } : null; await this.store.put('ann', this.ann); }
+      return new Response(JSON.stringify({ ann: this.ann && this.ann.until > now ? this.ann : null }));
     }
     if (u.pathname === '/onlinelist') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k); return new Response(JSON.stringify({ ids: [...this.online.keys()], h: Math.round(this.use.mins / 6) / 10 })); }   // (the back office)
     if (u.pathname === '/count') { const now = Date.now(); await this.useLoad(now); for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k); return new Response(JSON.stringify({ n: this.online.size, h: Math.round(this.use.mins / 6) / 10 })); }
@@ -995,8 +1009,9 @@ export class Player {
   private async hello(path: '/hello' | '/bye') {
     this.helloT = Date.now();
     try {
-      const j = await (await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) }))).json() as { n?: number };
-      if (path === '/hello' && typeof j.n === 'number') this.send({ t: 'on', n: j.n });   // (the 🟢 online count on the game's screen: fresh every 2 minutes, no extra request)
+      const j = await (await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) }))).json() as { n?: number; ann?: { id: number; text: string; until: number } };
+      if (path === '/hello' && typeof j.n === 'number') this.send({ t: 'on', n: j.n });
+      if (path === '/hello' && j.ann) this.send({ t: 'ann', id: j.ann.id, text: j.ann.text, until: j.ann.until });   // (📢 the admin's announcement: the game shows it once)   // (the 🟢 online count on the game's screen: fresh every 2 minutes, no extra request)
     } catch { /* not counted this time */ }
   }
 }

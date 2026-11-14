@@ -188,7 +188,13 @@ async function show() {
       $('srt').onclick = () => { sort = sort === 'lv' ? 'seen' : 'lv'; page = 0; show(); }; $('tst').onclick = () => { showTests = !showTests; page = 0; show(); }; $('pv').onclick = () => { page--; show(); }; $('nx').onclick = () => { page++; show(); };
     } else if (tab === 'mail') {
       const d = await api('/admin/mailall'), gtext = g => { let o = {}; try { o = JSON.parse(g || '{}'); } catch {} const it = (o.items || []).map(i => ((window.ITEMS || []).find(x => x.id === i.id)?.name || i.id) + (i.qty > 1 ? ' x' + i.qty : '')); return [o.gold && '💰 ' + num(o.gold), o.wood && '🪵 ' + num(o.wood), o.stone && '🪨 ' + num(o.stone), o.food && '🍖 ' + num(o.food), ...it].filter(Boolean).join(' • ') || '-'; };
-      main.innerHTML = `<h2>📬 ส่งจดหมายหาผู้เล่นทุกคน</h2>
+      const an = await api('/admin/ann');
+      main.innerHTML = `<h2>📢 โทรโข่งแอดมิน (ประกาศในเกม)</h2>
+        <p class="dim">ขึ้นเป็นแถบเล็กสีทองใต้ชื่อแผนที่ ไม่บังจอ • ทุกคนที่ออนไลน์เห็นภายใน 2 นาที • คนที่เข้าเกมทีหลังเห็นตอนเข้า (ภายในเวลาที่ตั้ง) • เห็นคนละครั้ง</p>
+        <div class="row"><input id="aText" maxlength="160" placeholder="เช่น อีก 10 นาทีเซิร์ฟปิดปรับปรุง 5 นาที" style="width:min(520px,100%)">
+          <label>แสดงนาน <input type="number" id="aMins" min="1" max="1440" value="60" style="width:70px"> นาที</label><button class="btn green" id="aSend">📢 ประกาศ</button>${an.ann ? '<button class="btn" id="aClear">ยกเลิกประกาศ</button>' : ''}</div>
+        <div class="dim" style="font-size:13px;margin-bottom:14px">${an.ann ? `กำลังประกาศ: “${esc(an.ann.text)}” — หมดใน ${Math.max(1, Math.round((an.ann.until - Date.now()) / 60000))} นาที` : 'ตอนนี้ไม่มีประกาศ'}</div>
+        <h2>📬 ส่งจดหมายหาผู้เล่นทุกคน</h2>
         <p class="dim">ทุกคนจะได้ในกล่องจดหมายในเกม (คนที่ไม่ได้ออนไลน์จะได้ตอนเข้าเกมครั้งถัดไป) — ใช้แจกรางวัลกิจกรรม ชดเชยเซิร์ฟล่ม ฯลฯ</p>
         <div class="row"><input id="mTitle" placeholder="หัวข้อ เช่น ชดเชยเซิร์ฟปิดปรับปรุง" style="width:min(380px,100%)" maxlength="40"></div>
         <div class="row"><textarea id="mText" placeholder="ข้อความ" style="width:min(560px,100%);height:70px;background:#0f0b12;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px" maxlength="300"></textarea></div>
@@ -200,6 +206,8 @@ async function show() {
         <div class="row"><label>หมดอายุใน <input type="number" min="0" max="90" value="7" id="mDays" style="width:60px"> วัน (0 = ไม่หมดอายุ)</label><button class="btn green" id="mSend">📬 ส่งหาทุกคน</button></div>
         <h2>📜 จดหมายถึงทุกคนที่เคยส่ง</h2>
         <div class="tw"><table><tr><th>เมื่อ</th><th>หัวข้อ</th><th>ของ</th><th>หมดอายุ</th></tr>${d.rows.map(r => `<tr><td class="dim">${when(r.at)}</td><td style="white-space:normal">${esc(r.title)}<div class="dim" style="font-size:12px">${esc(r.text)}</div></td><td style="white-space:normal">${esc(gtext(r.gift))}</td><td>${r.until ? (r.until > Date.now() ? new Date(r.until).toLocaleDateString('th-TH') : 'หมดแล้ว') : '-'}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ยังไม่เคยส่ง</td></tr>'}</table></div>`;
+      $('aSend').onclick = async () => { const text = $('aText').value.trim(); if (!text) return alert('พิมพ์ข้อความก่อน'); if (!confirm('ประกาศถึงทุกคนในเกม?\n\n' + text)) return; await api('/admin/ann', { text, mins: Number($('aMins').value) || 60 }); show(); };
+      if ($('aClear')) $('aClear').onclick = async () => { await api('/admin/ann', { text: '', mins: 0 }); show(); };
       const pick = [], draw = () => { $('mList').textContent = pick.length ? 'จะส่ง: ' + pick.map(p => `${p.name} x${p.qty}`).join(', ') : 'ยังไม่ได้เลือกไอเทม'; };
       $('mAdd').onclick = () => { const v = $('mItem').value, m = v.match(/\[([^\]]+)\]$/), it = (window.ITEMS || []).find(i => i.id === (m ? m[1] : v) || i.name === v); if (!it) { alert('ไม่พบไอเทมนี้ — เลือกจากรายการที่ขึ้นมา'); return; } pick.push({ id: it.id, name: it.name, qty: Math.max(1, Math.min(999, Number($('mQty').value) || 1)) }); $('mItem').value = ''; draw(); };
       $('mSend').onclick = async () => {

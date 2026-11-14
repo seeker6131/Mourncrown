@@ -223,6 +223,10 @@ export class TdUIScene extends Phaser.Scene {
       // the server sends the count with every heartbeat (2 min) and on connect; asked here only when it has not come for a while
       const onN = (n: number) => { onlineNow.n = n; onlineNow.at = Date.now(); show(); };
       bus.on('net:online', onN); this.events.once('shutdown', () => bus.off('net:online', onN));
+      // 📢 the admin's megaphone (back office): a small gold banner under the title — readable, never in the way; tap to hide
+      const onAnn = (m: { id: number; text: string; until: number }) => { let seen = 0; try { seen = Number(localStorage.getItem('mcAnn')) || 0; } catch { /* storage blocked */ }
+        if (m.id <= seen || m.until < Date.now()) return; try { localStorage.setItem('mcAnn', String(m.id)); } catch { /* storage blocked */ } this.megaphone(m.text); };
+      bus.on('net:ann', onAnn); this.events.once('shutdown', () => bus.off('net:ann', onAnn));
       show(); if (Date.now() - onlineNow.at > 180000) ask();
       this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
     // 🧪 active buffs under the minimap (players: which buff is on and how long is left) — systems/buffs.ts
@@ -492,6 +496,20 @@ export class TdUIScene extends Phaser.Scene {
   }
 
   minimap?: Minimap; loot?: LootPopup; news?: NewsTicker; newsT = 0;
+  /** 📢 show the admin's announcement: under the map title, gold on dark, a soft pulse; 30 s, or tap it away */
+  megaphone(text: string) {
+    const k = this.kit, w = Math.min(this.VW * 0.56, 420), x = this.VW / 2, y = 62;   // (below the top-bar buttons)
+    const t = k.text(x, y + 2, text, 8.5, '#ffe7a0', { wordWrap: { width: w - 16 }, align: 'center', stroke: '#1a1006', strokeThickness: 2 }).setOrigin(0.5, 0).setDepth(9100);
+    const h = t.height + 8, bg = this.add.graphics().setDepth(9099);
+    bg.fillStyle(0x1a1006, 0.82).fillRoundedRect(x - w / 2, y - 4, w, h, 6).lineStyle(1.5, 0xffd84a, 0.95).strokeRoundedRect(x - w / 2, y - 4, w, h, 6);
+    const tag = k.text(x - w / 2 + 6, y - 9, '📢 ประกาศจากแอดมิน', 7, '#ffd84a', { backgroundColor: '#3a2408', padding: { x: 3, y: 1 }, stroke: '#000000', strokeThickness: 2 }).setDepth(9101);
+    const z = this.add.zone(x - w / 2, y - 4, w, h).setOrigin(0).setInteractive().setDepth(9102);
+    const parts = [bg, t, tag, z];   // (drawn in this order: the box first) this.root.add(parts as never[]);
+    const done = () => { if (!t.active) return; this.tweens.add({ targets: [t, bg, tag], alpha: 0, duration: 400, onComplete: () => parts.forEach(o => o.destroy()) }); };
+    z.on('pointerup', done);
+    this.tweens.add({ targets: bg, alpha: 0.75, duration: 900, yoyo: true, repeat: 15 });
+    sfx.click(); this.time.delayedCall(30000, done);
+  }
   update(time: number) {
     if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
     this.minimap?.update(time); this.drawBuffs(time);
