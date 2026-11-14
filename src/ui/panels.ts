@@ -253,6 +253,7 @@ export class Panels implements GuildHost {
     const d = derive(s);
     c.add(k.text(ex + 6, ey + 146, `ATK ${d.atk}   MATK ${d.matk}\nDEF ${d.def}   HP ${d.maxHp}\nคริ ${(d.crit * 100).toFixed(1)}%`, 8, '#f3e6c4', { lineSpacing: 3 }));
     c.add(k.button(ex + 4, ey + 204, 104, 20, '👑 ตั้งค่าเก็บของ', () => this.open('lootopt'), { size: 8, color: 0x4a2a6a }));   // (VIP: pick-up filter + auto-dismantle)
+    c.add(k.button(ex + 4, ey + 228, 104, 20, '📦 คลังเก็บของ', () => this.open('stash'), { size: 8, color: 0x4a3a10 }));   // (player feedback: the shared chest was hidden in the characters window)
     c.add(ui.add.image(ex + 10, ey + H - 66, 'icon_gold').setScale(0.4));
     c.add(k.text(ex + 20, ey + H - 72, s.gold.toLocaleString() + ' G', 10, '#ffd84a'));
 

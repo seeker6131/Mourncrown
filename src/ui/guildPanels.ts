@@ -352,7 +352,7 @@ export function buildStash(h: GuildHost, c: Phaser.GameObjects.Container) {
   const per = Math.floor((half - 8) / 33);
   s.inventory.filter(it => !isEquipped(s, it.uid)).slice(0, per * 7).forEach((it, i) => cell(L + 5 + (i % per) * 33, top + 20 + Math.floor(i / per) * 33, it, () => { const r = act('stashPut', { uid: it.uid }); if (refused(r)) fail(r); else { sfx.page(); h.rebuild(); } }));
   hm.stash.slice(0, per * 7).forEach((it, i) => cell(R + 5 + (i % per) * 33, top + 20 + Math.floor(i / per) * 33, it, () => { const r = act('stashTake', { i }); if (refused(r)) fail(r); else { sfx.page(); h.rebuild(); } }));
-  if (!cap) c.add(k.text(R + 8, top + 30, 'สร้างบ้านก่อนจึงจะมีหีบ', 9, '#ff8a7a'));
+  if (!hm.stash.length) c.add(k.text(R + 8, top + 30, lv ? 'หีบว่าง — แตะของในกระเป๋าเพื่อฝาก' : 'หีบว่าง — แตะของในกระเป๋าเพื่อฝาก\n(สร้าง/อัปเกรดบ้านเพื่อเพิ่มช่อง +10 ต่อเลเวล)', 8.5, '#c8b898'));
 }
 
 /** the trophy shelf: Super Rare and better gear on display gives small permanent bonuses */

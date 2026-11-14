@@ -28,7 +28,7 @@ export const RAID_SECS = 180;
 export const REST_PER_HOUR = 10;
 export const REST_EXP = 50;
 export const restCap = (houseLv: number) => 300 + 150 * houseLv;
-export const stashSlots = (houseLv: number) => (houseLv > 0 ? 10 + 10 * houseLv : 0);
+export const stashSlots = (houseLv: number) => 10 + 10 * Math.max(0, houseLv);   // (10 slots even before a house — player feedback 14 Nov; +10 per house level)
 export const trophySlots = (houseLv: number) => (houseLv > 0 ? Math.min(6, 1 + houseLv) : 0);
 /** permanent bonus (%) for each displayed trophy, by rarity (Super Rare and up) */
 export const TROPHY_BONUS: Record<number, { atk: number; def: number; hp: number }> = { 3: { atk: 1, def: 0, hp: 1 }, 4: { atk: 2, def: 1, hp: 2 }, 5: { atk: 4, def: 2, hp: 3 } };
