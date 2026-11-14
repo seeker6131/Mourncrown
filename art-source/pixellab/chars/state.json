@@ -1096,5 +1096,17 @@
  },
  "mt_gdragon": {
   "cid": "8ab2b78f-8a11-47f1-aca8-aeed7c7c4071"
+ },
+ "mt_wolf2": {
+  "cid": "2d1c25df-07f0-448c-b629-ec35a87e6f42"
+ },
+ "mt_bear2": {
+  "cid": "0c489fef-b457-4065-ab98-551b159189d3"
+ },
+ "mt_stag2": {
+  "cid": "ced0dd4d-98b6-44bc-a4c4-9b558c913c73"
+ },
+ "mt_panther2": {
+  "cid": "9c3842e1-c6ef-4b62-b824-dbfeb31c5ff0"
  }
 }
