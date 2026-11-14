@@ -27,17 +27,25 @@ export const RAID_GROUP = 25, RAID_GROUP_GAP = 2000;
 /** at most this many on the map at once (phones + the room's message); the rest wait at the edges and come as room frees */
 export const RAID_ALIVE_MAX = 120;
 /** toughness by wave (1st ×1.6 … 6th ×4.1 of a normal monster's HP) */
-export const raidWaveHp = (wave: number) => 1.6 + 0.5 * Math.max(0, wave);
+export const raidWaveHp = (wave: number) => 2 + 0.6 * Math.max(0, wave);
 /** run speed: much faster than a normal monster, a little faster each wave */
 export const raidSpeed = (base: number, wave: number) => (base + 30) * 1.6 + wave * 6;
-/** their HP: weaker when few defend */
-export const raidHpMult = (defenders: number) => defenders <= 1 ? 0.6 : defenders <= 2 ? 0.75 : defenders <= 4 ? 0.9 : 1;
+/** their HP grows with the defenders (more heroes = more damage): 1 hero ×0.6 … 10+ heroes ×2.5 */
+export const raidHpMult = (defenders: number) => Math.min(2.5, 0.6 + 0.2 * (Math.max(1, defenders) - 1));
+/** director (round 2: everyone mixed, the strong never in danger): a raid room for each level band — monsters at the
+ *  band's strongest hero, and each hero is hit as hard as a monster of their OWN level would hit */
+export const RAID_BANDS = [{ lo: 1, hi: 30 }, { lo: 31, hi: 60 }, { lo: 61, hi: 999 }];
+export const raidBand = (level: number) => Math.max(0, RAID_BANDS.findIndex(b => level >= b.lo && level <= b.hi));
+export const raidRoom = (level: number) => 'm300b' + (raidBand(level) + 1);
+export const raidBandName = (level: number) => { const b = RAID_BANDS[raidBand(level)]; return b.hi > 200 ? `Lv${b.lo}+` : `Lv${b.lo}–${b.hi}`; };
+/** EXP from raid kills and chests is cut (director: the raid is not an EXP farm) */
+export const RAID_EXP_MULT = 0.25;
 /** a share of them go for the buildings (the rest for the heroes) */
 export const RAID_BLD_SHARE = 0.55;
 /** a building's HP: each blow at a building takes 1 — enough that a defended village loses 0–1, an undefended one most */
 export const raidBldHp = (_count: number) => 2000;   // (measured: up to 120 raiders on the map wear an undefended outer building down in ~3 min)
-/** every raider hits a hero this hard (the same for every kind): ~0.45 of a normal monster of that level */
-export const raidAtk = (lv: number) => Math.max(4, Math.round(scaleStats(MONSTERS.wolf, Math.max(1, lv), false).atk * 0.45));
+/** every raider hits a hero this hard (the same for every kind) — as a normal monster of the HERO's level, harder each wave */
+export const raidAtk = (heroLv: number, wave = 0) => Math.max(4, Math.round(scaleStats(MONSTERS.wolf, Math.max(1, Math.min(100, heroLv)), false).atk * (0.9 + 0.15 * Math.max(0, wave))));   // (a monster of the hero's own level, harder each wave: 0.9× … 1.65×)
 /** a raider's HP at this level */
 export const raidHp = (kind: keyof typeof MONSTERS, lv: number, defenders: number, wave = 0) => Math.max(1, Math.round(scaleStats(MONSTERS[kind], Math.max(1, lv), false).hp * raidHpMult(defenders) * raidWaveHp(wave)));
 /** kills needed for the defender's chest */
@@ -47,7 +55,7 @@ export const RAID_MIN_KILLS = 5;
 export function raidChest(level: number, mvp: boolean, won: boolean) {
   const m = (mvp ? 2 : 1) * (won ? 1 : 0.5);
   return {
-    gold: Math.round((150 + level * 25) * m), exp: Math.round(expToNext(level) * 0.04 * m),
+    gold: Math.round((150 + level * 25) * m), exp: Math.round(expToNext(level) * 0.02 * m),
     items: [{ id: 'mana_shard', qty: Math.max(1, Math.round(3 * m)) }, { id: 'hp_potion_l', qty: Math.max(1, Math.round(2 * m)) }],
   };
 }
@@ -59,7 +67,7 @@ export function giveRaidChest(s: GameState, mvp: boolean, won: boolean) {
   return { ...c, levels };
 }
 /** (this game) the hero is in the raid now: no healing potions, skills cost no mana */
-export const raidFlag = { on: false };
+export const raidFlag = { on: false, wave: 0 };
 /** the raid's time, from the server (null = none planned) */
 export interface RaidPlan { at: number }
 export const raidLive = (p: RaidPlan | null, now: number) => !!p && now >= p.at && now < p.at + RAID_SECS * 1000;

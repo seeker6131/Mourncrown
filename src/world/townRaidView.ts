@@ -1,12 +1,12 @@
 // ⚔ The village raid as the game shows it: the five central buildings (HP bars, fire, ruin), the clock, the result.
 // The map room runs everything (src/server/mapSim.ts startRaid); this view only draws what it says ('rs' / 'rend').
 import Phaser from 'phaser';
-import { RAID_BLD, RAID_WAVES } from '../systems/townRaid';
+import { RAID_BLD, RAID_WAVES, raidFlag, raidBandName } from '../systems/townRaid';
 import { TOWN_NAME, type TownBld } from '../systems/town';
 import { burnFx, fireKey } from './guildTown';
 import { makeRuin } from './ruin';
 import { fx2 } from './fx2';
-import { bus, EV } from '../core/events';
+import { bus, EV, S } from '../core/events';
 import { sfx } from '../audio/sfx';
 import { tr } from '../core/i18n';
 
@@ -48,7 +48,7 @@ export class RaidView {
   }
   /** the room's numbers (5 a second at most) */
   onState(e: RaidState) {
-    this.at = e.at; this.end = e.end; this.left = e.n; this.tot = e.tot; this.spawned = e.sp; if (e.w && e.w > this.wave && this.started) { bus.emit(EV.TOAST, `⚔ ${tr('คลื่นที่')} ${e.w}/${RAID_WAVES} ${tr('มาแล้ว! ถึกขึ้นอีก')}`, '#ff9a7a'); sfx.bossRoar(); } this.wave = e.w ?? this.wave;
+    this.at = e.at; this.end = e.end; this.left = e.n; this.tot = e.tot; this.spawned = e.sp; if (e.w && e.w > this.wave && this.started) { bus.emit(EV.TOAST, `⚔ ${tr('คลื่นที่')} ${e.w}/${RAID_WAVES} ${tr('มาแล้ว! ถึกขึ้นอีก')}`, '#ff9a7a'); sfx.bossRoar(); } this.wave = e.w ?? this.wave; raidFlag.wave = Math.max(0, this.wave - 1);
     if (!this.started) { this.started = true; sfx.bossRoar(); this.sc.cameras.main.flash(300, 120, 30, 20); bus.emit(EV.TOAST, '⚔ มอนบุกหมู่บ้านกลางแล้ว! ปกป้องอาคารทั้ง 5 หลัง (งดยาฮีล • มานาไม่หมด)', '#ff9a7a'); }
     for (const [bid, hp, max] of e.b) {
       const b = this.blds.find(q => q.bid === bid); if (!b) continue;
@@ -84,6 +84,6 @@ export class RaidView {
     if (this.done) return tr('⚔ มอนบุกจบแล้ว — กำลังกลับหมู่บ้าน...');
     if (!this.at || now < this.at) { const s = Math.max(0, Math.ceil((this.at - now) / 1000)); return this.at ? `⚔ ${tr('หมู่บ้านกลาง • มอนจะบุกในอีก')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : tr('⚔ หมู่บ้านกลาง • ยังไม่มีมอนบุก'); }
     const s = Math.max(0, Math.ceil((this.end - now) / 1000));
-    return `⚔ ${tr('มอนบุก!')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} • ${tr('คลื่นที่')} ${this.wave}/${RAID_WAVES} • ${tr('มอนบนแผนที่')} ${this.left} • ${tr('มอนมาแล้ว')} ${this.spawned}/${this.tot}`;
+    return `⚔ [${raidBandName(S().level)}] ${tr('มอนบุก!')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} • ${tr('คลื่นที่')} ${this.wave}/${RAID_WAVES} • ${tr('มอนบนแผนที่')} ${this.left} • ${tr('มอนมาแล้ว')} ${this.spawned}/${this.tot}`;
   }
 }

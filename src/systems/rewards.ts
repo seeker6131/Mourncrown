@@ -1,6 +1,7 @@
 // Kill rewards for the top-down stages — pure (no Phaser), randomness comes in as rnd.
 // When the game goes online this runs on the SERVER: the client only reports "I killed monster X in stage N",
 // the server checks it and applies the result. Never trust reward numbers sent by the client.
+import { RAID_EXP_MULT } from './townRaid';
 import type { GameState } from '../core/state';
 import { MONSTERS } from '../data/monsters';
 import { itemDef } from '../data/items';
@@ -33,7 +34,7 @@ export function applyKill(s: GameState, stageN: number, mon: StageMon, boss: boo
   const gold = animal || (!boss && !elite && rnd() >= 0.4) ? 0 : Math.round(between(rnd, sc.gold[0], sc.gold[1]) * (vip ? 1.3 : 1) * (elite ? 5 : 1)), exp = Math.round(sc.exp * d.expBonus * (base.animal ? 0.5 : 1) * (elite ? 3 : 1));
   s.gold += gold;
   (s as GameState & { tdKills?: number }).tdKills = ((s as GameState & { tdKills?: number }).tdKills ?? 0) + 1;
-  const levels = gainExp(s, exp);
+  const levels = gainExp(s, isRaid(stageN) ? Math.round(exp * RAID_EXP_MULT) : exp);   // (⚔ the raid: a quarter of the EXP)
   const effN = isDungeon(stageN) ? (stageN - DUNGEON) * 10 + 5 : stageN === WILD ? 1 : isRaid(stageN) ? Math.max(1, Math.min(50, Math.round(s.level / 2.05))) : stageN;   // (the raid: like a map of your level)   // map tier for drop rates
   const k = stageN === WILD ? 1 + s.level / 25 : 1 + effN / 12;
   // monsters ≠ resources: wood / stone / meat come only from the Deepwild (animals + gathering); monsters give EXP, gold and items

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { MapSim, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { RAID, RAID_LAND } from '../src/world/stages';
-import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp } from '../src/systems/townRaid';
+import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp, raidRoom, raidAtk, raidHpMult, RAID_EXP_MULT } from '../src/systems/townRaid';
+import { STAGES } from '../src/world/stages';
 import { handlers, useMem, newMem } from '../src/server/handlers';
 import { startNewGame } from '../src/core/save';
 import { addItem } from '../src/systems/inventory';
@@ -46,6 +47,22 @@ describe('⚔ village raid (the room runs it)', () => {
     sim.run(at + 1000, [me]); expect(sim.mons.size).toBe(25);
     sim.run(at + 2000, [me]); expect(sim.mons.size).toBe(50);
     sim.run(at + 6000, [me]); expect(sim.mons.size).toBe(100);
+  });
+  it('a raid room for each level band; monsters at the band\'s strongest hero; each hero hit as by their own level, harder each wave', () => {
+    expect([raidRoom(5), raidRoom(30), raidRoom(31), raidRoom(60), raidRoom(61), raidRoom(100)]).toEqual(['m300b1', 'm300b1', 'm300b2', 'm300b2', 'm300b3', 'm300b3']);
+    expect(raidAtk(90)).toBeGreaterThan(raidAtk(30) * 2); expect(raidAtk(50, 5)).toBeGreaterThan(raidAtk(50, 0) * 1.7);
+    expect(raidHpMult(10)).toBeGreaterThanOrEqual(raidHpMult(1) * 4);
+    const sim = new MapSim('m300b3', grid(), rnd), ps: SimPlayer[] = [{ id: 'a', x: 700, y: 590, hp: 100, lv: 62 }, { id: 'b', x: 760, y: 590, hp: 100, lv: 95 }];
+    sim.startRaid(1_000_000, ps); expect(sim.raid!.lv).toBe(95);
+  });
+  it('raid kills give a quarter of the EXP of the same monster on your own map', () => {
+    useMem(newMem()); const s = startNewGame(); s.level = 30; const c = { now: 5_000_000, rnd: () => 0.5, admin: true };
+    const st = STAGES.find(q => q.level >= 30)!, m = st.land.mobs[0];
+    handlers.enterMap(s, { n: st.n }, c); const sid1 = handlers.spawn(s, { key: m.key, boss: false }, c).sid;
+    const e0 = s.exp; handlers.kill(s, { sid: sid1, kind: m.kind, key: m.key, name: m.name, size: m.size, boss: false }, c); const normal = s.exp - e0;
+    handlers.enterMap(s, { n: RAID }, c); const sid2 = handlers.spawn(s, { key: m.key, boss: false }, c).sid;
+    const e1 = s.exp; handlers.kill(s, { sid: sid2, kind: m.kind, key: m.key, name: m.name, size: m.size, boss: false }, c); const raid = s.exp - e1;
+    expect(raid).toBeLessThanOrEqual(Math.ceil(normal * RAID_EXP_MULT * 1.6)); expect(raid).toBeGreaterThan(0);
   });
   it('a fallen hero (hp 0) is left alone', () => {
     const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, dead: SimPlayer = { id: 'd', x: 768, y: 590, hp: 0, lv: 20 };

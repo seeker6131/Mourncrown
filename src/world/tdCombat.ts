@@ -1,4 +1,4 @@
-import { raidAtk } from '../systems/townRaid';
+import { raidAtk, raidFlag } from '../systems/townRaid';
 import { fx2, hasFx2 } from './fx2';
 // Monsters, combat, loot and stage flow for the top-down world.
 import { pxShadow } from './pxShadow';
@@ -866,7 +866,7 @@ export class Combat {
         if (!this.charReady(key)) continue;   // (a boss from another land: its pictures load first, it shows on the next list)
         this.spawn(f.mob, x, y, !!boss, undefined, { sid, elite: !!elite }); m = this.mons[this.mons.length - 1];
         m.animal = !!MONSTERS[f.mob.kind]?.animal; m.sp.setAlpha(0); this.s.tweens.add({ targets: m.sp, alpha: 1, duration: 400 });
-        if (isRaid(this.stage?.n ?? 0)) m.atk = raidAtk(lv || this.stage?.level || 1);   // (⚔ the raid: every raider hits equally hard)
+        if (isRaid(this.stage?.n ?? 0)) m.atk = raidAtk(S().level, raidFlag.wave);   // (⚔ the raid: every raider hits like a monster of MY level, harder each wave)
         if (wb) { m.wb = true; m.atk = Math.round(scaleStats(MONSTERS[f.mob.kind], lv || this.stage?.level || 1, true).atk * WB.atk); fx2(this.s, 'fx_boss_spawn', x, y, y + 1, 1.4); }
       }
       if (!m.alive) continue;

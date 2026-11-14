@@ -21,7 +21,8 @@ import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
-import { RAID_SECS, RAID_MIN_KILLS, giveRaidChest, type RaidPlan } from '../src/systems/townRaid';
+import { RAID_SECS, RAID_MIN_KILLS, RAID_BANDS, raidChest, type RaidPlan } from '../src/systems/townRaid';
+import { gainExp } from '../src/systems/stats';
 import type { RaidRun } from '../src/server/mapSim';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
@@ -590,8 +591,8 @@ export class Room {
       for (const bid of broken) await DB.prepare('INSERT INTO town (bid, broken, at, donated, need) VALUES (?, 1, ?, 0, ?) ON CONFLICT(bid) DO UPDATE SET broken = 1, at = excluded.at, donated = 0, need = excluded.need, donors = NULL').bind(bid, now, repairNeed(online)).run().catch(() => undefined);
       await townInfo(this.env, true).catch(() => undefined);
       await Promise.allSettled(rank.filter(([, k]) => k >= RAID_MIN_KILLS).map(([pid]) => this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/raidpay?id=' + pid, { method: 'POST', body: JSON.stringify({ mvp: mvp.includes(pid), won: r.won }) }))));
-      const top = mvp.map(id => names.get(id) ?? '?').join(', ');
-      const text = (r.won ? '🛡 หมู่บ้านกลางต้านมอนบุกได้สำเร็จ!' : '⚔ มอนบุกหมู่บ้านกลางจบแล้ว') + (broken.length ? ` อาคารพัง: ${broken.map(b => TOWN_NAME[b]).join(' ')} — ช่วยกันบริจาคซ่อมได้ที่ 🏘` : ' ไม่มีอาคารพัง!') + (top ? ` • MVP: ${top}` : '');
+      const top = mvp.map(id => names.get(id) ?? '?').join(', '), bi = Number((this.all()[0]?.a.room ?? '').match(/b(\d)$/)?.[1] ?? 0) - 1, band = RAID_BANDS[bi];
+      const text = (band ? `[ห้อง ${band.hi > 200 ? `Lv${band.lo}+` : `Lv${band.lo}–${band.hi}`}] ` : '') + (r.won ? '🛡 หมู่บ้านกลางต้านมอนบุกได้สำเร็จ!' : '⚔ มอนบุกหมู่บ้านกลางจบแล้ว') + (broken.length ? ` อาคารพัง: ${broken.map(b => TOWN_NAME[b]).join(' ')} — ช่วยกันบริจาคซ่อมได้ที่ 🏘` : ' ไม่มีอาคารพัง!') + (top ? ` • MVP: ${top}` : '');
       await cw.fetch(new Request('https://r/say', { method: 'POST', body: JSON.stringify({ text }) })).catch(() => undefined);
     })());
   }
@@ -1080,9 +1081,11 @@ export class Player {
     }
     if (u.pathname === '/raidpay' && this.st) {   // ⚔ the village raid's chest for a defender (from the raid room)
       const b = JSON.parse(await req.text()) as { mvp?: boolean; won?: boolean }, sn = this.snap(), eb = this.eSnap();
-      const c = giveRaidChest(this.st as unknown as GameState, !!b.mvp, !!b.won); this.eAdd('raidChest', eb);
+      // the chest comes by mail (a full bag loses nothing; director: players look for it in the mailbox) — EXP at once
+      const st = this.st as unknown as GameState, c = raidChest(st.level, !!b.mvp, !!b.won); gainExp(st, c.exp); this.eAdd('raidChest', eb);
+      addMail(st, { from: 'หมู่บ้านกลาง', title: `🎁 หีบผู้พิทักษ์${b.mvp ? ' 🏅 MVP x2' : ''}`, text: `ขอบคุณที่ช่วยป้องกันหมู่บ้านกลาง${b.won ? ' — ป้องกันสำเร็จ!' : ''} (ได้ EXP +${c.exp.toLocaleString()} แล้ว)`, gold: c.gold, items: c.items, until: Date.now() + 7 * 86400000 });
       await this.later();
-      this.send({ t: 'note', own: this.diff(sn), text: `🎁 หีบผู้พิทักษ์${b.mvp ? ' (MVP x2)' : ''}: 💰${c.gold.toLocaleString()} • EXP +${c.exp.toLocaleString()} • ผลึกมานา x${c.items[0].qty} • ยาฟื้นพลังใหญ่ x${c.items[1].qty}` });
+      this.send({ t: 'note', own: this.diff(sn), text: `📬 หีบผู้พิทักษ์${b.mvp ? ' (MVP x2)' : ''} ส่งเข้ากล่องจดหมายแล้ว — 💰${c.gold.toLocaleString()} + ผลึกมานา x${c.items[0].qty} + ยาฟื้นพลังใหญ่ x${c.items[1].qty} • EXP +${c.exp.toLocaleString()}` });
       return new Response('{}');
     }
     if (u.pathname === '/payb' && this.st) {   // the map room: the kills of the last few seconds in one call (saves the daily quota)

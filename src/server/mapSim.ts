@@ -242,7 +242,8 @@ export class MapSim {
   /** the raid begins (the room calls it once at the planned time): sized by the heroes here now */
   startRaid(at: number, players: SimPlayer[]) {
     const alive = players.filter(p => p.hp > 0), n = Math.max(1, alive.length), lvs = alive.map(p => p.lv).sort((a, b) => a - b);
-    const lv = lvs.length ? lvs[Math.floor((lvs.length - 1) / 2)] : 1, total = raidTotal(), hp = raidBldHp(total);
+    const lv = Math.min(100, lvs.length ? lvs[lvs.length - 1] : 1),   // (the band's strongest hero)
+      total = raidTotal(), hp = raidBldHp(total);
     this.mons.clear(); this.pending = [];
     this.raid = { at, end: at + RAID_SECS * 1000, wave: 0, lv, defenders: n, total, spawned: 0, blds: RAID_BLD.map(b => ({ ...b, hp, max: hp })), kills: {}, done: false, won: false, told: false, queue: [] };
   }
@@ -252,6 +253,7 @@ export class MapSim {
   private raidWave(players: SimPlayer[]) {
     const r = this.raid!, n = Math.max(1, players.filter(p => p.hp > 0).length);
     if (n > r.defenders) r.defenders = n;   // (later waves: HP follows the heroes who came since)
+    r.lv = Math.min(100, Math.max(r.lv, ...players.filter(p => p.hp > 0).map(p => p.lv)));
     // director: not all 100 at once — groups of 25, 2 seconds apart, each from one edge
     const t0 = r.at + r.wave * RAID_WAVE_GAP;
     for (let i = 0; i < RAID_WAVE_SIZE; i++) { const g = Math.floor(i / RAID_GROUP); r.queue.push({ wave: r.wave, at: t0 + g * RAID_GROUP_GAP, gate: (g + r.wave) % RAID_GATES.length }); }

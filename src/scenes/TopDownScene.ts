@@ -5,7 +5,7 @@
 import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
 import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage } from '../world/stages';
-import { RAID_W, RAID_H, RAID_BLD, raidFlag } from '../systems/townRaid';
+import { RAID_W, RAID_H, RAID_BLD, raidFlag, raidRoom } from '../systems/townRaid';
 import { RaidView } from '../world/townRaidView';
 import { raidAtLocal, setTownView } from '../net/townView';
 import { itemDef as idef } from '../data/items';
@@ -314,6 +314,7 @@ export class TopDownScene extends Phaser.Scene {
   roomId(): string | null {
     if (this.dungeon || this.raid || this.defense || this.raidMode || this.warSide || this.inside >= 0) return null;
     if (this.wild) return 'w';
+    if (this.townRaid) return raidRoom(S().level);   // (⚔ a raid room for each level band)
     if (this.stageN) return 'm' + this.stageN;
     if (this.gv) { const g = guildOf(S()) as { id?: string } | null; return g?.id ? ('g-' + String(g.id).toLowerCase().replace(/[^a-z0-9]/g, '')).slice(0, 32) : 'gv'; }
     return 'v';
@@ -367,7 +368,7 @@ export class TopDownScene extends Phaser.Scene {
     if (TEST_HOOKS) (window as unknown as { __town: typeof setTownView }).__town = setTownView;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
     this.crowd = undefined; this.farm = null; this.grid = undefined; this.path = null; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
-    this.combat = new Combat(this as never); this.rv = undefined; raidFlag.on = this.townRaid; this.events.once('shutdown', () => { raidFlag.on = false; });
+    this.combat = new Combat(this as never); this.rv = undefined; raidFlag.on = this.townRaid; raidFlag.wave = 0; this.events.once('shutdown', () => { raidFlag.on = false; });
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
     this.animateWater();
