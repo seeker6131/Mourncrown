@@ -276,6 +276,10 @@ const EN: Record<string, string> = {
   '🏠 กลับบ้าน': '🏠 Go home',
   '💀 คุณล้มแล้ว — ดูเพื่อนป้องกันต่อ หรือกด 🏠 กลับบ้าน (กลับมาช่วยรอบนี้ไม่ได้แล้ว • ไม่เสียของ)': '💀 You fell — keep watching or tap 🏠 Go home (you cannot rejoin this raid • nothing is lost)',
   '💀 คุณล้มในรอบนี้แล้ว — กลับไปช่วยไม่ได้จนกว่าจะจบรอบ': '💀 You fell in this raid — you cannot rejoin until it ends',
+  'ข้อความใหม่': 'New messages',
+  'ย้อนดูได้': 'Scroll back through the last',
+  'ข้อความล่าสุดต่อช่อง': 'messages per channel',
+  'ยังไม่มีข้อความในช่องนี้': 'No messages in this channel yet',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

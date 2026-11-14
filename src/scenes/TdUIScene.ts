@@ -29,7 +29,7 @@ import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
 import { potCount, POT_CD } from '../systems/potions';
 import { openReport } from '../net/report';
-import { askChat } from '../net/chatInput';
+import { openChat } from '../ui/chatDom';
 import { chatHub, WORLD_LV } from '../net/chatHub';
 import { play } from '../net/play';
 import { accountToken, SERVER } from '../net/cloud';
@@ -295,12 +295,11 @@ export class TdUIScene extends Phaser.Scene {
     // chat with the players in this map (net/room.ts): 💬 opens the typing box, the last lines show under it
     this.chatLines = [];
     { const cb = k.button(8, 94, 30, 20, '💬', () => {
-        // channels: this map (the room), the whole world (Lv5+), my guild
-        const link = (this.td as unknown as { link?: { chat(t: string): void; online: boolean } }).link, s = S() as { level: number; guildId?: string };
-        const open = { map: !!link?.online, world: chatHub.online('world'), guild: chatHub.online('guild') };
-        if (!open.map && !open.world && !open.guild) { this.toast('ยังไม่ได้เชื่อมต่อเซิร์ฟ (เล่นออฟไลน์อยู่)', '#c8b89a'); return; }
-        askChat((t, ch) => { if (ch === 'map') link?.chat(t); else chatHub.send(ch, t); }, open,
-          { map: 'ที่นี่ไม่มีแชตแมพ (ในอาคาร / ดันเจี้ยน)', world: s.level < WORLD_LV ? `แชตโลกเปิดที่เลเวล ${WORLD_LV}` : 'กำลังเชื่อมต่อแชตโลก...', guild: s.guildId ? 'กำลังเชื่อมต่อแชตกิลด์...' : 'ยังไม่มีกิลด์' });
+        // 📜 the chat window: live, scrolls back, channels this map / the whole world (Lv5+) / my guild (director)
+        const link = () => (this.td as unknown as { link?: { chat(t: string): void; online: boolean; me: string } }).link, s = S() as { level: number; guildId?: string };
+        openChat({ send: (t, ch) => { if (ch === 'map') link()?.chat(t); else chatHub.send(ch, t); }, me: () => link()?.me ?? chatHub.world?.me ?? '',
+          open: () => ({ map: !!link()?.online, world: chatHub.online('world'), guild: chatHub.online('guild') }),
+          why: { map: 'ที่นี่ไม่มีแชตแมพ (ในอาคาร / ดันเจี้ยน)', world: s.level < WORLD_LV ? `แชตโลกเปิดที่เลเวล ${WORLD_LV}` : 'กำลังเชื่อมต่อแชตโลก...', guild: s.guildId ? 'กำลังเชื่อมต่อแชตกิลด์...' : 'ยังไม่มีกิลด์' } });
       }, { size: 10, color: 0x2a4a5a }); this.root.add(cb); }
     this.chatText = k.text(44, 96, '', 7, '#e8f4ff', { lineSpacing: 2, backgroundColor: 'rgba(0,0,0,0.35)', padding: { x: 3, y: 2 }, wordWrap: { width: 230 } }).setAlpha(0);
     this.root.add(this.chatText);

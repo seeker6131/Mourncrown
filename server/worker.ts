@@ -640,14 +640,14 @@ export class Room {
       if (b.k === 'spawn') this.bosses.set(b.n, { name: b.name, until: now + 8 * 60000 }); else this.bosses.delete(b.n);
       const text = b.k === 'spawn' ? `👹 บอสเร่ร่อน "${b.name}" ปรากฏตัวที่แผนที่ ${b.n}! ไปรุมกันเร็ว` : b.k === 'dead' ? `👑 ${b.by} ปราบ "${b.name}" ที่แผนที่ ${b.n} สำเร็จ!` : `💨 "${b.name}" หายไปจากแผนที่ ${b.n} แล้ว`;
       const line = { id: '', name: '📢 ประกาศ', text, at: now };
-      this.hist = [...this.hist, line].slice(-30);
+      this.hist = [...this.hist, line].slice(-100);
       const msg = JSON.stringify({ t: 'c', id: '', name: line.name, text });
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
       return new Response('{}');
     }
     if (u.pathname === '/say') {   // (the raid room) a line for everyone in world chat
       const b = await req.json() as { text: string }, now = Date.now(), text = String(b.text ?? '').slice(0, 240);
-      this.hist = [...this.hist, { id: '', name: '📢 ประกาศ', text, at: now }].slice(-30);
+      this.hist = [...this.hist, { id: '', name: '📢 ประกาศ', text, at: now }].slice(-100);
       const msg = JSON.stringify({ t: 'c', id: '', name: '📢 ประกาศ', text }); for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
       return new Response('{}');
     }
@@ -758,7 +758,7 @@ export class Room {
       const mu = await this.env.DB.prepare('SELECT muted_until FROM accounts WHERE id = ?').bind(me.id).first<{ muted_until: number }>().catch(() => null);
       if ((mu?.muted_until ?? 0) > now) { try { ws.send(JSON.stringify({ t: 'c', id: '', name: '⚠ ระบบ', text: `คุณถูกปิดแชตชั่วคราว (ถูกรายงานหลายครั้ง) อีก ${Math.ceil(((mu?.muted_until ?? 0) - now) / 3600000)} ชม.` })); } catch { /* closing */ } return; }
       const msg = JSON.stringify({ t: 'c', id: me.id, name: me.name, text });
-      if (chat) this.hist = [...this.hist, { id: me.id, name: me.name, text, at: now }].slice(-30);
+      if (chat) this.hist = [...this.hist, { id: me.id, name: me.name, text, at: now }].slice(-100);   // (the last 100: the chat window scrolls back through them)
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
     }
   }

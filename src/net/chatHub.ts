@@ -4,7 +4,19 @@ import { SERVER, accountToken } from './cloud';
 import { bus, runtime } from '../core/events';
 
 export type ChatCh = 'map' | 'world' | 'guild';
-export interface ChatLine { ch: ChatCh; id: string; name: string; text: string }
+export interface ChatLine { ch: ChatCh; id: string; name: string; text: string; at?: number }
+/** 📜 the chat history this game keeps, per channel (director: scroll back like the big games) — the world and guild
+ *  channels also bring the server's last 100 lines on connect; the map's starts when you arrive */
+export const CHAT_KEEP = 200;
+export const chatStore: Record<ChatCh, ChatLine[]> = { map: [], world: [], guild: [] };
+function keep(l: ChatLine) {
+  const list = chatStore[l.ch], at = l.at ?? Date.now();
+  if (l.at && list.some(q => q.at === l.at && q.id === l.id && q.text === l.text)) return;   // (history sent again on a reconnect)
+  list.push({ ...l, at }); list.sort((a, b) => (a.at ?? 0) - (b.at ?? 0)); if (list.length > CHAT_KEEP) list.splice(0, list.length - CHAT_KEEP);
+  bus.emit('chat:store', l.ch);
+}
+bus.on('chat:line', (e: ChatLine) => keep(e));
+bus.on('td:chat', (e: { id: string; name: string; text: string }) => keep({ ch: 'map', id: e.id, name: e.name, text: e.text }));
 export const WORLD_LV = 5;
 
 class ChatLink {
@@ -16,7 +28,7 @@ class ChatLink {
     const ws = new WebSocket(SERVER.replace(/^http/, 'ws') + '/chat/' + this.ch + '?t=' + encodeURIComponent(t)); this.ws = ws;
     ws.onopen = () => { this.wait = 2000; };
     ws.onmessage = e => {
-      let m: { t: string; you?: string; id?: string; name?: string; text?: string; hist?: { id: string; name: string; text: string }[] };
+      let m: { t: string; you?: string; id?: string; name?: string; text?: string; at?: number; hist?: { id: string; name: string; text: string; at?: number }[] };
       try { m = JSON.parse(String(e.data)); } catch { return; }
       if (m.t === 'hi') { this.me = String(m.you ?? ''); for (const h of m.hist ?? []) bus.emit('chat:line', { ch: this.ch, ...h, old: true }); }
       else if (m.t === 'c') bus.emit('chat:line', { ch: this.ch, id: String(m.id ?? ''), name: String(m.name ?? ''), text: String(m.text ?? '') });
