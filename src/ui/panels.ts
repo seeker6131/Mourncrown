@@ -1,3 +1,4 @@
+import { tdQuest, rewardText } from '../systems/tdQuests';
 import { hasSkin, panelFrame, skillIconKey } from './skin';
 // Modal panels: Bag/Equipment, Stats/Skills, Quests, Menu, NPC dialog, Shop, Blacksmith.
 import Phaser from 'phaser';
@@ -496,7 +497,7 @@ export class Panels implements GuildHost {
     c.add(k.text(rx + rw - 12, ly + 9, s.skillPts ? 'กด + เพื่ออัปสกิล' : 'แต้มได้จาก: เลเวลอัป • บอสครั้งแรก • เควสต์หลัก • ล็อกอิน 7 วัน', 7.5, s.skillPts ? '#c8f0c0' : '#8a7a60').setOrigin(1, 0));
     currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const sy = ly + 30 + i * 62;
-      c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30));
+      c.add(ui.add.image(rx + 20, sy + 16, ui.textures.exists('sk_' + sk.id) ? 'sk_' + sk.id : skillIconKey(ui, sk)).setDisplaySize(30, 30));   // (the same picture as the skill button — a player saw different ones)
       const slv = s.skillLv[sk.id] ?? 1, max = slv >= SKILL_MAX, can = !max && s.skillPts >= 1;
       const pct = (lv: number) => Math.round(sk.power * (1 + 0.15 * (lv - 1)) * 100), st = sk.stat === 'matk' ? 'MATK' : 'ATK';
       c.add(k.text(rx + 38, sy, `${sk.name}  Lv ${slv}${max ? ' (MAX)' : `/${SKILL_MAX}`}`, 9, '#9ad8ff'));
@@ -1058,25 +1059,55 @@ export class Panels implements GuildHost {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(500, ui.VW - 20), H = 360;
     const { x, y, g } = this.window(c, W, H, 'บันทึกภารกิจ');
+    // ⭐ the main quest first (a player: "the quest window is hard to use") — what to do, how far, the prize, and 🧭 take me there;
+    // every row below can be tapped too: the hero is taken where it is done (players: "tap a quest and go do it")
+    const nav = (spec?: { map?: number; wild?: string; village?: string }) => { sfx.click(); this.close(); bus.emit('td:questNav', spec); };
+    const tap = (yy0: number, h: number, f: () => void) => { const z = ui.add.zone(x + 12, yy0, W - 24, h).setOrigin(0).setInteractive({ useHandCursor: true }); z.on('pointerup', f); c.add(z); };
+    const best = STAGES.filter(st => st.req <= s.level).pop()?.n ?? 1;
+    const mapOfKind = (kind: string) => STAGES.filter(st => st.req <= s.level && st.land.mobs.some(m => m.kind === kind)).pop()?.n ?? best;
+    const t = tdQuest(s);
+    if (t && !t.done) tap(y + 30, 60, () => nav());
+    g.fillStyle(0x1e2a14, 0.95).fillRoundedRect(x + 12, y + 30, W - 24, 92, 5).lineStyle(1.5, 0xffd84a, 1).strokeRoundedRect(x + 12, y + 30, W - 24, 92, 5);
+    if (t) {
+      c.add(k.text(x + 22, y + 36, `⭐ เควสต์หลัก ${t.index + 1}/${t.total}`, 9, '#ffd84a'));
+      c.add(k.text(x + 22, y + 50, t.q.title, 11, t.done ? '#9fffb0' : '#fff3d0', { wordWrap: { width: W - 60 } }));
+      const bw = W - 150, f = Math.max(0, Math.min(1, t.cur / t.q.need));
+      g.fillStyle(0x000000, 0.7).fillRoundedRect(x + 22, y + 72, bw, 9, 4).fillStyle(t.done ? 0x5ad86a : 0xffc83a, 1).fillRoundedRect(x + 22, y + 72, Math.max(4, bw * f), 9, 4);
+      c.add(k.text(x + 28 + bw, y + 70, `${t.cur}/${t.q.need}`, 9, '#f3e6c4'));
+      c.add(k.text(x + 22, y + 86, `รางวัล: ${rewardText(t.q.reward, id => itemDef(id).name)}`, 8.5, '#e8d8b0', { wordWrap: { width: W - 170 } }));
+      if (t.done) c.add(k.button(x + W - 136, y + 92, 112, 24, '🎁 รับรางวัล', () => {
+        const q = act('claimTdQuest', {}); if (!q) return;
+        bus.emit('td:fx', 'fx_quest'); sfx.levelUp(); bus.emit(EV.TOAST, `✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
+      }, { size: 9, color: 0x2f6a3a }));
+      else c.add(k.button(x + W - 136, y + 92, 112, 24, '🧭 นำทาง', () => { this.close(); bus.emit('td:questNav'); }, { size: 9, color: 0x2a4a7a }));
+    } else c.add(k.text(x + 22, y + 60, '🏆 ทำเควสต์หลักครบทุกข้อแล้ว!', 11, '#9fffb0'));
+    // ☀ daily tasks
     const dl = ensureDaily(s);
-    c.add(this.k.text(x + 16, y + 30, '☀ ภารกิจประจำวัน (รีเซ็ตทุกวัน)', 9.5, '#ffd84a'));
-    dl.tasks.forEach((t, i) => {
+    c.add(this.k.text(x + 16, y + 130, '☀ ภารกิจประจำวัน (รีเซ็ตทุกวัน)', 9.5, '#ffd84a'));
+    const dailyGo: Record<string, { map?: number; wild?: string; village?: string }> = { kill: { map: best }, boss: { map: best }, wood: { wild: 'ไปป่าดงดิบ — ตัดไม้ (ชุดชาวบ้าน)' }, stone: { wild: 'ไปป่าดงดิบ — ขุดหิน / แร่' }, craft: { village: 'กลับหมู่บ้าน — เข้าโรงหลอมแล้วหลอมอุปกรณ์ 1 ชิ้น' } };
+    dl.tasks.forEach((d, i) => {
       const tx = x + 16 + i * ((W - 32) / 3);
-      c.add(this.k.text(tx, y + 46, `${t.done ? '✔' : '◇'} ${DAILY_NAMES[t.kind]} ${t.got}/${t.need}\n   +${t.gold} G  ผลึก ${t.shards}`, 8, t.done ? '#9fffb0' : '#f3e6c4', { lineSpacing: 1 }));
+      if (!d.done) { const z = ui.add.zone(tx - 4, y + 144, (W - 32) / 3 - 4, 30).setOrigin(0).setInteractive({ useHandCursor: true }); z.on('pointerup', () => nav(dailyGo[d.kind])); c.add(z); }
+      c.add(this.k.text(tx, y + 146, `${d.done ? '✔' : '🧭'} ${DAILY_NAMES[d.kind]} ${d.got}/${d.need}\n   +${d.gold} G  ผลึก ${d.shards}`, 8, d.done ? '#9fffb0' : '#f3e6c4', { lineSpacing: 2 }));
     });
-    let yy = y + 78;
-    for (const q of QUESTS) {
+    // 📜 village quests: only the ones going on or open now (the finished ones are counted, not listed)
+    const live = QUESTS.filter(q => { const p = s.quests.find(z => z.id === q.id); return p ? p.status !== 'done' : q.minLevel <= s.level; }).slice(0, 4);
+    const doneN = QUESTS.filter(q => s.quests.find(z => z.id === q.id)?.status === 'done').length;
+    c.add(this.k.text(x + 16, y + 180, `📜 ภารกิจจากชาวบ้าน (สำเร็จแล้ว ${doneN}/${QUESTS.length}) — รับ / ส่งที่ผู้เฒ่า`, 9.5, '#ffd84a'));
+    let yy = y + 196;
+    for (const q of live) {
       const p = s.quests.find(z => z.id === q.id);
-      const status = !p ? (q.minLevel > s.level ? `ต้องการ Lv ${q.minLevel}` : 'ยังไม่ได้รับ') : p.status === 'done' ? '✔ สำเร็จ' : p.status === 'ready' ? 'ส่งเควสต์ได้!' : `${p.progress}/${q.count}`;
-      const col = !p ? '#8a7a60' : p.status === 'done' ? '#7a9a7a' : p.status === 'ready' ? '#9fffb0' : '#ffe7a0';
-      g.fillStyle(0x2a1d12, p && p.status !== 'done' ? 0.9 : 0.4).fillRoundedRect(x + 12, yy, W - 24, 40, 3);
-      if (p && p.status !== 'done') g.lineStyle(1, GOLD, 1).strokeRoundedRect(x + 12, yy, W - 24, 40, 3);
-      c.add(k.text(x + 20, yy + 4, `◆ ${q.title}`, 10, col));
-      c.add(k.text(x + W - 20, yy + 5, status, 9, col).setOrigin(1, 0));
+      const status = !p ? 'ยังไม่ได้รับ' : p.status === 'ready' ? '✔ พร้อมส่ง' : 'กำลังทำ';
+      const col = !p ? '#c8b89a' : p.status === 'ready' ? '#9fffb0' : '#ffe7a0';
+      g.fillStyle(0x2a1d12, 0.9).fillRoundedRect(x + 12, yy, W - 24, 36, 3);
+      tap(yy, 36, () => nav(!p ? { village: `กลับหมู่บ้าน — รับภารกิจ "${q.title}" ที่ผู้เฒ่า` } : p.status === 'ready' ? { village: `กลับหมู่บ้าน — ส่งภารกิจ "${q.title}" ที่ผู้เฒ่า` } : q.kind === 'kill' ? { map: mapOfKind(q.target) } : { map: Math.min(10, best) }));
+      c.add(k.text(x + 20, yy + 3, `◆ ${q.title}`, 9.5, col));
+      c.add(k.text(x + W - 20, yy + 4, status + '  🧭', 9, col).setOrigin(1, 0));
       const tgt = q.kind === 'kill' ? `กำจัด ${q.count} ตัว` : `เก็บ ${itemDef(q.target).name} ${q.count} ชิ้น`;
-      c.add(k.text(x + 20, yy + 22, `${tgt}  •  รางวัล ${q.reward.exp} EXP, ${q.reward.gold} G${q.reward.items ? ', ' + q.reward.items.map(i => itemDef(i.id).name).join(', ') : ''}`, 7.5, '#c8b898', { wordWrap: { width: W - 40 } }));
-      yy += 43;
+      c.add(k.text(x + 20, yy + 19, `${tgt}  •  รางวัล ${q.reward.exp} EXP, ${q.reward.gold} G`, 8, '#c8b89a'));
+      yy += 39;
     }
+    if (!live.length) c.add(k.text(x + 20, yy + 4, 'ตอนนี้ไม่มีภารกิจชาวบ้านใหม่ — เลเวลสูงขึ้นจะมีเพิ่ม', 8.5, '#c8b89a'));
   }
 
   // ---------------- MENU ----------------

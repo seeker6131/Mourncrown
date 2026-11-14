@@ -4,8 +4,9 @@
 // Open with ?td in the URL.
 import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
-import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage } from '../world/stages';
+import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage, dungeonLand } from '../world/stages';
 import { RAID_W, RAID_H, RAID_BLD, raidFlag } from '../systems/townRaid';
+import { tdQuest } from '../systems/tdQuests';
 import { RaidView } from '../world/townRaidView';
 import { raidAtLocal, setTownView } from '../net/townView';
 import { itemDef as idef } from '../data/items';
@@ -190,6 +191,10 @@ export function queueTd(sc: Phaser.Scene, o: { gv: boolean; stageN: number; st: 
   preloadChars(sc, keys);
 }
 
+/** 🧭 where a quest picked in the quest window is done: a map (fight there), the Deepwild (gather), the village (a hint) */
+export interface NavSpec { map?: number; wild?: string; village?: string }
+/** 🧭 the quest guide sent the hero to fight: AUTO goes on when the map is up */
+const navAuto = { on: false };
 /** rocks of every kind (rocks, ore, pebbles, boulders, rock piles, crystals) never block the way */
 const ROCKY = /^(rock_|ore_|pebble_|pp_\w+_(boulder|rockpile|vinerock|skullrock|crystal))/;
 export class TopDownScene extends Phaser.Scene {
@@ -398,6 +403,8 @@ export class TopDownScene extends Phaser.Scene {
     // return scroll: back to the village from any map
     const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; fx2(this, 'fx_recall', this.hero.x, this.hero.y + 6, this.hero.y + 1); sfx.cast(); this.time.delayedCall(650, () => this.cameras.main.fadeOut(250)); this.time.delayedCall(910, () => showWait()); this.time.delayedCall(950, () => this.scene.restart({ stage: 0 })); };
     bus.on('td:recall', recall); this.events.once('shutdown', () => bus.off('td:recall', recall));
+    const qNav = (spec?: NavSpec) => this.questNav(spec); bus.on('td:questNav', qNav); this.events.once('shutdown', () => bus.off('td:questNav', qNav));
+    if (navAuto.on) { navAuto.on = false; if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(1500, () => { if (this.sys.isActive() && !S().auto) this.toggleAuto(); }); }   // (🧭 quest guide: fight on arrival)
     const onFx = (k: string) => fx2(this, k, this.hero.x, this.hero.y - 18, 99993, 1);
     bus.on('td:fx', onFx); this.events.once('shutdown', () => bus.off('td:fx', onFx));
     this.village = this.stageN || this.gv ? undefined : new Village(this, MW, MH);
@@ -523,7 +530,16 @@ export class TopDownScene extends Phaser.Scene {
     cam.ignore(ui);
     this.scale.on('resize', () => uiCam.setSize(this.scale.width, this.scale.height));
     if (this.input.keyboard) { this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>; this.input.keyboard.on('keydown-SPACE', () => this.attack()); ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard!.on('keydown-' + k, () => this.castSkill(i))); this.input.keyboard.on('keydown-Q', () => this.toggleAuto()); }
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.ui?.blocks(p) || this.selectUi) return; if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
+    this.input.mouse?.disableContextMenu();
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.ui?.blocks(p) || this.selectUi) return;
+      // 🖱 a mouse (PC — a player's report): click the ground to walk there, click a monster (or right-click) to attack
+      if (!p.wasTouch && (p.event as PointerEvent | undefined)?.pointerType === 'mouse') {
+        if (p.rightButtonDown()) { this.attack(); return; }
+        const w = this.cameras.main.getWorldPoint(p.x, p.y), m = this.combat.mons.find(q => q.alive && Math.hypot(q.x - w.x, q.y - (w.y + 10)) < 34);
+        if (m) { this.walkStop(); this.dir = (Math.round((Math.PI / 2 - Math.atan2(m.y - this.hero.y, m.x - this.hero.x)) / (Math.PI / 4)) % 8 + 8) % 8; this.attack(); return; }
+        this.walkTo(w.x, w.y, true); return;
+      }
+      if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
     const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
@@ -1013,8 +1029,8 @@ export class TopDownScene extends Phaser.Scene {
     }
     for (const c of this.ponds) for (let k = 0; k < 10; k++) { const a = rnd() * 6.28, x = c.x + Math.cos(a) * (c.r + 6), y = c.y + Math.sin(a) * (c.r / 1.3 + 4); if (free(x, y, 4)) this.add.image(x, y, 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y); }
     const gy = this.trailMain(30);
-    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน');
-    this.hero.setPosition(64, this.trailMain(64));
+    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน'); this.cornerGates();
+    this.arrive(64, this.trailMain(64));
     // herds of deer and boar graze the meadows and the jungle edges
     const spot = () => {
       for (let i = 0; i < 80; i++) {
@@ -1065,8 +1081,8 @@ export class TopDownScene extends Phaser.Scene {
       void im;
     }
     const gy = this.trailMain(24);
-    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน');
-    this.hero.setPosition(56, this.trailMain(56));
+    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน'); if (!this.dungeon && !this.townRaid) this.cornerGates();
+    this.arrive(56, this.trailMain(56));
     // monsters appear anywhere walkable, away from the gate and out of the hero's sight
     const spot = () => {
       for (let i = 0; i < 80; i++) {
@@ -1087,6 +1103,25 @@ export class TopDownScene extends Phaser.Scene {
     this.combat.spawnMap(this.stageN, spot, boss ? { x: boss.x, y: boss.y } : null);
   }
 
+  /** 🌀 director: in every corner of a monster map / the Deepwild, a gate home and a gate to the map list (change map
+   *  without walking back to the village) — each on the nearest open ground toward the middle */
+  cornerGates() {
+    this.gateSpots = [];
+    for (const [cx, cy] of [[120, 150], [MW - 120, 150], [120, MH - 110], [MW - 120, MH - 110]]) {
+      let at: { x: number; y: number } | null = null;
+      for (let k = 0; k <= 8 && !at; k++) { const x = cx + (MW / 2 - cx) * k * 0.05, y = cy + (MH / 2 - cy) * k * 0.05; at = this.landing(x, y); }
+      if (!at) continue;
+      const side = at.x < MW / 2 ? 1 : -1, b = this.landing(at.x + side * 52, at.y) ?? { x: at.x + side * 52, y: at.y };
+      this.addPortal(at.x, at.y, 0, 'กลับหมู่บ้าน'); this.addPortal(b.x, b.y, 'select', 'เลือกแผนที่');
+      const ar = this.landing(at.x + (MW / 2 - at.x) * 0.06, at.y + (MH / 2 - at.y) * 0.08); if (ar) this.gateSpots.push(ar);
+    }
+  }
+  gateSpots: { x: number; y: number }[] = [];
+  /** 🎲 director: arrive somewhere different each time (by the gate on the left edge, or by one of the corner gates) */
+  arrive(x: number, y: number) {
+    const all = [{ x, y }, ...this.gateSpots], p = all[Math.floor(Math.random() * all.length)];
+    this.hero.setPosition(p.x, p.y);
+  }
   addPortal(x: number, y: number, to: number | 'select' | 'starter' | 'guild' | 'out' | 'leave', text: string) {
     // the warp point: a magic circle flat on the ground (PixelLab, fits the top-down view) — step on it and you go;
     // gates home / to the villages are tinted green
@@ -1533,7 +1568,7 @@ export class TopDownScene extends Phaser.Scene {
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
   /** 🗺 walk to a spot picked on the big map (round walls by the same path finder AUTO uses) */
-  walkTo(x: number, y: number) {
+  walkTo(x: number, y: number, quiet = false) {
     if (this.dead || this.raid || this.defense || this.warSide) return;
     let gx = x, gy = y;
     if (!this.canStand(gx, gy)) {   // (a wall / water: the nearest spot one can stand on)
@@ -1545,7 +1580,7 @@ export class TopDownScene extends Phaser.Scene {
     if (S().auto) { S().auto = false; bus.emit(EV.STATE_CHANGED); }
     this.walkGoal = { x: gx, y: gy, key: {} }; this.path = null;
     this.walkMark ??= this.add.graphics();
-    bus.emit(EV.TOAST, '🚶 กำลังเดินไปจุดที่เลือก — ขยับจอยเพื่อยกเลิก', '#ffe7a0');
+    if (!quiet) bus.emit(EV.TOAST, '🚶 กำลังเดินไปจุดที่เลือก — ขยับจอยเพื่อยกเลิก', '#ffe7a0');
   }
   walkStop() { this.walkGoal = null; this.walkMark?.clear(); }
   walkStep(time: number): [number, number] {
@@ -1887,6 +1922,38 @@ export class TopDownScene extends Phaser.Scene {
   }
   dead = false;
   /** Demo: the hero dies with the code-made death effect, then respawns. */
+  /** 🧭 take the hero where the main quest is done (a player: "the guidance is hard") — a monster map of the right level,
+   *  the Deepwild, the dungeon, the land of the roaming boss, or the village with a hint of whom / what to visit */
+  questNav(spec?: NavSpec) {   // (navAuto: AUTO goes on when the hero arrives on the map; spec: a quest picked in the quest window)
+    const s = S();
+    if (this.dungeon || this.townRaid || this.raidMode || this.warSide || this.dead) { bus.emit(EV.TOAST, 'ตอนนี้นำทางไม่ได้ — จบกิจกรรมที่ทำอยู่ก่อน', '#ffb08a'); return; }
+    const best = STAGES.filter(st => st.req <= s.level).pop()?.n ?? 1;
+    if (spec) {
+      if (spec.village) { bus.emit(EV.TOAST, `🧭 ${spec.village}`, '#c8e8ff'); if (!this.stageN && !this.gv) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); return; }
+      const n = spec.wild ? WILD : spec.map ?? best, why = spec.wild ?? (n === best ? `ไปแผนที่ ${n} (เหมาะกับเลเวลคุณ) — กด AUTO เพื่อสู้เอง` : `ไปแผนที่ ${n}`);
+      bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff');
+      if (this.stageN === n) { if (!spec.wild && !s.auto) this.toggleAuto(); return; }
+      navAuto.on = !spec.wild; this.enterStage(n); return;
+    }
+    const t = tdQuest(s); if (!t) return;
+    if (t.done) { bus.emit(EV.TOAST, '✔ เควสต์นี้ครบแล้ว — แตะแถบเควสต์มุมซ้ายบนเพื่อรับรางวัล', '#9fffb0'); return; }
+    const q = t.q;
+    const fight = !['animals', 'ore', 'home', 'tier', 'brews', 'dungeons'].includes(q.metric);
+    const go = (n: number, why: string) => { bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff'); if (this.stageN === n) { if (fight && !s.auto) this.toggleAuto(); return; } navAuto.on = fight; this.enterStage(n); };
+    const village = (why: string) => { bus.emit(EV.TOAST, `🧭 ${why}`, '#c8e8ff'); if (!this.stageN && !this.gv) return; this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0 })); };
+    switch (q.metric) {
+      case 'animals': case 'ore': go(WILD, q.metric === 'ore' ? 'ไปป่าดงดิบ — ขุดแร่ที่เหมือง (กด AUTO ในชุดชาวบ้านได้)' : 'ไปป่าดงดิบ — ล่ากวาง / หมูป่า'); break;
+      case 'map': { const n = Math.min(q.need, best); go(n, n < q.need ? `ไปแผนที่ ${n} (แผนที่ ${q.need} ต้องเลเวลสูงกว่านี้)` : `ไปแผนที่ ${n}`); break; }
+      case 'dungeons': go(DUNGEON + dungeonLand(s.level), 'ไปดันเจี้ยนรายวัน — ล้มทุกคลื่นในเวลา'); break;
+      case 'wbLand': { const L = q.land ?? 1, lo = (L - 1) * 10 + 1, n = Math.min(L * 10, best);
+        if (best < lo) { bus.emit(EV.TOAST, `🧭 บอสนี้อยู่แผนที่ ${lo}–${L * 10} — ต้องเลเวล ${STAGES[lo - 1].req} ก่อน`, '#ffb08a'); break; }
+        go(n, `ไปแผนที่ ${n} — รอบอสเร่ร่อนโผล่ (เมฆพายุช่วยนำทางไปหาบอสได้)`); break; }
+      case 'home': village('กลับหมู่บ้าน — แตะที่ดินบ้านของคุณเพื่อสร้าง / อัปเกรด'); break;
+      case 'tier': village('กลับหมู่บ้าน — คุยกับผู้เฒ่าเพื่อเปลี่ยนร่าง'); break;
+      case 'brews': village('กลับหมู่บ้าน — เข้าครัวแล้วกดปรุงยา'); break;
+      default: go(best, `ไปแผนที่ ${best} (เหมาะกับเลเวลคุณ) — กด AUTO เพื่อสู้เอง`);
+    }
+  }
   /** ⚔ the raid is over: home, healed (a fallen hero loses nothing) */
   raidBack() {
     if (!this.sys.isActive() || !this.townRaid) return;

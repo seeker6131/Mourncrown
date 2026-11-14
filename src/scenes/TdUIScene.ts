@@ -284,6 +284,7 @@ export class TdUIScene extends Phaser.Scene {
     this.questText = k.text(14, 66, '', 7.5, '#f3e6c4', { wordWrap: { width: 186 }, lineSpacing: 1 });
     this.questZone = this.add.zone(8, 60, 200, 30).setOrigin(0).setInteractive();
     this.questZone.on('pointerup', () => {
+      { const t0 = tdQuest(S()); if (t0 && !t0.done) { sfx.click(); bus.emit('td:questNav'); return; } }   // (not done yet: tap = go and do it — players)
       const s = S(), q = act('claimTdQuest', {});
       if (q && (q as { skillPt?: number }).skillPt) this.time.delayedCall(900, () => this.toast('✨ เควสต์สายหลักครบ 4 เควสต์ — ได้แต้มสกิล +1!', '#9fffb0'));
       if (q) { bus.emit('td:fx', 'fx_quest'); sfx.levelUp(); this.toast(`✔ ${q.title} — ได้รับ ${rewardText(q.reward, id => itemDef(id).name)}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.td.levelUpFx(); }
@@ -483,7 +484,7 @@ export class TdUIScene extends Phaser.Scene {
     }
     const t = tdQuest(s), qg = this.questG; qg.clear();
     if (t) {
-      this.questText.setText(t.done ? `✔ ${t.q.title}\nแตะเพื่อรับรางวัล!` : `📜 ${t.q.title}  ${t.cur}/${t.q.need}`).setColor(t.done ? '#9fffb0' : '#f3e6c4');
+      this.questText.setText(t.done ? `✔ ${t.q.title}\nแตะเพื่อรับรางวัล!` : `📜 ${t.q.title}  ${t.cur}/${t.q.need}\n🧭 แตะเพื่อไปทำ`).setColor(t.done ? '#9fffb0' : '#f3e6c4');
       const h = this.questText.height + 8;
       qg.fillStyle(t.done ? 0x1f4a2a : 0x0b0806, t.done ? 0.85 : 0.6).fillRoundedRect(8, 62, 200, h, 4).lineStyle(1, t.done ? 0x9fffb0 : 0x6a5a40, 0.9).strokeRoundedRect(8, 62, 200, h, 4);
       this.questZone.setSize(200, h);

@@ -46,6 +46,12 @@ function resize() {
 window.addEventListener('resize', () => setTimeout(resize, 50));
 window.addEventListener('orientationchange', () => setTimeout(resize, 300));
 
+// typing in a text box (chat, names, amounts): the game lets go of the keyboard — W/A/S/D (Thai ไ ฟ ห ก …), Q, 1-3 and
+// the arrows were walk / skill / AUTO keys and their letters could not be typed (a player's report)
+{ const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+  const kb = () => (game.input as unknown as { keyboard?: { enabled: boolean } }).keyboard;
+  document.addEventListener('focusin', e => { const k = kb(); if (k && typing(e.target)) k.enabled = false; });
+  document.addEventListener('focusout', () => { setTimeout(() => { const k = kb(); if (k && !typing(document.activeElement)) k.enabled = true; }, 0); }); }
 if (TEST_HOOKS) { (window as unknown as { __game: Phaser.Game }).__game = game; installDebug(game); }   // tests only (localhost) — never on the public site
 
 // keep the built pictures / code on the phone between visits (public/sw.js): later starts skip the downloads
