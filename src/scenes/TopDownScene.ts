@@ -1029,8 +1029,8 @@ export class TopDownScene extends Phaser.Scene {
     }
     for (const c of this.ponds) for (let k = 0; k < 10; k++) { const a = rnd() * 6.28, x = c.x + Math.cos(a) * (c.r + 6), y = c.y + Math.sin(a) * (c.r / 1.3 + 4); if (free(x, y, 4)) this.add.image(x, y, 'o_' + pick('reed', 4)).setOrigin(0.5, 0.9).setDepth(y); }
     const gy = this.trailMain(30);
-    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน'); this.cornerGates();
-    this.arrive(64, this.trailMain(64));
+    this.addPortal(46, gy, 0, 'กลับหมู่บ้าน');
+    this.hero.setPosition(64, this.trailMain(64));   // (the corner gates + a random arrival come after the jungle's props: placeProps)
     // herds of deer and boar graze the meadows and the jungle edges
     const spot = () => {
       for (let i = 0; i < 80; i++) {
@@ -1107,13 +1107,30 @@ export class TopDownScene extends Phaser.Scene {
    *  without walking back to the village) — each on the nearest open ground toward the middle */
   cornerGates() {
     this.gateSpots = [];
-    // (director: right at the map's corners, the two gates well apart — the map-select one along the edge)
-    const spot = (cx: number, cy: number) => { let at: { x: number; y: number } | null = null; for (let k = 0; k <= 30 && !at; k++) { const x = cx + (MW / 2 - cx) * k * 0.012, y = cy + (MH / 2 - cy) * k * 0.012; at = this.canStand(x, y) ? { x, y } : null; } return at; };
+    // (director: right at the map's corners, the two gates well apart — and never behind water / a wall: a player found
+    // corners walled off. The ground one can walk to from the entrance is flood-filled first; each gate goes on the spot
+    // of that ground nearest its corner)
+    const CW = MW / CELL, CH2 = MH / CELL, seen = new Uint8Array(CW * CH2), q: number[] = [];
+    const st = this.portals[0] ? { x: this.portals[0].x + 20, y: this.portals[0].y } : { x: 60, y: MH / 2 };
+    const s0 = this.landing(st.x, st.y) ?? st, i0 = Math.floor(s0.y / CELL) * CW + Math.floor(s0.x / CELL);
+    if (i0 >= 0 && i0 < seen.length && !this.blocked[i0]) { seen[i0] = 1; q.push(i0); }
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h], x = i % CW, y = (i - x) / CW;
+      for (const n of [x > 0 ? i - 1 : -1, x < CW - 1 ? i + 1 : -1, y > 0 ? i - CW : -1, y < CH2 - 1 ? i + CW : -1]) if (n >= 0 && !seen[n] && !this.blocked[n]) { seen[n] = 1; q.push(n); }
+    }
+    const ok = (x: number, y: number) => { const i = Math.floor(y / CELL) * CW + Math.floor(x / CELL); return i >= 0 && i < seen.length && !!seen[i] && this.canStand(x, y); };
+    const spot = (cx: number, cy: number) => {   // the reachable spot nearest (cx, cy), searched ring by ring
+      if (ok(cx, cy)) return { x: cx, y: cy };
+      for (let r = 8; r <= 700; r += 8) { let best: { x: number; y: number } | null = null, bd = 1e9;
+        for (let a = 0; a < 64; a++) { const x = cx + Math.cos(a / 64 * Math.PI * 2) * r, y = cy + Math.sin(a / 64 * Math.PI * 2) * r; if (x < 20 || y < 30 || x > MW - 20 || y > MH - 20 || !ok(x, y)) continue; const d = Math.hypot(x - cx, y - cy); if (d < bd) { bd = d; best = { x, y }; } }
+        if (best) return best; }
+      return null;
+    };
     for (const [cx, cy] of [[34, 100], [MW - 34, 100], [34, MH - 30], [MW - 34, MH - 30]]) {   // (the top row a little lower: clear of the top bar)
       const at = spot(cx, cy); if (!at) continue;
-      const side = at.x < MW / 2 ? 1 : -1, b = spot(cx + side * 300, cy) ?? { x: at.x + side * 300, y: at.y };   // (300 px apart: a player stepped out of one into the other)
-      this.addPortal(at.x, at.y, 0, 'กลับหมู่บ้าน'); this.addPortal(b.x, b.y, 'select', 'เลือกแผนที่');
-      const ar = this.landing(at.x + side * 150, at.y + (at.y < MH / 2 ? 160 : -160)); if (ar) this.gateSpots.push(ar);   // (arrive between the two, a step in from the edge)
+      const side = at.x < MW / 2 ? 1 : -1, b = spot(at.x + side * 300, at.y) ?? spot(at.x, at.y + (at.y < MH / 2 ? 300 : -300));   // (300 px apart: a player stepped out of one into the other)
+      this.addPortal(at.x, at.y, 0, 'กลับหมู่บ้าน'); if (b && Math.hypot(b.x - at.x, b.y - at.y) > 150) this.addPortal(b.x, b.y, 'select', 'เลือกแผนที่');
+      const ar = spot(at.x + side * 150, at.y + (at.y < MH / 2 ? 160 : -160)); if (ar) this.gateSpots.push(ar);   // (arrive between the two, a step in from the edge)
     }
   }
   gateSpots: { x: number; y: number }[] = [];
@@ -1292,7 +1309,7 @@ export class TopDownScene extends Phaser.Scene {
     let seed = 1;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const pick = (k: string, n: number) => `${k}_${Math.floor(rnd() * n)}`;
-    if (this.wild) { this.placeWild(rnd, pick, free); this.wildProps?.(); return; }
+    if (this.wild) { this.placeWild(rnd, pick, free); this.wildProps?.(); this.cornerGates(); this.arrive(64, this.trailMain(64)); return; }
     if (this.stageN) { this.placeStage(rnd, pick, free); return; }
     if (this.inside >= 0) { this.placeRoom(); return; }
     if (this.town) { this.town.place(rnd, pick, free); this.villageProps(rnd, free, (x, y) => GV.laneDist(x, y)); return; }
