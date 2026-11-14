@@ -47,8 +47,23 @@ Known dead ends (do not try again): `/create-room` is refused; PixelLab sounds n
 
 ## 4. Check the ONE sample in the game before paying for the rest
 - Objects / icons: open it next to the real neighbours at game scale (Playwright screenshot of the scene, `deviceScaleFactor: 1`, zoom 3) — look for angle, outline weight, palette, size.
-- Characters / animations: import, then `python3 -I tools/audit_dirs.py <out.png> <key> walk,attack 2` (all 8 directions on one ground line) — floating, missing weapon, size jumps show at once. Also run the feet check: every direction's lowest pixels sit on the same line (see commit "Every hero form stands on the ground").
+- Characters / animations: first look at all 8 rotations side by side — `south` straight at the viewer, `east` a clean profile (else regenerate); import, then `python3 -I tools/audit_dirs.py <out.png> <key> walk,attack 2` (all 8 directions on one ground line) — floating, missing weapon, size jumps show at once. Also run the feet check: every direction's lowest pixels sit on the same line (see commit "Every hero form stands on the ground").
 - Show the director the screenshot (SendUserFile) with the price of the full batch; batch only after "ok".
+
+## 4b. Mounts and anything a hero sits on / wears (lessons of 14 Nov — the director rejected every riding picture)
+1. **Check the facing of every rotation by eye BEFORE anything else** (`tools/mount_grid.py`): the `south` picture must look
+   straight at the viewer, `east` must be a clean right profile. Four-legged characters often come out turned half a step
+   (no picture is straight on) — then NO renaming fixes it (the animal and the rider face different ways). Regenerate
+   that mount (another seed; say "standing facing the viewer, symmetrical front view"); don't try to rescue it in code.
+2. A picture made by pasting a hero on an animal is NOT a preview. Only show the director what the game itself draws:
+   import, add the def, ride it in the game (Playwright), screenshot every direction with 3 forms (small / caped / big
+   armour). `tools/mount_preview.py` is only for my own first check.
+3. Before sending, run the checklist on every frame and fix what fails: the animal faces where the rider faces · the hips
+   sit IN the saddle dip (not on the rump, not in the air) · the near-side head / neck / rump covers the legs it should ·
+   rider size vs animal looks like a real rider (scale the animal, never the hero) · same outline weight and light.
+4. Saddles: read the seat point by eye on the grid (`tools/mount_seats_manual.json`); colour guessing (`mount_seats.py`)
+   mistakes saddle cloths and fur for the seat.
+5. One honest sentence about what is still wrong goes with every picture — never "looks good" unless it passes 1-3.
 
 ## 5. Batch, import, audit
 - Run batches with ≤3 parallel workers (429 → the client backs off), 1 direction per request.
