@@ -27,6 +27,7 @@ export function listItem(s: GameState, uid: number, qty: number, price: number, 
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return 'missing';
   if (isEquipped(s, uid)) return 'equipped';
+  if (itemDef(it.id).pick !== undefined) return 'missing';   // (🎡 selector chests cannot be sold: they have no fair price)
   if (myListings(s).length >= MAX_LISTINGS) return 'full';
   if (listedToday(s, now) >= DAILY_LISTINGS) return 'daily';
   const n = Math.max(1, Math.min(qty, it.qty)), pr = priceRange(it, n);

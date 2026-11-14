@@ -11,6 +11,8 @@ export interface ItemDef {
   desc: string;
   price: number; // buy price (sell = 40%)
   rarity: number; // shop/base rarity (instances roll their own)
+  /** 🎡 a selector chest: open it to choose one piece of gear of this rarity */
+  pick?: number;
   atk?: number;
   matk?: number;
   def?: number;
@@ -142,6 +144,9 @@ export const ITEMS: Record<string, ItemDef> = {
   goblin_fang: { id: 'goblin_fang', name: 'เขี้ยวก็อบลิน', type: 'material', icon: 'fang', desc: 'ของสะสมจากก็อบลิน', price: 22, rarity: 0, stack: true },
   wisp_essence: { id: 'wisp_essence', name: 'แก่นวิญญาณ', type: 'material', icon: 'essence', desc: 'พลังงานเวทบริสุทธิ์', price: 35, rarity: 1, stack: true },
   ancient_core: { id: 'ancient_core', name: 'แก่นโบราณ', type: 'material', icon: 'gem0', desc: 'แกนพลังจากของแรร์/บอส ใช้อัปเกรดอาคารขั้นสูง', price: 300, rarity: 3, stack: true },
+  pick_rare: { id: 'pick_rare', name: 'หีบเลือกอุปกรณ์ Rare', type: 'consumable', icon: 'pick_rare', desc: 'เปิดแล้วเลือกอุปกรณ์ระดับ Rare ได้ 1 ชิ้น (อาวุธ/เกราะ/เครื่องประดับ ตรงอาชีพตัวเอง)', price: 0, rarity: 2, pick: 2, stack: true },
+  pick_sr: { id: 'pick_sr', name: 'หีบเลือกอุปกรณ์ Super Rare', type: 'consumable', icon: 'pick_sr', desc: 'เปิดแล้วเลือกอุปกรณ์ระดับ Super Rare ได้ 1 ชิ้น (อาวุธ/เกราะ/เครื่องประดับ ตรงอาชีพตัวเอง)', price: 0, rarity: 3, pick: 3, stack: true },
+  pick_legend: { id: 'pick_legend', name: 'หีบเลือกอุปกรณ์ Legend', type: 'consumable', icon: 'pick_legend', desc: 'เปิดแล้วเลือกอุปกรณ์ระดับ Legend ได้ 1 ชิ้น (อาวุธ/เกราะ/เครื่องประดับ ตรงอาชีพตัวเอง)', price: 0, rarity: 4, pick: 4, stack: true },
   mana_shard: { id: 'mana_shard', name: 'ผลึกมานา', type: 'material', icon: 'shard', desc: 'ใช้ในการตีบวกอุปกรณ์', price: 40, rarity: 1, stack: true },
 };
 // apply the rarity stat tables to every piece of gear (stats written in the item list above are replaced)

@@ -76,7 +76,7 @@ export function useItem(s: GameState, uid: number, now = Date.now()): { heal: nu
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return null;
   const d = itemDef(it.id);
-  if (d.type !== 'consumable') return null;
+  if (d.type !== 'consumable' || d.pick !== undefined) return null;   // (a selector chest opens with openPick)
   // ⏳ a buff: the same one adds its time (up to 1 h, VIP 3 h); already full → nothing is used up
   const inc: Incoming | null = d.buff ? { slot: 'buff', stat: d.buff.stat, pct: d.buff.pct } : d.elixir ? { slot: 'elixir', name: d.name } : null;
   if (inc && !d.heal && !d.mana && buffFull(s, inc, now)) return { heal: 0, mana: 0, buff: d.name, full: true };

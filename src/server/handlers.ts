@@ -23,6 +23,7 @@ import { gatherReward, brew, type Vein } from '../systems/alchemy';
 import { derive } from '../systems/stats';
 import { addItem, sellUid, sellJunk, tryUpgrade, dismantle, equip, unequipUid, useItem } from '../systems/inventory';
 import { dismantleYield, disMatch } from '../systems/lootOpt';
+import { spinWheel, openPick, WHEEL_OPEN } from '../systems/wheel';
 import { itemDef, SHOP_STOCK, SHOP_SHARD_DAILY } from '../data/items';
 import { build, upgrade, collect, craft, cook, tick as settleTick } from '../systems/settlement';
 import {
@@ -393,6 +394,15 @@ export const handlers = {
   marketCancel: (s: GameState, a: { id: string }) => cancelListing(s, a.id),
   /** the players' market lives on the game server (server/worker.ts Player): offline there is nothing to browse or buy */
   marketBrowse: (_s: GameState, _a: { type: number; rar: number; page: number }) => no('offline') as Refused | { list: import('../systems/market').Listing[]; total: number },
+  /** 🎡 the gold wheel (systems/wheel.ts): the server rolls; a Legend is announced to the whole server */
+  wheelSpin(s: GameState, a: { n: number }, c: Ctx) {
+    if (!WHEEL_OPEN && !c.admin) return no('closed');
+    const r = spinWheel(s, Math.floor(Number(a.n) || 0), c.rnd); if (typeof r === 'string') return no(r);
+    for (const p of r.prizes) if ((p.rar ?? 0) >= 4 && p.id) { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: p.id, rar: p.rar! }); if (news.length > 50) news.shift(); }
+    return r;
+  },
+  /** 🎡 open a selector chest: the chosen gear of its rarity (systems/wheel.ts) */
+  openPick(s: GameState, a: { uid: number; id: string }, c: Ctx) { const r = openPick(s, Number(a.uid), String(a.id), c.rnd); return typeof r === 'string' ? no(r) : r; },
   marketHistory: (_s: GameState, _a: { type?: number; rar?: number; page?: number; id?: string }) => no('offline') as Refused | { list: { item: import('../systems/market').Listing['item']; price: number; at: number }[]; total: number; week?: { n: number; avg: number; lo: number; hi: number } },
   marketBuy: (_s: GameState, _a: { id: string }) => no('offline') as Refused | { ok: true; id: string; qty: number; price: number },
   /** the CBT gift is handed out by the game server only (server/worker.ts Player.cbt): offline there is nothing */

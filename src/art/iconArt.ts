@@ -140,8 +140,15 @@ function resHammer() {
   p.outline(OUT, false); return p;
 }
 
+/** 🎡 a selector chest (the gem shows its rarity) */
+function pickChest(gem: number, band: number) {
+  const p = new PixelCanvas(16, 16);
+  p.shadedRect(2, 6, 12, 8, 0x8a5a2a); p.shadedRect(2, 3, 12, 4, 0x9a6a34); p.rect(2, 6, 12, 1, 0x4a2a10); p.rect(2, 3, 1, 11, band); p.rect(13, 3, 1, 11, band); p.rect(7, 5, 2, 4, band); p.rect(7, 6, 2, 2, gem); p.set(7, 6, 0xffffff);
+  p.outline(OUT, false); return p;
+}
 export function buildIcons(): Record<string, PixelCanvas> {
   return {
+    pick_rare: pickChest(0x3a8aff, 0xc8ccd8), pick_sr: pickChest(0xa050ff, 0xd8c070), pick_legend: pickChest(0xffa020, 0xf2cc58),
     sword0: sword(0xb08850, 0x6a4126, 0x8a6030),
     sword1: sword(0xc8d2e0, 0x5a3a24, 0x8a8a9a),
     sword2: sword(0xe8f0ff, 0x2f4f9a, 0xe0c050),
