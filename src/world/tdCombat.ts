@@ -4,7 +4,7 @@ import { fx2, hasFx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
 import { lootSkip, lootDis } from '../systems/lootOpt';
@@ -711,6 +711,8 @@ export class Combat {
       const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
       // every creature is peaceful until the hero hits it (fleeing game never fights); it calms down when the hero gets far away
       const dg = !!this.dungeon;
+      // player feedback (14 Nov): a monster that sees the hero close by comes at them (bosses wait at their meadow)
+      if (!dg && !m.hitT && !m.animal && !m.boss && !m.wb && me0 && !peer && dist < SIGHT) m.hitT = time;
       if (!dg && m.hitT > 0 && dist > 320) m.hitT = 0;
       const angry = (m.hitT > 0 || dg) && !m.animal;
       const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;

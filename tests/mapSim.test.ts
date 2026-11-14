@@ -97,6 +97,12 @@ describe('monsters never stay stuck on a corner', () => {
     expect(m.hitT).toBe(0); expect(m.tgt).toBeUndefined();
     expect(m.x).toBeLessThan(1000);
   });
+  it('a monster notices a hero walking close by and comes (player feedback) — not one far away', () => {
+    const s = new MapSim('m1', grid(), rnd); s.run(T0, [me(100, 700)]);
+    const m = [...s.mons.values()].find(q => !q.boss && !q.animal)!; m.x = m.hx = 500; m.y = m.hy = 500;
+    s.run(T0 + 200, [me(800, 500)]); expect(m.tgt).toBeUndefined();
+    s.run(T0 + 400, [me(560, 500)]); expect(m.tgt).toBe('A'); expect(m.hitT).toBeGreaterThan(0);
+  });
   it('one that strayed far from its spot walks back (or is put back if it cannot)', () => {
     const s = new MapSim('m1', grid(), rnd); s.run(T0, [me(100, 700)]);
     const m = [...s.mons.values()][0]; m.hx = 700; m.hy = 600; m.x = 990; m.y = 600;

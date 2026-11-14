@@ -5,7 +5,7 @@
 // bolt and now and then kick back. The map's walls come from the players' games (Grid, checked by the room).
 import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT } from '../systems/spawnRate';
 import { RAID_LAND, isRaid } from '../world/stages';
 import { RAID_SECS, RAID_BLD, RAID_GATES, raidTotal, raidHp, raidBldHp, RAID_WAVES, RAID_WAVE_SIZE, RAID_WAVE_GAP, RAID_BLD_SHARE, RAID_ALIVE_MAX, raidSpeed, RAID_GROUP, RAID_GROUP_GAP } from '../systems/townRaid';
 import type { TownBld } from '../systems/town';
@@ -17,7 +17,7 @@ export interface SMon {
   sid: number; mob: StageMon; boss: boolean; elite: boolean; animal: boolean; hp: number; max: number; dmg: Record<string, number>; alive: boolean;
   x: number; y: number; hx: number; hy: number; dir: number; mv: boolean; atT: number; last: number; hitT: number; tgt?: string;
   wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number; /** seconds it has tried to move and not got anywhere */ stuck: number;
-  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; lv?: number; until?: number;
+  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; /** gave up a chase: does not notice heroes again until then */ calmT?: number; lv?: number; until?: number;
   /** (village raid) what it goes for: a building or the heroes; its wave */ role?: 'bld' | 'hero'; wave?: number;
 }
 /** ⚔ the village raid as the room runs it */
@@ -175,6 +175,11 @@ export class MapSim {
     const base = MONSTERS[m.mob.kind], reach = base.attackRange + m.mob.size * 0.2;
     let p = m.tgt ? players.find(q => q.id === m.tgt && q.hp > 0) : undefined;
     if (m.tgt && !p) { m.tgt = undefined; m.hitT = 0; }
+    if (!p && !m.animal && !m.boss && !m.wb && !this.raid && now > (m.calmT ?? 0)) {   // (calmT: it just gave up a chase it could not finish)
+   // director / player feedback: it notices a hero walking close by and comes
+      const near = players.filter(q => q.hp > 0 && Math.hypot(q.x - m.x, q.y - m.y) < SIGHT).sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y))[0];
+      if (near) { p = near; m.tgt = near.id; m.hitT = now; }
+    }
     const dx = p ? p.x - m.x : 0, dy = p ? p.y - m.y : 0, dist = p ? Math.hypot(dx, dy) : Infinity;
     if (m.hitT > 0 && dist > 320) { m.hitT = 0; m.tgt = undefined; p = undefined; }
     const angry = m.hitT > 0 && !m.animal && !!p, aggro = !angry ? 0 : m.boss ? 260 : 130;
@@ -215,8 +220,8 @@ export class MapSim {
     if (want && Math.hypot(m.x - ox, m.y - oy) < 0.3) m.stuck += dt; else m.stuck = 0;
     if (m.stuck > 3) {
       m.stuck = 0;
-      if (want === 'chase') { m.hitT = 0; m.tgt = undefined; return; }
-      m.x = m.hx; m.y = m.hy; m.hitT = 0; m.tgt = undefined; m.mv = false; return;
+      if (want === 'chase') { m.hitT = 0; m.tgt = undefined; m.calmT = now + 8000; return; }
+      m.x = m.hx; m.y = m.hy; m.hitT = 0; m.tgt = undefined; m.calmT = now + 8000; m.mv = false; return;
     }
     if (!angry || !p) return;
     const who = p.id, sid = m.sid;

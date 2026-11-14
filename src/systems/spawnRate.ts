@@ -20,3 +20,6 @@ export function respawnMs(ms: number, players: number) {
 }
 /** too few alive (under 60% of the target): bring dead ones back right away */
 export const lowWater = (target: number) => Math.ceil(target * 0.6);
+
+/** how close (px) a hero may walk past a monster before it notices and comes (player feedback 14 Nov; bosses / animals never) */
+export const SIGHT = 80;
