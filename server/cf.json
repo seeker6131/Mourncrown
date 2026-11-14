@@ -10,7 +10,7 @@
   ],
   "limits": {
     "maxOnline": 50,
-    "dayHours": 30,
-    "_note": "money cap (director, budget 300 THB/month): max players online at once, and player-hours per UTC day (resets 07:00 Thai). Free plan now: 30 h/day (about the free quota). After Workers Paid $5: dayHours 50 keeps the bill near 300 THB. 0 = no limit. Then python3 -I tools/deploy_server.py"
+    "dayHours": 50,
+    "_note": "money cap (director, budget 300 THB/month): max players online at once, and player-hours per UTC day (resets 07:00 Thai). Workers Paid $5 since 2026-11-14: dayHours 50 keeps the bill near 300 THB (free plan was 30). 0 = no limit. Then python3 -I tools/deploy_server.py"
   }
 }
