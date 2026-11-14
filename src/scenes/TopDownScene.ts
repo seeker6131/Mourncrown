@@ -64,6 +64,7 @@ import { makeRuin } from '../world/ruin';
 import { loadAtlas, unpackAtlas } from '../world/atlas';
 import { preloadMounts, createMountAnims, Riding, mountReady } from '../world/mount';
 import { StormCloud } from '../world/petCloud';
+import { WeaponFire, fireTier } from '../world/weaponFire';
 import { nameStyle } from '../world/nameTag';
 import { activePet, activeNameColor, activeHorseSkin, auraOf, CLOUD_SPEED, rideSpeed } from '../systems/cosmetics';
 import { SERVER } from '../net/cloud';
@@ -326,6 +327,8 @@ export class TopDownScene extends Phaser.Scene {
   pet?: StormCloud; guide?: Phaser.GameObjects.Graphics; guideTx?: Phaser.GameObjects.Text; heroTagGold = false;
   /** 🗺 tapped on the big map: walking there by itself (any move of the stick / AUTO cancels it) */
   walkGoal: { x: number; y: number; key: object } | null = null; walkMark?: Phaser.GameObjects.Graphics;
+  /** 🔥 flames on a +5 / +10 weapon (world/weaponFire.ts) */
+  wfire?: WeaponFire;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -432,7 +435,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined;   // (scene objects are made anew on restart)
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.wfire = undefined;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -2113,6 +2116,13 @@ export class TopDownScene extends Phaser.Scene {
     }
     this.updateAura();
     this.updatePet(time);
+    { // 🔥 +5 gold / +10 red flames on the weapon hand
+      const s1 = S(), wu = s1.equip.weapon != null ? s1.inventory.find(i => i.uid === s1.equip.weapon)?.upg ?? 0 : 0, t = fireTier(wu);
+      if (this.wfire && this.wfire.tier !== t) { this.wfire.destroy(); this.wfire = undefined; }
+      if (t && !this.wfire) this.wfire = new WeaponFire(this, t);
+      if (this.wfire) { const r = this.riding, src = (r ? r.rider : this.hero) as Phaser.GameObjects.Sprite, hh = r ? (src.y - r.headY()) : headH(this, this.F.key) * this.hero.scaleY;
+        this.wfire.update(src.x, r ? src.y + hh * 0.35 : this.hero.y, r ? hh * 1.4 : hh, this.dir, r ? src.depth : this.hero.y, time, (this.hero.visible || !!r) && !this.dead); }
+    }
     if (this.link) {
       const s0 = S(), d0 = derive(s0);
       this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: auraOf(s0, vipTier(s0)), r: this.riding?.id ?? '', lv: s0.level, pe: activePet(s0) ? 1 : 0, nc: activeNameColor(s0) ? 1 : 0, sk: this.riding?.skin ? 1 : 0 });
