@@ -1,0 +1,443 @@
+{
+ "frames": [
+  {
+   "filename": "fx-quest 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 1.png",
+   "frame": {
+    "x": 96,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 2.png",
+   "frame": {
+    "x": 192,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 3.png",
+   "frame": {
+    "x": 288,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 4.png",
+   "frame": {
+    "x": 0,
+    "y": 75,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 5.png",
+   "frame": {
+    "x": 96,
+    "y": 75,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 6.png",
+   "frame": {
+    "x": 192,
+    "y": 75,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 7.png",
+   "frame": {
+    "x": 288,
+    "y": 75,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 8.png",
+   "frame": {
+    "x": 0,
+    "y": 150,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 9.png",
+   "frame": {
+    "x": 96,
+    "y": 150,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 10.png",
+   "frame": {
+    "x": 192,
+    "y": 150,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 11.png",
+   "frame": {
+    "x": 288,
+    "y": 150,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 12.png",
+   "frame": {
+    "x": 0,
+    "y": 225,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 13.png",
+   "frame": {
+    "x": 96,
+    "y": 225,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 14.png",
+   "frame": {
+    "x": 192,
+    "y": 225,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-quest 15.png",
+   "frame": {
+    "x": 288,
+    "y": 225,
+    "w": 96,
+    "h": 75
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 75
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 75
+   },
+   "pivot": {
+    "x": 0.4895833333333333,
+    "y": 0.52
+   },
+   "duration": 67
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-quest.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 384,
+   "h": 300
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 47,
+   "y": 39
+  },
+  "frameTags": [
+   {
+    "name": "fx-quest",
+    "from": 0,
+    "to": 15,
+    "direction": "forward"
+   }
+  ]
+ }
+}

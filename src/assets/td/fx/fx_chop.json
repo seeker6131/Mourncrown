@@ -1,0 +1,235 @@
+{
+ "frames": [
+  {
+   "filename": "fx-chop 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 1.png",
+   "frame": {
+    "x": 53,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 2.png",
+   "frame": {
+    "x": 106,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 3.png",
+   "frame": {
+    "x": 0,
+    "y": 44,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 4.png",
+   "frame": {
+    "x": 53,
+    "y": 44,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 5.png",
+   "frame": {
+    "x": 106,
+    "y": 44,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 6.png",
+   "frame": {
+    "x": 0,
+    "y": 88,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-chop 7.png",
+   "frame": {
+    "x": 53,
+    "y": 88,
+    "w": 53,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 53,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 53,
+    "h": 44
+   },
+   "pivot": {
+    "x": 0.39622641509433965,
+    "y": 0.36363636363636365
+   },
+   "duration": 56
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-chop.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 159,
+   "h": 132
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 21,
+   "y": 16
+  },
+  "frameTags": [
+   {
+    "name": "fx-chop",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

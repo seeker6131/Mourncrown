@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "fx-boom 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 1.png",
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 2.png",
+   "frame": {
+    "x": 176,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 3.png",
+   "frame": {
+    "x": 264,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 4.png",
+   "frame": {
+    "x": 0,
+    "y": 45,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 5.png",
+   "frame": {
+    "x": 88,
+    "y": 45,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 6.png",
+   "frame": {
+    "x": 176,
+    "y": 45,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 7.png",
+   "frame": {
+    "x": 264,
+    "y": 45,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 8.png",
+   "frame": {
+    "x": 0,
+    "y": 90,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-boom 9.png",
+   "frame": {
+    "x": 88,
+    "y": 90,
+    "w": 88,
+    "h": 45
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 45
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 45
+   },
+   "pivot": {
+    "x": 0.5454545454545454,
+    "y": 0.37777777777777777
+   },
+   "duration": 71
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-boom.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 352,
+   "h": 135
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 48,
+   "y": 17
+  },
+  "frameTags": [
+   {
+    "name": "fx-boom",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

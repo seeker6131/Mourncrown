@@ -1,0 +1,391 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-m3-chain 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 1.png",
+   "frame": {
+    "x": 99,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 2.png",
+   "frame": {
+    "x": 198,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 3.png",
+   "frame": {
+    "x": 297,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 4.png",
+   "frame": {
+    "x": 0,
+    "y": 144,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 5.png",
+   "frame": {
+    "x": 99,
+    "y": 144,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 6.png",
+   "frame": {
+    "x": 198,
+    "y": 144,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 7.png",
+   "frame": {
+    "x": 297,
+    "y": 144,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 8.png",
+   "frame": {
+    "x": 0,
+    "y": 288,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 9.png",
+   "frame": {
+    "x": 99,
+    "y": 288,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 10.png",
+   "frame": {
+    "x": 198,
+    "y": 288,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 11.png",
+   "frame": {
+    "x": 297,
+    "y": 288,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 12.png",
+   "frame": {
+    "x": 0,
+    "y": 432,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-sk-m3-chain 13.png",
+   "frame": {
+    "x": 99,
+    "y": 432,
+    "w": 99,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 99,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 99,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.494949494949495,
+    "y": 0.9583333333333334
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-m3-chain.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 396,
+   "h": 576
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 49,
+   "y": 138
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-m3-chain",
+    "from": 0,
+    "to": 13,
+    "direction": "forward"
+   }
+  ]
+ }
+}

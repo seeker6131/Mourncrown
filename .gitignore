@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-single
+*.log
+__pycache__/
+
+# test screenshots never belong in the repo
+/*.png
+server/.build/

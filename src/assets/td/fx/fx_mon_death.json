@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "fx-mon-death 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 1.png",
+   "frame": {
+    "x": 26,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 2.png",
+   "frame": {
+    "x": 52,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 3.png",
+   "frame": {
+    "x": 78,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 4.png",
+   "frame": {
+    "x": 0,
+    "y": 43,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 5.png",
+   "frame": {
+    "x": 26,
+    "y": 43,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 6.png",
+   "frame": {
+    "x": 52,
+    "y": 43,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 7.png",
+   "frame": {
+    "x": 78,
+    "y": 43,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 8.png",
+   "frame": {
+    "x": 0,
+    "y": 86,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-mon-death 9.png",
+   "frame": {
+    "x": 26,
+    "y": 86,
+    "w": 26,
+    "h": 43
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 26,
+    "h": 43
+   },
+   "sourceSize": {
+    "w": 26,
+    "h": 43
+   },
+   "pivot": {
+    "x": 0.07692307692307693,
+    "y": 0.4418604651162791
+   },
+   "duration": 77
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-mon-death.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 104,
+   "h": 129
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 2,
+   "y": 19
+  },
+  "frameTags": [
+   {
+    "name": "fx-mon-death",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

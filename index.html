@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0906" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mourncrown" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <title>Mourncrown</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0b0906; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    #game { position: fixed; inset: 0; }
+    canvas { display: block; image-rendering: pixelated; }
+    #rotate { display: none; position: fixed; inset: 0; z-index: 10; background: #0b0906; color: #e8c872; font-family: sans-serif; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px; box-sizing: border-box; }
+    #rotate .phone { width: 48px; height: 80px; border: 4px solid #e8c872; border-radius: 8px; animation: rot 1.8s ease-in-out infinite; }
+    @keyframes rot { 0%,30% { transform: rotate(0); } 60%,100% { transform: rotate(90deg); } }
+    @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }   /* (phones / tablets only: a tall PC window just plays) */
+    /* "please wait" overlay: CSS-only animation so the dots keep moving even while the game builds the map */
+    #wait { display: none; position: fixed; inset: 0; z-index: 9; background: #0b0906; color: #e8c872; font-family: sans-serif; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+    #wait.on { display: flex; }
+    #wait .t { font-size: 22px; letter-spacing: 1px; }
+    #wait .t i { font-style: normal; display: inline-block; animation: dot 1.2s infinite; opacity: 0.15; }
+    #wait .t i:nth-child(2) { animation-delay: 0.2s; } #wait .t i:nth-child(3) { animation-delay: 0.4s; }
+    #wait .ring { width: 34px; height: 34px; border: 3px solid #3a2a14; border-top-color: #e8c872; border-radius: 50%; animation: spin 0.9s linear infinite; will-change: transform; }
+    @keyframes dot { 0%, 100% { opacity: 0.15; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="wait"><div class="ring"></div><div class="t"><span id="waitTxt">รอสักครู่</span><i>.</i><i>.</i><i>.</i></div></div>
+  <div id="rotate"><div class="phone"></div><div>กรุณาหมุนโทรศัพท์เป็นแนวนอน<br><small>Rotate to landscape</small></div></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

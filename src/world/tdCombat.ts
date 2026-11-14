@@ -1,0 +1,996 @@
+import { raidAtk, raidFlag } from '../systems/townRaid';
+import { fx2, hasFx2 } from './fx2';
+// Monsters, combat, loot and stage flow for the top-down world.
+import { pxShadow } from './pxShadow';
+import Phaser from 'phaser';
+import { MONSTERS } from '../data/monsters';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP } from '../systems/spawnRate';
+import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
+import { S, bus, EV } from '../core/events';
+import { lootSkip, lootDis } from '../systems/lootOpt';
+import { isGear } from '../systems/loot';
+import { saveGame } from '../core/save';
+import { derive, gainExp, calcDamage } from '../systems/stats';
+import { addItem } from '../systems/inventory';
+import { act, actServer, isOnline, refused } from '../net/client';
+import { sfx } from '../audio/sfx';
+import { element } from '../audio/skillSfx';
+import { SKILL_PFX, playPfx } from './pfx';
+import { SETS } from '../data/sets';
+import { Vfx } from './vfx';
+import { strikeColor } from '../systems/premium';
+import { sellJunk } from '../systems/inventory';
+import { invSize } from '../core/state';
+import { selfEffect, skillHit, castQ } from '../systems/skillCast';
+import type { SkillDef } from '../data/skills';
+import { CH, playAnim, setIdle, hasAnim, hitMs, animMs, preloadChars, createCharAnims } from './chars';
+import { WB } from '../server/mapSim';
+import type { MonRow, RoomEvent } from '../net/room';
+import { STAGES, WILD, WILD_GAME, LANDS, wildStage, dungeonStage, DUNGEON_WAVES, scaleStats, type Stage, type StageMon, isRaid } from './stages';
+
+export interface Mon {
+  sp: Phaser.GameObjects.Sprite; m: StageMon; hp: number; max: number; atk: number; def: number; exp: number; gold: [number, number];
+  x: number; y: number; hx: number; hy: number; dir: number; last: number; alive: boolean; bar: Phaser.GameObjects.Graphics; boss: boolean; hitT: number; atkT: number; spT?: number; animal?: boolean; wanderT?: number; fleeT?: number; sid: number; elite: boolean; /** (shared map) the other player it is after */ tgt?: string; /** (mirror) where the host has it */ nx?: number; ny?: number; mvF?: number; atF?: number; goneT?: number; bounty?: boolean; /** (online) this game's own monster, not the room's: the bounty lord */ local?: boolean; /** a roaming boss (run by the room) */ wb?: boolean; chT?: number; chargeT?: number; px?: number; py?: number; leapT?: number; leapUntil?: number; packed?: boolean; stepT?: number; stepN?: number;
+}
+
+/** loot flies to the hero from this far (px) — the reach of a ranged skill */
+export const LOOT_REACH = 150;
+export interface Host extends Phaser.Scene {
+  /** a spot the hero can stand on (loot never lands in a tree / wall) */
+  canStand?(x: number, y: number): boolean;
+  hero: Phaser.GameObjects.Sprite; dir: number; isBlocked(x: number, y: number): boolean; surfAt(x: number, y: number): string;
+  burst(sp: Phaser.GameObjects.Sprite, soul: number): void; heroDie(): void; dead: boolean; stageN: number;
+  /** an animal kicks back: push the hero away and stun for ms */
+  stunHero(ms: number, fromX: number, fromY: number): void;
+  /** forced moves: may the hero be put here / nearest good spot (never inside or wedged against obstacles) */
+  canLand(x: number, y: number): boolean; landing(x: number, y: number): { x: number; y: number } | null;
+  /** other players nearby who may grab loot left on the ground (Deepwild simulation; online: real players) */
+  others?(): { x: number; y: number; name: string; grab(x: number, y: number): void }[];
+}
+
+/** sprites drawn on a bigger canvas than the rest of their family (the remade dragon) */
+const SPRITE_SCALE: Record<string, number> = { bs3: 0.62 };
+/** boss special per land, monsters that hit heavily, projectile colours */
+const BOSS_FX: Record<string, string> = { forest: 'earth-spike', haunt: 'grasping-hands', lava: 'flame-pillar', snow: 'ice-spikes', dung: 'necro-skulls' };
+export const MONSTER_PFX = (land: string) => ['claw-swipe', 'blunt-hit', 'crit-hit', 'hit-spark', BOSS_FX[land] ?? 'earth-spike'];
+const HEAVY = new Set(['jailer', 'golem', 'yeti', 'treant', 'stag', 'dragon', 'frostgiant', 'skking', 'skeleton']);
+const RANGED_COL: Record<string, number> = { wisp: 0x9affd8, ghost: 0x9ad8ff, skarcher: 0xe8dcc0, goblin: 0xe8dcc0, imp: 0xff8a3a };
+const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(dy, dx)) / (Math.PI / 4)) % 8 + 8) % 8;
+/** wild game that wanders every map (meat and hides) */
+const GAME: StageMon[] = WILD_GAME;
+const RANGED = new Set(['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9']);
+const MAGIC = new Set(['hr7', 'hr8', 'hr9']);
+/** damage number styles: physical / physical crit / magic / magic crit */
+const DMG = {
+  phys: { col: '#ffffff', stroke: '#2a1a10', size: 10 },
+  physCrit: { col: '#ffcf3a', stroke: '#5a1a00', size: 16 },
+  magic: { col: '#8fe8ff', stroke: '#06203a', size: 10 },
+  magicCrit: { col: '#ff7aff', stroke: '#2a0640', size: 16 },
+};
+
+const AURA = [0.32, 0.42, 0.55, 0.75, 0.95, 1.25];
+interface Loot { did: number; id: string; qty: number; rar: number; set?: string; /** 👑 left on the ground by the VIP loot setting */ skip?: boolean; x: number; y: number; im: Phaser.GameObjects.Image; aura: Phaser.GameObjects.Image; beam?: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite; born: number; landed: boolean; busy: boolean; retryT: number; lured?: boolean }
+
+/** the map room as the fight sees it (net/room.ts RoomLink) */
+export interface NetLink { me: string; online: boolean; isHost: boolean; others: Map<string, { x: number; y: number }>; dmg(sid: number, n: number): void; mons(a: MonRow[]): void; matk(to: string, sid: number, k?: string): void }
+
+export class Combat {
+  mons: Mon[] = [];
+  /** the one monster walking over to the hero (noticed, not hit yet) — director: only one at a time */
+  seeker: Mon | null = null;
+  /** shared map (online): the room keeps every monster's HP; the host's game moves them, the others mirror the host */
+  net: NetLink | null = null; mirror = false; msT = 0;
+  /** (director "C") the common monsters are this game's own, on this device — the room runs only roaming bosses
+   *  (much less server time on the free plan). Other players are seen, but each fights their own monsters. */
+  solo = false;
+  /** this game spawns and moves the common monsters (offline, or online with its own monsters) */
+  get ownMobs() { return !this.mirror || this.solo; }
+  private get live() { return this.net?.online ? this.net : null; }
+  stage: Stage | null = null;
+  vfx: Vfx;
+  constructor(public s: Host) { this.vfx = new Vfx(s); }
+
+  /** where a respawning monster may appear (set by the scene: a free spot away from the hero and the gate) */
+  pickSpot: (() => { x: number; y: number }) | null = null;
+  /** players in this map's room (the hero + others): more players → more monsters, faster respawns (systems/spawnRate.ts) */
+  pop = 1;
+  baseCount = 0;
+  pending: { m: Mon; at: number }[] = [];
+  keepT = 0;
+  bossSpot: { x: number; y: number } | null = null;
+  /** Farming map: lots of monsters spread over the map; every kill respawns after a while, the boss every 5 minutes. */
+  spawnMap(n: number, pick: () => { x: number; y: number }, bossSpot: { x: number; y: number } | null) {
+    if (n === WILD) {   // the Deepwild: herds of game only, at the hero's level
+      this.stage = wildStage(S().level); this.pickSpot = pick; this.bossSpot = null;
+      this.baseCount = 40; this.pending = [];
+      if (!this.ownMobs) return;
+      for (let i = 0; i < 40; i++) { const p = pick(); this.spawn(GAME[i % 3 === 0 ? 1 : 0], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
+      return;
+    }
+    const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
+    if (!this.ownMobs) { this.spawnBounty(n); return; }   // (the room runs this map's monsters)
+    for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
+    // (no land bosses any more — director: roaming bosses come instead, online)
+    this.spawnBounty(n);
+  }
+  // ---------- loot on the ground: the item itself with a rarity aura; flies into the hero when close ----------
+  ground: Loot[] = [];
+  hitSfxT = 0;
+  bagWarnT = 0;
+  dropLoot(x: number, y: number, drops: { did: number; id: string; qty: number; rar: number; set?: string }[]) {
+    const sc = this.s;
+    drops.forEach((d, i) => {
+      const def = itemDef(d.id), key = sc.textures.exists(`icon_${def.icon}`) ? `icon_${def.icon}` : 'td_glow', col = RARITY_COLORS[d.rar];
+      let tx = x + (Math.random() - 0.5) * 50, ty = y + 4 + (Math.random() - 0.5) * 26;
+      if (sc.canStand && !sc.canStand(tx, ty)) {   // (landed in a tree / wall: the nearest spot one can walk to — a player could not reach it)
+        outer: for (let r = 6; r <= 120; r += 6) for (let a = 0; a < 12; a++) { const px = tx + Math.cos(a / 12 * Math.PI * 2) * r, py = ty + Math.sin(a / 12 * Math.PI * 2) * r; if (sc.canStand(px, py)) { tx = px; ty = py; break outer; } }
+      }
+      const aura = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(ty - 1).setScale(AURA[d.rar]);
+      sc.tweens.add({ targets: aura, alpha: { from: 0.55, to: 1 }, scale: { from: AURA[d.rar] * 0.85, to: AURA[d.rar] * 1.15 }, duration: 600 - d.rar * 40, yoyo: true, repeat: -1 });
+      let beam: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite | undefined;
+      const pillar = d.rar >= 3 ? fx2(sc, d.rar >= 5 ? 'fx_drop_sl' : d.rar >= 4 ? 'fx_drop_legend' : 'fx_drop_epic', x, y + 2, ty - 1, 0.55 + d.rar * 0.06) : null;
+      if (pillar) beam = pillar;   // PixelLab light pillar (looping) for Super Rare and better
+      else if (d.rar >= 3) {   // a pillar of light for Super Rare and better
+        beam = sc.add.image(x, y, 'td_glow').setTint(col).setBlendMode(Phaser.BlendModes.ADD).setOrigin(0.5, 0.92).setDepth(ty - 1).setDisplaySize(6 + d.rar * 3, 40 + d.rar * 18).setAlpha(0.7);
+        sc.tweens.add({ targets: beam, alpha: { from: 0.35, to: 0.85 }, duration: 500, yoyo: true, repeat: -1 });
+      }
+      const im = sc.add.image(x, y - 8, key).setDepth(ty + 1); im.setScale(13 / Math.max(im.width, im.height, 1));
+      const g: Loot = { ...d, x: tx, y: ty, im, aura, beam, born: sc.time.now, landed: false, busy: false, retryT: 0 };
+      this.ground.push(g);
+      // pop out of the monster in a little arc, then land
+      sc.tweens.addCounter({ from: 0, to: 1, duration: 380, delay: i * 70, ease: 'Linear',
+        onUpdate: tw => { const t = tw.getValue() ?? 0, px = x + (tx - x) * t, py = y + (ty - y) * t - Math.sin(Math.PI * t) * 22; im.setPosition(px, py - 6); aura.setPosition(px, py); beam?.setPosition(px, py); },
+        onComplete: () => { g.landed = true; im.setPosition(tx, ty - 6); sc.tweens.add({ targets: im, y: ty - 9, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }); } });
+    });
+  }
+  removeLoot(g: Loot, fade = false) {
+    this.ground = this.ground.filter(q => q !== g);
+    const objs = [g.im, g.aura, g.beam].filter(Boolean) as Phaser.GameObjects.Image[];
+    if (fade) this.s.tweens.add({ targets: objs, alpha: 0, duration: 400, onComplete: () => objs.forEach(o => o.destroy()) }); else objs.forEach(o => { this.s.tweens.killTweensOf(o); o.destroy(); });
+  }
+  flyLoot(g: Loot) {
+    g.busy = true; const sc = this.s, h = sc.hero, x0 = g.im.x, y0 = g.im.y;
+    sc.tweens.killTweensOf(g.im);
+    sc.tweens.addCounter({ from: 0, to: 1, duration: 230, ease: 'Quad.easeIn',
+      onUpdate: tw => { const t = tw.getValue() ?? 0, px = x0 + (h.x - x0) * t, py = y0 + (h.y - 14 - y0) * t; g.im.setPosition(px, py).setDepth(h.y + 2); g.aura.setPosition(px, py + 6); g.beam?.setPosition(px, py + 6); },
+      onComplete: () => this.pickLoot(g) });
+  }
+  pickLoot(g: Loot) {
+    const dis = lootDis(S()), args = dis === undefined ? { did: g.did } : { did: g.did, dis };   // (👑 VIP auto-dismantle)
+    if (isOnline()) { actServer('pickup', args).then(r => this.picked(g, r)); return; }   // the loot is the server's
+    this.picked(g, act('pickup', args));
+  }
+  picked(g: Loot, r: ReturnType<typeof act<'pickup'>>) {
+    const sc = this.s;
+    if (refused(r)) {
+      if (r.refused === 'bag') {   // bag full: the item drops back and waits
+        g.busy = false; g.retryT = sc.time.now + 4000; g.im.setPosition(g.x, g.y - 6); g.aura.setPosition(g.x, g.y); g.beam?.setPosition(g.x, g.y);
+        if (sc.time.now > this.bagWarnT) { this.bagWarnT = sc.time.now + 5000; bus.emit(EV.TOAST, 'กระเป๋าเต็ม! ของยังตกอยู่บนพื้น', '#ff8a6a'); }
+        return;
+      }
+      this.removeLoot(g); return;
+    }
+    this.removeLoot(g); sfx.pickup();
+    const def = itemDef(r.id), col = '#' + RARITY_COLORS[r.rar].toString(16).padStart(6, '0');
+    const dz = (r as { dis?: { shards: number; cores: number } }).dis;
+    if (dz) { this.float(sc.hero.x, sc.hero.y - 52, `⚙ ${def.name} → ${itemDef('mana_shard').name} x${dz.shards}${dz.cores ? ` + ${itemDef('ancient_core').name} x${dz.cores}` : ''}`, '#b8a8ff', 7.5); bus.emit(EV.STATE_CHANGED); return; }   // (👑 dismantled on pickup)
+    this.float(sc.hero.x, sc.hero.y - 52, `+${def.name}${r.qty > 1 ? ' x' + r.qty : ''}`, col, 8);
+    const gear = ['weapon', 'armor', 'accessory'].includes(def.type);
+    if ((gear && r.rar >= 2) || (!gear && r.rar >= 3)) bus.emit('loot:popup', { id: r.id, rar: r.rar, set: r.set });
+    bus.emit(EV.STATE_CHANGED);
+  }
+  updateLoot(time: number) {
+    const h = this.s.hero, others = this.s.others?.() ?? [];
+    for (const g of [...this.ground]) {
+      if (time - g.born > 60000) { this.removeLoot(g, true); continue; }
+      if (!g.landed || g.busy) continue;
+      const d = Math.hypot(g.x - h.x, g.y - h.y);
+      if (g.skip === undefined) g.skip = lootSkip(S(), isGear(itemDef(g.id)), g.rar);   // 👑 VIP: gear below the chosen rarity stays on the ground
+      if (!g.skip && !this.s.dead && time > g.retryT && d < LOOT_REACH) { this.flyLoot(g); continue; }   // (director: as far as a ranged skill reaches)
+      // left on the ground: someone else may take it
+      if (time - g.born > 3500 && d > 110 && others.length) {
+        const o = others.find(q => Math.hypot(q.x - g.x, q.y - g.y) < 16);
+        if (o) { act('dropLost', { did: g.did }); this.float(g.x, g.y - 20, `${o.name} เก็บไปแล้ว!`, '#ff9a7a', 8); this.removeLoot(g, true); continue; }
+        if (!g.lured) { const n = others.filter(q => Math.hypot(q.x - g.x, q.y - g.y) < 260).sort((a, b) => Math.hypot(a.x - g.x, a.y - g.y) - Math.hypot(b.x - g.x, b.y - g.y))[0]; if (n) { n.grab(g.x, g.y); g.lured = true; } }
+      }
+    }
+  }
+
+  /** Daily dungeon: waves of the land's monsters, then its boss. They fight back (challenge mode) and never respawn. */
+  dungeon: { wave: number; left: number; onWave: (w: number) => void; onClear: () => void } | null = null;
+  startDungeon(li: number, level: number, pick: () => { x: number; y: number }, onWave: (w: number) => void, onClear: () => void) {
+    this.stage = dungeonStage(li, level); this.pickSpot = pick; this.bossSpot = null;
+    this.dungeon = { wave: 0, left: 0, onWave, onClear }; this.nextWave();
+  }
+  nextWave() {
+    const d = this.dungeon!, L = this.stage!.land;
+    if (d.wave < DUNGEON_WAVES.length) { const n = DUNGEON_WAVES[d.wave]; for (let i = 0; i < n; i++) { const p = this.pickSpot!(); this.spawn(L.mobs[(i + d.wave) % L.mobs.length], p.x, p.y, false); } d.left = n; }
+    else { const p = this.pickSpot!(); this.spawn(L.boss, p.x, p.y, true); d.left = 1; }
+    d.wave++; d.onWave(d.wave);
+  }
+  /** bring a dead monster back somewhere else on the map */
+  /** a bot player (test crowd) finished this monster: it dies and comes back, the player gets nothing */
+  botKill(m: Mon) {
+    if (!m.alive) return;
+    m.alive = false; m.bar.clear();
+    { const sh = m.sp.getData('sh') as Phaser.GameObjects.Image | undefined; if (sh) this.s.tweens.add({ targets: sh, alpha: 0, duration: 400 }); }
+    (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); (m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined)?.destroy();
+    this.s.burst(m.sp, 0xbfe8ff); m.sp.setVisible(false); fx2(this.s, 'fx_mon_death', m.x, m.y - 6, m.y + 1, 0.8);
+    act('botKill', { sid: m.sid });
+    if (!this.dungeon) this.respawn(m);
+  }
+  respawn(m: Mon) {
+    if (!m.boss) { this.pending.push({ m, at: this.s.time.now + respawnMs(m.animal ? (this.stage?.n === WILD ? 12000 : 20000) : 8000 + Math.random() * 6000, this.solo ? 1 : this.pop) }); return; }
+    this.s.time.delayedCall(300000, () => { if (this.s.sys.isActive() && this.s.stageN === this.stage?.n) this.revive(m); });
+  }
+  /** remove a dead monster's leftovers */
+  dispose(m: Mon) {
+    const i = this.mons.indexOf(m); if (i >= 0) this.mons.splice(i, 1);
+    (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy(); (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy(); (m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined)?.destroy(); m.sp.destroy(); m.bar.destroy();
+  }
+  private revive(m: Mon) {
+    this.dispose(m);
+    const p = m.boss && this.bossSpot ? this.bossSpot : this.pickSpot!();
+    this.spawn(m.m, p.x, p.y, m.boss);
+    const nm = this.mons[this.mons.length - 1]; nm.animal = m.animal;
+    nm.sp.setAlpha(0); this.s.tweens.add({ targets: nm.sp, alpha: 1, duration: 600 });
+    if (m.boss) bus.emit(EV.TOAST, `${m.m.name} ปรากฏตัวอีกครั้ง!`, '#ff8a6a');
+  }
+  /** monsters keep up with the crowd: respawn on time, bring dead ones back early when the map runs low, add more
+   *  when more players arrive, let extras go when they leave (never in a dungeon) */
+  private keepUp(time: number) {
+    if (this.dungeon || !this.stage || !this.pickSpot || !this.ownMobs) return;
+    const wild = this.stage.n === WILD, target = monTarget(this.baseCount, this.solo ? 1 : this.pop);   // (own monsters: as many as for one player)
+    const common = this.mons.filter(m => !m.boss && !m.bounty), alive = common.filter(m => m.alive).length;
+    this.pending.sort((a, b) => a.at - b.at);
+    let early = alive < lowWater(target) ? 3 : 0, n = 0;
+    while (this.pending.length && n < 4 && (this.pending[0].at <= time || early-- > 0)) {
+      const { m } = this.pending.shift()!; n++;
+      if (common.length > target) { this.dispose(m); common.splice(common.indexOf(m), 1); } else this.revive(m);
+    }
+    for (let k = common.length; k < target && n < 4; k++, n++) {
+      const p = this.pickSpot(), mob = wild ? GAME[k % 3 === 0 ? 1 : 0] : this.stage.land.mobs[k % this.stage.land.mobs.length];
+      this.spawn(mob, p.x, p.y, false); const nm = this.mons[this.mons.length - 1]; nm.animal = wild;
+      nm.sp.setAlpha(0); this.s.tweens.add({ targets: nm.sp, alpha: 1, duration: 600 });
+    }
+  }
+
+  /** the wandering bounty lord, when this map is the bounty's map (systems/bounty.ts) */
+  spawnBounty(n: number) {
+    const r = act('bountySpawn', { n }); if (refused(r) || !this.pickSpot) return;
+    const p = this.pickSpot(), mob = { ...r.mob, name: `👑 ${r.name}`, size: Math.round(r.mob.size * 1.6) };
+    this.spawn(mob, p.x, p.y, false, { sid: r.sid, hpMult: r.hp });
+    const m = this.mons[this.mons.length - 1]; m.bounty = true; m.local = true;
+    m.sp.setScale(m.sp.scaleX * 1.6);
+    const ea = fx2(this.s, 'fx_elite_aura', p.x, p.y + 2, p.y + 1, mob.size / 40); ea?.setTint(0xff7a5a); if (ea) m.sp.setData('aura2', ea);
+    fx2(this.s, 'fx_boss_spawn', p.x, p.y + 4, p.y - 1, 1.8);
+    bus.emit(EV.TOAST, `👑 ${r.name} อยู่ในแผนที่นี้! (ค่าหัว)`, '#ffb04a');
+  }
+  spawn(m: StageMon, x: number, y: number, boss: boolean, forced?: { sid: number; hpMult: number }, mir?: { sid: number; elite: boolean }) {
+    const base = MONSTERS[m.kind]; const st = scaleStats(base, this.stage!.level, boss);
+    const online = isOnline() && !mir && !forced;
+    const reg0 = mir ? (act('mirror', { sid: mir.sid, key: m.key, boss, elite: mir.elite }), mir) : forced ? { sid: forced.sid, elite: false } : act('spawn', { key: m.key, boss, animal: !!base.animal }, online ? r => { if (r.elite) this.makeGolden(r.sid); } : undefined);
+    const reg = { sid: reg0.sid, elite: online ? false : reg0.elite };   // online: the server says later whether it is golden   // the server names the spawn and decides golden monsters
+    if (reg.elite) st.hp *= 5;
+    if (forced) { st.hp *= forced.hpMult; st.atk = Math.round(st.atk * 2.2); st.exp *= 20; }
+    const sc = this.s;
+    let sp: Phaser.GameObjects.Sprite;
+    if (CH[m.key]) { sp = sc.add.sprite(x, y, `c_${m.key}_idle`); setIdle(sp, m.key, 0); sp.setScale(SPRITE_SCALE[m.key] ?? 1); }
+    else { sp = sc.add.sprite(x, y, '__DEFAULT').setVisible(false); }
+    const ph = CH[m.key] ? null : sc.add.ellipse(x, y - m.size * 0.3, m.size * 0.6, m.size * 0.5, 0x5a2a3a).setStrokeStyle(1, 0x140a10);
+    if (ph) sp.setData('ph', ph);
+    const bar = sc.add.graphics().setDepth(99960);
+    const shw = m.size * (boss ? 0.75 : 0.62);
+    const sh = pxShadow(sc, x, y, shw, shw * 0.34, 0.45);
+    sp.setData('sh', sh);
+    if (reg.elite) fx2(sc, 'fx_golden_spawn', x, y - 10, y + 1, 1.1);
+    if (boss) fx2(sc, 'fx_boss_spawn', x, y + 4, y - 1, 1.6);
+    if (reg.elite) {   // golden monster: gold aura, a bit bigger
+      sp.setScale(1.2);
+      const au = sc.add.image(x, y - m.size * 0.35, 'td_glow').setTint(0xffd84a).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(m.size / 40);
+      sc.tweens.add({ targets: au, alpha: { from: 0.45, to: 1 }, scale: { from: m.size / 44, to: m.size / 34 }, duration: 700, yoyo: true, repeat: -1 });
+      sp.setData('aura', au);
+      const ea = fx2(sc, 'fx_elite_aura', x, y + 2, y + 1, m.size / 40); if (ea) sp.setData('aura2', ea);
+    }
+    // a circle on the ground: a faint red ring under monsters (brighter once they fight), a big dark rune circle with rising
+    // flames under bosses so they stand out from everything else on the map
+    if (!base.animal) {
+      const rg = boss ? fx2(sc, 'fx_boss_aura', x, y + 1, y - 3, Math.max(0.8, m.size / 140))?.setOrigin(0.5, 0.64).setAlpha(0.95)
+        : fx2(sc, 'fx_ring_mon', x, y, y - 3, Math.max(0.45, m.size / 70))?.setOrigin(0.5, 0.5).setAlpha(0.4);
+      if (rg) { rg.anims.setProgress(Math.random()); sp.setData('ring', rg); }
+    }
+    this.mons.push({ sp, m, hp: st.hp, max: st.hp, atk: st.atk, def: st.def, exp: st.exp, gold: st.gold, x, y, hx: x, hy: y, dir: 0, last: 0, alive: true, bar, boss, hitT: 0, atkT: 0, sid: reg.sid, elite: reg.elite, ...(this.solo && !mir ? { local: true } : {}) });
+  }
+
+  // ---------- skills ----------
+  shieldHp = 0; shieldUntil = 0; shieldEnd: (() => void) | null = null;
+  /** shield soaks damage first */
+  absorb(dmg: number) {
+    if (this.shieldHp <= 0 || this.s.time.now > this.shieldUntil) { this.shieldHp = 0; return dmg; }
+    const a = Math.min(this.shieldHp, dmg); this.shieldHp -= a;
+    if (a > 0) this.float(this.s.hero.x, this.s.hero.y - 48, `🛡${a}`, '#ffe080', 8);
+    if (this.shieldHp <= 0) { this.shieldEnd?.(); this.shieldEnd = null; }
+    return dmg - a;
+  }
+  alive() { return this.mons.filter(m => m.alive); }
+  nearest(r: number) { const h = this.s.hero; return this.alive().filter(m => Math.hypot(m.x - h.x, m.y - h.y) < r).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y)); }
+  hitSk(m: Mon, sk: SkillDef, knock = 0) {
+    if (!m.alive) return 0;
+    const r = skillHit(S(), sk, m.def);
+    this.hurtMon(m, r.dmg, r.crit, sk.stat === 'matk');
+    if (knock && m.alive && !m.boss) { const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), nx = m.x + Math.cos(a) * knock, ny = m.y + Math.sin(a) * knock; if (!this.s.isBlocked(nx, ny)) { m.x = nx; m.y = ny; } }
+    return r.dmg;
+  }
+  ring(x: number, y: number, r: number, col: number, dur = 380) {
+    this.vfx.wave(x, y, r, col, dur); this.vfx.glow(x, y - 6, col, r / 30, dur, 0.8);
+  }
+
+  /** Cast a skill (already paid for by systems/skillCast.beginCast). Returns the text to float over the hero. */
+  castSkill(sk: SkillDef) {
+    const h = this.s.hero, col = sk.color ?? 0xffe8a0, s = S();
+    const near = this.nearest(240)[0];
+    const aim = near ? Math.atan2(near.y - h.y, near.x - h.x) : Math.atan2(Math.cos(this.s.dir * Math.PI / 4), Math.sin(this.s.dir * Math.PI / 4));
+    const fx = Math.cos(aim), fy = Math.sin(aim);
+    if (near) this.s.dir = dirOf(fx, fy);
+    // the 4th-form finishers get a big PixelLab effect on top (where the hero lands, or on each target hit)
+    const ULT: Record<string, [string, 'land' | 'targets', number]> = { s4_judgment: ['fx_ult_sword', 'land', 360], t4_titan: ['fx_ult_tank', 'land', 340], a4_storm: ['fx_ult_bow', 'targets', 600], m4_meteor: ['fx_ult_mage', 'targets', 650] };
+    const u = ULT[sk.id];
+    if (u) {
+      if (u[1] === 'land') { if (sk.kind !== 'leap') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], h.x, h.y + 4, h.y + 2, 1.3)); }   // (a leap's finisher starts in the leap, at the landing spot)
+      else this.nearest(230).slice(0, sk.count ?? 5).forEach((m, i) => this.s.time.delayedCall(u[2] + i * 90, () => fx2(this.s, u[0], m.x, m.y + 2, m.y + 2, 0.9)));
+    }
+    // one designed PixelLab effect per skill (tools/gen_vfx2.py fx_sk_*): the old pixelfx layer and the code-drawn
+    // decorations stay quiet for this cast, so nothing stacks (projectiles still fly; they carry the hit)
+    const SK_AT: Record<string, 'hero' | 'front' | 'land' | 'target'> = { v_bash: 'front', s2_cleave: 'front', s2_whirl: 'hero', s2_guard: 'hero', s3_charge: 'land', s3_crusade: 'front', s3_valor: 'hero', s4_blades: 'hero', s4_aegis: 'hero', a2_double: 'target', a2_fan: 'target', a2_focus: 'hero', a3_pierce: 'target', a3_rain: 'target', a3_trap: 'hero', a4_spirit: 'target', a4_wind: 'hero', m2_bolt: 'target', m2_fire: 'target', m2_heal: 'hero', m3_chain: 'target', m3_arcane: 'hero', m3_volley: 'target', m4_void: 'target', m4_dread: 'hero', t2_slam: 'front', t2_wall: 'hero', t2_recover: 'hero', t3_quake: 'hero', t3_ram: 'land', t3_bulwark: 'hero', t4_fortress: 'hero', t4_lion: 'hero' };
+    const sfk = 'fx_sk_' + sk.id, designed = hasFx2(sfk);
+    if (designed || u) this.vfx.quietUntil = this.s.time.now + 1300;
+    if (designed) {
+      const at = SK_AT[sk.id] ?? 'hero';
+      if (at === 'hero') this.s.time.delayedCall(60, () => fx2(this.s, sfk, h.x, h.y + 4, h.y + 1, 1.1));
+      else if (at === 'front') fx2(this.s, sfk, h.x + fx * 24, h.y - 4 + fy * 14, h.y + 2, 1)?.setFlipX(fx < -0.2);
+      else if (at === 'land') this.s.time.delayedCall(sk.kind === 'leap' ? 340 : 210, () => fx2(this.s, sfk, h.x, h.y + 2, h.y + 2, 1.1));
+      else this.nearest(sk.kind === 'rain' ? 240 : 200).slice(0, Math.max(1, sk.count ?? 1)).forEach((m, i) => this.s.time.delayedCall((sk.kind === 'rain' ? 420 : 240) + i * 80, () => { if (m.alive) fx2(this.s, sfk, m.x, m.y - m.m.size * 0.3, m.y + 2, 0.95); }));
+    }
+    this.float(h.x, h.y - 56, sk.name, '#' + col.toString(16).padStart(6, '0'), 10);
+    const times = (n: number, gap: number, f: (i: number) => void) => { for (let i = 0; i < n; i++) this.s.time.delayedCall(i * gap, () => f(i)); };
+    // PixelLab effect art layered over the procedural effects
+    const el = element(sk), V = this.vfx;
+    const pf = (SKILL_PFX[sk.id] ?? []).some(u => this.s.anims.exists('pfx_' + u.fx));
+    const artOn = !pf && !designed;
+    const blastKey = el === 'fire' ? 'px_fx_blast_fire' : el === 'dark' ? 'px_fx_blast_arcane' : 'px_fx_blast_w';
+    const blastTint = el === 'fire' || el === 'dark' ? undefined : col;
+    const circle = (x: number, y: number, size: number, dur = 600) => !artOn ? null : V.art('px_fx_circle_w', x, y, { s0: size * 0.35, s1: size, sy: 0.55, a0: 0.95, tint: col, dur, depth: y - 2, spin: 60 });
+    const blast = (x: number, y: number, size: number, delay = 0) => !artOn ? null : V.art(blastKey, x, y, { s0: size * 0.3, s1: size, a0: 1, dur: 420, tint: blastTint, delay });
+    const slashArt = (x: number, y: number, a: number, size: number, flip = false) => !artOn ? null : V.art('px_fx_slash', x, y, { rot: a - Math.PI / 2 + (flip ? Math.PI : 0), s0: size * 0.7, s1: size * 1.1, a0: 1, dur: 360, tint: col });
+    switch (sk.kind) {
+      case 'strike': {
+        const n = sk.count ?? 1;
+        times(n, 170, i => {
+          const cx = h.x + fx * 20, cy = h.y - 10 + fy * 14;
+          this.vfx.slash(cx, cy, aim, col, 1.5, i % 2 === 1); this.vfx.impact(cx + fx * 10, cy + fy * 6, col, true); slashArt(cx, cy, aim, 0.55, i % 2 === 1);
+          if (sk.id === 't2_slam' || sk.id === 's2_cleave') { this.vfx.debris(cx, cy + 10, col, 10); this.vfx.dust(cx, cy + 10, 6); }
+          for (const m of this.alive()) if (Math.hypot(m.x - cx, m.y - (cy + 10)) < 34 + m.m.size * 0.25) this.hitSk(m, sk, sk.id === 't2_slam' ? 22 : 6);
+        }); break;
+      }
+      case 'spin': {
+        const n = sk.count ?? 2, r = sk.radius ?? 48;
+        times(n, 220, i => { this.ring(h.x, h.y, r, col, 300); circle(h.x, h.y, r / 70, 380); for (let k = 0; k < 2 && artOn; k++) V.art('px_fx_slash', h.x, h.y - 10, { rot: k * Math.PI + i, s0: r / 90, s1: r / 70, a0: 1, dur: 300, tint: col, spin: 200 }); for (let k = 0; k < 4; k++) this.vfx.slash(h.x, h.y - 10, k * Math.PI / 2 + i * 0.8, col, 1.25); this.vfx.burst(h.x, h.y - 10, col, 16, 160, 420); this.vfx.dust(h.x, h.y, 6, 40); for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 8); });
+        break;
+      }
+      case 'dash': {
+        let tx = h.x, ty = h.y;
+        for (let d = 4; d < 110; d += 4) { const nx = h.x + fx * d, ny = h.y + fy * d; if (!this.s.canLand(nx, ny)) break; tx = nx; ty = ny; }
+        const x0 = h.x, y0 = h.y, hitSet = new Set<Mon>();
+        for (let k = 0; k < 6; k++) this.s.time.delayedCall(k * 30, () => { const gh = this.s.add.image(h.x, h.y, h.texture.key, h.frame.name).setOrigin(h.originX, h.originY).setTint(col).setAlpha(0.5).setDepth(h.depth - 1); this.s.tweens.add({ targets: gh, alpha: 0, duration: 260, onComplete: () => gh.destroy() }); });
+        this.s.tweens.add({ targets: h, x: tx, y: ty, duration: 200, ease: 'Quad.easeOut', onUpdate: () => {
+          for (const m of this.alive()) if (!hitSet.has(m) && Math.hypot(m.x - h.x, m.y - h.y) < 22 + m.m.size * 0.25) { hitSet.add(m); this.hitSk(m, sk, 18); }
+        } });
+        this.vfx.dust(x0, y0, 10, 40); this.vfx.glow(x0, y0 - 10, col, 1.2, 300);
+        this.s.time.delayedCall(200, () => { this.vfx.impact(h.x, h.y - 10, col, true); this.vfx.dust(h.x, h.y, 8, 30); blast(h.x, h.y - 8, 0.55); });
+        slashArt(x0 + fx * 50, y0 - 10 + fy * 30, aim, 0.8);
+        break;
+      }
+      case 'leap': {
+        const r = sk.radius ?? 60, tgt = near && Math.hypot(near.x - h.x, near.y - h.y) < 170 ? { x: near.x - fx * 16, y: near.y - fy * 10 } : { x: h.x + fx * 60, y: h.y + fy * 60 };
+        { const ok = this.s.landing(tgt.x, tgt.y); tgt.x = ok ? ok.x : h.x; tgt.y = ok ? ok.y : h.y; }
+        // the knight's finisher: a sword of light falls on the landing spot. Its point meets the ground at y 98 of the
+        // 144-px picture, ~350 ms in — so it starts now, pinned at that point, and strikes as the hero lands (director:
+        // it used to burst off to one side and late)
+        if (u && u[0] === 'fx_ult_sword') fx2(this.s, u[0], tgt.x, tgt.y + 2, tgt.y + 3, 1.3)?.setOrigin(0.5, 98 / 144);
+        else if (u && u[1] === 'land') this.s.time.delayedCall(u[2], () => fx2(this.s, u[0], tgt.x, tgt.y + 4, tgt.y + 2, 1.3));   // (the titan's ring is centred: on the landing spot)
+        this.s.tweens.add({ targets: h, x: tgt.x, y: tgt.y, duration: 320, ease: 'Sine.easeInOut' });
+        this.s.tweens.add({ targets: h, scale: 1.25, duration: 160, yoyo: true });
+        this.vfx.glow(h.x, h.y - 10, col, 1, 300);
+        this.s.time.delayedCall(330, () => { circle(h.x, h.y, r / 55, 700); blast(h.x, h.y - 6, r / 60); this.vfx.pillar(h.x, h.y, col, 170, 650); this.vfx.wave(h.x, h.y, r * 1.2, col, 520); this.vfx.wave(h.x, h.y, r * 0.7, 0xffffff, 380); this.vfx.glow(h.x, h.y - 8, col, 2.4, 420); this.vfx.debris(h.x, h.y, col, 18); this.vfx.dust(h.x, h.y, 12, 50); this.vfx.burst(h.x, h.y - 8, col, 24, 200, 520);
+          for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) this.hitSk(m, sk, 16); });
+        break;
+      }
+      case 'shot': case 'pierce': {
+        const n = sk.count ?? 1, spr = sk.spread ?? (sk.kind === 'pierce' ? 0.12 : 0.18), pierce = sk.kind === 'pierce', len = pierce ? 230 : 190;
+        const magic = sk.stat === 'matk';
+        times(n, sk.id === 'a2_double' || sk.id === 'm3_volley' ? 110 : 0, i => {
+          const a = sk.id === 'a2_double' || sk.id === 'm3_volley' ? aim + (i - (n - 1) / 2) * 0.05 : aim + (i - (n - 1) / 2) * spr;
+          const sx = h.x, sy = h.y - 18, ex = sx + Math.cos(a) * len, ey = sy + Math.sin(a) * len;
+          // who is on the line? (sorted by distance) — first one only unless piercing
+          const on = this.alive().map(m => { const px = m.x - sx, py = m.y - m.m.size * 0.35 - sy, t = px * Math.cos(a) + py * Math.sin(a), dd = Math.abs(-px * Math.sin(a) + py * Math.cos(a)); return { m, t, dd }; })
+            .filter(o => o.t > 0 && o.t < len && o.dd < 12 + o.m.m.size * 0.2).sort((p, q) => p.t - q.t);
+          const hits = pierce ? on : on.slice(0, 1);
+          const stopT = !pierce && hits[0] ? hits[0].t : len;
+          const tx = sx + Math.cos(a) * stopT, ty = sy + Math.sin(a) * stopT;
+          const big = sk.proj === 'fire' || sk.id === 'm2_fire';
+          if (i === 0) this.vfx.glow(sx, sy, col, magic ? 1 : 0.6, 220);
+          const proj = el === 'fire' ? 'px_fx_fireball' : el === 'ice' ? 'px_fx_icespike' : undefined;
+          if (magic && i === 0) circle(h.x, h.y, 0.5, 450);
+          this.vfx.bolt(sx, sy, tx, ty, col, big ? 1.8 : pierce ? 1.3 : magic ? 1.1 : 1, pierce ? 700 : 560, () => {
+            if (magic || big) blast(tx, ty, big ? 0.9 : 0.4);
+            if (big) {
+              this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, sk.radius ?? 40, col, 420); this.vfx.burst(tx, ty, 0xffb040, 26, 200, 600, 0.22, 120);
+              for (const m of this.alive()) if (Math.hypot(m.x - tx, m.y - m.m.size * 0.35 - ty) < (sk.radius ?? 40)) this.hitSk(m, sk, 10);
+            } else {
+              this.vfx.impact(tx, ty, col, pierce);
+              for (const o of hits) { this.hitSk(o.m, sk, pierce ? 4 : 6); if (pierce) this.vfx.impact(o.m.x, o.m.y - o.m.m.size * 0.35, col); }
+            }
+          }, !magic && sk.proj !== 'orb' && sk.proj !== 'dark' && !big, magic || big ? proj : undefined);
+          if (pierce) { const ln = this.s.add.image(sx, sy, 'vfx_beam').setOrigin(0.5, 1).setRotation(a + Math.PI / 2).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setDepth(99950).setScale(0.6, stopT / 128).setAlpha(0.8); this.s.tweens.add({ targets: ln, alpha: 0, scaleX: 0.1, duration: 380, onComplete: () => ln.destroy() }); }
+        });
+        break;
+      }
+      case 'rain': {
+        const tg = this.nearest(230).slice(0, sk.count ?? 5);
+        tg.forEach((m, i) => this.s.time.delayedCall(i * 90, () => {
+          if (!m.alive) return;
+          const tx = m.x, ty = m.y - m.m.size * 0.3;
+          const fall = sk.fall ?? 'arrow';
+          // finishers with a PixelLab effect (played by castSkill on these same targets): just the damage, nothing stacked
+          if (designed) { this.s.time.delayedCall(440, () => { if (m.alive) this.hitSk(m, sk, 4); }); return; }   // its designed effect plays on this target
+          if ((sk.id === 'm4_meteor' || sk.id === 'a4_storm') && hasFx2('fx_ult_mage')) { this.s.time.delayedCall(sk.id === 'm4_meteor' ? 560 : 520, () => { if (m.alive) this.hitSk(m, sk, 4); }); return; }
+          if (pf && (fall === 'meteor' || fall === 'bolt')) {
+            const fxk = fall === 'meteor' ? 'meteor' : 'lightning-strike', u = SKILL_PFX[sk.id].find(q => q.fx === fxk);
+            const t = playPfx(this.s, fxk, m.x, m.y + 2, { scale: u?.scale, flip: Math.random() < 0.5 });
+            this.s.time.delayedCall(Math.max(0, t), () => { if (m.alive) { this.hitSk(m, sk, 4); this.vfx.impact(m.x, m.y - m.m.size * 0.3, col, true); } });
+            return;
+          }
+          if (fall === 'bolt') {
+            const g = this.s.add.graphics().setDepth(99951).setBlendMode(Phaser.BlendModes.ADD);
+            for (const [w, a2] of [[5, 0.35], [2, 1]] as const) { g.lineStyle(w, w > 2 ? col : 0xffffff, a2).beginPath().moveTo(tx, ty - 160); let px = tx; for (let k = 1; k <= 8; k++) { px = tx + (Math.random() - 0.5) * 22; g.lineTo(px, ty - 160 + k * 20); } g.strokePath(); }
+            this.s.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() });
+            this.vfx.impact(tx, ty, col, true); this.vfx.glow(tx, ty - 40, col, 1.6, 260); artOn && V.art('px_fx_lightning', tx, ty + 10, { oy: 1, s0: 1.2, s1: 1.4, a0: 1, dur: 480 }); this.hitSk(m, sk, 4); return;
+          }
+          const meteor = fall === 'meteor';
+          this.vfx.bolt(tx - 40, ty - 160, tx, ty, col, meteor ? 2.2 : fall === 'blade' ? 1.3 : 1, meteor ? 520 : 800, () => {
+            if (meteor && artOn) V.art('px_fx_blast_fire', tx, ty, { s0: 0.4, s1: 1.1, dur: 460 });
+            if (fall === 'blade') slashArt(tx, ty, Math.PI / 2, 0.45);
+            if (meteor) { this.vfx.impact(tx, ty, col, true); this.vfx.wave(tx, ty + 8, 42, col, 460); this.vfx.debris(tx, ty + 6, col, 14); this.vfx.burst(tx, ty, 0xffa040, 22, 190, 560, 0.22, 140); }
+            else { this.vfx.impact(tx, ty, col, fall === 'blade'); this.vfx.wave(tx, ty + 6, 16, col, 280); }
+            this.hitSk(m, sk, 4);
+          }, fall === 'arrow', meteor ? 'px_fx_fireball' : undefined);
+        }));
+        if (!tg.length) this.float(h.x, h.y - 40, 'ไม่มีเป้าหมาย', '#cfcfcf', 8);
+        break;
+      }
+      case 'nova': {
+        const r = sk.radius ?? 64;
+        circle(h.x, h.y, r / 45, 650); blast(h.x, h.y - 8, r / 55);
+        this.vfx.wave(h.x, h.y, r * 1.15, col, 520); this.vfx.wave(h.x, h.y, r * 0.75, 0xffffff, 380); this.vfx.glow(h.x, h.y - 10, col, r / 22, 460); this.vfx.burst(h.x, h.y - 10, col, 34, r * 3.2, 600, 0.2);
+        if (sk.id === 't3_quake') { this.vfx.debris(h.x, h.y, col, 20); this.vfx.dust(h.x, h.y, 14, 60); }
+        if (sk.id === 'a3_trap') this.vfx.burst(h.x, h.y, 0x6ad86a, 20, 120, 700, 0.16, -60);
+        let total = 0;
+        for (const m of this.alive()) if (Math.hypot(m.x - h.x, m.y - h.y) < r + m.m.size * 0.25) total += this.hitSk(m, sk, 26);
+        if (sk.id === 'm4_dread' && total > 0) { const d = derive(s), heal = Math.min(Math.round(total * 0.1), d.maxHp - s.hp); s.hp += heal; if (heal > 0) this.float(h.x, h.y - 40, `+${heal}`, '#7aff8a', 10); }
+        break;
+      }
+      case 'buff': case 'heal': case 'shield': {
+        if (!designed) fx2(this.s, sk.kind === 'heal' ? 'fx_heal' : sk.kind === 'shield' ? 'fx_shield_up' : 'fx_buff', h.x, h.y + 4, h.y + 1, 1);
+        const r = selfEffect(s, sk);
+        if (!pf) this.vfx.aura(h, col, sk.kind === 'buff' ? 1600 : 1100, sk.kind === 'heal');
+        circle(h.x, h.y, 0.75, 900); if (artOn) V.art('px_fx_pillar', h.x, h.y + 4, { oy: 1, s0: 0.6, s1: 1.1, sy: 1.4, a0: 1, dur: 800, tint: sk.kind === 'shield' ? undefined : col });
+        if (!pf) { this.vfx.pillar(h.x, h.y, col, sk.kind === 'buff' ? 150 : 110, 600); this.vfx.wave(h.x, h.y, 36, col, 500); }
+        this.vfx.glow(h.x, h.y - 16, col, 1.4, 400);
+        if (r.heal !== undefined) this.float(h.x, h.y - 40, `+${r.heal}`, '#7aff8a', 12);
+        if (r.shield) {
+          this.shieldHp = r.shield; this.shieldUntil = this.s.time.now + 12000;
+          this.shieldEnd?.(); this.shieldEnd = this.vfx.bubble(h, col, 12000);
+          this.float(h.x, h.y - 40, `🛡 ${r.shield}`, '#ffe080', 11);
+        }
+        break;
+      }
+    }
+    this.skillPfx(sk, aim, fx, fy);
+  }
+
+  /** pixelfx layer for a skill: on the hero, in front, on the targets (same picks as the skill), or where a dash / leap lands */
+  skillPfx(sk: SkillDef, aim: number, fx: number, fy: number) {
+    const uses = SKILL_PFX[sk.id]; if (!uses || hasFx2('fx_sk_' + sk.id)) return;   // a designed PixelLab effect replaces the pixelfx layer
+    if (['s4_judgment', 't4_titan', 'a4_storm', 'm4_meteor'].includes(sk.id) && hasFx2('fx_ult_sword')) return;   // PixelLab finisher instead
+    const h = this.s.hero, left = fx < -0.2;
+    const targets = (): { x: number; y: number }[] => {
+      if (sk.kind === 'rain') return this.nearest(230).slice(0, sk.count ?? 5);
+      if (sk.kind === 'pierce') return this.alive().filter(m => { const px = m.x - h.x, py = m.y - h.y, t = px * fx + py * fy, d = Math.abs(-px * fy + py * fx); return t > 0 && t < 230 && d < 24; });
+      return this.nearest(sk.kind === 'shot' ? 200 : 120).slice(0, Math.max(1, sk.count ?? 1));
+    };
+    for (const u of uses) {
+      if (u.at === 'target' && sk.kind === 'rain' && (sk.fall === 'meteor' || sk.fall === 'bolt')) continue;   // played by the rain itself
+      const depth = u.behind ? h.y - 1 : undefined, o = { scale: (u.scale ?? 1) * 0.9, flip: left, depth };
+      if (u.at === 'hero') playPfx(this.s, u.fx, h.x, h.y, { ...o, delay: u.delay });
+      else if (u.at === 'front') playPfx(this.s, u.fx, h.x + fx * 26, h.y + fy * 14 + 4, { ...o, delay: u.delay });
+      else if (u.at === 'land') this.s.time.delayedCall(u.delay ?? 0, () => playPfx(this.s, u.fx, h.x, h.y, o));
+      else targets().forEach((m, i) => playPfx(this.s, u.fx, m.x, m.y, { ...o, delay: (u.delay ?? 0) + i * 90 }));
+    }
+  }
+
+  /** hero swing: hit monsters in front (melee) or the nearest in sight (ranged forms) */
+  heroAttack(formKey: string) {
+    const h = this.s.hero, d = derive(S()), ranged = RANGED.has(formKey);
+    const fx = Math.sin(this.s.dir * Math.PI / 4), fy = Math.cos(this.s.dir * Math.PI / 4);
+    const targets = this.mons.filter(m => m.alive).filter(m => {
+      const dx = m.x - h.x, dy = m.y - h.y, dist = Math.hypot(dx, dy);
+      if (ranged) return dist < 150;
+      const reach = 30 + m.m.size * 0.25;
+      return dist < reach && (dx * fx + dy * fy) > -6;
+    }).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y));
+    const hits = ranged ? targets.slice(0, 1) : targets.slice(0, 3);
+    const magic = MAGIC.has(formKey);
+    // damage and the slash effect land on the frame where the weapon / bow / staff strikes
+    this.s.time.delayedCall(hitMs(formKey, formKey === 'hg' ? (hasAnim('hg', 'hunt') ? 'hunt' : 'chop') : 'attack', ranged ? 260 : 120), () => {
+      const pl = hasFx2('fx_hit_sword'), wfx = strikeColor(S());   // 💎 the weapon effect colour (diamond shop) — every class line (director)
+      if (!ranged && (!pl || formKey === 'hg' || wfx !== null)) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
+      for (const m of hits) {
+        if (!m.alive) continue;
+        if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, wfx ?? (formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff), pl); else this.arrow(h.x, h.y - 18, m, pl, wfx ?? undefined); }
+        const r = calcDamage(magic ? d.matk : d.atk, m.def, 1, d.crit);
+        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged, wfx); this.hurtMon(m, r.dmg, r.crit, magic, pl); });
+      }
+    });
+  }
+
+  /** PixelLab hit effect on the monster, by the hero's class line (tools/gen_vfx2.py) */
+  hitFx(m: Mon, form: string, crit: boolean, magic: boolean, ranged: boolean, wfx: number | null = null) {
+    const n = +form.replace(/\D/g, '') || 0;
+    const key = crit ? 'fx_hit_crit' : magic ? 'fx_hit_magic' : ranged ? 'fx_hit_arrow' : n >= 10 ? 'fx_hit_holy' : n >= 1 ? 'fx_hit_sword' : 'fx_hit_punch';
+    const sp = fx2(this.s, key, m.x + (Math.random() - 0.5) * 6, m.y - m.m.size * 0.4, 99952, crit ? 0.75 : 0.9)?.setFlipX(Math.random() < 0.5);
+    if (wfx !== null) { sp?.setTint(wfx); this.sparks(m.x, m.y - m.m.size * 0.4, wfx, crit ? 10 : 6); }   // (💎 the hit flash in the weapon effect colour too)
+  }
+
+  tex(key: string, draw: (k: CanvasRenderingContext2D) => void, w = 32, h = 32) {
+    if (this.s.textures.exists(key)) return;
+    const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d')!); this.s.textures.addCanvas(key, c);
+  }
+  glowTex() { this.tex('fx_dot', k => { const g = k.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); k.fillStyle = g; k.fillRect(0, 0, 32, 32); }); }
+
+  /** sword swing: big glowing crescent + sparks off the blade */
+  slashN = 0;
+  slash(x: number, y: number, dir: number, form: string) {
+    const col = strikeColor(S()) ?? (form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8);
+    const fx = Math.sin(dir * Math.PI / 4), fy = Math.cos(dir * Math.PI / 4);
+    if (form === 'hg') { this.vfx.thrust(x + fx * 4, y + fy * 3, Math.atan2(fy, fx), col, 0.9); return; }   // hunting spear: a stab, not a sweep
+    this.vfx.slash(x + fx * 6, y + fy * 4, Math.atan2(fy, fx), col, form === 'hero' ? 0.85 : 1.05, (this.slashN++ & 1) === 1);
+  }
+
+  sparks(x: number, y: number, col: number, n: number) { this.vfx.burst(x, y, col, n, 90 + n * 6, 360, 0.13); }
+
+  arrow(x: number, y: number, m: Mon, quiet = false, col?: number) {
+    const tx = m.x, ty = m.y - m.m.size * 0.35;
+    this.vfx.bolt(x, y, tx, ty, col ?? 0xffe8a0, col ? 1.15 : 1, 900, () => { if (!quiet || col) this.vfx.impact(tx, ty, col ?? 0xffe0a0); }, true);
+  }
+
+  magicBolt(x: number, y: number, m: Mon, col: number, quiet = false) {
+    const tx = m.x, ty = m.y - m.m.size * 0.35;
+    this.vfx.glow(x, y, col, 0.6, 200);
+    this.vfx.bolt(x, y, tx, ty, col, 1.1, 650, () => { if (!quiet) this.vfx.impact(tx, ty, col, true); });
+  }
+
+  /** director: ranged heroes (mages, archers) must not win before monsters even reach them. A monster shot from afar
+   *  leaps at the hero (every 2.5 s), and the ones standing near it come along as a pack (the 2 nearest — director 14 Nov:
+   *  hit one and 2-3 rush you; walking by, only one comes over slowly). */
+  answer(m: Mon, far: boolean) {
+    const now = this.s.time.now, h = this.s.hero;
+    if (!m.packed) {
+      m.packed = true;
+      this.mons.filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.bounty && now - o.hitT > 1600 && Math.hypot(o.x - m.x, o.y - m.y) < 150)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, 2)
+        .forEach((o, i) => this.s.time.delayedCall(120 + i * 140, () => { if (o.alive) { o.hitT = this.s.time.now; o.packed = true; } }));
+    }
+    if (!far || now - (m.leapT ?? 0) < 2500 || this.dungeon) return;
+    m.leapT = now; m.leapUntil = now + 380;
+    const ax = h.x - m.x, ay = h.y - m.y, ad = Math.max(1, Math.hypot(ax, ay)), go = Math.min(ad - 28, 150);
+    if (go <= 10) return;
+    let gx = m.x, gy = m.y;
+    if (CH[m.m.key] && hasAnim(m.m.key, 'walk')) playAnim(m.sp, m.m.key, 'walk', dirOf(ax, ay));
+    const tw = this.s.tweens.add({ targets: m, x: m.x + ax / ad * go, y: m.y + ay / ad * go, duration: 340, ease: 'Quad.easeOut',
+      onUpdate: () => { if (this.s.isBlocked(m.x, m.y)) { m.x = gx; m.y = gy; tw.complete(); return; } gx = m.x; gy = m.y; },
+      onComplete: () => { if (m.alive) this.vfx.dust(m.x, m.y, 4, 10); } });
+    this.s.tweens.add({ targets: m.sp, scaleY: { from: m.sp.scaleY * 0.85, to: m.sp.scaleY }, duration: 340, ease: 'Back.easeOut' });   // a crouch, then the jump
+  }
+  hurtMon(m: Mon, dmg: number, crit: boolean, magic = false, fxDone = false) {
+    if (!m.alive) return;
+    const net = this.live;
+    const viaRoom = !!net && !m.local;
+    if (viaRoom) { net!.dmg(m.sid, dmg); m.tgt = undefined; } else m.hp -= dmg;   // online the room takes the HP off and says when it dies
+    m.hitT = this.s.time.now;
+    if (this.s.time.now > this.hitSfxT) { this.hitSfxT = this.s.time.now + 70; if (crit) sfx.crit(); else sfx.hit(); }
+    const st = magic ? (crit ? DMG.magicCrit : DMG.magic) : (crit ? DMG.physCrit : DMG.phys);
+    this.dmgText(m.x + (Math.random() - 0.5) * 10, m.y - m.m.size * 0.75, dmg, st, crit, magic);
+    if (fxDone) { /* the PixelLab hit effect is the only one (no stacked effects) */ }
+    else if (!magic) this.vfx.impact(m.x, m.y - m.m.size * 0.4, crit ? 0xffd040 : 0xfff4dc, crit);
+    else if (crit) this.vfx.star(m.x, m.y - m.m.size * 0.4, 0xff9cff, 1.4);
+    m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint());
+    const h = this.s.hero, a = Math.atan2(m.y - h.y, m.x - h.x), far = Math.hypot(m.x - h.x, m.y - h.y) > 90, kb = m.boss ? 1 : far ? 0 : 6;   // shots from afar no longer push it back
+    m.x += Math.cos(a) * kb; m.y += Math.sin(a) * kb;
+    if (!viaRoom && m.hp <= 0) { this.kill(m); return; }
+    if (this.mirror && !m.local) return;   // (the host's game decides how it reacts)
+    if (!m.animal && !m.boss) this.answer(m, far);
+    if (m.animal) {   // game never fights: it bolts a short way, and now and then kicks the hunter back (short stun)
+      m.fleeT = this.s.time.now + 1100;
+      const base = MONSTERS[m.m.kind];
+      if (Math.random() < (base.stun ?? 0.25) && Math.hypot(m.x - h.x, m.y - h.y) < 48 && this.s.time.now - m.last > 2500) {
+        m.last = this.s.time.now; m.dir = dirOf(h.x - m.x, h.y - m.y); m.atkT = this.s.time.now;
+        if (hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
+        this.s.time.delayedCall(160, () => { if (m.alive && !this.s.dead) this.s.stunHero(700, m.x, m.y); });
+      }
+    }
+  }
+
+  kill(m: Mon, share = 1) {
+    m.alive = false; m.bar.clear(); m.goneT = this.s.time.now + 1800;
+    { const sh = m.sp.getData('sh') as Phaser.GameObjects.Image | undefined; if (sh) this.s.tweens.add({ targets: sh, alpha: 0, duration: 400 }); }
+    const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
+    if (ph) { this.s.tweens.add({ targets: ph, alpha: 0, scale: 1.4, duration: 300, onComplete: () => ph.destroy() }); m.sp.setVisible(false); }
+    else if (m.boss && hasAnim(m.m.key, 'die')) {
+      playAnim(m.sp, m.m.key, 'die', m.dir, false);
+      m.sp.once('animationcomplete', () => this.s.tweens.add({ targets: m.sp, alpha: 0, delay: 600, duration: 900, onComplete: () => m.sp.setVisible(false) }));
+    } else { this.s.burst(m.sp, m.boss ? 0xffd27a : 0xbfe8ff); m.sp.setVisible(false); if (!m.animal) fx2(this.s, 'fx_mon_death', m.x, m.y - 6, m.y + 1, 0.8); }
+    if (m.boss || m.bounty) { fx2(this.s, 'fx_boss_death', m.x, m.y, m.y + 2, 1.5); this.s.cameras.main.flash(180, 255, 230, 200); }
+    // rewards are decided by a pure system function (moves to the server when the game goes online)
+    const s = S();
+    (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.destroy();
+    (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.destroy();
+    { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) this.s.tweens.add({ targets: rg, alpha: 0, duration: 500, onComplete: () => rg.destroy() }); }
+    if (!this.dungeon && !m.bounty && !m.wb && (!this.mirror || m.local)) this.respawn(m);   // (own monsters come back; the room's boss does not)
+    if (share <= 0) return;   // (shared map: too little of the damage was mine — no reward)
+    const at = { x: m.x, y: m.y, boss: m.boss };
+    if (this.live && !m.local) { this.deadAt.set(m.sid, at); return; }   // shared map: the server pays each player (net:pay → onPay)
+    const args = { sid: m.sid, kind: m.m.kind, key: m.m.key, name: m.m.name, size: m.m.size, boss: m.boss, share, n: this.stage?.n ?? 0, c: castQ.n }; castQ.n = 0;   // (n: the server may have forgotten which map this is)
+    if (isOnline()) { actServer('kill', args).then(r => this.reward(at, r)); return; }   // the server rolls the loot
+    this.reward(at, act('kill', args));
+  }
+  /** the roaming boss on this map now (the guide arrow points there) */
+  wbAt: { x: number; y: number; name: string; sid: number } | null = null;
+  /** where monsters died recently (the server's payment comes a moment later) */
+  deadAt = new Map<number, { x: number; y: number; boss: boolean }>();
+  /** the server paid this player for monster sid (shared map) */
+  onPay(sid: number, r: ReturnType<typeof act<'kill'>>) { const at = this.deadAt.get(sid) ?? { x: this.s.hero.x, y: this.s.hero.y, boss: false }; this.deadAt.delete(sid); this.reward(at, r); }
+  /** show a kill's reward: EXP / gold numbers, loot on the ground, level up, bounty / golden news */
+  reward(at: { x: number; y: number; boss: boolean }, r: ReturnType<typeof act<'kill'>>) {
+    const m = at, s = S();
+    if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
+    if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
+    const bty = (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty;
+    if (bty?.dragon) { bus.emit(EV.TOAST, '🐉✦ ลิมิเต็ด! ได้ "มังกรเพลิงนิรันดร์" — สัตว์ขี่ในตำนาน! (เมนู → 🐎 สัตว์ขี่)', '#ff9a3a'); fx2(this.s, 'fx_drop_sl', m.x, m.y, m.y + 2, 1.2); this.s.cameras.main.flash(300, 255, 140, 40); }
+    if (bty) { bus.emit(EV.TOAST, `👑 ปราบ ${bty.name}! ได้ค่าหัว 💰${bty.gold} + แก่นโบราณ`, '#ffb04a'); fx2(this.s, 'fx_raid_victory', m.x, m.y - 30, 99995, 1.3); }
+    if ((r as { skillPt?: number }).skillPt) bus.emit(EV.TOAST, '✨ ปราบบอสแผนที่นี้ครั้งแรก — ได้แต้มสกิล +1!', '#9fffb0');
+    if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }
+    if (r.drops?.length) this.dropLoot(m.x, m.y, r.drops);
+    if (r.gold) sfx.coinSoft();
+    this.float(m.x, m.y - 20, r.gold ? `+${r.exp} EXP  +${r.gold}G` : `+${r.exp} EXP`, '#bfffb0', 8);
+    if (r.levels > 0) this.float(this.s.hero.x, this.s.hero.y - 50, `LEVEL UP! Lv ${s.level}`, '#ffd24a', 14);
+    if (r.food) this.float(m.x + 14, m.y - 8, `🍖${r.food}`, '#ffd8a0', 8);
+
+    if (m.boss) bus.emit(EV.TOAST, 'ปราบบอสสำเร็จ! จะกลับมาอีกใน 5 นาที', '#ffd040');
+    saveGame(s); bus.emit(EV.STATE_CHANGED);
+  }
+
+  /** big readable damage numbers: pop in, hang, drift up; crits get a label and a bigger punch */
+  dmgText(x: number, y: number, dmg: number, st: { col: string; stroke: string; size: number }, crit: boolean, magic: boolean) {
+    const z = this.s.cameras.main.zoom, res = Math.max(3, z * 3);
+    const txt = (crit ? (magic ? '✦' : '') : '') + dmg.toLocaleString();
+    const t = this.s.add.text(x, y, txt, { fontFamily: 'Arial Black, Impact, sans-serif', fontSize: st.size + 'px', fontStyle: 'bold', color: st.col, stroke: st.stroke, strokeThickness: crit ? 4 : 3, resolution: res })
+      .setOrigin(0.5).setDepth(99999).setScale(crit ? 1.9 : 1.3);
+    this.s.tweens.add({ targets: t, scale: 1, duration: crit ? 180 : 120, ease: 'Back.easeOut' });
+    this.s.tweens.add({ targets: t, y: y - (crit ? 26 : 18), alpha: 0, delay: crit ? 520 : 380, duration: 600, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
+    if (crit) {
+      const lb = this.s.add.text(x, y - st.size * 0.9, magic ? 'MAGIC CRIT!' : 'CRITICAL!', { fontFamily: 'sans-serif', fontSize: '7px', fontStyle: 'bold', color: st.col, stroke: '#000000', strokeThickness: 2, resolution: res }).setOrigin(0.5).setDepth(99999);
+      this.s.tweens.add({ targets: lb, y: lb.y - 24, alpha: 0, delay: 420, duration: 600, onComplete: () => lb.destroy() });
+    }
+  }
+
+  float(x: number, y: number, t: string, col: string, size: number) {
+    const z = this.s.cameras.main.zoom;
+    const tx = this.s.add.text(x, y, t, { fontFamily: 'sans-serif', fontSize: size + 'px', color: col, stroke: '#0b0f0c', strokeThickness: 3, resolution: Math.max(2, z * 2) }).setOrigin(0.5).setDepth(99999);
+    this.s.tweens.add({ targets: tx, y: y - 18, alpha: 0, duration: 1100, ease: 'Quad.easeOut', onComplete: () => tx.destroy() });
+  }
+
+  update(time: number, dt: number) {
+    const h = this.s.hero, s = S(), d = derive(s);
+    this.updateLoot(time);
+    if (time > this.keepT) { this.keepT = time + 400; this.keepUp(time); }
+    if (this.mirror) this.updateMirror(time, dt);
+    const net = this.live;
+    for (const m of this.mons) {
+      if (!m.alive || (this.mirror && !m.local)) continue;
+      // shared map: a monster goes after whoever hit it last (another player's spot comes from the room)
+      const peer = m.tgt && net ? net.others.get(m.tgt) ?? null : null; if (m.tgt && !peer) m.tgt = undefined;
+      const fx0 = peer ? peer.x : h.x, fy0 = peer ? peer.y : h.y, me0 = !peer && !this.s.dead;
+      const dx = fx0 - m.x, dy = fy0 - m.y, dist = Math.hypot(dx, dy);
+      const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
+      // every creature is peaceful until the hero hits it (fleeing game never fights); it calms down when the hero gets far away
+      const dg = !!this.dungeon;
+      // director (14 Nov): ONE monster — the nearest — notices the hero close by and walks over slowly; it fights when it
+      // gets there; only the hero's hit makes it rush in (below). Bosses, roaming bosses and animals never come.
+      let seekMove = false;
+      // (it stays 'the one' while it fights the hero too: the next comes only when it is dead or the hero got away)
+      if (this.seeker === m && (!me0 || dist > SEEK_GIVEUP)) this.seeker = null;
+      if (!dg && !m.hitT && !m.animal && !m.boss && !m.wb && me0 && !peer && dist < SIGHT && (!this.seeker || !this.seeker.alive)) this.seeker = m;
+      if (this.seeker === m && !m.hitT) {
+        const reach0 = MONSTERS[m.m.kind].attackRange + m.m.size * 0.2;
+        if (dist <= reach0 + 4) m.hitT = time - 2000;   // (there: it fights — no rush)
+        else if (time - m.atkT >= 500) {
+          const sp = MONSTERS[m.m.kind].speed * SEEK_SPEED * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
+          if (!this.s.isBlocked(nx, m.y)) m.x = nx;
+          if (!this.s.isBlocked(m.x, ny)) m.y = ny;
+          m.dir = dirOf(dx, dy); seekMove = true;
+        }
+      }
+      if (!dg && m.hitT > 0 && dist > 320) m.hitT = 0;
+      const angry = (m.hitT > 0 || dg) && !m.animal;
+      const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;
+      let moving = seekMove;
+      // stand still while swinging / casting (no sliding across the ground with an attack pose)
+      const busy = time - m.atkT < (m.boss ? Math.max(750, animMs(m.m.key, 'attack')) : 500) || time - (m.spT ?? -1e9) < 1300 || (m.chargeT ?? 0) > time || (m.leapUntil ?? 0) > time;
+      if (!angry && !busy && !seekMove) {
+        let tx = 0, ty = 0;
+        const fleeing = m.animal && (m.fleeT ?? 0) > time;
+        if (fleeing) { tx = -dx / dist; ty = -dy / dist; }      // hit game bolts away for a moment (a bit slower than the hero)
+        else { if (!m.wanderT || time > m.wanderT) { m.wanderT = time + 1500 + Math.random() * 2500; m.dir = Math.floor(Math.random() * 8); (m as Mon & { idle?: boolean }).idle = Math.random() < 0.5; }
+          if (!(m as Mon & { idle?: boolean }).idle) { tx = Math.sin(m.dir * Math.PI / 4) * 0.35; ty = Math.cos(m.dir * Math.PI / 4) * 0.35; } }
+        if (tx || ty) {
+          const sp = (fleeing ? Math.min(base.speed * 1.4, 84) : base.speed * 1.25) * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
+          // wander around their own spawn point (fleeing game may go a bit further)
+          const lim = fleeing ? 220 : m.boss ? 60 : 110;
+          if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < lim) m.x = nx; else if (!fleeing) m.wanderT = 0;
+          if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < lim * 0.75) m.y = ny; else if (!fleeing) m.wanderT = 0;
+          m.dir = dirOf(tx, ty); moving = true;
+        }
+      }
+      if (!busy && (peer || !this.s.dead) && dist < aggro && dist > reach * 0.8 && time - m.hitT > 120) {
+        // director: a monster that gets hit charges straight in for a moment (faster than the hero), then chases a bit
+        // slower than the hero (108 px/s) so the player can still get away
+        const rush = time - m.hitT < 1600;   // (a boss is heavy: it charges, it does not sprint)
+        const sp = (rush ? (m.boss ? Math.min((base.speed + 20) * 1.4, 72) : Math.min((base.speed + 20) * 2.2, 150)) : Math.min((base.speed + 8) * 1.35, 96)) * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
+        if (!this.s.isBlocked(nx, m.y)) m.x = nx;
+        if (!this.s.isBlocked(m.x, ny)) m.y = ny;
+        m.dir = dirOf(dx, dy); moving = true;
+      } else if (!busy && dist >= aggro && angry) {
+        const bx = m.hx - m.x, by = m.hy - m.y, bd = Math.hypot(bx, by);
+        if (bd > 6) { const sp = base.speed * 0.6 * dt / 1000; m.x += bx / bd * sp; m.y += by / bd * sp; m.dir = dirOf(bx, by); moving = true; }
+      }
+      if (angry && m.boss && me0 && dist < 200 && time - (m.spT ?? 0) > 6500 && hasAnim(m.m.key, 'special')) {
+        m.spT = time; m.atkT = time + 600; m.dir = dirOf(dx, dy);
+        playAnim(m.sp, m.m.key, 'special', m.dir, false);
+        const cx = h.x, cy = h.y, R = 46;
+        const warn = this.s.add.ellipse(cx, cy, R * 2, R * 1.2, 0xff2a2a, 0.18).setStrokeStyle(2, 0xff5a4a, 0.9).setDepth(2);
+        this.s.tweens.add({ targets: warn, alpha: { from: 0.4, to: 1 }, duration: 200, yoyo: true, repeat: 2 });
+        this.s.time.delayedCall(1100, () => {
+          warn.destroy(); if (!m.alive) return;
+          this.glowTex();
+          if (hasFx2(`fx_${m.m.key}_special`)) fx2(this.s, `fx_${m.m.key}_special`, cx, cy + 6, 99953, m.m.key === 'bs3' ? 0.6 : 1);
+          else playPfx(this.s, BOSS_FX[this.stage?.land.id ?? 'forest'], cx, cy + 6, { scale: 0.95, depth: 99953 });
+          const boom = this.s.add.image(cx, cy - 6, 'fx_dot').setTint(0xff6a3a).setBlendMode(Phaser.BlendModes.ADD).setDepth(99954).setScale(1);
+          this.s.tweens.add({ targets: boom, scale: 4, alpha: 0, duration: 450, onComplete: () => boom.destroy() });
+          this.sparks(cx, cy - 6, 0xffa050, 14);
+          if (!this.s.dead && Math.hypot((h.x - cx) / R, (h.y - cy) / (R * 0.6)) < 1) {
+            const r = calcDamage(m.atk * 2.2, d.def, 1, 0, Math.random, 0); s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+            this.float(h.x, h.y - 40, `-${r.dmg}`, '#ff4a3a', 13); if (s.hp <= 0) this.s.heroDie();
+          }
+        });
+      }
+      // a boss charges in when the hero keeps out of reach: it flares red for a moment, then rushes at where the hero stood
+      if (angry && m.boss && me0 && !busy && time - (m.spT ?? -1e9) > 1500 && dist > reach + 40 && dist < 230 && time - (m.chT ?? 0) > 5500) {
+        m.chT = time; m.chargeT = time + 900; const tx = h.x, ty = h.y; m.dir = dirOf(dx, dy);
+        setIdle(m.sp, m.m.key, m.dir);
+        m.sp.setTint(0xff5a4a); this.s.tweens.add({ targets: m.sp, alpha: { from: 1, to: 0.75 }, duration: 110, yoyo: true, repeat: 1 });
+        this.s.time.delayedCall(380, () => {
+          if (!m.alive) return; m.sp.clearTint();
+          if (CH[m.m.key] && hasAnim(m.m.key, 'walk')) playAnim(m.sp, m.m.key, 'walk', m.dir);
+          const ax = tx - m.x, ay = ty - m.y, ad = Math.max(1, Math.hypot(ax, ay)), go = Math.min(ad - reach * 0.6, 150);
+          let gx = m.x, gy = m.y;   // last spot that was not inside a wall / tree
+          const tw = this.s.tweens.add({ targets: m, x: m.x + ax / ad * go, y: m.y + ay / ad * go, duration: 420, ease: 'Quad.easeIn',
+            onUpdate: () => { if (this.s.isBlocked(m.x, m.y)) { m.x = gx; m.y = gy; tw.complete(); return; } gx = m.x; gy = m.y; if (Math.random() < 0.35) this.vfx.dust(m.x, m.y, 2, 10); },
+            onComplete: () => {
+              if (!m.alive) return; this.vfx.dust(m.x, m.y, 8, 22);
+              if (!this.s.dead && Math.hypot(h.x - m.x, h.y - m.y) < reach + 18) {
+                const r = calcDamage(m.atk * 1.3, d.def, 1, 0, Math.random, d.evade); s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+                this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff4a3a', 12);
+                if (!r.miss) { sfx.hurt(); h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
+                if (s.hp <= 0) this.s.heroDie();
+              }
+            } });
+        });
+      }
+      if (angry && (peer || !this.s.dead) && dist <= reach && time - m.last > base.attackCooldown && !((m.chargeT ?? 0) > time)) {
+        m.last = time; m.atkT = time; m.dir = dirOf(dx, dy);
+        if (CH[m.m.key] && hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false);
+        if (m.boss) { const lx = dx / dist * 14, ly = dy / dist * 9; this.s.tweens.add({ targets: m, x: m.x + lx, y: m.y + ly, duration: 140, yoyo: true, ease: 'Quad.easeOut' }); }   // a heavy lunge at the hero
+        const tgt = m.tgt;
+        const land = () => {
+          if (peer && tgt) { if (m.alive) net?.matk(tgt, m.sid); return; }   // it hits the other player: their game takes the damage
+          if (!m.alive || this.s.dead || Math.hypot(h.x - m.x, h.y - m.y) > reach + 30) return;
+          const r = calcDamage(m.atk, d.def, 1, 0.05, Math.random, d.evade);
+          s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+          if (!r.miss) {
+            sfx.hurt();
+            const heavy = m.boss || HEAVY.has(m.m.kind), left = h.x < m.x;
+            if (m.boss && hasFx2(`fx_${m.m.key}_hit`)) fx2(this.s, `fx_${m.m.key}_hit`, h.x, h.y - 14, 99953, 0.9)?.setFlipX(left);
+            else { playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : base.ranged ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss ? 0.6 : heavy ? 0.6 : 0.7, flip: left }); if (m.boss) this.vfx.impact(h.x, h.y - 16, 0xff6a3a, true); }
+          }
+          this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', 10);
+          if (!r.miss) { h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint()); }
+          if (s.hp <= 0) this.s.heroDie();
+        };
+        if (base.ranged) {   // archers and spirits fire a projectile; the hit lands when it arrives
+          const col = RANGED_COL[m.m.kind] ?? 0xc8a0ff;
+          this.s.time.delayedCall(hitMs(m.m.key, 'attack', 260), () => { if (m.alive && (peer || !this.s.dead)) this.vfx.bolt(m.x, m.y - m.m.size * 0.45, fx0, fy0 - 16, col, 0.8, 300, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin'); });
+        } else this.s.time.delayedCall(hitMs(m.m.key, 'attack', 220), land);   // the hit lands on the frame the claw / weapon strikes
+      }
+      // legs keep up with the ground: the walk plays faster the faster the creature really moves (no sliding / floating)
+      { const v = Math.hypot(m.x - (m.px ?? m.x), m.y - (m.py ?? m.y)) / Math.max(1, dt) * 1000; m.px = m.x; m.py = m.y;
+        const walking = !!m.sp.anims.currentAnim?.key.includes('_walk_'); m.sp.anims.timeScale = walking ? Math.max(0.9, Math.min(2.6, v / 38)) : 1; }
+      if (CH[m.m.key]) {
+        const attacking = time - m.atkT < (m.boss ? animMs(m.m.key, 'attack') + 60 : 600) || (m.chargeT ?? 0) > time;
+        if (!attacking) { if (moving) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }
+      }
+      // a boss's steps raise a little dust (its legs move in its own walk; the picture is never rocked or tilted — director)
+      if (m.boss && moving && !((m.chargeT ?? 0) > time)) {
+        m.stepT = (m.stepT ?? 0) + dt; const ph = m.stepT / 300;
+        if (Math.floor(ph) !== (m.stepN ?? -1)) { m.stepN = Math.floor(ph); this.vfx.dust(m.x + (m.stepN % 2 ? 10 : -10), m.y, 3, 8); }
+      }
+      m.mvF = moving ? 1 : 0; m.atF = time - m.atkT < 500 ? 1 : 0;
+      this.place(m, angry);
+    }
+    // (host) tell the room where every monster is, 5 times a second
+    if (net?.isHost && !this.mirror && time > this.msT) {
+      this.msT = time + 200;
+      net.mons(this.mons.filter(q => q.alive).map(q => [q.sid, q.m.key, q.m.kind, q.boss ? 1 : 0, q.elite ? 1 : 0, Math.round(q.x), Math.round(q.y), q.dir, q.mvF ?? 0, q.atF ?? 0, Math.round(q.max)] as MonRow));
+    }
+  }
+  /** (mirror) the host's monsters glide to where the host has them; walk / swing as the host says */
+  updateMirror(time: number, dt: number) {
+    const k = Math.min(1, dt / 1000 * 10);
+    for (const m of [...this.mons]) {
+      if (m.local) { if (!m.alive && (m.goneT ?? 0) < time) this.dispose(m); continue; }   // (our own bounty lord moves in update())
+      if (!m.alive) { if ((m.goneT ?? 0) < time) this.dispose(m); continue; }
+      const tx = m.nx ?? m.x, ty = m.ny ?? m.y, far = Math.hypot(tx - m.x, ty - m.y);
+      if (far > 160) { m.x = tx; m.y = ty; } else { m.x += (tx - m.x) * k; m.y += (ty - m.y) * k; }
+      if (CH[m.m.key]) {
+        if (m.atF && time - m.atkT > 600 && hasAnim(m.m.key, 'attack')) { m.atkT = time; playAnim(m.sp, m.m.key, 'attack', m.dir, false); }
+        else if (time - m.atkT > 500) { if (m.mvF || far > 3) playAnim(m.sp, m.m.key, 'walk', m.dir); else if (m.sp.anims.isPlaying) setIdle(m.sp, m.m.key, m.dir); }
+      }
+      this.place(m, !!m.atF || time - m.hitT < 4000);
+    }
+  }
+  /** the map's monster from its picture key (this land's monsters / boss, or the Deepwild's game) */
+  private mobOf(key: string): { mob: StageMon; boss: boolean } | null {
+    const L = this.stage?.land; if (L?.boss.key === key) return { mob: L.boss, boss: true };
+    const rb = LANDS.find(l => l.boss.key === key); if (rb) return { mob: rb.boss, boss: true };   // (a roaming boss from any land)
+    const m = L?.mobs.find(q => q.key === key) ?? GAME.find(q => q.key === key); return m ? { mob: m, boss: false } : null;
+  }
+  /** (mirror) the host's list: new ones appear, gone ones go, the rest move */
+  applyMs(rows: MonRow[]) {
+    if (!this.mirror) return;
+    const seen = new Set<number>();
+    for (const r of rows) {
+      const [sid, key, , boss, elite, x, y, d, mv, at, max, hp, lv, wb] = r; seen.add(sid);
+      let m = this.mons.find(q => q.sid === sid);
+      if (!m) {
+        const f = this.mobOf(key); if (!f) continue;
+        if (!this.charReady(key)) continue;   // (a boss from another land: its pictures load first, it shows on the next list)
+        this.spawn(f.mob, x, y, !!boss, undefined, { sid, elite: !!elite }); m = this.mons[this.mons.length - 1];
+        m.animal = !!MONSTERS[f.mob.kind]?.animal; m.sp.setAlpha(0); this.s.tweens.add({ targets: m.sp, alpha: 1, duration: 400 });
+        if (isRaid(this.stage?.n ?? 0)) m.atk = raidAtk(lv || S().level, raidFlag.wave);   // (⚔ the raid: every raider hits as hard as a monster of the raid's level — the strongest hero's; the weak fall first)
+        if (wb) { m.wb = true; m.atk = Math.round(scaleStats(MONSTERS[f.mob.kind], lv || this.stage?.level || 1, true).atk * WB.atk); fx2(this.s, 'fx_boss_spawn', x, y, y + 1, 1.4); }
+      }
+      if (!m.alive) continue;
+      m.nx = x; m.ny = y; m.dir = d; m.mvF = mv; m.atF = at; m.max = max; if (hp !== undefined) m.hp = hp;
+    }
+    for (const m of [...this.mons]) if (m.alive && !m.local && !seen.has(m.sid)) { m.alive = false; m.goneT = 0; }
+  }
+  /** a character's pictures are here (a roaming boss from another land loads on demand) */
+  private charReady(key: string) {
+    const sc = this.s; if (sc.textures.exists(`c_${key}_idle`)) return true;
+    if (!this.loadingChars.has(key)) {
+      this.loadingChars.add(key); preloadChars(sc, [key]);
+      sc.load.once(Phaser.Loader.Events.COMPLETE, () => { createCharAnims(sc); this.loadingChars.delete(key); });
+      if (!sc.load.isLoading()) sc.load.start();
+    }
+    return false;
+  }
+  private loadingChars = new Set<string>();
+  /** news from the map room */
+  netEvent(e: RoomEvent) {
+    const net = this.live, find = (sid: number) => this.mons.find(q => q.sid === sid);
+    if (e.t === 'ms') this.applyMs(e.a);
+    else if (e.t === 'wb') {   // a roaming boss: a minute's warning, its arrival, its leaving
+      if (e.k === 'warn') { bus.emit(EV.TOAST, '⚠ ลางร้าย... ฟ้าเริ่มมืด บอสเร่ร่อนกำลังจะมาที่แผนที่นี้ในอีก 1 นาที!', '#ff9a7a'); sfx.bossRoar(); this.s.cameras.main.flash(400, 60, 0, 20); }
+      else if (e.k === 'spawn') { this.charReady(e.key); bus.emit(EV.TOAST, `👹 บอสเร่ร่อน "${e.name}" ปรากฏตัวแล้ว! รุมตีได้ — ทอง/EXP แบ่งตามดาเมจ ไอเท็มให้คนตีตาย`, '#ff6a5a'); sfx.bossRoar(); this.wbAt = { x: e.x, y: e.y, name: e.name, sid: e.sid }; }
+      else { bus.emit(EV.TOAST, `💨 ${e.name} หายไปแล้ว...`, '#c8b89a'); this.wbAt = null; }
+    }
+    else if (e.t === 'mhp') {
+      const m = find(e.sid); if (!m || !m.alive) return;
+      m.hp = e.hp;
+      if (net && e.by !== net.me) { m.sp.setTintFill(0xffffff); this.s.time.delayedCall(60, () => m.sp.clearTint()); if (!this.mirror) { m.hitT = this.s.time.now; m.tgt = e.by; } }
+    } else if (e.t === 'mdead') {
+      const m = find(e.sid); if (!m || !m.alive) return;
+      const mine = net ? e.sh[net.me] ?? 0 : 1, need = m.boss || m.bounty ? 0.03 : 0.1;   // a fair share of the damage = your own reward
+      if (e.wb) { this.wbAt = null; bus.emit(EV.TOAST, e.killer === net?.me ? `👑 คุณปราบ ${m.m.name} ได้! ไอเท็มเป็นของคุณ` : `👑 ${e.kname ?? '?'} ปราบ ${m.m.name} สำเร็จ!${mine >= need ? ` (คุณได้ส่วนแบ่ง ${Math.round(mine * 100)}%)` : ''}`, '#ffd84a'); }
+      m.hp = 0; this.kill(m, mine >= need ? mine : 0);
+    } else if (e.t === 'matk') {   // a monster (run by the room) strikes me: a swing, a shot, a boss blast / charge, a kick
+      const m = find(e.sid), h = this.s.hero, s = S(), d = derive(s); if (!m || !m.alive || this.s.dead) return;
+      if (e.k === 'stun') { m.dir = dirOf(h.x - m.x, h.y - m.y); if (hasAnim(m.m.key, 'attack')) playAnim(m.sp, m.m.key, 'attack', m.dir, false); this.s.stunHero(700, m.x, m.y); return; }
+      const land = () => {
+        if (!m.alive || this.s.dead) return;
+        const mult = e.k === 'special' ? 2.2 : e.k === 'charge' ? 1.3 : 1, crit = e.k === 'hit' || e.k === 'shot' ? 0.05 : 0;
+        const r = calcDamage(m.atk * mult, d.def, 1, crit, Math.random, e.k === 'special' ? 0 : d.evade);
+        s.hp = Math.max(0, s.hp - this.absorb(r.dmg));
+        if (!r.miss) {
+          sfx.hurt(); h.setTintFill(0xff8080); this.s.time.delayedCall(70, () => h.clearTint());
+          const heavy = m.boss || HEAVY.has(m.m.kind), left = h.x < m.x;
+          if (m.boss && hasFx2(`fx_${m.m.key}_hit`)) fx2(this.s, `fx_${m.m.key}_hit`, h.x, h.y - 14, 99953, 0.9)?.setFlipX(left);
+          else if (e.k !== 'special') playPfx(this.s, m.boss ? 'crit-hit' : heavy ? 'blunt-hit' : e.k === 'shot' ? 'hit-spark' : 'claw-swipe', h.x, h.y - (m.boss ? 4 : 6), { scale: m.boss || heavy ? 0.6 : 0.7, flip: left });
+        }
+        this.float(h.x, h.y - 40, r.miss ? 'MISS' : `-${r.dmg}`, r.miss ? '#cfcfcf' : '#ff6a5a', e.k === 'special' ? 13 : 10);
+        if (s.hp <= 0) this.s.heroDie();
+      };
+      // a shot flies from the monster first (the room already waited for it to arrive: a quick bolt)
+      if (e.k === 'shot') this.vfx.bolt(m.x, m.y - m.m.size * 0.45, h.x, h.y - 16, RANGED_COL[m.m.kind] ?? 0xc8a0ff, 0.8, 140, land, m.m.kind === 'skarcher' || m.m.kind === 'goblin');
+      else land();
+    } else if (e.t === 'mfx') {   // a boss's move everyone sees (the damage comes from the room as matk)
+      const m = find(e.sid); if (!m || !m.alive) return;
+      if (e.k === 'special') {
+        m.atkT = this.s.time.now + 600; if (hasAnim(m.m.key, 'special')) playAnim(m.sp, m.m.key, 'special', m.dir, false);
+        const R = 46, warn = this.s.add.ellipse(e.x, e.y, R * 2, R * 1.2, 0xff2a2a, 0.18).setStrokeStyle(2, 0xff5a4a, 0.9).setDepth(2);
+        this.s.tweens.add({ targets: warn, alpha: { from: 0.4, to: 1 }, duration: 200, yoyo: true, repeat: 2 });
+        this.s.time.delayedCall(1100, () => {
+          warn.destroy(); if (!m.alive) return; this.glowTex();
+          if (hasFx2(`fx_${m.m.key}_special`)) fx2(this.s, `fx_${m.m.key}_special`, e.x, e.y + 6, 99953, m.m.key === 'bs3' ? 0.6 : 1);
+          else playPfx(this.s, BOSS_FX[this.stage?.land.id ?? 'forest'], e.x, e.y + 6, { scale: 0.95, depth: 99953 });
+          this.sparks(e.x, e.y - 6, 0xffa050, 14);
+        });
+      } else {   // the charge: it flares red, then rushes (the room moves it)
+        setIdle(m.sp, m.m.key, m.dir); m.sp.setTint(0xff5a4a);
+        this.s.tweens.add({ targets: m.sp, alpha: { from: 1, to: 0.75 }, duration: 110, yoyo: true, repeat: 1 });
+        this.s.time.delayedCall(380, () => { if (m.alive) { m.sp.clearTint(); this.vfx.dust(m.x, m.y, 8, 22); } });
+      }
+    }
+  }
+  /** this game moves the monsters (host) or shows the host's (mirror) */
+  setMirror(on: boolean) {
+    if (on === this.mirror) return;
+    this.mirror = on;
+    if (on && this.solo) { for (const m of this.mons) if (!m.wb) m.local = true; }   // own monsters stay (the room sends only roaming bosses)
+    else if (on) { for (const m of [...this.mons]) if (!m.local) this.dispose(m); this.pending = []; }   // the room's monsters come in its next list
+    else for (const m of this.mons) { m.hx = m.x; m.hy = m.y; }                    // now mine to move; the map fills up as usual
+  }
+  /** the server made this monster golden: 5x HP, a gold aura, a little bigger */
+  makeGolden(sid: number) {
+    const m = this.mons.find(q => q.sid === sid); if (!m || !m.alive || m.elite) return;
+    const sc = this.s, x = m.x, y = m.y; m.elite = true; m.hp *= 5; m.max *= 5;
+    fx2(sc, 'fx_golden_spawn', x, y - 10, y + 1, 1.1); m.sp.setScale(1.2);
+    const au = sc.add.image(x, y - m.m.size * 0.35, 'td_glow').setTint(0xffd84a).setBlendMode(Phaser.BlendModes.ADD).setDepth(y - 1).setScale(m.m.size / 40);
+    sc.tweens.add({ targets: au, alpha: { from: 0.45, to: 1 }, scale: { from: m.m.size / 44, to: m.m.size / 34 }, duration: 700, yoyo: true, repeat: -1 });
+    m.sp.setData('aura', au);
+    const ea = fx2(sc, 'fx_elite_aura', x, y + 2, y + 1, m.m.size / 40); if (ea) m.sp.setData('aura2', ea);
+  }
+  /** sprite, shadow, aura, ring and HP bar where the monster is */
+  place(m: Mon, angry: boolean) {
+    {
+      m.sp.setPosition(m.x, m.y).setDepth(m.y);
+      (m.sp.getData('aura') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - m.m.size * 0.35).setDepth(m.y - 1);
+      (m.sp.getData('aura2') as Phaser.GameObjects.Sprite | undefined)?.setPosition(m.x, m.y + 2).setDepth(m.y + 1);
+      { const rg = m.sp.getData('ring') as Phaser.GameObjects.Sprite | undefined; if (rg) { rg.setPosition(m.x, m.y).setDepth(m.y - 3); if (!m.boss) rg.setAlpha(angry ? 0.95 : 0.4); } }
+      (m.sp.getData('sh') as Phaser.GameObjects.Image | undefined)?.setPosition(m.x, m.y - 1);
+      const ph = m.sp.getData('ph') as Phaser.GameObjects.Ellipse | undefined;
+      if (ph) ph.setPosition(m.x, m.y - m.m.size * 0.3).setDepth(m.y);
+      const w = m.boss ? 60 : 22, top = m.y - m.m.size * (m.boss ? 0.95 : 0.85) * (SPRITE_SCALE[m.m.key] ? 1.05 : 1);
+      m.bar.clear().fillStyle(0x0b0f0c, 0.8).fillRect(m.x - w / 2 - 1, top - 1, w + 2, 4).fillStyle(m.boss ? 0xff4a3a : 0xd84a3a, 1).fillRect(m.x - w / 2, top, w * Math.max(0, m.hp / m.max), 2);
+    }
+  }
+}

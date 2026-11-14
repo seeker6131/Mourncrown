@@ -1,0 +1,495 @@
+{
+ "frames": [
+  {
+   "filename": "fx-drop-sl 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 1.png",
+   "frame": {
+    "x": 80,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 2.png",
+   "frame": {
+    "x": 160,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 3.png",
+   "frame": {
+    "x": 240,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 4.png",
+   "frame": {
+    "x": 320,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 5.png",
+   "frame": {
+    "x": 0,
+    "y": 112,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 6.png",
+   "frame": {
+    "x": 80,
+    "y": 112,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 7.png",
+   "frame": {
+    "x": 160,
+    "y": 112,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 8.png",
+   "frame": {
+    "x": 240,
+    "y": 112,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 9.png",
+   "frame": {
+    "x": 320,
+    "y": 112,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 10.png",
+   "frame": {
+    "x": 0,
+    "y": 224,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 11.png",
+   "frame": {
+    "x": 80,
+    "y": 224,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 12.png",
+   "frame": {
+    "x": 160,
+    "y": 224,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 13.png",
+   "frame": {
+    "x": 240,
+    "y": 224,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 14.png",
+   "frame": {
+    "x": 320,
+    "y": 224,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 15.png",
+   "frame": {
+    "x": 0,
+    "y": 336,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 16.png",
+   "frame": {
+    "x": 80,
+    "y": 336,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-drop-sl 17.png",
+   "frame": {
+    "x": 160,
+    "y": 336,
+    "w": 80,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 80,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 80,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8928571428571429
+   },
+   "duration": 67
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-drop-sl.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 400,
+   "h": 448
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 40,
+   "y": 100
+  },
+  "frameTags": [
+   {
+    "name": "fx-drop-sl",
+    "from": 0,
+    "to": 17,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -1,0 +1,547 @@
+{
+ "frames": [
+  {
+   "filename": "fx-ult-mage 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 1.png",
+   "frame": {
+    "x": 133,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 2.png",
+   "frame": {
+    "x": 266,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 3.png",
+   "frame": {
+    "x": 399,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 4.png",
+   "frame": {
+    "x": 532,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 5.png",
+   "frame": {
+    "x": 0,
+    "y": 152,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 6.png",
+   "frame": {
+    "x": 133,
+    "y": 152,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 7.png",
+   "frame": {
+    "x": 266,
+    "y": 152,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 8.png",
+   "frame": {
+    "x": 399,
+    "y": 152,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 9.png",
+   "frame": {
+    "x": 532,
+    "y": 152,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 10.png",
+   "frame": {
+    "x": 0,
+    "y": 304,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 11.png",
+   "frame": {
+    "x": 133,
+    "y": 304,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 12.png",
+   "frame": {
+    "x": 266,
+    "y": 304,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 13.png",
+   "frame": {
+    "x": 399,
+    "y": 304,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 14.png",
+   "frame": {
+    "x": 532,
+    "y": 304,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 15.png",
+   "frame": {
+    "x": 0,
+    "y": 456,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 16.png",
+   "frame": {
+    "x": 133,
+    "y": 456,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 17.png",
+   "frame": {
+    "x": 266,
+    "y": 456,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 18.png",
+   "frame": {
+    "x": 399,
+    "y": 456,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  },
+  {
+   "filename": "fx-ult-mage 19.png",
+   "frame": {
+    "x": 532,
+    "y": 456,
+    "w": 133,
+    "h": 152
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 133,
+    "h": 152
+   },
+   "sourceSize": {
+    "w": 133,
+    "h": 152
+   },
+   "pivot": {
+    "x": 0.41353383458646614,
+    "y": 0.8421052631578947
+   },
+   "duration": 56
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-ult-mage.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 665,
+   "h": 608
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 55,
+   "y": 128
+  },
+  "frameTags": [
+   {
+    "name": "fx-ult-mage",
+    "from": 0,
+    "to": 19,
+    "direction": "forward"
+   }
+  ]
+ }
+}

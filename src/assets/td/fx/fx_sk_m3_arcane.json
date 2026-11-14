@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-m3-arcane 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 1.png",
+   "frame": {
+    "x": 96,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 2.png",
+   "frame": {
+    "x": 192,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 3.png",
+   "frame": {
+    "x": 288,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 4.png",
+   "frame": {
+    "x": 0,
+    "y": 72,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 5.png",
+   "frame": {
+    "x": 96,
+    "y": 72,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 6.png",
+   "frame": {
+    "x": 192,
+    "y": 72,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 7.png",
+   "frame": {
+    "x": 288,
+    "y": 72,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 8.png",
+   "frame": {
+    "x": 0,
+    "y": 144,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-m3-arcane 9.png",
+   "frame": {
+    "x": 96,
+    "y": 144,
+    "w": 96,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 96,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 96,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5555555555555556
+   },
+   "duration": 77
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-m3-arcane.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 384,
+   "h": 216
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 48,
+   "y": 40
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-m3-arcane",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

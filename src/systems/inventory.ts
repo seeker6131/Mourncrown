@@ -1,0 +1,159 @@
+// Inventory / Equipment / Upgrade — pure functions over GameState.
+import type { GameState, InvItem } from '../core/state';
+import { dismantleYield } from './lootOpt';
+import { invSize } from '../core/state';
+import { baseTier, isGear } from './loot';
+import { itemDef, MAX_UPGRADE, upgradeChance, upgradeCost, type EquipSlot } from '../data/items';
+import { derive } from './stats';
+import { buffCap, buffFull, sameBuff, stackUntil, type Incoming } from './buffs';
+
+export function countItem(s: GameState, id: string): number {
+  return s.inventory.filter(i => i.id === id).reduce((a, b) => a + b.qty, 0);
+}
+
+export function addItem(s: GameState, id: string, qty = 1, upg = 0, gear?: { rar?: number; aff?: { k: string; v: number }[]; set?: string }): boolean {
+  const d = itemDef(id);
+  if (d.stack) {
+    const ex = s.inventory.find(i => i.id === id);
+    if (ex) { ex.qty += qty; return true; }
+    if (s.inventory.length >= invSize(s)) return false;
+    s.inventory.push({ uid: s.nextUid++, id, qty, upg: 0 });
+    return true;
+  }
+  for (let n = 0; n < qty; n++) {
+    if (s.inventory.length >= invSize(s)) return false;
+    s.inventory.push({ uid: s.nextUid++, id, qty: 1, upg, ...(gear ?? {}) });
+  }
+  return true;
+}
+
+export function removeItem(s: GameState, id: string, qty = 1): boolean {
+  if (countItem(s, id) < qty) return false;
+  for (const it of [...s.inventory]) {
+    if (it.id !== id || qty <= 0) continue;
+    if (isEquipped(s, it.uid)) continue;
+    const take = Math.min(qty, it.qty);
+    it.qty -= take; qty -= take;
+    if (it.qty <= 0) s.inventory.splice(s.inventory.indexOf(it), 1);
+  }
+  return qty <= 0;
+}
+
+export function removeUid(s: GameState, uid: number, qty = 1) {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it) return;
+  unequipUid(s, uid);
+  it.qty -= qty;
+  if (it.qty <= 0) s.inventory.splice(s.inventory.indexOf(it), 1);
+}
+
+export function isEquipped(s: GameState, uid: number): boolean {
+  return s.equip.weapon === uid || s.equip.armor === uid || s.equip.accessory === uid;
+}
+
+export function equip(s: GameState, uid: number): boolean {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it) return false;
+  const d = itemDef(it.id);
+  if (d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') return false;
+  s.equip[d.type as EquipSlot] = uid;
+  clampVitals(s);
+  return true;
+}
+
+export function unequipUid(s: GameState, uid: number) {
+  for (const k of ['weapon', 'armor', 'accessory'] as const) if (s.equip[k] === uid) s.equip[k] = null;
+  clampVitals(s);
+}
+
+export function clampVitals(s: GameState) {
+  const d = derive(s);
+  s.hp = Math.min(s.hp, d.maxHp);
+  s.mp = Math.min(s.mp, d.maxMp);
+}
+
+export function useItem(s: GameState, uid: number, now = Date.now()): { heal: number; mana: number; food?: number; buff?: string; recall?: boolean; left?: number; stacked?: boolean; full?: boolean } | null {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it) return null;
+  const d = itemDef(it.id);
+  if (d.type !== 'consumable' || d.pick !== undefined) return null;   // (a selector chest opens with openPick)
+  // ⏳ a buff: the same one adds its time (up to 1 h, VIP 3 h); already full → nothing is used up
+  const inc: Incoming | null = d.buff ? { slot: 'buff', stat: d.buff.stat, pct: d.buff.pct } : d.elixir ? { slot: 'elixir', name: d.name } : null;
+  if (inc && !d.heal && !d.mana && buffFull(s, inc, now)) return { heal: 0, mana: 0, buff: d.name, full: true };
+  const same = !!inc && sameBuff(s, inc, now), cap = buffCap(s, now);
+  const der = derive(s);
+  const heal = Math.min(d.heal ?? 0, der.maxHp - s.hp);
+  const mana = Math.min(d.mana ?? 0, der.maxMp - s.mp);
+  s.hp += heal; s.mp += mana;
+  if (d.food) s.res.food += d.food;
+  let left: number | undefined;
+  if (d.buff) { const until = stackUntil(s.buff?.until, same, d.buff.mins * 60000, cap, now); s.buff = { stat: d.buff.stat, pct: d.buff.pct, until }; left = until - now; }
+  if (d.elixir) { const { mins, ...fx } = d.elixir, e = s as GameState & { elixir?: { until: number } }, until = stackUntil(e.elixir?.until, same, mins * 60000, cap, now); e.elixir = { ...fx, until, name: d.name } as never; left = until - now; }
+  removeUid(s, uid, 1);
+  return { heal, mana, food: d.food, buff: d.buff || d.elixir ? d.name : undefined, recall: d.recall, ...(left !== undefined ? { left, stacked: same } : {}) };
+}
+
+export function equippedLook(s: GameState, slot: EquipSlot): number {
+  const uid = s.equip[slot];
+  if (uid == null) return -1;
+  const it = s.inventory.find(i => i.uid === uid);
+  return it ? itemDef(it.id).look ?? 0 : -1;
+}
+
+export type UpgradeResult = 'ok' | 'fail' | 'max' | 'no_gold' | 'no_shard' | 'invalid';
+
+export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.random, bonus = 0): UpgradeResult {   // (bonus: points of chance from fusion — systems/fusion.ts)
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it) return 'invalid';
+  const d = itemDef(it.id);
+  if (d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') return 'invalid';
+  if (it.upg >= MAX_UPGRADE) return 'max';
+  const cost = upgradeCost(it.upg, d);
+  if (s.gold < cost.gold) return 'no_gold';
+  if (countItem(s, 'mana_shard') < cost.shards) return 'no_shard';
+  s.gold -= cost.gold;
+  removeItem(s, 'mana_shard', cost.shards);
+  if (rnd() < Math.min(1, upgradeChance(it.upg) + bonus / 100)) { it.upg++; return 'ok'; }
+  return 'fail';
+}
+
+export function sellPrice(it: InvItem): number {
+  const d = itemDef(it.id);
+  // NPCs pay little (director: no inflation) — good items are worth more on the player market
+  return Math.max(1, Math.floor(d.price * 0.06 * (1 + it.upg * 0.15) * (1 + d.rarity * 0.8)));
+}
+
+/** Character level needed to equip an item (by base tier). */
+/** no level requirement on gear any more (anyone can wear anything); kept for old callers */
+export function reqLevel(_id: string): number { return 1; }
+
+/** Break gear into upgrade materials. */
+export function dismantle(s: GameState, uid: number): { shards: number; cores: number } | null {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it || !isGear(itemDef(it.id)) || isEquipped(s, uid)) return null;
+  const { shards, cores } = dismantleYield(itemDef(it.id).rarity, it.upg);
+  removeUid(s, uid, 1);
+  addItem(s, 'mana_shard', shards);
+  if (cores) addItem(s, 'ancient_core', cores);
+  return { shards, cores };
+}
+
+/** Sell `qty` of a stack to an NPC. Equipped items cannot be sold. Returns the gold received (0 = nothing sold). */
+export function sellUid(s: GameState, uid: number, qty = 1): number {
+  const it = s.inventory.find(i => i.uid === uid);
+  if (!it || isEquipped(s, uid)) return 0;
+  const n = Math.max(1, Math.min(qty, it.qty));
+  const gold = sellPrice(it) * n;
+  removeUid(s, uid, n); s.gold += gold;
+  return gold;
+}
+/** Sell every unequipped gear piece at or below `maxRar`. Returns { count, gold }. */
+export function sellJunk(s: GameState, maxRar: number) {
+  let count = 0, gold = 0;
+  for (const it of [...s.inventory]) {
+    const d = itemDef(it.id);
+    if ((d.type !== 'weapon' && d.type !== 'armor' && d.type !== 'accessory') || isEquipped(s, it.uid) || d.rarity > maxRar) continue;
+    gold += sellUid(s, it.uid, it.qty); count++;
+  }
+  return { count, gold };
+}

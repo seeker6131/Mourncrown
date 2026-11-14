@@ -1,0 +1,1072 @@
+{
+ "hr1": {
+  "cid": "06a3fcdd-0aea-42f4-9d94-03de39bd916b",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "2ebfb52e-3845-4dfa-80c9-8a08916514c3",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8,
+  "walkfix_g": "f8a52910-f410-492f-be22-6b0d5d1aeee0",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr2": {
+  "cid": "7116b3ec-a8e2-437c-9a99-80a22532f793",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "28b688d6-e556-4b12-81ff-9afb65c1edfb",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "walkfix_g": "f0c8fbcc-cb19-4cd7-93a6-6c55ee70b0a7",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr5": {
+  "cid": "b2384178-a25a-4a3d-b753-8db5961bbb80",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "8414f554-1b46-40ea-955a-9dd34eefc1b7",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "walkfix_g": "fed9b9be-9ef2-4003-8789-bcc8cf444cd9",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr6": {
+  "cid": "63b5475c-9848-4b58-b9ed-cf1d16dd853d",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "34687fd8-3450-4ff3-a79d-6681158ddde8",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8,
+  "walkfix_g": "1588a340-361c-48f9-bcca-7b6abf681af0",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "mo1": {
+  "cid": "4b012d32-7ed9-4e21-8204-117085658759",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "571dfd1d-c6ed-4674-8b43-e6e70e349815",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo2": {
+  "cid": "4a4f8d42-86c7-492e-b3f7-106626dcb0c4",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "e1bfe51d-41fc-425d-8487-b15bac2798af",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo3": {
+  "cid": "1c2eece4-2ca0-4b3a-b6b8-e2b7c1eba8d2",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "94478c18-9c39-4808-ae74-fac0564446bf",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo4": {
+  "cid": "093f640e-0a2c-4f6c-971c-6f4d1978fb4a",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "c1a1ecb4-00b7-4ccf-8fdb-e53187cbddc0",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo5": {
+  "cid": "bd83ed7b-629f-4cf9-affe-75dec40a0803",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "9bcc5fd8-f426-4067-9186-0662710cf973",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo16": {
+  "cid": "f1f4726f-6f82-4c2a-97d4-6d3138885545",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "feb725c8-0b8b-476e-9bd2-956fbf4a5824",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo17": {
+  "cid": "289f8d6f-7d9b-4a01-8444-380ceff4dae1",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "970d91b1-b37c-4286-a9cb-4ee02833c3fb",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "bs1": {
+  "cid": "8a209fd4-3eea-41bb-bcdd-56d83be85f18",
+  "walk": "done",
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1,
+  "walk8group": "5eee9f63-47aa-4aff-a572-7941e4cf719a",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo6": {
+  "cid": "6de2d572-9a1d-4ac4-9bb8-71cf8f19b6c3",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "f809956e-35b9-4f53-bd50-0c02def1f10b",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo7": {
+  "cid": "39765345-135c-4141-9e74-31aaa844eb02",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "5eb8f23b-c1ad-4fff-9f0e-5fbfb32562d2",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo8": {
+  "cid": "a344310e-af25-48f4-9525-4f91e5f2a050",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "138137c9-dbce-4a90-9084-a6e02e275c6d",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo9": {
+  "cid": "2682448a-1d9a-48a5-bc48-c442fffb2249",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "b810c4f0-a6d9-4b7c-9835-c32766c221a8",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo10": {
+  "cid": "1d20def0-85f2-4fb5-ab2f-460897b3ee16",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "82ca4c16-d4aa-44af-a8e9-1e8c1d4c2d55",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo11": {
+  "cid": "3c0f50dd-a206-47e5-bf12-2067b07dc18e",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "ae8c6412-a535-4a9a-a190-e507703fc161",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo12": {
+  "cid": "d7bc8522-c7d6-4258-ad8b-2c3b1695a52a",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "518ab64d-82f3-48d5-8f8b-b14e1bbd55ac",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo13": {
+  "cid": "b6466faa-8cf6-492f-904b-a4ec4f2c9f96",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "fb9931d1-90f4-4b98-8d52-94b64e358ccb",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo14": {
+  "cid": "a6a253d9-4a1e-4c81-9000-17f3bff1ea54",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "1c746469-058f-4da8-8873-5bd2936e96fc",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "mo15": {
+  "cid": "bb61a8a1-f094-4665-90d9-a3291444f0a8",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "7b979dd9-ed44-4082-9aac-8c5498314876",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "hr7": {
+  "cid": "ffb301c7-a8ea-46ab-8133-715945c6088f",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "0f862dd2-9ab9-493f-b92d-be748ac2fe8d",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8,
+  "walkfix_g": "971c61cd-bdae-4354-b329-ccd8c7247ac1",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "attackfix_redo": 1
+ },
+ "hr8": {
+  "cid": "08c1e0d2-73a4-4d7b-a991-eaaa0a2c18e5",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "0d7eadaf-0200-40c8-988a-c77622448ab3",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8,
+  "walkfix_g": "b7138db4-8714-42ac-9640-79fcd5c7e943",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr10": {
+  "cid": "c63d1244-7e03-4541-89b9-4feaac6c36c6",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "5ff2bb33-8fe7-4b3a-99c3-dfca160b0f9d",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "walkfix_g": "d18aed0e-d0c3-4ae7-9089-145796b96987",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr11": {
+  "cid": "6563876c-d993-46b9-aca0-be6b0a0a23b5",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "c392dce9-b237-4df0-be33-5acb5e497e0a",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "walkfix_g": "6e53738d-2ec8-4c19-b7d1-b81544d4ec0a",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr12": {
+  "cid": "1c517e5b-9d1f-4aa9-8e1e-db1c90a638a0",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1,
+  "walk8group": "6f25e5c0-8d33-4c24-9245-4124714ea21c",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "walkfix_g": "3b2e9ba9-a82b-463c-a3db-6fbea9dc235a",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "np1": {
+  "cid": "8e93d3e3-f754-453c-b5e9-c83fcae74927",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "0c8827cf-15d3-41a7-8311-401938e4566b",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np2": {
+  "cid": "c8530558-4e56-420b-8676-5d153c438530",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "a71ce921-57c0-437b-80f3-6098806e8e48",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np3": {
+  "cid": "40a8cbed-ed24-494a-88bd-59281618c1ea",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "ff42c63c-3da7-4d7a-ac95-d8a19e08a461",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np4": {
+  "cid": "a0817a8f-1997-4bb9-ba7a-c755f7b36381",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "8a841a91-6f41-4ad9-b9f2-36b5ea354571",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "work2": 1
+ },
+ "np5": {
+  "cid": "1182012a-5455-469f-bed2-427d8effdeee",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "f3b34ec0-41cd-402f-847c-65fa808073d6",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "work2": 1
+ },
+ "np6": {
+  "cid": "8841c9fc-a8fb-4f62-8e7a-c28ecf0eae0a",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "da93e686-0068-4eda-91df-f4d2770710ba",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np7": {
+  "cid": "e5f4d228-c69e-4c5d-ba3d-f783f0c84608",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "7d332671-8b82-4e8a-bdfa-4762e6eabdb5",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np8": {
+  "cid": "56516064-f4d7-4d80-bd14-ac65f3ee2196",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "485d0cac-2768-4d29-ab44-912f9c270a14",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np9": {
+  "cid": "bc06cf86-8c78-4a89-b2e6-bae85c2caef4",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "1175ff8c-0321-4993-a5b8-67648ed90d5b",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "np10": {
+  "cid": "dffc5338-cc73-403c-90dc-0efe82ad5064",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "08dda2a2-e133-43c8-8077-8987bf9076b6",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "bs2": {
+  "cid": "fdf72665-6219-4ec5-b46e-b472202cee0a",
+  "walk": "done",
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1,
+  "walk8group": "442a9cd0-8f18-4304-b01f-758b0b4cdae4",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "bs3": {
+  "cid": "0ceec01e-5ac4-41de-aded-58071611c0e0",
+  "walk": "done",
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1,
+  "walk8group": "6b2c0ffa-c10d-4704-95b3-1fd8d50fbbd2",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8
+ },
+ "bs4": {
+  "cid": "c16fbed6-6a62-4353-aab6-fc1ac7ad821b",
+  "walk": "done",
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1,
+  "walk8group": "86ea2191-5e0a-4cad-a3d2-bd6fb9c7aae4",
+  "walk8": "done",
+  "attack8": 8,
+  "walkfix_g": "39fa3ed5-d703-4276-aa83-c9cf6ea13e7d",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "bs5": {
+  "cid": "96fa7e23-cba0-4c3b-a787-e43e0d62a097",
+  "walk": "done",
+  "attack": "done",
+  "special": "done",
+  "die": "done",
+  "zip": 1,
+  "walk8group": "6f034916-0369-41be-a34d-a0c99874da4a",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done",
+  "attack8": 8,
+  "walkfix_g": "6085dc94-51cd-4766-bccb-28ba64164ddd",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "an1": {
+  "cid": "3fcbc7e4-2220-4e76-b44e-45fe2fad740e",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "be0af87d-8056-48cb-842b-8d291b4a0f79",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "an2": {
+  "cid": "3abddde1-e74d-4bdb-a862-5600d76ac240",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "9f71e92e-40c1-4dc1-be90-469c25d938bc",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "an3": {
+  "cid": "4f9e285e-4480-4b50-82e4-daccc419a5cf",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "96130533-b586-4a35-bcc2-e0c0888f7747",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "an4": {
+  "cid": "e3ce156c-0dd1-4d8c-bacf-02f8a29ee939",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "c7f1c956-aae4-4362-82a3-40f167dd5ddc",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "an5": {
+  "cid": "155d3783-4d98-4930-a821-dc8bec2b1cde",
+  "walk": "done",
+  "zip": 1,
+  "walk8group": "e76e9da2-75f0-4c5b-b994-c294559214a1",
+  "walk8dirs": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ],
+  "walk8": "done"
+ },
+ "hg": {
+  "cid": "76b614c6-c059-4620-9e13-dc0041fbe5fe",
+  "walk8": "done",
+  "chop": "done",
+  "mine": "done",
+  "zip": 1,
+  "states": {
+   "spear": {
+    "cid": "df1dc0ad-89a2-47e7-88cc-12db0f155b00"
+   },
+   "axe": {
+    "cid": "59347c83-9bc9-48af-8c03-a507318efbc6"
+   },
+   "pick": {
+    "cid": "816b2cfe-4b8f-47e6-9b79-1dd898ab6df7"
+   }
+  }
+ },
+ "bs3b": {
+  "cid": "953b9883-85ee-436b-bad4-a431af109ca2",
+  "walk_g": "1e42d726-7e21-46cc-98c5-7f96235ac939",
+  "attack_g": "e86cebd8-521d-4a66-9863-253c3693e812"
+ },
+ "hero": {
+  "cid": "755016b3-f6b1-4b0e-aaa3-3bc937accd35"
+ },
+ "hr3": {
+  "cid": "d0a01c4a-3a8f-4c3b-bcc6-a36f722e16e1"
+ },
+ "hr4": {
+  "cid": "e26767d2-9a4d-4f35-abea-3c75491e3c08"
+ },
+ "hr9": {
+  "cid": "13f0c952-ddf0-49de-b3e2-c884d72ddfd7"
+ },
+ "heroF": {
+  "cid": "f87d8718-1768-4b99-8c87-e26ace6749ce",
+  "zip": 1
+ },
+ "mo18": {
+  "cid": "b2ccb9f2-9a89-404d-92bf-68a0fe765a71",
+  "walk": "done",
+  "attack": "done",
+  "zip": 1
+ },
+ "mt_horse": {
+  "cid": "b502ea34-783c-4b3a-a4ce-9da5e5d8a1bb"
+ },
+ "mt_dragon": {
+  "cid": "eab037c8-a66e-4110-bb4e-6df44fe14627"
+ },
+ "hr2_ride": {
+  "cid": "4f0a9d42-ce56-4871-a915-5bcfa5bd759b",
+  "src": "hr2"
+ },
+ "hero_ride": {
+  "cid": "60bb3423-69ea-4c2e-a335-9f9fc0f1095d",
+  "src": "hero"
+ },
+ "heroF_ride": {
+  "cid": "6696a630-90eb-4a72-b6fc-c738e590b0b5",
+  "src": "heroF"
+ },
+ "hr1_ride": {
+  "cid": "cf40b568-3fe3-4206-8e37-444ef593e53f",
+  "src": "hr1"
+ },
+ "hr3_ride": {
+  "cid": "35cec5a3-0fc7-4d01-85c9-2f3e3e2eb1d7",
+  "src": "hr3"
+ },
+ "hr4_ride": {
+  "cid": "68bba057-78be-4f00-81fe-55fed619df0c",
+  "src": "hr4"
+ },
+ "hr5_ride": {
+  "cid": "efcad086-2e30-4cca-8e48-597f692a0f30",
+  "src": "hr5"
+ },
+ "hr6_ride": {
+  "cid": "8d311ed0-e66e-4b74-af00-7129c9735b2b",
+  "src": "hr6"
+ },
+ "hr7_ride": {
+  "cid": "df6ddd55-d4a0-49aa-8a4c-b61455713892",
+  "src": "hr7"
+ },
+ "hr8_ride": {
+  "cid": "06e9d4e3-0b61-4d07-b92b-8f13b02704b0",
+  "src": "hr8"
+ },
+ "hr9_ride": {
+  "cid": "ed25fb0c-5cd7-4a8f-916d-f7f07ef22b50",
+  "src": "hr9"
+ },
+ "hr10_ride": {
+  "cid": "551884cd-441d-4f8b-9219-ac37f08ab702",
+  "src": "hr10"
+ },
+ "hr11_ride": {
+  "cid": "7fdb3046-8f0d-4ee0-a4db-77e36beedf71",
+  "src": "hr11"
+ },
+ "hr12_ride": {
+  "cid": "752ce0a4-70ff-439f-8576-99ff2f5d140f",
+  "src": "hr12"
+ }
+}
