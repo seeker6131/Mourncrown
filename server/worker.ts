@@ -184,7 +184,7 @@ export default {
       // a map room (Durable Object): see the other players in this map and talk (WebSocket; the token rides in the URL
       // because a browser cannot set headers on a WebSocket)
       if (path.startsWith('/room/')) {
-        const room = path.slice(6);
+        const room = path.slice(6).replace(/^m300b\d/, 'm300');   // (⚔ the raid is ONE room for every level — a game still on the level-band version joins it too)
         if (!/^[a-z0-9-]{1,32}$/.test(room) || room.startsWith('chat') || req.headers.get('Upgrade') !== 'websocket') return json(req, { error: 'room' }, 400);   // (chat channels: /chat only)
         const t = url.searchParams.get('t') ?? '';
         const a = await byToken(env, t);
