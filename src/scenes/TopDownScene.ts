@@ -1107,13 +1107,13 @@ export class TopDownScene extends Phaser.Scene {
    *  without walking back to the village) — each on the nearest open ground toward the middle */
   cornerGates() {
     this.gateSpots = [];
-    for (const [cx, cy] of [[120, 150], [MW - 120, 150], [120, MH - 110], [MW - 120, MH - 110]]) {
-      let at: { x: number; y: number } | null = null;
-      for (let k = 0; k <= 8 && !at; k++) { const x = cx + (MW / 2 - cx) * k * 0.05, y = cy + (MH / 2 - cy) * k * 0.05; at = this.landing(x, y); }
-      if (!at) continue;
-      const side = at.x < MW / 2 ? 1 : -1, b = this.landing(at.x + side * 52, at.y) ?? { x: at.x + side * 52, y: at.y };
+    // (director: right at the map's corners, the two gates well apart — the map-select one along the edge)
+    const spot = (cx: number, cy: number) => { let at: { x: number; y: number } | null = null; for (let k = 0; k <= 30 && !at; k++) { const x = cx + (MW / 2 - cx) * k * 0.012, y = cy + (MH / 2 - cy) * k * 0.012; at = this.canStand(x, y) ? { x, y } : null; } return at; };
+    for (const [cx, cy] of [[34, 52], [MW - 34, 52], [34, MH - 30], [MW - 34, MH - 30]]) {
+      const at = spot(cx, cy); if (!at) continue;
+      const side = at.x < MW / 2 ? 1 : -1, b = spot(cx + side * 300, cy) ?? { x: at.x + side * 300, y: at.y };   // (300 px apart: a player stepped out of one into the other)
       this.addPortal(at.x, at.y, 0, 'กลับหมู่บ้าน'); this.addPortal(b.x, b.y, 'select', 'เลือกแผนที่');
-      const ar = this.landing(at.x + (MW / 2 - at.x) * 0.06, at.y + (MH / 2 - at.y) * 0.08); if (ar) this.gateSpots.push(ar);
+      const ar = this.landing(at.x + side * 150, at.y + (at.y < MH / 2 ? 160 : -160)); if (ar) this.gateSpots.push(ar);   // (arrive between the two, a step in from the edge)
     }
   }
   gateSpots: { x: number; y: number }[] = [];
