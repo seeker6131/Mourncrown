@@ -1096,6 +1096,7 @@ export class TopDownScene extends Phaser.Scene {
       void im;
     }
     const gy = this.trailMain(24);
+    this.gateSpots = [];   // (player report 14 Nov: a dungeon has no corner gates — the last map's spots put heroes inside its walls)
     this.addPortal(46, gy, 0, 'กลับหมู่บ้าน'); if (!this.dungeon && !this.townRaid) this.cornerGates();
     this.arrive(56, this.trailMain(56));
     // monsters appear anywhere walkable, away from the gate and out of the hero's sight
@@ -1152,7 +1153,7 @@ export class TopDownScene extends Phaser.Scene {
   mouseHold = 0;
   /** 🎲 director: arrive somewhere different each time (by the gate on the left edge, or by one of the corner gates) */
   arrive(x: number, y: number) {
-    const all = [{ x, y }, ...this.gateSpots], p = all[Math.floor(Math.random() * all.length)];
+    const all = [{ x, y }, ...this.gateSpots.filter(q => this.canStand(q.x, q.y))], p = all[Math.floor(Math.random() * all.length)];   // (never a spot one cannot stand on)
     this.hero.setPosition(p.x, p.y);
   }
   addPortal(x: number, y: number, to: number | 'select' | 'starter' | 'guild' | 'out' | 'leave', text: string) {
