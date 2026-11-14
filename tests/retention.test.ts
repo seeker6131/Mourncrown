@@ -1,3 +1,4 @@
+import { invSize } from '../src/core/state';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { startNewGame } from '../src/core/save';
 import { derive } from '../src/systems/stats';
@@ -58,5 +59,12 @@ describe('SL pity', () => {
     (s as GameState & { slPity?: number }).slPity = SL_PITY - 1;
     const r = applyKill(s, 1, STAGES[0].land.mobs[0], false, false, () => 0.01, true);   // golden: sure gear drop
     expect(r.gear[0].rar).toBe(5);
+  });
+  it('a full bag: the day waits (nothing lost), then pays once there is room', () => {
+    const s = startNewGame(), d1 = Date.parse('2026-11-14T10:00:00+07:00');
+    s.inventory = s.inventory.filter(i => i.id !== 'hp_potion');
+    while (s.inventory.length < invSize(s)) s.inventory.push({ uid: s.nextUid++, id: 'wood_sword', qty: 1, upg: 0 });
+    const g0 = s.gold; expect(claimLogin(s, d1)).toBe('bag'); expect(s.gold).toBe(g0); expect(loginInfo(s, d1).ready).toBe(true);
+    s.inventory.pop(); const r = claimLogin(s, d1); expect(r && r !== 'bag').toBe(true); expect(s.gold).toBe(g0 + 300); expect(claimLogin(s, d1)).toBeNull();
   });
 });

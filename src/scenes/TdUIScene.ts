@@ -36,6 +36,7 @@ import { loadAtlas, unpackAtlas } from '../world/atlas';
 let ICONS_SWAPPED = false;
 import { mountOn, mountsOf, nextRide } from '../systems/mounts';
 import { vipActive, diamonds } from '../systems/premium';
+import { dayKey } from '../systems/daily';
 import { skillIconKey } from '../ui/skin';
 import { formName } from '../data/classes';
 import { Panels } from '../ui/panels';
@@ -352,7 +353,7 @@ export class TdUIScene extends Phaser.Scene {
     this.loot = new LootPopup(this as never); this.news = new NewsTicker(this as never);
     const onLoot = (p: { id: string; rar: number; set?: string }) => this.loot?.push(p);
     bus.on('loot:popup', onLoot); this.events.once('shutdown', () => bus.off('loot:popup', onLoot));
-    this.minimap = new Minimap(this as never, () => (this.td as unknown as { mapInfo(): MapInfo | null }).mapInfo());
+    this.minimap = new Minimap(this as never, () => (this.td as unknown as { mapInfo(): MapInfo | null }).mapInfo(), (x, y) => (this.td as unknown as { walkTo(x: number, y: number): void }).walkTo(x, y));
     this.formBtn = k.button(this.bandX - 97, 58, 194, 22, '✨ เปลี่ยนร่างได้! (แตะ)', () => this.panels.open('job'), { size: 9, color: 0x6a3a8a });
     this.formBtn.setVisible(false);
     this.root.add(this.formBtn);
@@ -371,7 +372,12 @@ export class TdUIScene extends Phaser.Scene {
     const st = S();
     // daily login calendar pops up in the village once a day (after the tutorial)
     if (st.introSeen && !tutActive(st)) this.time.delayedCall(1500, () => showNews(S().playTime ?? 0));   // 📢 what's new since this device last looked (core/changelog.ts)
-    if (st.introSeen && !tutActive(st) && loginInfo(st).ready && !(this.td as unknown as { stageN: number }).stageN && !WC.side) this.time.delayedCall(1200, () => { if (!this.panels.isOpen) this.panels.open('login'); });
+    // 📅 the daily login calendar pops up once a day (any map but a dungeon / war, also when the day turns while playing);
+    // asked at most once per day on this device (a wrong phone clock or a refused claim never makes it pop up again and again)
+    { const ask = () => { const s1 = S(), day = dayKey(), td = this.td as unknown as { dungeon?: unknown; raid?: unknown; defense?: unknown }; let asked = ''; try { asked = localStorage.getItem('mcLoginAsk') ?? ''; } catch { /* storage blocked */ }
+        if (asked === day || !s1.introSeen || tutActive(s1) || !loginInfo(s1).ready || td.dungeon || td.raid || td.defense || WC.side || this.panels.isOpen) return;
+        try { localStorage.setItem('mcLoginAsk', day); } catch { /* storage blocked */ } this.panels.open('login'); };
+      this.time.delayedCall(1500, ask); this.time.addEvent({ delay: 60000, loop: true, callback: ask }); }
     if (!st.introSeen) {
       st.introSeen = true;
       this.time.delayedCall(800, () => this.panels.openDialog('elder', 'คำสาปดำกำลังกลืนแผ่นดินเอลเดอร์โกรฟ... เจ้าเป็นแค่ชาวบ้านถือดาบไม้ ออกไปทางประตูแผนที่ทางเหนือ ล่ามอนสเตอร์ เก็บเหรียญและไอเทม ส่วนไม้ หิน แร่ อาหาร ไปหาที่ป่าดงดิบทางประตูซ้าย ยิ่งเลเวลสูงยิ่งไปแผนที่ที่ไกลขึ้นได้ ถึงเลเวล 10 แล้วมาหาข้า จะได้เลือกเส้นทางนักรบของเจ้า!'));

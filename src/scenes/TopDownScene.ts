@@ -324,6 +324,8 @@ export class TopDownScene extends Phaser.Scene {
   riding?: Riding; rideBlockT = 0; heroMoving = false;
   /** ⛈ the storm-cloud pet (systems/cosmetics.ts) and its lightning guide to the roaming boss */
   pet?: StormCloud; guide?: Phaser.GameObjects.Graphics; guideTx?: Phaser.GameObjects.Text; heroTagGold = false;
+  /** 🗺 tapped on the big map: walking there by itself (any move of the stick / AUTO cancels it) */
+  walkGoal: { x: number; y: number; key: object } | null = null; walkMark?: Phaser.GameObjects.Graphics;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -430,7 +432,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false;   // (scene objects are made anew on restart)
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -1501,6 +1503,32 @@ export class TopDownScene extends Phaser.Scene {
   autoStuck = { x: 0, y: 0, t: 0 };
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
+  /** 🗺 walk to a spot picked on the big map (round walls by the same path finder AUTO uses) */
+  walkTo(x: number, y: number) {
+    if (this.dead || this.raid || this.defense || this.warSide) return;
+    let gx = x, gy = y;
+    if (!this.canStand(gx, gy)) {   // (a wall / water: the nearest spot one can stand on)
+      let best: [number, number] | null = null;
+      for (let r = 8; r <= 120 && !best; r += 8) for (let a = 0; a < 16 && !best; a++) { const px = x + Math.cos(a / 16 * Math.PI * 2) * r, py = y + Math.sin(a / 16 * Math.PI * 2) * r; if (px > 8 && py > 8 && px < MW - 8 && py < MH - 8 && this.canStand(px, py)) best = [px, py]; }
+      if (!best) { bus.emit(EV.TOAST, 'ไปตรงนั้นไม่ได้', '#ff9a6a'); return; }
+      [gx, gy] = best;
+    }
+    if (S().auto) { S().auto = false; bus.emit(EV.STATE_CHANGED); }
+    this.walkGoal = { x: gx, y: gy, key: {} }; this.path = null;
+    this.walkMark ??= this.add.graphics();
+    bus.emit(EV.TOAST, '🚶 กำลังเดินไปจุดที่เลือก — ขยับจอยเพื่อยกเลิก', '#ffe7a0');
+  }
+  walkStop() { this.walkGoal = null; this.walkMark?.clear(); }
+  walkStep(time: number): [number, number] {
+    const g = this.walkGoal!, h = this.hero;
+    if (Math.hypot(g.x - h.x, g.y - h.y) < 8) { this.walkStop(); return [0, 0]; }
+    const st = this.steer(g.key, g.x, g.y, time);
+    if (!st) { this.walkStop(); bus.emit(EV.TOAST, 'หาทางไปตรงนั้นไม่เจอ', '#ff9a6a'); return [0, 0]; }
+    // the spot: a pulsing ring on the ground
+    const p = 6 + Math.sin(time / 160) * 2;
+    this.walkMark?.clear().lineStyle(2, 0xffe04a, 0.9).strokeEllipse(g.x, g.y, p * 2.4, p * 1.2).fillStyle(0xffe04a, 0.25).fillEllipse(g.x, g.y, p * 1.2, p * 0.6).setDepth(g.y - 2);
+    return st;
+  }
   /** ⛈ the storm cloud floating with the hero, the lightning arrow to this map's roaming boss, and a word when one
    *  appears on another map (polled once a minute, only for cloud owners) */
   updatePet(time: number) {
@@ -2051,7 +2079,9 @@ export class TopDownScene extends Phaser.Scene {
       if (l > 6) { mx = this.joy.dx / l; my = this.joy.dy / l; }
     }
     if (mx || my) this.manualT = time;
+    if ((mx || my || S().auto) && this.walkGoal) this.walkStop();   // (the stick or AUTO takes over)
     if (S().auto && !mx && !my && !this.dead && !this.attacking && !this.panelBlocks && !this.selectUi) [mx, my] = this.autoStep(time);
+    else if (this.walkGoal && !this.dead && !this.attacking && !this.panelBlocks && !this.selectUi) [mx, my] = this.walkStep(time);
     const len = Math.hypot(mx, my);
     const h = this.hero; this.heroMoving = false;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {

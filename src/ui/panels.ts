@@ -1517,7 +1517,7 @@ export class Panels implements GuildHost {
     c.add(k.button(x + W / 2 - 70, y + H - 40, 140, 26, info.ready ? '🎁 รับของวันนี้' : 'รับแล้ว พรุ่งนี้มาใหม่', () => {
       const r = act('loginClaim', {});
       if (!refused(r) && (r as { skillPt?: number }).skillPt) bus.emit(EV.TOAST, '✨ ล็อกอินครบ 7 วัน — ได้แต้มสกิล +1!', '#9fffb0');
-      if (refused(r)) { sfx.error(); return; }
+      if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'bag' ? 'กระเป๋าเต็ม — เคลียร์ช่องว่างก่อนแล้วกดรับใหม่ (ของไม่หาย)' : 'รับไปแล้ววันนี้', '#ff9a6a'); return; }
       sfx.levelUp(); bus.emit(EV.TOAST, `รับของล็อกอินวันที่ ${info.day + 1}: ${r.label}`, '#ffd84a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild();
     }, { size: 10, color: 0x6a4a10, disabled: !info.ready }));
   }

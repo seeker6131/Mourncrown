@@ -1,4 +1,6 @@
 // Retention systems — pure rules (server-side when online): first-time tutorial reward, 7-day login calendar.
+import { invSize } from '../core/state';
+import { itemDef } from '../data/items';
 import type { GameState } from '../core/state';
 import { addItem } from './inventory';
 import { dayKey } from './daily';
@@ -43,9 +45,15 @@ export function loginInfo(s: GameState, now = Date.now()) {
   const ready = l.last !== dayKey(now);
   return { ready, day: l.n % 7, total: l.n };
 }
+/** room in the bag for a day's items (a stack already held needs no new slot) */
+export function loginFits(s: GameState, r: LoginReward) {
+  const need = Object.keys(r.items ?? {}).filter(id => !(itemDef(id).stack && s.inventory.some(i => i.id === id))).length;
+  return s.inventory.length + need <= invSize(s);
+}
 export function claimLogin(s: GameState, now = Date.now()) {
   const st = s as LS, info = loginInfo(s, now); if (!info.ready) return null;
   const r = LOGIN_REWARDS[info.day];
+  if (!loginFits(s, r)) return 'bag' as const;   // (a full bag: wait instead of losing the items)
   s.gold += r.gold ?? 0; for (const [id, n] of Object.entries(r.items ?? {})) addItem(s, id, n);
   st.login = { n: info.total + 1, last: dayKey(now) };
   return r;

@@ -17,13 +17,19 @@ export class Minimap {
   img: Phaser.GameObjects.Image; g: Phaser.GameObjects.Graphics; zone: Phaser.GameObjects.Zone; back: Phaser.GameObjects.Rectangle;
   labels: Phaser.GameObjects.Text[] = [];
   key = ''; box = { x: 0, y: 0, w: 0, h: 0 };
-  constructor(private ui: Host, private info: () => MapInfo | null) {
+  hint?: Phaser.GameObjects.Text; dims = { w: 1, h: 1, mw: 1, mh: 1 };
+  /** pick = tap a spot on the big map: the hero walks there (TopDownScene.walkTo) */
+  constructor(private ui: Host, private info: () => MapInfo | null, private pick?: (x: number, y: number) => void) {
     this.back = ui.add.rectangle(0, 0, 10, 10, 0x000000, 0.55).setOrigin(0).setVisible(false).setInteractive();
     this.back.on('pointerup', () => this.toggle());
     this.img = ui.add.image(0, 0, '__WHITE').setOrigin(0);
     this.g = ui.add.graphics();
     this.zone = ui.add.zone(0, 0, 10, 10).setOrigin(0).setInteractive();
-    this.zone.on('pointerup', () => this.toggle());
+    // tap the minimap: it zooms; tap a spot on the zoomed map: the hero walks there (director)
+    this.zone.on('pointerup', (_p: Phaser.Input.Pointer, lx: number, ly: number) => {
+      if (this.big && this.pick) { const d = this.dims; this.pick(Phaser.Math.Clamp(lx / d.w, 0, 1) * d.mw, Phaser.Math.Clamp(ly / d.h, 0, 1) * d.mh); }
+      this.toggle();
+    });
     ui.root.add([this.back, this.img, this.g, this.zone]);
   }
   toggle() { this.big = !this.big; this.key = ''; }
@@ -45,7 +51,7 @@ export class Minimap {
     const ui = this.ui, ratio = m.w / m.h;
     const h = this.big ? ui.VH * 0.78 : 84, w = Math.min(h * ratio, this.big ? ui.VW * 0.9 : 130), hh = w / ratio;
     const x = this.big ? (ui.VW - w) / 2 : ui.VW - w - 10, y = this.big ? (ui.VH - hh) / 2 : 54;
-    const sx = w / m.w, sy = hh / m.h;
+    const sx = w / m.w, sy = hh / m.h; this.dims = { w, h: hh, mw: m.w, mh: m.h };
     if (this.key !== m.key + this.big) {
       this.key = m.key + this.big;
       this.img.setTexture(this.ground(m)).setPosition(x, y).setDisplaySize(w, hh).setAlpha(this.big ? 1 : 0.92);
@@ -55,7 +61,8 @@ export class Minimap {
       if (this.back.input) this.back.input.hitArea.setSize(ui.VW, ui.VH);
       this.labels.forEach(t => t.destroy()); this.labels = [];
       const lab = (lx: number, ly: number, t: string, col: string, sz: number, ox = 0.5) => { const tx = ui.kit.text(x + lx * sx, y + Math.max(sz + 2, ly * sy), t, sz, col, { stroke: '#000000', strokeThickness: 3 }).setOrigin(ox, 1); this.labels.push(tx); ui.root.add(tx); };
-      if (this.big) { for (const e of m.marks) lab(e.x, e.y - 6 / sy, e.label, e.col, 8); for (const e of m.exits) lab(e.x, e.y - 8 / sy, '🚪 ' + e.label, '#9fffb0', 9); }
+      if (this.big) { for (const e of m.marks) lab(e.x, e.y - 6 / sy, e.label, e.col, 8); for (const e of m.exits) lab(e.x, e.y - 8 / sy, '🚪 ' + e.label, '#9fffb0', 9);
+        if (this.pick) { const t = ui.kit.text(x + w / 2, y + hh + 6, '👆 แตะจุดบนแผนที่ = เดินไปที่นั่นเอง • แตะนอกแผนที่ = ปิด', 8, '#ffe7a0', { stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 0); ui.root.add(t); this.labels.push(t); } }
       else for (const e of m.exits) lab(e.x + (e.x < m.w / 2 ? 4 : -4) / sx, e.y - 5 / sy, 'ทางออก', '#9fffb0', 6.5, e.x < m.w / 2 ? 0 : 1);
     }
     const g = this.g; g.clear();

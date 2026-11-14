@@ -450,7 +450,7 @@ export const handlers = {
   tutorialDone: (s: GameState, _a: object) => (tutPay(s) ? { ok: true } : no('paid')),
   /** daily login calendar: one claim per day */
   /** daily login: every 7th day also gives a skill point */
-  loginClaim: (s: GameState, _a: object, c: Ctx) => { const r = claimLogin(s, c.now); if (!r) return no('claimed'); const n = (s as { login?: { n: number } }).login?.n ?? 0, pt = n > 0 && n % 7 === 0; if (pt) bonusSkillPt(s); return Object.assign({}, r, { skillPt: pt ? 1 : 0 }); },
+  loginClaim: (s: GameState, _a: object, c: Ctx) => { const r = claimLogin(s, c.now); if (!r) return no('claimed'); if (r === 'bag') return no('bag'); const n = (s as { login?: { n: number } }).login?.n ?? 0, pt = n > 0 && n % 7 === 0; if (pt) bonusSkillPt(s); return Object.assign({}, r, { skillPt: pt ? 1 : 0 }); },
   /** test buttons — refused when DEV_TOOLS is off (must be off for OBT) */
   dev(s: GameState, a: { op: 'kit' | 'level' | 'vip' | 'diamonds' | 'guildFill' | 'guildTime' | 'guildAttack' | 'guildDefend' | 'mountDragon'; n?: number; name?: string; wreck?: Wreck }, c: Ctx): Refused | { got: string[] } {
     if (!DEV_TOOLS) return no('dev');
