@@ -309,6 +309,9 @@ const EN: Record<string, string> = {
   '🎞 เครื่องกระตุก? ตั้งค่า FPS 30 / กราฟิกต่ำ ได้ที่ เมนู → 🔊 เสียง': '🎞 Laggy? Set 30 FPS / low graphics in Menu → 🔊 Sound',
   '🔧 แก้ดันเจี้ยนรายวันเคลียร์แล้วไม่นับเควสต์ • รูปสกิลในหน้าตัวละครตรงกับปุ่มสกิลแล้ว': '🔧 Fixed daily dungeon clears not counting for quests • skill pictures in the character window now match the skill buttons',
   '🗺 เลือกแผนที่': '🗺 Map select',
+  '🔑 เคยเล่นแล้ว / ย้ายเครื่อง? เข้าสู่ระบบ Google บัญชีเดิม = ได้ตัวละครเดิมคืน': '🔑 Played before / new device? Sign in with the same Google account to get your hero back',
+  '▶ เล่นแบบแขก (ตัวละครใหม่)': '▶ Play as guest (new hero)',
+  '⚠ ยังไม่ผูก Google — เปลี่ยนเครื่องตัวละครจะหาย • แตะ': '⚠ Not linked to Google — your hero is lost on a new device • tap',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

@@ -196,6 +196,9 @@ async function show() {
         <div class="row"><label>เริ่มในอีก <input type="number" id="rMins" min="1" max="1440" value="6" style="width:70px"> นาที</label><button class="btn green" id="rGo">⚔ ตั้งเวลามอนบุก</button><button class="btn" id="rNo">ยกเลิก</button></div>
         <div class="dim" style="font-size:13px;margin-bottom:8px">${rPlan}</div>
         <div class="tw"><table><tr><th>อาคารกลาง</th><th>สถานะ</th><th>หลอดซ่อม</th><th></th></tr>${['lumber','kitchen','forge','barn','tavern'].map(b => { const r = (rd.rows || []).find(x => x.bid === b); const br = r && r.broken; return `<tr><td>${TN[b]}</td><td>${br ? '🔥 พัง' : '✅ ปกติ'}</td><td>${r ? r.donated + ' / ' + r.need : '-'}</td><td>${br ? `<button class="btn" data-fix="${b}">ซ่อมทันที</button>` : `<button class="btn" data-brk="${b}">ทำให้พัง (ทดสอบ)</button>`}</td></tr>`; }).join('')}</table></div>
+        <h2>🔁 ย้ายตัวละคร (ผู้เล่นย้ายเครื่องแต่ไม่ได้ผูก Google)</h2>
+        <p class="dim">ให้ผู้เล่นเปิดเกมในเครื่องใหม่แล้วส่ง "รหัสผู้เล่น" (บัญชีใหม่) มา • หา "รหัสบัญชีเดิม" จากแท็บผู้เล่น (ดูเลเวล/อาชีพ/เข้าล่าสุด) • ย้ายแล้วบัญชีเดิมจะถูกปิด (กันของซ้ำ) และตัวละครในบัญชีใหม่จะถูกแทนที่</p>
+        <div class="row"><input id="mvFrom" placeholder="รหัสบัญชีเดิม (24 ตัว)" style="width:220px"><span>→</span><input id="mvTo" placeholder="รหัสบัญชีใหม่ (24 ตัว)" style="width:220px"><button class="btn" id="mvGo">🔁 ย้ายตัวละคร</button></div>
         <h2>📢 โทรโข่งแอดมิน (ประกาศในเกม)</h2>
         <p class="dim">ขึ้นเป็นแถบเล็กสีทองใต้ชื่อแผนที่ ไม่บังจอ • ทุกคนที่ออนไลน์เห็นภายใน 2 นาที • คนที่เข้าเกมทีหลังเห็นตอนเข้า (ภายในเวลาที่ตั้ง) • เห็นคนละครั้ง</p>
         <div class="row"><input id="aText" maxlength="160" placeholder="เช่น อีก 10 นาทีเซิร์ฟปิดปรับปรุง 5 นาที" style="width:min(520px,100%)">
@@ -213,6 +216,7 @@ async function show() {
         <div class="row"><label>หมดอายุใน <input type="number" min="0" max="90" value="7" id="mDays" style="width:60px"> วัน (0 = ไม่หมดอายุ)</label><button class="btn green" id="mSend">📬 ส่งหาทุกคน</button></div>
         <h2>📜 จดหมายถึงทุกคนที่เคยส่ง</h2>
         <div class="tw"><table><tr><th>เมื่อ</th><th>หัวข้อ</th><th>ของ</th><th>หมดอายุ</th></tr>${d.rows.map(r => `<tr><td class="dim">${when(r.at)}</td><td style="white-space:normal">${esc(r.title)}<div class="dim" style="font-size:12px">${esc(r.text)}</div></td><td style="white-space:normal">${esc(gtext(r.gift))}</td><td>${r.until ? (r.until > Date.now() ? new Date(r.until).toLocaleDateString('th-TH') : 'หมดแล้ว') : '-'}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ยังไม่เคยส่ง</td></tr>'}</table></div>`;
+      $('mvGo').onclick = async () => { const f = $('mvFrom').value.trim(), t = $('mvTo').value.trim(); if (!f || !t) return alert('ใส่รหัสทั้งสองช่อง'); if (!confirm('ย้ายตัวละครจาก ' + f + ' ไปบัญชี ' + t + '?\n\nบัญชีเดิมจะถูกปิด และตัวละครในบัญชีใหม่จะถูกแทนที่')) return; const r = await api('/admin/movehero', { from: f, to: t }); alert(r.ok ? '✔ ย้ายแล้ว — ผู้เล่นเห็นตัวละครเดิมทันที (หรือเปิดเกมใหม่)' : 'ย้ายไม่ได้: ' + (r.error || '?')); };
       $('rGo').onclick = async () => { const m = Number($('rMins').value) || 0; if (!confirm('ตั้งมอนบุกหมู่บ้านกลางในอีก ' + m + ' นาที?')) return; await api('/admin/raid', { mins: m }); show(); };
       $('rNo').onclick = async () => { await api('/admin/raid', { clear: true }); show(); };
       main.querySelectorAll('[data-fix]').forEach(b => b.onclick = async () => { await api('/admin/raid', { bid: b.dataset.fix, act: 'fix' }); show(); });

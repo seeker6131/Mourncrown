@@ -347,6 +347,17 @@ export default {
         if (path === '/admin/reports') return json(req, { rows: await all('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 200') });
         if (path === '/admin/items') return json(req, { items: Object.values(ITEMS).map(i => ({ id: i.id, name: i.name, type: i.type, rarity: i.rarity, stack: !!i.stack })) });
         // 💳 top-ups: the record, the QR to receive money (uploaded once, kept in D1 — never in the code), open / closed for players
+        if (path === '/admin/movehero' && req.method === 'POST') {   // 🔁 a player changed devices without Google: their old hero moves to their new account
+          const b = await req.json() as { from?: string; to?: string }, from = String(b.from ?? '').trim(), to = String(b.to ?? '').trim();
+          if (!/^[0-9a-f]{24}$/.test(from) || !/^[0-9a-f]{24}$/.test(to) || from === to) return json(req, { error: 'id' }, 400);
+          const src = await DB.prepare('SELECT data FROM saves WHERE id = ?').bind(from).first<{ data: string }>(), dst = await DB.prepare('SELECT id FROM accounts WHERE id = ?').bind(to).first<{ id: string }>();
+          if (!src || !dst) return json(req, { error: 'missing' }, 404);
+          const r = await env.PLAYER.get(env.PLAYER.idFromName(to)).fetch(new Request('https://p/adopt?id=' + to, { method: 'POST', body: src.data }));
+          if (!r.ok) return json(req, { error: 'adopt' }, 500);
+          await DB.prepare('UPDATE accounts SET banned = 1 WHERE id = ?').bind(from).run();   // (the old copy can never play again: no duplicate hero / items)
+          await flag(env, me.id, 'admin:movehero', `${from} -> ${to}`);
+          return json(req, { ok: true });
+        }
         if (path === '/admin/raid') {   // ⚔ the village raid: plan one (in N minutes) / cancel; the central buildings (fix / break for tests)
           if (req.method === 'POST') {
             const b = await req.json() as { mins?: number; clear?: boolean; bid?: string; act?: string };
@@ -1085,6 +1096,14 @@ export class Player {
     if (u.pathname === '/pay' && this.st) {   // the map room: a monster died and this player did a fair share
       this.payOne(JSON.parse(await req.text())); await this.later();
       return new Response('{}');
+    }
+    if (u.pathname === '/adopt') {   // (the back office) this account takes over a hero moved from another account
+      await this.load(u.searchParams.get('id') ?? ''); const data = JSON.parse(await req.text()) as St;
+      if (!data || typeof data !== 'object' || typeof data.version !== 'number') return new Response('{}', { status: 400 });
+      this.st = data; this.dirty = true; await this.persist();
+      const own: St = {}; for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k];
+      this.send({ t: 'note', own, text: '🔁 ทีมงานย้ายตัวละครเดิมของคุณมาที่บัญชีนี้แล้ว — แนะนำ: เมนู → 🔗 ผูกบัญชี Google เพื่อไม่ให้หายอีก' });
+      return new Response(JSON.stringify({ ok: true }));
     }
     if (u.pathname === '/raidpay' && this.st) {   // ⚔ the village raid's chest for a defender (from the raid room)
       const b = JSON.parse(await req.text()) as { mvp?: boolean; won?: boolean }, sn = this.snap(), eb = this.eSnap();

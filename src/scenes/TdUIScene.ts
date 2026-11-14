@@ -1,5 +1,6 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
+import { openLinkGoogle } from '../net/linkGoogle';
 import { RAID } from '../world/stages';
 import { RAID_SECS, RAID_WARN_MS, RAID_FALLEN_KEY } from '../systems/townRaid';
 import { townBroken } from '../systems/town';
@@ -32,7 +33,8 @@ import { openReport } from '../net/report';
 import { openChat } from '../ui/chatDom';
 import { chatHub, WORLD_LV } from '../net/chatHub';
 import { play } from '../net/play';
-import { accountToken, SERVER } from '../net/cloud';
+import { accountToken, SERVER, googleLinked, accountName } from '../net/cloud';
+import { askName } from '../net/namePrompt';
 import { uiOpt } from '../core/uiOptions';
 import { hideWait } from '../core/wait';
 import { WC } from '../world/warClient';
@@ -232,7 +234,7 @@ export class TdUIScene extends Phaser.Scene {
       const onAnn = (m: { id: number; text: string; until: number }) => { let seen = 0; try { seen = Number(localStorage.getItem('mcAnn')) || 0; } catch { /* storage blocked */ }
         if (m.id <= seen || m.until < Date.now()) return; try { localStorage.setItem('mcAnn', String(m.id)); } catch { /* storage blocked */ } this.megaphone(m.text); };
       bus.on('net:ann', onAnn); this.events.once('shutdown', () => bus.off('net:ann', onAnn));
-      this.raidBar();
+      this.raidBar(); this.guestWarn();
       show(); if (Date.now() - onlineNow.at > 180000) ask();
       this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
     // 🧪 active buffs under the minimap (players: which buff is on and how long is left) — systems/buffs.ts
@@ -504,6 +506,17 @@ export class TdUIScene extends Phaser.Scene {
   }
 
   minimap?: Minimap; loot?: LootPopup; news?: NewsTicker; newsT = 0;
+  /** 🔗 a guest's hero lives only on this device (a player changed phones and "lost" theirs): a red pill under the quest
+   *  bar while not linked to Google — tap to link; from level 10 also a box once a day. Gone once linked. */
+  guestWarn() {
+    if (!accountToken() || googleLinked()) return;
+    const k = this.kit, s = S(); if ((s.level ?? 1) < 3) return;
+    const b = k.button(8, 164, 200, 18, tr('⚠ ยังไม่ผูก Google — เปลี่ยนเครื่องตัวละครจะหาย • แตะ'), () => link(), { size: 7.5, color: 0x7a1a1a });
+    this.root.add(b);
+    const link = () => openLinkGoogle(r => { if (r === 'switched') { location.reload(); return; } b.destroy(); this.toast('✔ ผูก Google แล้ว — เข้าเครื่องไหนก็เล่นตัวละครนี้ต่อได้', '#9fffb0'); if (!accountName()) askName(n => this.toast(`✔ ยินดีต้อนรับ ${n}!`, '#ffd84a')); });
+    if ((s.level ?? 1) >= 10) { const d = new Date().toDateString(); let seen = ''; try { seen = localStorage.getItem('mcGuestWarn') ?? ''; } catch { /* storage blocked */ }
+      if (seen !== d) { try { localStorage.setItem('mcGuestWarn', d); } catch { /* storage blocked */ } this.time.delayedCall(2500, () => { if (!googleLinked()) link(); }); } }
+  }
   /** ⚔ the village raid's bar under the title: 5 minutes before (countdown + join), during it (join), and while a central
    *  building is broken (tap: the 🏘 window to help repair) — hidden on the raid map itself and when nothing is going on */
   raidBar() {

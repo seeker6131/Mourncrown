@@ -72,11 +72,11 @@ export class TitleScene extends Phaser.Scene {
     // a guest plays at once; a Google account keeps the hero on any device (it can be linked later in the menu — nothing is lost)
     const linked = googleLinked(), save = hasSave();
     let by = art ? 236 : 150, gy = -1;
-    if (!linked) { gy = by + 14; by += 34; }   // Google sign-in in the middle of the screen (Google draws it over the game)
+    if (!linked) { gy = by + 22; by += 44; k.text(cx, gy - 22, '🔑 เคยเล่นแล้ว / ย้ายเครื่อง? เข้าสู่ระบบ Google บัญชีเดิม = ได้ตัวละครเดิมคืน', 8.5, '#ffe7a0').setOrigin(0.5); }   // Google sign-in in the middle of the screen (Google draws it over the game) — a player changed phones, pressed guest and thought the hero was gone
     if (save) {
       this.add.existing(k.button(cx - 80, by, 160, 30, linked ? '▶ เล่นต่อ' : '▶ เล่นต่อ (แขก)', () => start(false), { size: 12, color: 0x1f4a2a }));
       this.add.existing(k.button(cx - 55, by + 36, 110, 18, 'เริ่มเกมใหม่', () => start(true), { size: 9 }));
-    } else this.add.existing(k.button(cx - 80, by, 160, 30, linked ? '▶ เริ่มผจญภัย' : '▶ เล่นแบบแขก', () => start(true), { size: 12, color: linked ? undefined : 0x1f4a2a }));
+    } else this.add.existing(k.button(cx - 90, by, 180, 30, linked ? '▶ เริ่มผจญภัย' : '▶ เล่นแบบแขก (ตัวละครใหม่)', () => start(true), { size: 11, color: linked ? undefined : 0x1f4a2a }));
     k.text(cx, 351, 'แนะนำ: เล่นแนวนอน + เต็มจอ  •  v0.3', 8, '#c8d8c0').setOrigin(0.5);
     // the game server: is the save kept there (net/cloud.ts)
     const cl = k.text(cx, 338, '', 7.5, '#9fd4ff').setOrigin(0.5);
