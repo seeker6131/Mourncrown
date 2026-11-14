@@ -257,3 +257,17 @@ describe('the game day is the same on the server (UTC) and every phone (Thai tim
     expect(dayKey(Date.UTC(2026, 10, 13, 17, 1))).toBe('2026-11-14');    // 00:01 in Thailand
   });
 });
+
+describe('market: a listing taken back gives its daily slot back', () => {
+  it('list 20, take one back, list again', async () => {
+    const { startNewGame } = await import('../src/core/save');
+    const { listItem, cancelListing, listedToday, priceRange, DAILY_LISTINGS } = await import('../src/systems/market');
+    const { addItem } = await import('../src/systems/inventory');
+    const s = startNewGame(); addItem(s, 'hp_potion_l', 50); const pot = () => s.inventory.find(i => i.id === 'hp_potion_l')!;
+    const now = Date.now(); let last: { id: string } | null = null;
+    for (let i = 0; i < DAILY_LISTINGS; i++) { const r = listItem(s, pot().uid, 1, priceRange(pot(), 1).min, now + i); if (typeof r !== 'object') throw new Error(String(r)); last = r; if (i >= 8) cancelListing(s, r.id); }
+    expect(listedToday(s, now)).toBeLessThan(DAILY_LISTINGS);
+    expect(typeof listItem(s, pot().uid, 1, priceRange(pot(), 1).min, now + 99)).toBe('object');
+    void last;
+  });
+});

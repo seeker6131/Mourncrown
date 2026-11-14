@@ -962,6 +962,10 @@ export class Player {
   private async market(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
     const DB = this.env.DB, now = Date.now(), st = this.st as St & GameState;
     if (name === 'marketList') {
+      // the daily listing limit counts what was really listed today and not taken back (a player hit it by re-listing)
+      { const day = Math.floor((now + 7 * 3600000) / 86400000), from = day * 86400000 - 7 * 3600000;
+        const n = (await DB.prepare("SELECT COUNT(*) AS n FROM market WHERE seller = ? AND CAST(substr(id, 2, 13) AS INTEGER) >= ? AND status != 'cancel'").bind(this.id, from).first<{ n: number }>().catch(() => null))?.n;
+        if (typeof n === 'number') (st as { mkDay?: { d: number; n: number } }).mkDay = { d: day, n }; }
       const out = this.run('marketList', a), l = out.r as Listing;
       if (l && typeof l === 'object' && l.id) { const d = itemDef(l.item.id);
         await DB.prepare('INSERT INTO market (id, seller, seller_name, item, type, rar, price, until, status, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(l.id, this.id, String(st.name ?? ''), JSON.stringify(l.item), d.type, l.item.rar ?? d.rarity, l.price, l.until, 'open', now).run(); }

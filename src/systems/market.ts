@@ -44,6 +44,7 @@ export function cancelListing(s: GameState, id: string): boolean {
   if (s.inventory.length >= invSize(s) && !ITEMS[l.item.id]?.stack) return false;
   if (!addItem(s, l.item.id, l.item.qty, l.item.upg, { rar: l.item.rar, aff: l.item.aff })) return false;
   (s as MS).myListings = myListings(s).filter(q => q.id !== id);
+  { const m = (s as MS & { mkDay?: { d: number; n: number } }).mkDay, day = dayOf(Date.now()); if (m && m.d === day && m.n > 0 && Number(id.slice(1, 14)) >= day * 86400000 - 7 * 3600000) m.n--; }   // (taken back the same day: it gives its daily listing back — a player could not re-list or re-price)
   return true;
 }
 
