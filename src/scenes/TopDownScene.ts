@@ -200,6 +200,7 @@ const ROCKY = /^(rock_|ore_|pebble_|pp_\w+_(boulder|rockpile|vinerock|skullrock|
 export class TopDownScene extends Phaser.Scene {
   hero!: Phaser.GameObjects.Sprite;
   shadow!: Phaser.GameObjects.Image;
+  shLast = { x: 0, y: 0 };
   blocked!: Uint8Array;
   keys?: Record<string, Phaser.Input.Keyboard.Key>;
   dir = 0;
@@ -2300,7 +2301,11 @@ export class TopDownScene extends Phaser.Scene {
       const st = this.stageN && !this.wild && !this.dungeon ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }
-    if (!this.dead) this.shadow.setPosition(h.x, h.y - 1);
+    if (!this.dead) {   // the shadow breathes with the steps while walking (a foot lifts = a touch smaller), still when standing
+      const mv = Math.hypot(h.x - this.shLast.x, h.y - this.shLast.y) > 0.2; this.shLast = { x: h.x, y: h.y };
+      const k = mv && !this.riding ? 1 - 0.07 * Math.abs(Math.sin(time / 95)) : 1;
+      this.shadow.setPosition(h.x, h.y - 1).setScale(k, 1 - (1 - k) * 0.5);
+    }
     { const t = titleOf(S()); this.titleTx.setText(t ? `「${t}」` : '').setPosition(h.x, h.y - 46).setVisible(!this.dead); }
     for (const [i, l] of this.lamps.entries()) l.setAlpha((0.75 + Math.sin(time / 180 + i * 1.7) * 0.12) * (l.getData('base') ?? 1));
     this.updateDayNight(time);
