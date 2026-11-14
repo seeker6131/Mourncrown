@@ -522,22 +522,23 @@ export class Combat {
     const magic = MAGIC.has(formKey);
     // damage and the slash effect land on the frame where the weapon / bow / staff strikes
     this.s.time.delayedCall(hitMs(formKey, formKey === 'hg' ? (hasAnim('hg', 'hunt') ? 'hunt' : 'chop') : 'attack', ranged ? 260 : 120), () => {
-      const pl = hasFx2('fx_hit_sword');
-      if (!ranged && (!pl || formKey === 'hg')) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
+      const pl = hasFx2('fx_hit_sword'), wfx = slashFx(S());   // 💎 the weapon effect colour (diamond shop) — every class line (director)
+      if (!ranged && (!pl || formKey === 'hg' || wfx !== null)) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
       for (const m of hits) {
         if (!m.alive) continue;
-        if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff, pl); else this.arrow(h.x, h.y - 18, m, pl); }
+        if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, wfx ?? (formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff), pl); else this.arrow(h.x, h.y - 18, m, pl, wfx ?? undefined); }
         const r = calcDamage(magic ? d.matk : d.atk, m.def, 1, d.crit);
-        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged); this.hurtMon(m, r.dmg, r.crit, magic, pl); });
+        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged, wfx); this.hurtMon(m, r.dmg, r.crit, magic, pl); });
       }
     });
   }
 
   /** PixelLab hit effect on the monster, by the hero's class line (tools/gen_vfx2.py) */
-  hitFx(m: Mon, form: string, crit: boolean, magic: boolean, ranged: boolean) {
+  hitFx(m: Mon, form: string, crit: boolean, magic: boolean, ranged: boolean, wfx: number | null = null) {
     const n = +form.replace(/\D/g, '') || 0;
     const key = crit ? 'fx_hit_crit' : magic ? 'fx_hit_magic' : ranged ? 'fx_hit_arrow' : n >= 10 ? 'fx_hit_holy' : n >= 1 ? 'fx_hit_sword' : 'fx_hit_punch';
-    fx2(this.s, key, m.x + (Math.random() - 0.5) * 6, m.y - m.m.size * 0.4, 99952, crit ? 0.75 : 0.9)?.setFlipX(Math.random() < 0.5);
+    const sp = fx2(this.s, key, m.x + (Math.random() - 0.5) * 6, m.y - m.m.size * 0.4, 99952, crit ? 0.75 : 0.9)?.setFlipX(Math.random() < 0.5);
+    if (wfx !== null) { sp?.setTint(wfx); this.sparks(m.x, m.y - m.m.size * 0.4, wfx, crit ? 10 : 6); }   // (💎 the hit flash in the weapon effect colour too)
   }
 
   tex(key: string, draw: (k: CanvasRenderingContext2D) => void, w = 32, h = 32) {
@@ -557,9 +558,9 @@ export class Combat {
 
   sparks(x: number, y: number, col: number, n: number) { this.vfx.burst(x, y, col, n, 90 + n * 6, 360, 0.13); }
 
-  arrow(x: number, y: number, m: Mon, quiet = false) {
+  arrow(x: number, y: number, m: Mon, quiet = false, col?: number) {
     const tx = m.x, ty = m.y - m.m.size * 0.35;
-    this.vfx.bolt(x, y, tx, ty, 0xffe8a0, 1, 900, () => { if (!quiet) this.vfx.impact(tx, ty, 0xffe0a0); }, true);
+    this.vfx.bolt(x, y, tx, ty, col ?? 0xffe8a0, col ? 1.15 : 1, 900, () => { if (!quiet || col) this.vfx.impact(tx, ty, col ?? 0xffe0a0); }, true);
   }
 
   magicBolt(x: number, y: number, m: Mon, col: number, quiet = false) {
