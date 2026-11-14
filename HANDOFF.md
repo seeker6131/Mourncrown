@@ -10,7 +10,7 @@
 **กฎใหม่สำคัญของผู้กำกับ (เพิ่มจากข้อ 1)**
 - **ห้ามอัพขึ้นเว็บ/เซิร์ฟเอง** — ทำ/เทส/commit ได้ (ใส่ `[skip ci]` = ไม่ deploy) แต่ต้องรายงานแล้ว **รอคำสั่ง "อัพ"** ก่อนทุกครั้ง (ระบบ auto mode ก็บล็อกการ deploy ที่ผู้กำกับยังไม่สั่ง) · push ปกติ (ไม่มี skip ci) = เว็บอัพ + ป๊อปอัพอัพเดทเด้ง · เซิร์ฟ: `python3 -I tools/deploy_server.py`
 - **ของที่ผู้กำกับ "แอบปรับ" ห้ามประกาศ** (เช่น หลอด EXP ยาวขึ้นหลัง Lv60, EXP มอนบุกลด 25%) — ข่าวใน `src/core/changelog.ts` ใส่เฉพาะที่ผู้กำกับอนุญาต
-- ทุกคำตอบ: ภาษาไทย · บอกความเสี่ยง · รายงานยอด PixelLab (ตอนนี้ **$0.045**, โควต้ารายเดือน 2000 ใช้หมด, Tier 1 — **คุยก่อนเจนภาพทุกครั้ง**) · ข้อความ Discord ใส่ code block
+- ทุกคำตอบ: ภาษาไทย · บอกความเสี่ยง · รายงานยอด PixelLab (ตอนนี้ **$10.05** เติม 14 พ.ย., โควต้ารายเดือน 2000 ใช้หมด, Tier 1 — **คุยก่อนเจนภาพทุกครั้ง**) · ข้อความ Discord ใส่ code block
 - D1 จริง: อ่านได้อย่างเดียว (`scratchpad/d1q.py` SELECT) · ห้ามแตะ worker `pixeldeck-pay` · แอดมินคนเดียว `6d898d8003a7f618019b9345` (ToeyDev)
 
 **ระบบที่ขึ้นเกมวันนี้ (14 พ.ย.)**
@@ -39,7 +39,7 @@
 - ระบบเติมเงินรอผู้กำกับกด 🟢 เปิดในหลังบ้าน · มอนบุก: ถ้าไม่มีใครเข้าห้อง รอบนั้นไม่เกิด (อาคารไม่พัง) — ผู้กำกับยังไม่สั่งเปลี่ยน
 - เครื่องมือ (อ่านอย่างเดียว): `python3 -I tools/d1_read.py "SELECT ..."` (D1 จริง) · `python3 -I tools/cf_usage.py <เริ่ม UTC> <จบ UTC>` (ค่าเซิร์ฟรายชั่วโมง) · ชั่วโมงเล่นวันนี้ `curl https://mourncrown.egowenit.workers.dev/online`
 - **AI/บัญชีใหม่ที่มาทำต่อ ต้องมี:** (1) GitHub เข้าถึง repo `seeker6131/Mourncrown` แบบ push (2) network secret ของ environment: Cloudflare API token (host `api.cloudflare.com`) และ PixelLab (host `api.pixellab.ai`) — ผู้กำกับใส่เองในหน้าตั้งค่า environment ห้ามวางในแชต (3) ทำงานทีละคน (อย่าให้ 2 AI แก้ branch เดียวกันพร้อมกัน) · Thunder key / QR อยู่ที่ Cloudflare แล้ว ไม่ต้องใช้
-- **บัญชีใหม่ (14 พ.ย. 21:00):** ทำงานใน environment ส่วนตัวชื่อ "Mourncrown" (มี Cloudflare token `Mourncrown-Claude`: Workers Scripts Edit + D1 Edit + Account Analytics Read, เปิด host เกม + github.io) · ยังไม่มีกุญแจ PixelLab · token เก่า `mourncrown-deploy` ยังใช้ได้ ห้ามลบ/roll
+- **บัญชีใหม่ (14 พ.ย. 21:00):** ทำงานใน environment ส่วนตัวชื่อ "Mourncrown" (มี Cloudflare token `Mourncrown-Claude`: Workers Scripts Edit + D1 Edit + Account Analytics Read, เปิด host เกม + github.io) · มีกุญแจ PixelLab แล้ว (host api.pixellab.ai) · token เก่า `mourncrown-deploy` ยังใช้ได้ ห้ามลบ/roll
 - เทส: `npm test` 205 ข้อ · ตรวจ type เซิร์ฟแยก (6 error เดิมเป็นปกติ): `npx tsc --noEmit --strict --target es2022 --module esnext --moduleResolution bundler --skipLibCheck --resolveJsonModule server/worker.ts`
 
 ## 1. ผู้ใช้ (Game Director) — กฎที่ต้องทำตามเสมอ
