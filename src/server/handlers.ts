@@ -13,10 +13,11 @@ import { setCosmetic, type CosKind } from '../systems/cosmetics';
 import { createChar, switchChar, buySlot, nameOk, giveToChar } from '../systems/chars';
 import { fodderList, fuseBonus } from '../systems/fusion';
 import { townBroken, plotTown } from '../systems/town';
+import { raidFlag } from '../systems/townRaid';
 import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
-import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS } from '../world/stages';
+import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS, RAID, isRaid, RAID_LAND } from '../world/stages';
 import { pickBase, makeGear, rollRarity, isGear } from '../systems/loot';
 import { WB } from './mapSim';
 import { LAND_SET } from '../data/sets';
@@ -99,6 +100,7 @@ export const handlers = {
     { const t = s as { dng?: { run?: unknown } }; if (t.dng) delete t.dng.run; }   // (left the dungeon: its run is over)
     if (a.n === 0) { mem.map = 0; heroFed(s); return { ok: true }; }   // home: the hero has eaten
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
+    if (isRaid(a.n)) { mem.map = RAID; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; return { ok: true }; }   // ⚔ the village raid (the room runs it; anyone may come)
     if (isDungeon(a.n)) {   // daily dungeon: 2 runs a day (VIP 3), land by level
       const li = a.n - DUNGEON; if (li > dungeonLand(s.level)) return no('level');
       const d = dungeonRuns(s, c.now); if (d.used >= d.max) return no('runs');
@@ -178,6 +180,7 @@ export const handlers = {
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); mem.dungeon?.sids?.add(a.sid); }   // (the wave counts even when this kill's pay is refused below: area skills drop a whole wave at once)
+    else if (isRaid(n)) { if (base.animal || !RAID_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
@@ -312,7 +315,7 @@ export const handlers = {
   dismantle: (s: GameState, a: { uid: number }) => dismantle(s, a.uid),
   equip: (s: GameState, a: { uid: number }) => equip(s, a.uid),
   unequip: (s: GameState, a: { uid: number }) => unequipUid(s, a.uid),
-  useItem: (s: GameState, a: { uid: number }, c: Ctx) => useItem(s, a.uid, c.now),
+  useItem: (s: GameState, a: { uid: number }, c: Ctx) => { if (isRaid(mem.map) || raidFlag.on) { const it = s.inventory.find(i => i.uid === a.uid); if (it && itemDef(it.id).heal) return null; } return useItem(s, a.uid, c.now); },   // (⚔ the village raid: no healing potions)
   craft: (s: GameState, a: { slot: 'weapon' | 'armor' | 'accessory' }, c: Ctx) => townBroken.has('forge') ? no('broken') : craft(s, a.slot, c.rnd),
   cook: (s: GameState, a: { meal: MealId }, c: Ctx) => townBroken.has('kitchen') ? no('broken') : cook(s, a.meal, c.now),
   build: (s: GameState, a: { plot: number; id: BuildingId }, c: Ctx) => build(s, a.plot, a.id, c.now),

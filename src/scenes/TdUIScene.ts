@@ -1,5 +1,10 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
+import { RAID } from '../world/stages';
+import { RAID_SECS, RAID_WARN_MS } from '../systems/townRaid';
+import { townBroken } from '../systems/town';
+import { raidAtLocal } from '../net/townView';
+import { openTown } from '../ui/townDom';
 import Phaser from 'phaser';
 import { showNews } from '../core/changelog';
 import { mailWaiting } from '../systems/mail';
@@ -227,6 +232,7 @@ export class TdUIScene extends Phaser.Scene {
       const onAnn = (m: { id: number; text: string; until: number }) => { let seen = 0; try { seen = Number(localStorage.getItem('mcAnn')) || 0; } catch { /* storage blocked */ }
         if (m.id <= seen || m.until < Date.now()) return; try { localStorage.setItem('mcAnn', String(m.id)); } catch { /* storage blocked */ } this.megaphone(m.text); };
       bus.on('net:ann', onAnn); this.events.once('shutdown', () => bus.off('net:ann', onAnn));
+      this.raidBar();
       show(); if (Date.now() - onlineNow.at > 180000) ask();
       this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
     // 🧪 active buffs under the minimap (players: which buff is on and how long is left) — systems/buffs.ts
@@ -498,6 +504,30 @@ export class TdUIScene extends Phaser.Scene {
   }
 
   minimap?: Minimap; loot?: LootPopup; news?: NewsTicker; newsT = 0;
+  /** ⚔ the village raid's bar under the title: 5 minutes before (countdown + join), during it (join), and while a central
+   *  building is broken (tap: the 🏘 window to help repair) — hidden on the raid map itself and when nothing is going on */
+  raidBar() {
+    const k = this.kit, x = this.VW / 2, y = 84, w = Math.min(this.VW * 0.6, 440), h = 20;
+    const bg = this.add.graphics().setDepth(9095), t = k.text(x, y + 3, '', 8.5, '#fff3d0', { stroke: '#1a0806', strokeThickness: 2 }).setOrigin(0.5, 0).setDepth(9096);
+    const z = this.add.zone(x - w / 2, y, w, h).setOrigin(0).setInteractive().setDepth(9097);
+    let mode: '' | 'join' | 'town' = '';
+    const td = this.td as unknown as { townRaid: boolean; dungeon: boolean; enterStage(n: number): void };
+    const join = () => { if (td.townRaid) return; if (td.dungeon && !confirm(tr('ออกจากดันเจี้ยนไปป้องกันหมู่บ้าน? (รอบดันนี้จะหายไป)'))) return; td.enterStage(RAID); };
+    z.on('pointerup', () => { sfx.click(); if (mode === 'join') join(); else if (mode === 'town') openTown(join); });
+    const tick = () => {
+      if (!t.active) return;
+      const now = Date.now(), at = raidAtLocal(), broken = townBroken.size;
+      let text = '', col = 0xffd84a; mode = '';
+      if (at && now >= at - RAID_WARN_MS && now < at + RAID_SECS * 1000 && !td.townRaid) {
+        const sec = Math.max(0, Math.ceil(((now < at ? at : at + RAID_SECS * 1000) - now) / 1000)), mm = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+        text = now < at ? `⚔ ${tr('มอนจะบุกหมู่บ้านกลางในอีก')} ${mm} — ${tr('แตะเพื่อไปป้องกัน')}` : `⚔ ${tr('มอนกำลังบุกหมู่บ้านกลาง! เหลือ')} ${mm} — ${tr('แตะเพื่อไปช่วย')}`;
+        col = 0xff6a4a; mode = 'join';
+      } else if (broken && !td.townRaid) { text = `🏘 ${tr('อาคารกลางพัง')} ${broken} ${tr('หลัง — แตะเพื่อช่วยซ่อม')}`; mode = 'town'; }
+      t.setText(text); const on = !!text; bg.clear(); z.input!.enabled = on;
+      if (on) { const ww = Math.max(w, t.width + 20); bg.fillStyle(0x1a0806, 0.85).fillRoundedRect(x - ww / 2, y, ww, h, 6).lineStyle(1.5, col, 0.95).strokeRoundedRect(x - ww / 2, y, ww, h, 6); }
+    };
+    this.time.addEvent({ delay: 500, loop: true, callback: tick }); tick();
+  }
   /** 📢 show the admin's announcement: under the map title, gold on dark, a soft pulse; 30 s, or tap it away */
   megaphone(text: string) {
     const k = this.kit, w = Math.min(this.VW * 0.56, 420), x = this.VW / 2, y = 62;   // (below the top-bar buttons)

@@ -6,6 +6,9 @@
 import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
 import { MONSTERS } from '../data/monsters';
 import { monTarget, respawnMs, lowWater } from '../systems/spawnRate';
+import { RAID_LAND, isRaid } from '../world/stages';
+import { RAID_SECS, RAID_BLD, RAID_GATES, raidCount, raidHp, raidBldHp, RAID_WAVES, RAID_WAVE_GAP, RAID_BLD_SHARE } from '../systems/townRaid';
+import type { TownBld } from '../systems/town';
 
 /** the map's walls (1 bit a cell, row by row), meadows, gate and boss meadow — sent by the players' games */
 export interface Grid { w: number; h: number; c: number; bits: Uint8Array; clear: { x: number; y: number; r: number; boss?: boolean }[]; gate: { x: number; y: number } }
@@ -15,6 +18,13 @@ export interface SMon {
   x: number; y: number; hx: number; hy: number; dir: number; mv: boolean; atT: number; last: number; hitT: number; tgt?: string;
   wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number; /** seconds it has tried to move and not got anywhere */ stuck: number;
   /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; lv?: number; until?: number;
+  /** (village raid) what it goes for: a building or the heroes */ role?: 'bld' | 'hero';
+}
+/** ⚔ the village raid as the room runs it */
+export interface RaidRun {
+  at: number; end: number; wave: number; lv: number; defenders: number; total: number; spawned: number;
+  blds: { bid: TownBld; x: number; y: number; hp: number; max: number }[];
+  kills: Record<string, number>; done: boolean; won: boolean; told: boolean;
 }
 /** what a tick wants told: a swing that lands on one player, an effect everyone sees */
 export interface SimEvents { atk: { to: string; sid: number; k: 'hit' | 'shot' | 'special' | 'charge' | 'stun' }[]; fx: { sid: number; k: 'special' | 'charge'; x: number; y: number }[]; wb: { k: 'warn' | 'spawn' | 'leave'; sid: number; key: string; name: string; x: number; y: number }[] }
@@ -51,6 +61,7 @@ export class MapSim {
   private ev: SimEvents = { atk: [], fx: [], wb: [] };
   constructor(room: string, public grid: Grid, private rnd: () => number = Math.random) {
     this.n = mapOfRoom(room); this.wild = this.n === WILD; this.stage = this.wild ? wildStage(1) : STAGES[this.n - 1] ?? null;
+    if (isRaid(this.n)) this.regular = false;   // (the raid's monsters come only from startRaid)
     this.sid = 1_000_000 + Math.floor(rnd() * 100_000_000);
   }
   get W() { return this.grid.w * this.grid.c; }
@@ -148,6 +159,8 @@ export class MapSim {
     this.ev = { atk: [], fx: [], wb: [] };
     const dt = Math.min(0.5, Math.max(0, (now - (this.last || now)) / 1000)); this.last = now;
     const due = this.later.filter(l => l.at <= now); this.later = this.later.filter(l => l.at > now); for (const l of due) l.f();
+    if (this.raid) { this.raidTick(now, dt, players); return this.ev; }
+    if (isRaid(this.n)) return this.ev;   // (the raid map between raids: empty)
     this.keepUp(now, players);
     for (const m of this.mons.values()) this.think(m, now, dt, players);
     return this.ev;
@@ -224,6 +237,79 @@ export class MapSim {
       } });
     }
   }
+  // ---------------------------------------------------------------- ⚔ the village raid
+  raid: RaidRun | null = null;
+  /** the raid begins (the room calls it once at the planned time): sized by the heroes here now */
+  startRaid(at: number, players: SimPlayer[]) {
+    const alive = players.filter(p => p.hp > 0), n = Math.max(1, alive.length), lvs = alive.map(p => p.lv).sort((a, b) => a - b);
+    const lv = lvs.length ? lvs[Math.floor((lvs.length - 1) / 2)] : 1, total = raidCount(n), hp = raidBldHp(total);
+    this.mons.clear(); this.pending = [];
+    this.raid = { at, end: at + RAID_SECS * 1000, wave: 0, lv, defenders: n, total, spawned: 0, blds: RAID_BLD.map(b => ({ ...b, hp, max: hp })), kills: {}, done: false, won: false, told: false };
+  }
+  /** who killed a raider: each player with a fair share of its damage counts one kill */
+  raidKill(sh: Record<string, number>) { const r = this.raid; if (!r) return; for (const [k, v] of Object.entries(sh)) if (v >= 0.1) r.kills[k] = (r.kills[k] ?? 0) + 1; }
+  private raidSpawn(now: number, players: SimPlayer[]) {
+    const r = this.raid!, n = Math.max(1, players.filter(p => p.hp > 0).length);
+    // later waves follow the heroes who came since (never fewer than planned)
+    if (n > r.defenders) { r.defenders = n; r.total = Math.max(r.total, raidCount(n)); }
+    const left = RAID_WAVES - r.wave, count = left <= 1 ? r.total - r.spawned : Math.round((r.total - r.spawned) / left), mobs = RAID_LAND.mobs;
+    for (let i = 0; i < count; i++) {
+      const g = RAID_GATES[(r.wave + i) % RAID_GATES.length], mob = mobs[Math.floor(this.rnd() * mobs.length)];
+      let at = { x: g.x + (this.rnd() - 0.5) * 120, y: g.y + (this.rnd() - 0.5) * 120 };
+      for (let k = 0; k < 20 && !this.free(at.x, at.y); k++) at = { x: g.x + (this.rnd() - 0.5) * 200, y: g.y + (this.rnd() - 0.5) * 200 };
+      if (!this.free(at.x, at.y)) at = this.spot(players);
+      const max = raidHp(mob.kind, r.lv, r.defenders);
+      const m: SMon = { sid: this.sid++, mob, boss: false, elite: false, animal: false, hp: max, max, dmg: {}, alive: true, x: at.x, y: at.y, hx: at.x, hy: at.y, dir: 0, mv: false,
+        atT: -1e9, last: -1e9, hitT: 0, wanderT: 0, idle: false, fleeT: 0, spT: -1e9, chT: -1e9, chargeEnd: 0, cvx: 0, cvy: 0, join: now, stuck: 0, lv: r.lv, role: ((r.spawned + i) * RAID_BLD_SHARE) % 1 < RAID_BLD_SHARE ? 'bld' : 'hero' };   // (an even mix: 55% go for the buildings)
+      this.mons.set(m.sid, m);
+    }
+    r.spawned += count; r.wave++;
+  }
+  private raidTick(now: number, dt: number, players: SimPlayer[]) {
+    const r = this.raid!; if (r.done) return;
+    if (now < r.at) return;
+    while (r.wave < RAID_WAVES && now >= r.at + r.wave * RAID_WAVE_GAP) this.raidSpawn(now, players);
+    for (const m of this.mons.values()) this.raidThink(m, now, dt, players);
+    const alive = [...this.mons.values()].some(m => m.alive), standing = r.blds.some(b => b.hp > 0);
+    if (now >= r.end || (r.wave >= RAID_WAVES && !alive) || !standing) {
+      r.done = true; r.won = r.wave >= RAID_WAVES && !alive; this.mons.clear();
+    }
+  }
+  private raidThink(m: SMon, now: number, dt: number, players: SimPlayer[]) {
+    const r = this.raid!, base = MONSTERS[m.mob.kind], reach = base.attackRange + m.mob.size * 0.2;
+    m.mv = false;
+    if (now - m.atT < 500) return;
+    // a hero-hunter: the nearest standing hero (or the one who hit it); none left = it goes for the buildings
+    let p: SimPlayer | undefined;
+    if (m.role === 'hero' || (m.hitT && now - m.hitT < 4000)) {
+      const live = players.filter(q => q.hp > 0);
+      p = (m.tgt ? live.find(q => q.id === m.tgt) : undefined) ?? live.sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y))[0];
+      if (p && m.role === 'bld' && Math.hypot(p.x - m.x, p.y - m.y) > 140) p = undefined;   // (a building-breaker turns on a hero only close by)
+    }
+    let tx: number, ty: number, stop: number, hitB: RaidRun['blds'][number] | null = null;
+    if (p) { tx = p.x; ty = p.y; stop = reach; }
+    else {
+      const bs = r.blds.filter(b => b.hp > 0); if (!bs.length) return;
+      const b = bs.sort((a, c) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(c.x - m.x, c.y - m.y))[0];
+      tx = b.x; ty = b.y + 18; stop = reach + 46; hitB = b;
+    }
+    const dx = tx - m.x, dy = ty - m.y, dist = Math.hypot(dx, dy);
+    if (dist > stop) {
+      const sp = Math.min(dist - stop * 0.8, (base.speed + 14) * 1.2 * dt), ox = m.x, oy = m.y;
+      this.step(m, m.x + dx / dist * sp, m.y + dy / dist * sp); m.dir = dirOf(dx, dy); m.mv = true;
+      if (Math.hypot(m.x - ox, m.y - oy) < 0.3) { m.stuck += dt; if (m.stuck > 1.5) { m.stuck = 0; const a = this.rnd() * Math.PI * 2; this.step(m, m.x + Math.cos(a) * 24, m.y + Math.sin(a) * 24); } } else m.stuck = 0;
+      return;
+    }
+    if (now - m.last < base.attackCooldown) return;
+    m.last = now; m.atT = now; m.dir = dirOf(dx, dy);
+    const sid = m.sid;
+    if (hitB) { const b = hitB; this.later.push({ at: now + 260, f: () => { if (m.alive && b.hp > 0) b.hp = Math.max(0, b.hp - 1); } }); return; }
+    const who = p!.id;
+    this.later.push({ at: now + (base.ranged ? 560 : 220), f: () => {
+      const q = this.lastPlayers.find(o => o.id === who);
+      if (m.alive && q && q.hp > 0 && Math.hypot(q.x - m.x, q.y - m.y) <= reach + (base.ranged ? 80 : 30)) this.ev.atk.push({ to: who, sid, k: base.ranged ? 'shot' : 'hit' });
+    } });
+  }
   /** the players as of the last beat (for hits that land later) */
   lastPlayers: SimPlayer[] = [];
   run(now: number, players: SimPlayer[]) { this.lastPlayers = players; return this.tick(now, players); }
@@ -237,6 +323,7 @@ export class MapSim {
   /** (only the roaming boss here) nothing to move until this time: the room can sleep and wake a minute before the
    *  boss's warning. 0 = keep ticking now; Infinity = nothing will ever come (the Deepwild) */
   quietUntil(now: number) {
+    if (isRaid(this.n)) return this.raid && !this.raid.done ? 0 : Infinity;
     if (this.regular || [...this.mons.values()].some(m => m.alive)) return 0;
     if (this.warned) return now < this.wbAt ? this.wbAt : 0;   // (warned: nothing to do until it arrives)
     if (this.wild || !this.stage) return Infinity;

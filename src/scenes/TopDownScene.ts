@@ -4,7 +4,10 @@
 // Open with ?td in the URL.
 import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
-import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES } from '../world/stages';
+import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage } from '../world/stages';
+import { RAID_W, RAID_H, RAID_BLD, raidFlag } from '../systems/townRaid';
+import { RaidView } from '../world/townRaidView';
+import { raidAtLocal, setTownView } from '../net/townView';
 import { itemDef as idef } from '../data/items';
 import { SETS } from '../data/sets';
 import { Crowd } from '../world/crowd';
@@ -275,6 +278,9 @@ export class TopDownScene extends Phaser.Scene {
   portals: { x: number; y: number; to: number | 'select' | 'starter' | 'guild' | 'out' | 'leave'; label: Phaser.GameObjects.Text }[] = [];
   get wild() { return this.stageN === WILD; }
   get dungeon() { return isDungeon(this.stageN); }
+  /** ⚔ the village raid's map (หมู่บ้านกลาง) */
+  get townRaid() { return isRaid(this.stageN); }
+  rv?: RaidView;
   /** the map's stage data (monster maps, the dungeon, the Deepwild) */
   get st() { return stageOf(this.stageN, runtime.state?.level ?? 1); }
   room = 1; roomPick?: number;
@@ -348,16 +354,20 @@ export class TopDownScene extends Phaser.Scene {
     if (this.raidMode) this.inside = -1;
     if (this.gv) { MW = this.inside >= 0 ? RW : GV.VW; MH = this.inside >= 0 ? RH : GV.VH; }
     if (this.dungeon) { MW = 1536; MH = 1024; }
-    if (this.wild) this.makeWild(); else if (this.dungeon) this.makeTrails((this.stageN - DUNGEON) * 10 + 2); else if (this.stageN) this.makeTrails(this.stageN);
+    if (this.townRaid) { MW = RAID_W; MH = RAID_H; }
+    if (this.wild) this.makeWild(); else if (this.dungeon) this.makeTrails((this.stageN - DUNGEON) * 10 + 2);
+    else if (this.townRaid) { this.makeTrails(7); this.clearings = [...RAID_BLD.map(b => ({ x: b.x, y: b.y - 30, r: 150 })), { x: 768, y: 540, r: 300 }, { x: 768, y: 720, r: 220 }]; }   // (the five buildings stand in open ground)
+    else if (this.stageN) this.makeTrails(this.stageN);
   }
 
   create() {
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)
+    if (TEST_HOOKS) (window as unknown as { __town: typeof setTownView }).__town = setTownView;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
     this.crowd = undefined; this.farm = null; this.grid = undefined; this.path = null; this.lamps = []; this.fires = []; this.nodes = []; this.casts = []; this.tall = []; this.faded.clear(); this.dayT = -1e9; this.reserved = new Set(); this.dead = false; this.attacking = false; this.portals = []; this.skillReady = {};
-    this.combat = new Combat(this as never);
+    this.combat = new Combat(this as never); this.rv = undefined; raidFlag.on = this.townRaid; this.events.once('shutdown', () => { raidFlag.on = false; });
     this.blocked = new Uint8Array((MW / CELL) * (MH / CELL));
     this.paintGround();
     this.animateWater();
@@ -390,7 +400,7 @@ export class TopDownScene extends Phaser.Scene {
     this.village = this.stageN || this.gv ? undefined : new Village(this, MW, MH);
     const home = () => { this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: 0, guild: true })); };
     bus.on('td:guildHome', home); this.events.once('shutdown', () => bus.off('td:guildHome', home));
-    this.events.once('shutdown', () => { if (this.stageN && !this.wild && !this.dungeon) act('supplyTick', {}); });   // the last minutes on the map are eaten too
+    this.events.once('shutdown', () => { if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) act('supplyTick', {}); });   // the last minutes on the map are eaten too
     const goRaid = (r: RaidStart) => { RAID_DATA = r; this.portalCool = this.time.now + 99999; sfx.door(); this.cameras.main.fadeOut(300); this.time.delayedCall(310, () => showWait()); this.time.delayedCall(340, () => this.scene.restart({ stage: 0, guild: true, raid: true })); };
     bus.on('td:raid', goRaid); this.events.once('shutdown', () => bus.off('td:raid', goRaid));
     const goDefend = () => {
@@ -427,6 +437,8 @@ export class TopDownScene extends Phaser.Scene {
         if (e.t === 'srv' || e.t === 'grid?') { if (shared) { if (e.t === 'srv') this.combat.solo = !!e.solo; this.combat.setMirror(true); link.grid(this.wallGrid()); } return; }   // (solo: own monsters stay, the room sends roaming bosses)
         if (e.t === 'host') { if (shared) this.combat.setMirror(!!e.id && e.id !== link.me); return; }   // (an older server)
         if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx' || e.t === 'wb') { if (shared) this.combat.netEvent(e); return; }
+        if (e.t === 'rs') { this.rv?.onState(e); return; }
+        if (e.t === 'rend') { this.rv?.onEnd(e, link.me, () => this.raidBack()); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
       });
       this.link = link; this.peers = new OtherPlayers(this, link);
@@ -437,7 +449,7 @@ export class TopDownScene extends Phaser.Scene {
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
     this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
-    if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
+    if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
     if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
@@ -1064,6 +1076,10 @@ export class TopDownScene extends Phaser.Scene {
       return { x: MW * 0.5, y: this.trailMain(MW * 0.5) };
     };
     if (this.dungeon) { this.portals[this.portals.length - 1].label.setText('ออกจากดันเจี้ยน'); this.startDungeon(spot); return; }
+    if (this.townRaid) {   // ⚔ the village raid: the room brings the monsters; the five central buildings stand here
+      this.rv = new RaidView(this as never, raidAtLocal() ?? 0); this.combat.stage = raidStage(S().level);
+      this.hero.setPosition(768, 590); this.cameras.main.centerOn(768, 590); void spot; return;
+    }
     const boss = this.clearings.find(c => c.boss) ?? null;
     this.combat.spawnMap(this.stageN, spot, boss ? { x: boss.x, y: boss.y } : null);
   }
@@ -1084,6 +1100,10 @@ export class TopDownScene extends Phaser.Scene {
   /** going out costs supplies (food); stages 1-2 are free */
   enterStage(n: number, room?: number) {
     const s = S();
+    if (isRaid(n)) {   // ⚔ the village raid: anyone may come, any level
+      if (s.outfit === 'gather') s.outfit = 'hunt';
+      saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: RAID })); return;
+    }
     if (isDungeon(n)) {   // daily dungeon: free, the server counts the runs
       if (s.outfit === 'gather') s.outfit = 'hunt';
       saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: n })); return;
@@ -1393,6 +1413,7 @@ export class TopDownScene extends Phaser.Scene {
     }
   }
   stageTitle0() {
+    if (this.rv) return this.rv.title(Date.now());
     if (this.gv && WC.war && !WC.war.over) return warLine(WC.war) + (this.warSide === 'enemy' ? ' • 👁 หมู่บ้านศัตรู' : this.warSide === 'home' ? ' • 👁 หมู่บ้านเรา' : ' • กด ⚔ ดูสงคราม'); if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${testBots.n ? this.online : (this.link?.others.size ?? 0) + 1}/100 • ⚡ แรง ${energyLeft(S())}`;   // (real players here — director: no bots)
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
@@ -1485,6 +1506,7 @@ export class TopDownScene extends Phaser.Scene {
    *  when out. Returns false when nothing was drunk. */
   usePotion(kind: 'hp' | 'mp', manual: boolean) {
     const s = S(), d = derive(s), now = this.time.now, h = this.hero;
+    if (raidFlag.on) { if (manual) { sfx.error(); bus.emit(EV.TOAST, '🚫 อีเวนต์มอนบุก: งดใช้ยา (มานาไม่หมดตลอดอีเวนต์)', '#ffb08a'); } return false; }
     if (now < (kind === 'hp' ? this.potT : this.mpT)) return false;
     if (kind === 'hp' ? s.hp >= d.maxHp : s.mp >= d.maxMp) { if (manual) bus.emit(EV.TOAST, kind === 'hp' ? 'HP เต็มแล้ว' : 'MP เต็มแล้ว', '#c8d8c0'); return false; }
     let it = pickPotion(s, kind);
@@ -1860,11 +1882,18 @@ export class TopDownScene extends Phaser.Scene {
   }
   dead = false;
   /** Demo: the hero dies with the code-made death effect, then respawns. */
+  /** ⚔ the raid is over: home, healed (a fallen hero loses nothing) */
+  raidBack() {
+    if (!this.sys.isActive() || !this.townRaid) return;
+    const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); this.portalCool = this.time.now + 99999;
+    this.cameras.main.fadeOut(300); this.time.delayedCall(320, () => { showWait(); this.scene.restart({ stage: 0 }); });
+  }
   heroDie() {
     if (this.dead) return;
     this.dead = true; this.attacking = false;
     const h = this.hero;
     this.deathFx(h, 0xbfe8ff, () => {
+      if (this.rv?.started && !this.rv.done) { bus.emit(EV.TOAST, '💀 คุณล้มแล้ว — ดูเพื่อนป้องกันหมู่บ้านได้อย่างเดียวจนจบ แล้วจะได้กลับบ้าน (ไม่เสียของ)', '#ffb08a'); return; }   // (⚔ the raid: watch until the end)
       if (this.stageN) { this.time.delayedCall(1200, () => { const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); showWait(); this.time.delayedCall(30, () => this.scene.restart({ stage: 0 })); }); return; }
       this.time.delayedCall(900, () => {
         const sp = this.spawnPoint(); h.setPosition(sp.x, sp.y).setAngle(0).setAlpha(0).setVisible(true).clearTint();
@@ -2171,7 +2200,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (time - this.hudT > 250) {
       this.hudT = time; const s0 = S(), d0 = derive(s0);
-      if (time - this.regenT > 2000) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN || this.raid || this.defense ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
+      if (time - this.regenT > 2000 && !this.dead) { this.regenT = time; s0.hp = Math.min(d0.maxHp, s0.hp + Math.ceil(d0.maxHp * (this.wild ? 0.03 : this.stageN || this.raid || this.defense ? 0.01 : 0.05 * (1 + (s0.buildings.find(b => b.type === 'home')?.level ?? 0) * 0.5)))); s0.mp = Math.min(d0.maxMp, (s0.mp ?? 0) + Math.ceil(d0.maxMp * (this.stageN ? 0.04 : 0.1))); }
       const st = this.stageN && !this.wild && !this.dungeon ? STAGES[this.stageN - 1] : null;
       this.label.setText(`${st ? `ด่าน ${st.n} ${st.land.name} (Lv${st.level})` : 'หมู่บ้าน'} • Lv${s0.level} • HP ${Math.round(s0.hp)}/${d0.maxHp} • ${s0.gold}G • ร่าง ${this.F.name}`);
     }

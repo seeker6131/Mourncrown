@@ -38,3 +38,9 @@ export async function actServer<K extends keyof Handlers>(name: K, args: Paramet
   if (!play.online) return local(name, args) as ReturnType<Handlers[K]>;
   return (await play.send(name, args)).r as ReturnType<Handlers[K]>;
 }
+
+/** an action only the server object knows (not a shared rule): the answer, or refused 'offline' */
+export async function callServer(name: string, args: unknown): Promise<unknown> {
+  if (!play.online) return { refused: 'offline' };
+  return (await play.send(name, args)).r;
+}

@@ -19,6 +19,10 @@ import { GUILD_MAX } from '../src/data/guild';
 import { packOf, packDiamonds, qrCheck, qrWithAmount, slipVerdict, SLIP_PER_HOUR, type SlipData } from '../src/systems/topup';
 import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
+import { isRaid } from '../src/world/stages';
+import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
+import { RAID_SECS, RAID_MIN_KILLS, giveRaidChest, type RaidPlan } from '../src/systems/townRaid';
+import type { RaidRun } from '../src/server/mapSim';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -32,6 +36,20 @@ type WSX = WebSocket & { serializeAttachment(v: unknown): void; deserializeAttac
 
 /** small settings kept in D1 (the top-up QR, open / closed) */
 async function kvGet(env: Env, k: string) { return (await env.DB.prepare('SELECT v FROM kv WHERE k = ?').bind(k).first<{ v: string }>())?.v ?? ''; }
+/** 🏘 the central buildings + the next raid (D1), read at most every 20 s per server copy (shared by its objects) */
+let townC: { at: number; rows: TownRow[]; plan: RaidPlan | null } = { at: 0, rows: [], plan: null };
+async function townInfo(env: Env, fresh = false) {
+  const now = Date.now();
+  if (fresh || now - townC.at > 20000) {
+    try {
+      const rows = (await env.DB.prepare('SELECT bid, broken, at, donated, need, donors FROM town').all<TownRow & { donors: string | null }>()).results;
+      const pv = await kvGet(env, 'raid_plan'); let plan: RaidPlan | null = null; try { plan = pv ? JSON.parse(pv) : null; } catch { plan = null; }
+      townC = { at: now, rows, plan };
+    } catch { townC.at = now - 10000; }   // (the database is busy: try again in 10 s)
+    setTown(townC.rows, now);
+  }
+  return townC;
+}
 async function kvSet(env: Env, k: string, v: string) { await env.DB.prepare('INSERT INTO kv (k, v, at) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at').bind(k, v, Date.now()).run(); }
 /** a paid slip → the player's diamonds (the Player object skips a ref it already has) → the record says 'ok' */
 async function payCredit(env: Env, id: string, ref: string, dia: number, thb: number, pack: string) {
@@ -327,6 +345,20 @@ export default {
         if (path === '/admin/reports') return json(req, { rows: await all('SELECT r.at, r.room, r.text, r.target, t.name AS target_name, t.muted_until, b.name AS by_name FROM reports r LEFT JOIN accounts t ON t.id = r.target LEFT JOIN accounts b ON b.id = r.by_id ORDER BY r.at DESC LIMIT 200') });
         if (path === '/admin/items') return json(req, { items: Object.values(ITEMS).map(i => ({ id: i.id, name: i.name, type: i.type, rarity: i.rarity, stack: !!i.stack })) });
         // 💳 top-ups: the record, the QR to receive money (uploaded once, kept in D1 — never in the code), open / closed for players
+        if (path === '/admin/raid') {   // ⚔ the village raid: plan one (in N minutes) / cancel; the central buildings (fix / break for tests)
+          if (req.method === 'POST') {
+            const b = await req.json() as { mins?: number; clear?: boolean; bid?: string; act?: string };
+            if (b.bid) {
+              const bid = String(b.bid); if (!(TOWN_BLDS as readonly string[]).includes(bid)) return json(req, { error: 'bid' }, 400);
+              if (b.act === 'break') await DB.prepare('INSERT INTO town (bid, broken, at, donated, need) VALUES (?, 1, ?, 0, ?) ON CONFLICT(bid) DO UPDATE SET broken = 1, at = excluded.at, donated = 0, need = excluded.need, donors = NULL').bind(bid, now, repairNeed(5)).run();
+              else await DB.prepare('UPDATE town SET broken = 0 WHERE bid = ?').bind(bid).run();
+              await flag(env, me.id, 'admin:town', bid + ' ' + (b.act ?? 'fix'));
+            } else if (b.clear) { await kvSet(env, 'raid_plan', ''); await flag(env, me.id, 'admin:raid', 'cancel'); }
+            else { const mins = Math.max(0, Math.min(1440, Number(b.mins) || 0)), at = now + Math.max(15000, mins * 60000); await kvSet(env, 'raid_plan', JSON.stringify({ at })); await flag(env, me.id, 'admin:raid', new Date(at).toISOString()); }
+          }
+          const t = await townInfo(env, true);
+          return json(req, { plan: t.plan, rows: t.rows, now });
+        }
         if (path === '/admin/ann') {   // 📢 the megaphone: a short line shown in every game (sent with the next heartbeat, ≤ 2 min)
           const r = await cw.fetch(new Request('https://r/ann', req.method === 'POST' ? { method: 'POST', body: await req.text() } : {})); const out = await r.json() as { ann: unknown };
           if (req.method === 'POST') await flag(env, me.id, 'admin:ann', JSON.stringify(out.ann ?? 'cleared').slice(0, 200));
@@ -445,7 +477,7 @@ export default {
 /** players a room (the system picks the room — the next one when full): monster maps 30, the Deepwild 100 (director), villages 50 */
 /** (director "C") the common monsters are each player's own, on their device; the room runs only roaming bosses */
 const SOLO_MONSTERS = true;
-const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith('chat') ? 60 : room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
+const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith('m300') ? 50 : room.startsWith('chat') ? 60 : room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
@@ -478,7 +510,8 @@ export class Room {
     if (!best || best === this.used) return;
     this.used = best; const g = this.grids.get(best)!.g;
     if (this.sim) this.sim.grid = g; else {
-      this.sim = new MapSim(room, g); this.sim.regular = !SOLO_MONSTERS;
+      this.sim = new MapSim(room, g); this.sim.regular = !SOLO_MONSTERS && !isRaid(this.sim.n);
+      if (isRaid(this.sim.n)) this.refreshPlan();
       if (this.wbKeep > Date.now() - WB.life) this.sim.wbAt = this.wbKeep;   // (the room slept: the boss keeps its time)
       this.start();
     }
@@ -507,6 +540,7 @@ export class Room {
     const socks = this.state.getWebSockets(); if (!socks.length || !this.sim) { this.flushPay(); if (this.timer) clearInterval(this.timer); this.timer = null; return; }
     const now = Date.now(), ev = this.sim.run(now, this.players());
     if (now - this.payT >= 3000) this.flushPay();
+    if (isRaid(this.sim.n)) this.raidBeat(now);
     if (this.sim.wbAt !== this.wbKeep) { this.wbKeep = this.sim.wbAt; this.store.put('wbAt', this.wbKeep).catch(() => undefined); }
     const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(now) });
     for (const w of socks) { try { w.send(ms); } catch { /* closing */ } }
@@ -518,6 +552,48 @@ export class Room {
     const b = this.sim.boss();   // a roaming boss nobody is near: it stands still; wake when someone comes close (a position / a hit) or when it is due to leave
     if (!q && SOLO_MONSTERS && b && !this.sim.bossNear(now, this.players())) q = Math.min(b.join + WB.idle + 500, now + 60000);
     if (q) { this.flushPay(); if (this.timer) clearInterval(this.timer); this.timer = null; if (q !== Infinity) this.store.setAlarm(Math.max(now + 1000, q)).catch(() => undefined); }
+  }
+  // ---------------------------------------------------------------- ⚔ the village raid's room (map m300)
+  plan: RaidPlan | null = null; planT = 0; rsT = 0;
+  /** the planned raid from the database (every 15 s at most); a raid due later wakes the room at its time */
+  private refreshPlan() {
+    this.planT = Date.now();
+    this.state.waitUntil?.(townInfo(this.env).then(t => {
+      this.plan = t.plan; const now = Date.now();
+      if (this.plan && this.plan.at > now) this.store.setAlarm(this.plan.at).catch(() => undefined);
+      else if (this.plan && now < this.plan.at + RAID_SECS * 1000 && this.sim && !this.timer) this.start();
+    }).catch(() => undefined));
+  }
+  private raidBeat(now: number) {
+    const sim = this.sim!; if (now - this.planT > 15000) this.refreshPlan();
+    const p = this.plan;
+    if (p && now >= p.at && now < p.at + RAID_SECS * 1000 && (!sim.raid || sim.raid.at !== p.at)) sim.startRaid(p.at, this.players());
+    const r = sim.raid; if (!r) return;
+    if (r.done && r.told) return;
+    if (now - this.rsT >= 400 || r.done) {   // the buildings' HP and the clock, for every game here
+      this.rsT = now; const left = [...sim.mons.values()].filter(m => m.alive).length;
+      const t = JSON.stringify({ t: 'rs', at: r.at, end: r.end, b: r.blds.map(b => [b.bid, b.hp, b.max]), n: left, tot: r.total, sp: r.spawned, done: r.done ? 1 : 0 });
+      for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } }
+    }
+    if (r.done && !r.told) { r.told = true; this.raidEnd(r); }
+  }
+  /** the raid is over: tell everyone, break the fallen buildings (server-wide), the defenders' chests, the world chat */
+  private raidEnd(r: RaidRun) {
+    const names = new Map(this.all().map(x => [x.a.id, x.a.name] as const)), now = Date.now();
+    const rank = Object.entries(r.kills).sort((a, b) => b[1] - a[1]), mvp = rank.filter(([, k]) => k >= RAID_MIN_KILLS).slice(0, 3).map(([id]) => id);
+    const broken = r.blds.filter(b => b.hp <= 0).map(b => b.bid);
+    const t = JSON.stringify({ t: 'rend', won: r.won ? 1 : 0, broken, mvp: mvp.map(id => names.get(id) ?? '?'), kills: r.kills, min: RAID_MIN_KILLS });
+    for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } }
+    const DB = this.env.DB, cw = this.env.ROOM.get(this.env.ROOM.idFromName('chat-world'));
+    this.state.waitUntil?.((async () => {
+      let online = 5; try { online = Number(((await (await cw.fetch(new Request('https://r/count'))).json()) as { n: number }).n) || 5; } catch { /* a guess */ }
+      for (const bid of broken) await DB.prepare('INSERT INTO town (bid, broken, at, donated, need) VALUES (?, 1, ?, 0, ?) ON CONFLICT(bid) DO UPDATE SET broken = 1, at = excluded.at, donated = 0, need = excluded.need, donors = NULL').bind(bid, now, repairNeed(online)).run().catch(() => undefined);
+      await townInfo(this.env, true).catch(() => undefined);
+      await Promise.allSettled(rank.filter(([, k]) => k >= RAID_MIN_KILLS).map(([pid]) => this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/raidpay?id=' + pid, { method: 'POST', body: JSON.stringify({ mvp: mvp.includes(pid), won: r.won }) }))));
+      const top = mvp.map(id => names.get(id) ?? '?').join(', ');
+      const text = (r.won ? '🛡 หมู่บ้านกลางต้านมอนบุกได้สำเร็จ!' : '⚔ มอนบุกหมู่บ้านกลางจบแล้ว') + (broken.length ? ` อาคารพัง: ${broken.map(b => TOWN_NAME[b]).join(' ')} — ช่วยกันบริจาคซ่อมได้ที่ 🏘` : ' ไม่มีอาคารพัง!') + (top ? ` • MVP: ${top}` : '');
+      await cw.fetch(new Request('https://r/say', { method: 'POST', body: JSON.stringify({ text }) })).catch(() => undefined);
+    })());
   }
   /** the boss's time is near: tick again (after a sleep the room has forgotten the map: the games send it again) */
   async alarm() {
@@ -567,6 +643,12 @@ export class Room {
       for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
       return new Response('{}');
     }
+    if (u.pathname === '/say') {   // (the raid room) a line for everyone in world chat
+      const b = await req.json() as { text: string }, now = Date.now(), text = String(b.text ?? '').slice(0, 240);
+      this.hist = [...this.hist, { id: '', name: '📢 ประกาศ', text, at: now }].slice(-30);
+      const msg = JSON.stringify({ t: 'c', id: '', name: '📢 ประกาศ', text }); for (const w of this.state.getWebSockets()) { try { w.send(msg); } catch { /* closing */ } }
+      return new Response('{}');
+    }
     if (u.pathname === '/gate') {   // (the worker) may this player come online now — the money cap
       const b = await req.json() as { id: string; max: number; hours: number }, now = Date.now(); await this.useLoad(now);
       for (const [k, t] of this.online) if (now - t > 5 * 60000) this.online.delete(k);
@@ -605,7 +687,7 @@ export class Room {
     if ((u.searchParams.get('room') ?? '').startsWith('chat')) { server.send(JSON.stringify({ t: 'hi', you: id, name, hist: this.hist })); return new Response(null, { status: 101, webSocket: client } as ResponseInit); }
     const others = this.state.getWebSockets().filter(w => w !== server).map(w => (w as WSX).deserializeAttachment() as Who).filter(o => o && o.id !== id && o.p);
     // srv: the room runs this map's monsters (the game sends the map's walls and only shows them)
-    server.send(JSON.stringify({ t: 'hi', you: id, name, host: '', srv: 1, solo: SOLO_MONSTERS ? 1 : 0, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
+    server.send(JSON.stringify({ t: 'hi', you: id, name, host: '', srv: 1, solo: SOLO_MONSTERS && !isRaid(mapOfRoom(u.searchParams.get('room') ?? '')) ? 1 : 0, players: others.map(o => ({ id: o.id, name: o.name, ...o.p })) }));
     if (this.sim) { const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(Date.now()) }); try { server.send(ms); } catch { /* closing */ } this.start(); }
     return new Response(null, { status: 101, webSocket: client } as ResponseInit);
   }
@@ -654,7 +736,7 @@ export class Room {
       if (r.hp <= 0) {   // dead: everyone's share of the damage (each one's reward is their own)
         const sh: Record<string, number> = {};
         for (const [k, v] of Object.entries(r.dmg)) sh[k] = Math.round(v / r.max * 1000) / 1000;
-        this.sim.died(sid, now, all.length);
+        this.sim.died(sid, now, all.length); this.sim.raidKill(sh);
         send({ t: 'mdead', sid, sh, ...(r.wb ? { wb: 1, killer: me.id, kname: me.name } : {}) });
         if (r.wb) this.announce('dead', r.mob.name, me.name);
         // the server pays: each player with a fair share gets their own reward in their own game on the server
@@ -764,6 +846,35 @@ export class Player {
     if (res.player) for (const [k, v] of Object.entries(res.player)) if (!CLIENT_KEYS.has(k) && k !== 'guild' && k !== 'guildId') this.st![k] = v;
     if (res.guild === null) { delete this.st!.guild; delete this.st!.guildId; } else if (res.guild) this.st!.guild = res.guild;
     return { r: res.r, own: this.diff(b) };
+  }
+  /** 🏘 the central buildings and the next raid, for the game */
+  private async townView(fresh = false) {
+    const t = await townInfo(this.env, fresh), now = Date.now();
+    return { now, plan: t.plan, rows: t.rows.map(r => { let d: Record<string, { n: string; p: number }> = {}; try { d = JSON.parse((r as { donors?: string | null }).donors || '{}'); } catch { d = {}; }
+      return { bid: r.bid, broken: r.broken && !isRepaired(r, now) ? 1 : 0, at: r.at, need: r.need, prog: repairProgress(r, now), top: Object.values(d).sort((a, b) => b.p - a.p).slice(0, 10) }; }) };
+  }
+  /** 🙏 give resources / gold to repair a broken central building (anyone, any amount; full bar = usable again) */
+  private async townDonate(a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
+    const bid = String(a.bid ?? '') as TownBld, st = this.st as unknown as GameState, now = Date.now();
+    if (!(TOWN_BLDS as readonly string[]).includes(bid)) return { r: { refused: 'bld' }, own: {} };
+    const t = await townInfo(this.env, true), row = t.rows.find(r => r.bid === bid);
+    if (!row || isRepaired(row, now)) return { r: { refused: 'fine' }, own: {} };
+    const want = (k: 'wood' | 'stone' | 'food') => Math.max(0, Math.min(Math.floor(Number(a[k]) || 0), Math.floor(st.res[k] ?? 0)));
+    const g = { wood: want('wood'), stone: want('stone'), food: want('food'), gold: Math.max(0, Math.min(Math.floor(Number(a.gold) || 0), Math.floor(st.gold))) };
+    const pts = repairPoints(g); if (!pts) return { r: { refused: 'none' }, own: {} };
+    const b = this.snap(); st.res.wood -= g.wood; st.res.stone -= g.stone; st.res.food -= g.food; st.gold -= g.gold;
+    let d: Record<string, { n: string; p: number }> = {}; try { d = JSON.parse((row as { donors?: string | null }).donors || '{}'); } catch { d = {}; }
+    d[this.id] = { n: st.name || 'ผู้เล่น', p: (d[this.id]?.p ?? 0) + pts };
+    const keep = Object.fromEntries(Object.entries(d).sort((x, y) => y[1].p - x[1].p).slice(0, 30));
+    await this.env.DB.prepare('UPDATE town SET donated = donated + ?, donors = ? WHERE bid = ?').bind(pts, JSON.stringify(keep), bid).run();
+    const after = { ...row, donated: row.donated + pts }, fixed = isRepaired(after, now);
+    if (fixed) {
+      await this.env.DB.prepare('UPDATE town SET broken = 0 WHERE bid = ?').bind(bid).run();
+      const text = `🙏 ${st.name || 'ผู้เล่น'} เติมหลอดซ่อมจนเต็ม — ${TOWN_NAME[bid]} กลับมาใช้ได้แล้ว!`;
+      this.state.waitUntil?.(this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/say', { method: 'POST', body: JSON.stringify({ text }) })).catch(() => undefined));
+    }
+    await townInfo(this.env, true);
+    return { r: { ok: true, pts, fixed, view: await this.townView() }, own: this.diff(b) };
   }
   /** 👥 a new character (its name unique across the whole server) / play another one (the name others see follows it) */
   private async chars(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
@@ -967,6 +1078,13 @@ export class Player {
       this.payOne(JSON.parse(await req.text())); await this.later();
       return new Response('{}');
     }
+    if (u.pathname === '/raidpay' && this.st) {   // ⚔ the village raid's chest for a defender (from the raid room)
+      const b = JSON.parse(await req.text()) as { mvp?: boolean; won?: boolean }, sn = this.snap(), eb = this.eSnap();
+      const c = giveRaidChest(this.st as unknown as GameState, !!b.mvp, !!b.won); this.eAdd('raidChest', eb);
+      await this.later();
+      this.send({ t: 'note', own: this.diff(sn), text: `🎁 หีบผู้พิทักษ์${b.mvp ? ' (MVP x2)' : ''}: 💰${c.gold.toLocaleString()} • EXP +${c.exp.toLocaleString()} • ผลึกมานา x${c.items[0].qty} • ยาฟื้นพลังใหญ่ x${c.items[1].qty}` });
+      return new Response('{}');
+    }
     if (u.pathname === '/payb' && this.st) {   // the map room: the kills of the last few seconds in one call (saves the daily quota)
       const b = JSON.parse(await req.text()) as { list?: unknown[] };
       for (const p of (b.list ?? []).slice(0, 60)) this.payOne(p as never);
@@ -1015,11 +1133,14 @@ export class Player {
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
     const gid = (this.st as { guildId?: string }).guildId;
     if (this.goalSend.length && gid) { const g = this.goalSend; this.goalSend = []; try { await this.gstub(gid).fetch(new Request('https://g/goal', { method: 'POST', body: JSON.stringify({ pid: this.id, ups: g }) })); } catch { /* next time */ } }
+    await townInfo(this.env);   // (the broken central buildings: the rules read them)
     const eb = this.eSnap();
     const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>)
       : CBT.has(m.name) ? await this.cbt(m.name)
       : ['guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave'].includes(m.name) ? await this.guildMeta(m.name, (m.args ?? {}) as Record<string, unknown>)
       : ['charCreate', 'charSwitch'].includes(m.name) ? await this.chars(m.name, (m.args ?? {}) as Record<string, unknown>)
+      : m.name === 'townDonate' ? await this.townDonate((m.args ?? {}) as Record<string, unknown>)
+      : m.name === 'townInfo' ? { r: await this.townView(), own: {} }
       : gid && GUILD_ACTS.has(m.name) ? await this.guildAct(gid, m.name, m.args) : this.run(m.name, m.args);
     this.eAdd(m.name, eb);
     if (Object.keys(out.own).length) { await this.later(); await this.eFlush(); }
@@ -1033,6 +1154,7 @@ export class Player {
     try {
       const j = await (await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) }))).json() as { n?: number; ann?: { id: number; text: string; until: number } };
       if (path === '/hello' && typeof j.n === 'number') this.send({ t: 'on', n: j.n });
+      if (path === '/hello') this.send({ t: 'town', ...(await this.townView()) });   // (🏘 the central buildings + the next raid: the game's warning bar)
       if (path === '/hello' && j.ann) this.send({ t: 'ann', id: j.ann.id, text: j.ann.text, until: j.ann.until });   // (📢 the admin's announcement: the game shows it once)   // (the 🟢 online count on the game's screen: fresh every 2 minutes, no extra request)
     } catch { /* not counted this time */ }
   }

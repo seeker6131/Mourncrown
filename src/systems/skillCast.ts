@@ -3,6 +3,7 @@
 import type { GameState } from '../core/state';
 import { SKILL_BY_ID, type SkillDef } from '../data/skills';
 import { derive, skillMult, calcDamage, currentSkills } from './stats';
+import { raidFlag } from './townRaid';
 
 export type CastFail = 'cooldown' | 'mp' | 'locked';
 /** (device) skills cast since the last kill sent to the server — the server counts casts from the kill (quest "use skills
@@ -13,8 +14,7 @@ export function beginCast(s: GameState, id: string, now: number, readyAt: Record
   if (!currentSkills(s).includes(id)) return 'locked';
   const sk = SKILL_BY_ID[id];
   if ((readyAt[id] ?? 0) > now) return 'cooldown';
-  if ((s.mp ?? 0) < sk.mp) return 'mp';
-  s.mp -= sk.mp;
+  if (!raidFlag.on) { if ((s.mp ?? 0) < sk.mp) return 'mp'; s.mp -= sk.mp; }   // (⚔ the village raid: endless mana)
   readyAt[id] = now + sk.cooldown;
   (s as GameState & { tdCasts?: number }).tdCasts = ((s as GameState & { tdCasts?: number }).tdCasts ?? 0) + 1;
   return sk;

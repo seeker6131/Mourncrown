@@ -3,6 +3,7 @@
 // Online: actions with dice (a kill's loot, gathering, upgrades, crafting) are decided ONLY there.
 import { SERVER, accountToken } from './cloud';
 import { runtime, bus, EV } from '../core/events';
+import { setTownView, type TownView } from './townView';
 
 type Out = { r: unknown; own: Record<string, unknown> };
 class PlayLink {
@@ -24,6 +25,7 @@ class PlayLink {
       if (m.t === 'r') { this.apply(m.own); const f = this.wait.get(m.q!); this.wait.delete(m.q!); f?.({ r: m.r, own: m.own ?? {} }); return; }
       if (m.t === 'on') { bus.emit('net:online', Number((m as { n?: number }).n) || 0); return; }   // how many are playing now
       if ((m as { t: string }).t === 'ann') { bus.emit('net:ann', m); return; }   // 📢 the admin's announcement
+      if ((m as { t: string }).t === 'town') { setTownView(m as unknown as TownView); return; }   // 🏘 the central buildings + the next raid
       if (m.t === 'pay') { this.apply(m.own); bus.emit('net:pay', { sid: m.sid, r: m.r }); }
       if (m.t === 'note') { this.apply(m.own); const text = (m as { text?: string }).text; if (text) bus.emit(EV.TOAST, text, '#ffd84a'); }   // e.g. something sold on the market
     };

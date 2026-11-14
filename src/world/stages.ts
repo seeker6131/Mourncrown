@@ -41,7 +41,13 @@ export const DUNGEON_SECS = 300;
 /** the best land a hero of this level may enter */
 export const dungeonLand = (level: number) => { let li = 0; LANDS.forEach((_, i) => { if (level >= STAGES[i * 10].req) li = i; }); return li; };
 export const dungeonStage = (li: number, level: number): Stage => { const f = STAGES[li * 10]; return { n: DUNGEON + li, land: LANDS[li], level: Math.max(f.level, level), req: f.req, count: 0, boss: false, minRar: Math.max(1, f.minRar), mf: 40 + li * 20 }; };
-export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : STAGES[n - 1];
+/** ⚔ the village raid's map (หมู่บ้านกลาง, docs/VILLAGE_RAID.md): every small monster of every land comes (no bosses) */
+export const RAID = 300;
+export const isRaid = (n: number) => n === RAID;
+const RAID_MOBS: StageMon[] = (() => { const seen = new Set<string>(), out: StageMon[] = []; for (const L of LANDS) for (const m of L.mobs) if (!seen.has(m.key)) { seen.add(m.key); out.push(m); } return out; })();
+export const RAID_LAND: Land = { id: 'forest', name: 'หมู่บ้านกลาง', ground: 'forest', mobs: RAID_MOBS, boss: LANDS[0].boss };
+export const raidStage = (level: number): Stage => ({ n: RAID, land: RAID_LAND, level: Math.max(1, Math.min(100, level)), req: 1, count: 0, boss: false, minRar: 0, mf: 0 });
+export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : isRaid(n) ? raidStage(level) : STAGES[n - 1];
 /** mine pits of the Deepwild: each pit has its own ore, rare gem and the level needed to dig there */
 export const PITS = [
   { ore: 'ore_iron', gem: 'gem_emerald', req: 1, name: 'เหมืองเหล็ก' },

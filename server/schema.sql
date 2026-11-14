@@ -62,3 +62,5 @@ CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT, at INTEGER);
 -- 👥 every character's name (unique across the server; accounts.name shows the character being played)
 CREATE TABLE IF NOT EXISTS char_names (name_key TEXT PRIMARY KEY, id TEXT NOT NULL, slot INTEGER NOT NULL, name TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS char_names_id ON char_names (id);
+-- 🏘 the central village's shared buildings (village raid): broken ones are unusable server-wide until repaired
+CREATE TABLE IF NOT EXISTS town (bid TEXT PRIMARY KEY, broken INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL DEFAULT 0, donated INTEGER NOT NULL DEFAULT 0, need INTEGER NOT NULL DEFAULT 300, donors TEXT);
