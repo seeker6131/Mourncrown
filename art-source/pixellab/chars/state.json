@@ -1085,7 +1085,10 @@
  "mt_panther": {
   "cid": "7831287a-a0e0-4476-be0f-5b52a4df9a05"
  },
- "mt_hydra": {
+ "mt_hydra_red": {
   "cid": "17748c28-05d5-4d82-848e-5a958e2eb2d0"
+ },
+ "mt_hydra": {
+  "cid": "d1250a54-2993-4437-a2f0-0b6dc4f51128"
  }
 }
