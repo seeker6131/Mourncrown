@@ -15,8 +15,18 @@ export interface PotSet {
   big: boolean;
   /** VIP: buy a potion by itself when out (else buy by hand with the VIP buttons) */
   vipAuto: boolean;
+  // ⚔ AUTO fighting (player feedback 14 Nov — kept here so it rides the same synced 'pot' save field)
+  /** hunt only this far (px) from where AUTO was switched on; 0 = the whole map */
+  aRange: number;
+  /** bosses / elites: 'all' = like any monster, 'skip' = leave them alone, 'first' = go for them first */
+  aBoss: 'all' | 'skip' | 'first';
+  /** walk to loot on the ground */
+  aLoot: boolean;
+  /** cast skills by itself */
+  aSkill: boolean;
 }
-export const POT_DEFAULT: PotSet = { auto: true, hp: 35, mpAuto: false, mp: 20, big: true, vipAuto: true };
+export const POT_DEFAULT: PotSet = { auto: true, hp: 35, mpAuto: false, mp: 20, big: true, vipAuto: true, aRange: 0, aBoss: 'all', aLoot: true, aSkill: true };
+export const RANGE_STEPS = [0, 150, 300, 500];
 export const HP_STEPS = [20, 35, 50, 70], MP_STEPS = [10, 20, 35, 50];
 export const POT_CD = 2500;   // ms between two potions of one kind
 

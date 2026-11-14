@@ -458,7 +458,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined;   // (scene objects are made anew on restart)
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined; this.autoRing = undefined;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -1588,6 +1588,9 @@ export class TopDownScene extends Phaser.Scene {
   autoStuck = { x: 0, y: 0, t: 0 };
   autoBad = new Map<object, number>();
   autoTarget: object | null = null;
+  /** where AUTO was switched on: the middle of the hunting circle (settings: range) */
+  autoHome: { x: number; y: number; n: number } | null = null;
+  autoRing?: Phaser.GameObjects.Graphics;
   /** 🗺 walk to a spot picked on the big map (round walls by the same path finder AUTO uses) */
   walkTo(x: number, y: number, quiet = false) {
     if (this.dead || this.raid || this.defense || this.warSide) return;
@@ -1729,6 +1732,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (this.wild && s.auto) { this.stopFarm('⏹ หยุดฟาร์มออโต้'); return; }
     s.auto = !s.auto; this.autoBad.clear(); saveGame(s);
+    this.autoHome = s.auto ? { x: this.hero.x, y: this.hero.y, n: this.stageN } : null;   // (the hunting circle's middle — AUTO settings)
     // director: auto fights monsters and guild battles (each player chooses: watch their hero fight, or play by hand);
     // gathering in the Deepwild is always by hand
     const battle = !!this.raid || !!this.defense;
@@ -1757,15 +1761,21 @@ export class TopDownScene extends Phaser.Scene {
       if (this.wild) { if (this.farm && vipActive(s)) return this.farmStep(time); if (this.farm) this.stopFarm('👑 VIP หมดอายุ — หยุดฟาร์มออโต้'); s.auto = false; return [0, 0]; }
       if (!this.stageN || this.wild) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง', '#e8c872'); } return [0, 0]; }
       // pick up loot lying close by before the next fight
-      const lt = near(this.combat.ground.filter(g => g.landed && !g.busy && !g.skip && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260));   // (never walk to loot the VIP setting leaves on the ground: it went back and forth)
+      if (!this.autoHome || this.autoHome.n !== this.stageN) this.autoHome = { x: h.x, y: h.y, n: this.stageN };   // (AUTO already on when the map was entered)
+      const ao = potOf(s), home = this.autoHome, inR = (q: { x: number; y: number }) => !ao.aRange || !home || Math.hypot(q.x - home.x, q.y - home.y) <= ao.aRange;
+      const lt = !ao.aLoot ? null : near(this.combat.ground.filter(g => g.landed && !g.busy && !g.skip && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260 && inR(g)));   // (never walk to loot the VIP setting leaves on the ground: it went back and forth)
       if (lt) { const st = this.steer(lt, lt.x, lt.y, time); if (st) return st; }
-      const alive = this.combat.alive().filter(m => !bad(m));
-      const foes = alive.filter(m => !m.animal);
-      const m = near(foes.length ? foes : alive);
-      if (!m) return [0, 0];
+      const big = (q: { boss: boolean; elite: boolean; wb?: boolean }) => q.boss || q.elite || !!q.wb;
+      const alive = this.combat.alive().filter(m => !bad(m) && inR(m) && !(ao.aBoss === 'skip' && big(m)));
+      const foes = alive.filter(m => !m.animal), bosses = ao.aBoss === 'first' ? foes.filter(big) : [];
+      const m = near(bosses.length ? bosses : foes.length ? foes : alive);
+      if (!m) {   // nothing left in the circle: walk back to its middle and wait for the next spawn
+        if (home && ao.aRange && Math.hypot(home.x - h.x, home.y - h.y) > 24) return this.steer(home, home.x, home.y, time) ?? [0, 0];
+        return [0, 0];
+      }
       const dist = Math.hypot(m.x - h.x, m.y - h.y);
       // skills: buffs/attacks when a foe is close, heal and shield only when hurt
-      if (dist < 150) for (let i = 0; i < 3; i++) {
+      if (dist < 150 && ao.aSkill) for (let i = 0; i < 3; i++) {
         const id = currentSkills(s)[i], sk = id ? SKILL_BY_ID[id] : null;
         if (!sk || (this.skillReady[id] ?? 0) > this.time.now || (s.mp ?? 0) < sk.mp) continue;
         if (sk.kind === 'heal' && s.hp > d.maxHp * 0.6) continue;
@@ -2237,6 +2247,11 @@ export class TopDownScene extends Phaser.Scene {
       if (this.upgRing && this.upgRing.tier !== t) { this.upgRing.destroy(); this.upgRing = undefined; }
       if (t && !this.upgRing) this.upgRing = new UpgRing(this, t);
       this.upgRing?.update(Math.round(h.x), Math.round(h.y), time, (h.visible || !!this.riding) && !this.dead);
+    }
+    {   // ⚔ AUTO's hunting circle on the ground (settings: range)
+      const ar = potOf(S()).aRange, hm = this.autoHome, on = !!ar && !!hm && S().auto && !!this.stageN && !this.wild && hm.n === this.stageN;
+      if (on) { this.autoRing ??= this.add.graphics().setDepth(2); this.autoRing.clear().lineStyle(1.5, 0xffe07a, 0.28 + Math.sin(time / 400) * 0.08).strokeCircle(hm!.x, hm!.y, ar).setVisible(true); }
+      else this.autoRing?.setVisible(false);
     }
     if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead && !this.upgRing).setPosition(h.x, h.y - 1).setDepth(h.y - 3); }   // (centred on the feet — 2px lower read as floating, director)
     { // riding: on when a mount is chosen, outdoors, not in a fight / at work (attacks and gathering get off for 2.5 s)

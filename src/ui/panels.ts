@@ -60,7 +60,7 @@ import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKin
 import { SKIN_TINT } from '../world/mount';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
-import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../systems/potions';
+import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, RANGE_STEPS, type PotSet } from '../systems/potions';
 import { farmGoal, setFarmGoal, farmDone, FARM_KEYS, FARM_NAMES, FARM_STEPS } from '../systems/farm';
 import { energyLeft } from '../systems/economy';
 import { lang, setLang } from '../core/i18n';
@@ -88,6 +88,7 @@ export class Panels implements GuildHost {
   selUid: number | null = null;
   plot = 0;
   shopTab: 'buy' | 'sell' = 'buy';
+  potTab: 'pot' | 'auto' = 'pot';
   shopPage = 0;
   junkRar = 0; junkConfirm = false;
   multiSell = false; multiPick = new Set<number>(); multiConfirm = false;   // (player feedback: tick several items, sell them at once)
@@ -1384,24 +1385,34 @@ export class Panels implements GuildHost {
   // ---------------- POTION SETTINGS (the ⚙ beside the potion buttons) ----------------
   buildPotion(c: Phaser.GameObjects.Container) {
     const s = S(), k = this.k, p = potOf(s);
-    const W = Math.min(460, this.ui.VW - 20), H = 312, vip = vipActive(s);
-    const { x, y, g } = this.window(c, W, H, '⚗ ตั้งค่าการใช้ยา');
+    const W = Math.min(460, this.ui.VW - 20), H = 336, vip = vipActive(s);
+    const { x, y, g } = this.window(c, W, H, this.potTab === 'auto' ? '⚔ ตั้งค่าออโต้' : '⚗ ตั้งค่าการใช้ยา');
     const set = (ch: Partial<PotSet>) => { sfx.click(); setPot(s, ch); saveGame(s); this.rebuild(); };
     const lx = x + 16, bx = x + 176, bw = (W - 176 - 16 - 3 * 4) / 4;
+    ([['pot', '⚗ ยา'], ['auto', '⚔ ออโต้']] as const).forEach(([t, nm], j) => c.add(k.button(x + 14 + j * 94, y + 28, 90, 20, nm, () => { sfx.click(); this.potTab = t; this.rebuild(); }, { size: 9, color: this.potTab === t ? 0x6a4a10 : 0x2a1d12 })));
     const row = (i: number, label: string, opts: [string, boolean, () => void][], dim = false) => {
-      const ry = y + 34 + i * 30;
+      const ry = y + 58 + i * 30;
       g.fillStyle(0x0a0705, 0.45).fillRoundedRect(x + 10, ry - 3, W - 20, 26, 4);
       c.add(k.text(lx, ry + 4, label, 9, dim ? '#7a6a58' : '#f3e6c4'));
       const w = opts.length === 2 ? bw * 2 + 4 : bw;
       opts.forEach(([t, on, cb], j) => c.add(k.button(bx + j * (w + 4), ry, w, 20, t, cb, { size: 8.5, color: on ? 0x1f5a2a : 0x3a3a3a, disabled: dim })));
     };
+    if (this.potTab === 'auto') {   // ⚔ AUTO fighting (player feedback 14 Nov)
+      row(0, '📏 รัศมีล่ามอน', RANGE_STEPS.map(v => [v ? `${v}` : 'ทั้งแมพ', p.aRange === v, () => set({ aRange: v })] as [string, boolean, () => void]));
+      row(1, '👹 บอส / มอนเอลีท', ([['all', 'ตีปกติ'], ['first', 'ตีก่อน'], ['skip', 'ไม่ตี']] as const).map(([v, t]) => [t, p.aBoss === v, () => set({ aBoss: v })] as [string, boolean, () => void]));
+      row(2, '💰 เดินไปเก็บของที่ตก', [['เก็บ', p.aLoot, () => set({ aLoot: true })], ['ไม่เก็บ', !p.aLoot, () => set({ aLoot: false })]]);
+      row(3, '✨ ใช้สกิลเอง', [['ใช้', p.aSkill, () => set({ aSkill: true })], ['ไม่ใช้', !p.aSkill, () => set({ aSkill: false })]]);
+      c.add(k.text(x + W / 2, y + 182, 'รัศมีนับจากจุดที่กดเปิด AUTO — มอนในวงหมด ฮีโร่จะกลับไปรอที่กลางวง\n(100 ≈ ความกว้างตัวละคร 6 ตัว) • เปลี่ยนแล้วมีผลทันที', 7.5, '#c8b898', { align: 'center' }).setOrigin(0.5, 0));
+      c.add(k.button(x + W / 2 - 90, y + 222, 180, 24, vip ? '👑 ตั้งค่าเลือกเก็บของ (VIP)' : '👑 เลือกเก็บของตามระดับ (VIP)', () => { sfx.click(); this.open('lootopt'); }, { size: 8.5, color: 0x3a2a08 }));
+      return;
+    }
     row(0, '❤ ดื่มยา HP อัตโนมัติ', [['เปิด', p.auto, () => set({ auto: true })], ['ปิด', !p.auto, () => set({ auto: false })]]);
     row(1, 'ดื่มเมื่อ HP ต่ำกว่า', HP_STEPS.map(v => [`${v}%`, p.hp === v, () => set({ hp: v })] as [string, boolean, () => void]), !p.auto);
     row(2, 'ใช้ยา HP ไหนก่อน', [['ยาใหญ่ก่อน', p.big, () => set({ big: true })], ['ยาเล็กก่อน', !p.big, () => set({ big: false })]]);
     row(3, '💧 ดื่มยา MP อัตโนมัติ', [['เปิด', p.mpAuto, () => set({ mpAuto: true })], ['ปิด', !p.mpAuto, () => set({ mpAuto: false })]], !p.auto);
     row(4, 'ดื่มเมื่อ MP ต่ำกว่า', MP_STEPS.map(v => [`${v}%`, p.mp === v, () => set({ mp: v })] as [string, boolean, () => void]), !p.auto || !p.mpAuto);
     // VIP: buy potions here, away from the shop — and whether the system buys one by itself when out
-    const vy = y + 186;
+    const vy = y + 210;
     g.fillStyle(vip ? 0x3a2a08 : 0x1a1612, 0.6).fillRoundedRect(x + 10, vy - 4, W - 20, 64, 5).lineStyle(1, vip ? 0xd9b45a : 0x4a3a2a, 1).strokeRoundedRect(x + 10, vy - 4, W - 20, 64, 5);
     c.add(k.text(lx, vy + 2, vip ? '👑 VIP: ยาหมดให้ระบบซื้อให้เอง' : '👑 VIP เท่านั้น: ซื้อยาได้ทุกที่ ไม่ต้องกลับบ้าน', 9, vip ? '#ffe7a0' : '#8a7a60'));
     if (vip) [['ซื้อให้เอง', p.vipAuto, () => set({ vipAuto: true })], ['ฉันซื้อเอง', !p.vipAuto, () => set({ vipAuto: false })]].forEach(([t, on, cb], j) =>
