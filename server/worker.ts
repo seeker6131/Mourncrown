@@ -21,7 +21,7 @@ import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
-import { RAID_SECS, RAID_MIN_KILLS, RAID_BANDS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
+import { RAID_SECS, RAID_MIN_KILLS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
 import { gainExp } from '../src/systems/stats';
 import type { RaidRun } from '../src/server/mapSim';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
@@ -592,8 +592,8 @@ export class Room {
       for (const bid of broken) await DB.prepare('INSERT INTO town (bid, broken, at, donated, need) VALUES (?, 1, ?, 0, ?) ON CONFLICT(bid) DO UPDATE SET broken = 1, at = excluded.at, donated = 0, need = excluded.need, donors = NULL').bind(bid, now, repairNeed(online)).run().catch(() => undefined);
       await townInfo(this.env, true).catch(() => undefined);
       await Promise.allSettled(rank.filter(([, k]) => k >= RAID_MIN_KILLS).map(([pid]) => this.env.PLAYER.get(this.env.PLAYER.idFromName(pid)).fetch(new Request('https://p/raidpay?id=' + pid, { method: 'POST', body: JSON.stringify({ mvp: mvp.includes(pid), won: r.won }) }))));
-      const top = mvp.map(id => names.get(id) ?? '?').join(', '), bi = Number((this.all()[0]?.a.room ?? '').match(/b(\d)$/)?.[1] ?? 0) - 1, band = RAID_BANDS[bi];
-      const text = (band ? `[ห้อง ${band.hi > 200 ? `Lv${band.lo}+` : `Lv${band.lo}–${band.hi}`}] ` : '') + (r.won ? '🛡 หมู่บ้านกลางต้านมอนบุกได้สำเร็จ!' : '⚔ มอนบุกหมู่บ้านกลางจบแล้ว') + (broken.length ? ` อาคารพัง: ${broken.map(b => TOWN_NAME[b]).join(' ')} — ช่วยกันบริจาคซ่อมได้ที่ 🏘` : ' ไม่มีอาคารพัง!') + (top ? ` • MVP: ${top}` : '');
+      const top = mvp.map(id => names.get(id) ?? '?').join(', ');
+      const text = (r.won ? '🛡 หมู่บ้านกลางต้านมอนบุกได้สำเร็จ!' : '⚔ มอนบุกหมู่บ้านกลางจบแล้ว') + (broken.length ? ` อาคารพัง: ${broken.map(b => TOWN_NAME[b]).join(' ')} — ช่วยกันบริจาคซ่อมได้ที่ 🏘` : ' ไม่มีอาคารพัง!') + (top ? ` • MVP: ${top}` : '');
       await cw.fetch(new Request('https://r/say', { method: 'POST', body: JSON.stringify({ text }) })).catch(() => undefined);
     })());
   }

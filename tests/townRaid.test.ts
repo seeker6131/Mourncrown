@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MapSim, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { RAID, RAID_LAND } from '../src/world/stages';
-import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp, raidRoom, raidAtk, raidHpMult, RAID_EXP_MULT, nextRaid } from '../src/systems/townRaid';
+import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp, raidAtk, raidHpMult, RAID_EXP_MULT, nextRaid } from '../src/systems/townRaid';
 import { STAGES } from '../src/world/stages';
 import { handlers, useMem, newMem } from '../src/server/handlers';
 import { startNewGame } from '../src/core/save';
@@ -48,11 +48,10 @@ describe('⚔ village raid (the room runs it)', () => {
     sim.run(at + 2000, [me]); expect(sim.mons.size).toBe(50);
     sim.run(at + 6000, [me]); expect(sim.mons.size).toBe(100);
   });
-  it('a raid room for each level band; monsters at the band\'s strongest hero; each hero hit as by their own level, harder each wave', () => {
-    expect([raidRoom(5), raidRoom(30), raidRoom(31), raidRoom(60), raidRoom(61), raidRoom(100)]).toEqual(['m300b1', 'm300b1', 'm300b2', 'm300b2', 'm300b3', 'm300b3']);
+  it('one room for every level: monsters at the strongest hero\'s level, hitting harder each wave', () => {
     expect(raidAtk(90)).toBeGreaterThan(raidAtk(30) * 2); expect(raidAtk(50, 5)).toBeGreaterThan(raidAtk(50, 0) * 1.7);
     expect(raidHpMult(10)).toBeGreaterThanOrEqual(raidHpMult(1) * 4);
-    const sim = new MapSim('m300b3', grid(), rnd), ps: SimPlayer[] = [{ id: 'a', x: 700, y: 590, hp: 100, lv: 62 }, { id: 'b', x: 760, y: 590, hp: 100, lv: 95 }];
+    const sim = new MapSim('m300', grid(), rnd), ps: SimPlayer[] = [{ id: 'a', x: 700, y: 590, hp: 100, lv: 12 }, { id: 'b', x: 760, y: 590, hp: 100, lv: 95 }];
     sim.startRaid(1_000_000, ps); expect(sim.raid!.lv).toBe(95);
   });
   it('raid kills give a quarter of the EXP of the same monster on your own map', () => {

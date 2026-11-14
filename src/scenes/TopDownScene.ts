@@ -5,7 +5,7 @@
 import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
 import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage } from '../world/stages';
-import { RAID_W, RAID_H, RAID_BLD, raidFlag, raidRoom } from '../systems/townRaid';
+import { RAID_W, RAID_H, RAID_BLD, raidFlag } from '../systems/townRaid';
 import { RaidView } from '../world/townRaidView';
 import { raidAtLocal, setTownView } from '../net/townView';
 import { itemDef as idef } from '../data/items';
@@ -314,7 +314,6 @@ export class TopDownScene extends Phaser.Scene {
   roomId(): string | null {
     if (this.dungeon || this.raid || this.defense || this.raidMode || this.warSide || this.inside >= 0) return null;
     if (this.wild) return 'w';
-    if (this.townRaid) return raidRoom(S().level);   // (⚔ a raid room for each level band)
     if (this.stageN) return 'm' + this.stageN;
     if (this.gv) { const g = guildOf(S()) as { id?: string } | null; return g?.id ? ('g-' + String(g.id).toLowerCase().replace(/[^a-z0-9]/g, '')).slice(0, 32) : 'gv'; }
     return 'v';

@@ -1,12 +1,12 @@
 // ⚔ The village raid as the game shows it: the five central buildings (HP bars, fire, ruin), the clock, the result.
 // The map room runs everything (src/server/mapSim.ts startRaid); this view only draws what it says ('rs' / 'rend').
 import Phaser from 'phaser';
-import { RAID_BLD, RAID_WAVES, raidFlag, raidBandName } from '../systems/townRaid';
+import { RAID_BLD, RAID_WAVES, raidFlag } from '../systems/townRaid';
 import { TOWN_NAME, type TownBld } from '../systems/town';
 import { burnFx, fireKey } from './guildTown';
 import { makeRuin } from './ruin';
 import { fx2 } from './fx2';
-import { bus, EV, S } from '../core/events';
+import { bus, EV } from '../core/events';
 import { sfx } from '../audio/sfx';
 import { tr } from '../core/i18n';
 
@@ -84,6 +84,6 @@ export class RaidView {
     if (this.done) return tr('⚔ มอนบุกจบแล้ว — กำลังกลับหมู่บ้าน...');
     if (!this.at || now < this.at) { const s = Math.max(0, Math.ceil((this.at - now) / 1000)); return this.at ? `⚔ ${tr('หมู่บ้านกลาง • มอนจะบุกในอีก')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : tr('⚔ หมู่บ้านกลาง • ยังไม่มีมอนบุก'); }
     const s = Math.max(0, Math.ceil((this.end - now) / 1000));
-    return `⚔ [${raidBandName(S().level)}] ${tr('มอนบุก!')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} • ${tr('คลื่นที่')} ${this.wave}/${RAID_WAVES} • ${tr('มอนบนแผนที่')} ${this.left} • ${tr('มอนมาแล้ว')} ${this.spawned}/${this.tot}`;
+    return `⚔ ${tr('มอนบุก!')} ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} • ${tr('คลื่นที่')} ${this.wave}/${RAID_WAVES} • ${tr('มอนบนแผนที่')} ${this.left} • ${tr('มอนมาแล้ว')} ${this.spawned}/${this.tot}`;
   }
 }

@@ -866,7 +866,7 @@ export class Combat {
         if (!this.charReady(key)) continue;   // (a boss from another land: its pictures load first, it shows on the next list)
         this.spawn(f.mob, x, y, !!boss, undefined, { sid, elite: !!elite }); m = this.mons[this.mons.length - 1];
         m.animal = !!MONSTERS[f.mob.kind]?.animal; m.sp.setAlpha(0); this.s.tweens.add({ targets: m.sp, alpha: 1, duration: 400 });
-        if (isRaid(this.stage?.n ?? 0)) m.atk = raidAtk(S().level, raidFlag.wave);   // (⚔ the raid: every raider hits like a monster of MY level, harder each wave)
+        if (isRaid(this.stage?.n ?? 0)) m.atk = raidAtk(lv || S().level, raidFlag.wave);   // (⚔ the raid: every raider hits as hard as a monster of the raid's level — the strongest hero's; the weak fall first)
         if (wb) { m.wb = true; m.atk = Math.round(scaleStats(MONSTERS[f.mob.kind], lv || this.stage?.level || 1, true).atk * WB.atk); fx2(this.s, 'fx_boss_spawn', x, y, y + 1, 1.4); }
       }
       if (!m.alive) continue;
