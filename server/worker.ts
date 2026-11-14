@@ -728,10 +728,12 @@ export class Room {
     } else if (m.t === 'grid' && shared) {   // the map's walls from this player's game
       const w = Number(m.w), h = Number(m.h), c = Number(m.c); let bits: Uint8Array;
       try { const bin = atob(String(m.b ?? '')); bits = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bits[i] = bin.charCodeAt(i); } catch { return; }
+      let hide: Uint8Array | undefined;   // (cells under tree crowns: no spawning there — older games do not send it)
+      try { if (m.hb) { const hb = atob(String(m.hb)); if (hb.length === bits.length) { hide = new Uint8Array(hb.length); for (let i = 0; i < hb.length; i++) hide[i] = hb.charCodeAt(i); } } } catch { hide = undefined; }
       const cl = (Array.isArray(m.cl) ? m.cl : []).slice(0, 30).map((q: { x: number; y: number; r: number; boss?: boolean }) => ({ x: Number(q.x) || 0, y: Number(q.y) || 0, r: Math.max(10, Math.min(300, Number(q.r) || 60)), boss: !!q.boss }));
-      const gt = m.gate as { x: number; y: number } | undefined, g: Grid = { w, h, c, bits, clear: cl, gate: { x: Number(gt?.x) || 0, y: Number(gt?.y) || 0 } };
+      const gt = m.gate as { x: number; y: number } | undefined, g: Grid = { w, h, c, bits, hide, clear: cl, gate: { x: Number(gt?.x) || 0, y: Number(gt?.y) || 0 } };
       if (!gridOk(g)) return;
-      let hs = 2166136261; const key = `${w},${h},${c},${m.b},${JSON.stringify(cl)},${g.gate.x},${g.gate.y}`; for (let i = 0; i < key.length; i++) { hs ^= key.charCodeAt(i); hs = Math.imul(hs, 16777619); }
+      let hs = 2166136261; const key = `${w},${h},${c},${m.b},${hide ? m.hb : ''},${JSON.stringify(cl)},${g.gate.x},${g.gate.y}`; for (let i = 0; i < key.length; i++) { hs ^= key.charCodeAt(i); hs = Math.imul(hs, 16777619); }
       const hk = (hs >>> 0).toString(36); for (const v of this.grids.values()) v.ids.delete(me.id);
       const e = this.grids.get(hk) ?? { g, ids: new Set<string>() }; e.ids.add(me.id); this.grids.set(hk, e);
       if (!this.sim && !this.wbKeep) this.wbKeep = Number(await this.store.get('wbAt').catch(() => 0)) || 0;

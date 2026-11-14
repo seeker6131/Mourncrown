@@ -66,7 +66,7 @@ export class RoomLink {
   /** (host) monster sid swings at player `to` */
   matk(to: string, sid: number, k = 'hit') { if (this.online) this.ws!.send(JSON.stringify({ t: 'matk', to, sid, k })); }
   /** the map's walls, meadows and gate (the room runs the monsters on them) */
-  grid(g: { w: number; h: number; c: number; b: string; cl: { x: number; y: number; r: number; boss?: boolean }[]; gate: { x: number; y: number } }) { if (this.online) this.ws!.send(JSON.stringify({ t: 'grid', ...g })); }
+  grid(g: { w: number; h: number; c: number; b: string; hb?: string; cl: { x: number; y: number; r: number; boss?: boolean }[]; gate: { x: number; y: number } }) { if (this.online) this.ws!.send(JSON.stringify({ t: 'grid', ...g })); }
   chat(text: string) { if (this.online && text.trim()) this.ws!.send(JSON.stringify({ t: 'c', text: text.slice(0, 90) })); }
   close() { this.closed = true; try { this.ws?.close(); } catch { /* gone */ } this.ws = null; }
 }

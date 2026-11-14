@@ -11,7 +11,7 @@ import { RAID_SECS, RAID_BLD, RAID_GATES, raidTotal, raidHp, raidBldHp, RAID_WAV
 import type { TownBld } from '../systems/town';
 
 /** the map's walls (1 bit a cell, row by row), meadows, gate and boss meadow — sent by the players' games */
-export interface Grid { w: number; h: number; c: number; bits: Uint8Array; clear: { x: number; y: number; r: number; boss?: boolean }[]; gate: { x: number; y: number } }
+export interface Grid { w: number; h: number; c: number; bits: Uint8Array; /** cells under a tree crown: walkable, but no monster appears there */ hide?: Uint8Array; clear: { x: number; y: number; r: number; boss?: boolean }[]; gate: { x: number; y: number } }
 export interface SimPlayer { id: string; x: number; y: number; hp: number; lv: number }
 export interface SMon {
   sid: number; mob: StageMon; boss: boolean; elite: boolean; animal: boolean; hp: number; max: number; dmg: Record<string, number>; alive: boolean;
@@ -71,13 +71,18 @@ export class MapSim {
     const i = Math.floor(y / this.grid.c) * this.grid.w + Math.floor(x / this.grid.c);
     return !(this.grid.bits[i >> 3] & (1 << (i & 7)));
   }
+  hidden(x: number, y: number) {
+    const hd = this.grid.hide; if (!hd || x < 0 || y < 0 || x >= this.W || y >= this.H) return false;
+    const i = Math.floor(y / this.grid.c) * this.grid.w + Math.floor(x / this.grid.c);
+    return !!(hd[i >> 3] & (1 << (i & 7)));
+  }
   /** a free spot: often in a meadow, never by the gate, out of the players' sight when possible */
   spot(players: SimPlayer[]) {
     const r = this.rnd, C = this.grid.clear.filter(c => !c.boss), g = this.grid.gate;
     for (let i = 0; i < 80; i++) {
       const c = C.length && r() < (this.wild ? 0.7 : 0.55) ? C[Math.floor(r() * C.length)] : null;
       const x = c ? c.x + (r() - 0.5) * c.r * 1.6 : 40 + r() * (this.W - 80), y = c ? c.y + (r() - 0.5) * c.r * (this.wild ? 1.3 : 1.2) : 40 + r() * (this.H - 80);
-      if (!this.free(x, y) || Math.hypot(x - g.x, y - g.y) < (this.wild ? 200 : 260)) continue;
+      if (!this.free(x, y) || Math.hypot(x - g.x, y - g.y) < (this.wild ? 200 : 260) || (i < 70 && this.hidden(x, y))) continue;
       if (i < 60 && players.some(p => Math.hypot(x - p.x, y - p.y) < 240)) continue;
       return { x, y };
     }

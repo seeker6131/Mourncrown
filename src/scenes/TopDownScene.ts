@@ -314,8 +314,12 @@ export class TopDownScene extends Phaser.Scene {
       if (wall) { const k = j * w + i; bits[k >> 3] |= 1 << (k & 7); }
     }
     let b = ''; for (let i = 0; i < bits.length; i += 4096) b += String.fromCharCode(...bits.subarray(i, i + 4096));
+    // hb: cells under a tree crown — the room never spawns a monster there (player feedback: they hid in the trees)
+    const hide = new Uint8Array(bits.length);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (this.underCanopy(i * c + 4, j * c + 4)) { const k = j * w + i; hide[k >> 3] |= 1 << (k & 7); }
+    let hb = ''; for (let i = 0; i < hide.length; i += 4096) hb += String.fromCharCode(...hide.subarray(i, i + 4096));
     const gate = this.portals.find(p => p.to === 0) ?? { x: 46, y: this.trailMain(24) };
-    return { w, h, c, b: btoa(b), cl: this.clearings.map(q => ({ x: Math.round(q.x), y: Math.round(q.y), r: Math.round(q.r), boss: !!q.boss })), gate: { x: Math.round(gate.x), y: Math.round(gate.y) } };
+    return { w, h, c, b: btoa(b), hb: btoa(hb), cl: this.clearings.map(q => ({ x: Math.round(q.x), y: Math.round(q.y), r: Math.round(q.r), boss: !!q.boss })), gate: { x: Math.round(gate.x), y: Math.round(gate.y) } };
   }
   /** a map with fighting (monster maps, the Deepwild, dungeons, raids, war): HP bars over heads show only here */
   fightMap() { return !!(this.stageN || this.wild || this.dungeon || this.raid || this.defense || this.raidMode || this.warSide); }
@@ -839,6 +843,9 @@ export class TopDownScene extends Phaser.Scene {
 
   // ---------- farming map layout: three winding east-west trails joined by two north-south ones ----------
   clearings: { x: number; y: number; r: number; boss?: boolean }[] = [];
+  /** tree crowns on this map (x, y = top left): no monster appears under one (player feedback) */
+  canopies: { x: number; y: number; w: number; h: number }[] = [];
+  underCanopy(x: number, y: number) { return this.canopies.some(c => x > c.x && x < c.x + c.w && y > c.y && y < c.y + c.h); }
   ponds: { x: number; y: number; r: number }[] = [];
   trailMain = (x: number) => x;
   trailOff = (_x: number, _y: number) => 1e9;
@@ -1061,11 +1068,15 @@ export class TopDownScene extends Phaser.Scene {
     const inClear = (x: number, y: number) => this.clearings.some(c => Math.hypot(x - c.x, (y - c.y) * 1.2) < c.r + 20);
     const TREE: Record<string, string> = { forest: 'oak_1', haunt: 'dead_0', lava: 'dead_1', snow: 'pine_1' };
     const key = TREE[g], hgt = key ? (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0) : 0;
-    if (key) this.groves(rnd, (g === 'lava' ? 45 : 120) * area, (x, y, sc) => {
+    // player feedback (14 Nov): too many trees, heroes got stuck between them and monsters hid under the crowns —
+    // a third fewer, spaced wider, and every crown is remembered so no monster appears under one
+    this.canopies = [];
+    if (key) this.groves(rnd, (g === 'lava' ? 40 : 80) * area, (x, y, sc) => {
       // never hide a trail behind the crown, roots stay off it, clearings stay open
-      if (this.trailOff(x, y) < 88 || this.trailOff(x, y - hgt * 0.5 * sc) < 62 || this.trailOff(x, y - hgt * sc) < 40 || inClear(x, y) || !free(x, y, 46 * sc)) return false;
+      if (this.trailOff(x, y) < 88 || this.trailOff(x, y - hgt * 0.5 * sc) < 62 || this.trailOff(x, y - hgt * sc) < 40 || inClear(x, y) || !free(x, y, 58 * sc)) return false;
       const t = this.obj(key, x, y, 0.22, 16, true, sc);
       if (t && g !== 'forest') t.setTint(tint[g]);
+      if (t) this.canopies.push({ x: t.x - t.displayWidth * 0.42, y: t.y - t.displayHeight * t.originY, w: t.displayWidth * 0.84, h: t.displayHeight * t.originY * 0.82 });
       return true;
     });
     void pick;
@@ -1091,7 +1102,7 @@ export class TopDownScene extends Phaser.Scene {
       for (let i = 0; i < 80; i++) {
         const c = rnd() < 0.55 ? this.clearings[Math.floor(rnd() * this.clearings.length)] : null;
         const x = c ? c.x + (rnd() - 0.5) * c.r * 1.6 : 40 + rnd() * (MW - 80), y = c ? c.y + (rnd() - 0.5) * c.r * 1.2 : 40 + rnd() * (MH - 80);
-        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || Math.hypot(x - 24, y - gy) < 260) continue;
+        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || Math.hypot(x - 24, y - gy) < 260 || (i < 70 && this.underCanopy(x, y))) continue;
         if (Math.hypot(x - this.hero.x, y - this.hero.y) < 240 && i < 60) continue;
         return { x, y };
       }
