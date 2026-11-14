@@ -11,6 +11,7 @@ import { startWar, warTick, warHit, warKill, warEnd, warDone } from '../systems/
 import { buyMount, selectMount, grantMount, hasMount } from '../systems/mounts';
 import { setCosmetic, type CosKind } from '../systems/cosmetics';
 import { createChar, switchChar, buySlot, nameOk, giveToChar } from '../systems/chars';
+import { fodderList, fuseBonus } from '../systems/fusion';
 import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
@@ -298,7 +299,13 @@ export const handlers = {
   },
   sell: (s: GameState, a: { uid: number; qty: number }) => sellUid(s, a.uid, Math.max(1, Math.floor(a.qty))),
   sellJunk: (s: GameState, a: { maxRar: number }) => sellJunk(s, Math.min(2, a.maxRar)),
-  upgradeItem: (s: GameState, a: { uid: number }, c: Ctx) => tryUpgrade(s, a.uid, c.rnd),
+  /** ⚒ +1 at the forge; fodder = spare gear sacrificed for a better chance (systems/fusion.ts) — gone whatever the result */
+  upgradeItem: (s: GameState, a: { uid: number; fodder?: number[] }, c: Ctx) => {
+    const list = fodderList(s, a.fodder, a.uid); if (!list) return 'invalid' as const;
+    const bonus = fuseBonus(s, list, a.uid), r = tryUpgrade(s, a.uid, c.rnd, bonus);
+    if ((r === 'ok' || r === 'fail') && bonus > 0) for (const u of list) { const it = s.inventory.find(i => i.uid === u); if (it) s.inventory.splice(s.inventory.indexOf(it), 1); }
+    return r;
+  },
   dismantle: (s: GameState, a: { uid: number }) => dismantle(s, a.uid),
   equip: (s: GameState, a: { uid: number }) => equip(s, a.uid),
   unequip: (s: GameState, a: { uid: number }) => unequipUid(s, a.uid),

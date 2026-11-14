@@ -102,7 +102,7 @@ export function equippedLook(s: GameState, slot: EquipSlot): number {
 
 export type UpgradeResult = 'ok' | 'fail' | 'max' | 'no_gold' | 'no_shard' | 'invalid';
 
-export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.random): UpgradeResult {
+export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.random, bonus = 0): UpgradeResult {   // (bonus: points of chance from fusion — systems/fusion.ts)
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return 'invalid';
   const d = itemDef(it.id);
@@ -113,7 +113,7 @@ export function tryUpgrade(s: GameState, uid: number, rnd: () => number = Math.r
   if (countItem(s, 'mana_shard') < cost.shards) return 'no_shard';
   s.gold -= cost.gold;
   removeItem(s, 'mana_shard', cost.shards);
-  if (rnd() < upgradeChance(it.upg)) { it.upg++; return 'ok'; }
+  if (rnd() < Math.min(1, upgradeChance(it.upg) + bonus / 100)) { it.upg++; return 'ok'; }
   return 'fail';
 }
 

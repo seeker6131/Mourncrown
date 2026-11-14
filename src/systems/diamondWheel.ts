@@ -11,7 +11,7 @@ import { titlesOf } from '../data/achievements';
 /** open to players? (closed until real-money top-up works and the director approves; the admin can try it) */
 export const DWHEEL_OPEN = true;   // (opened 2026-11-14, director — with real-money top-up)
 /** show each prize's chance on the wheel (recommended for real money) */
-export const DIAMOND_ODDS_SHOWN = true;
+export const DIAMOND_ODDS_SHOWN = false;   // (director 2026-11-14: no rates on any wheel)
 export const DWHEEL_PRICE = 30, DWHEEL_PRICE10 = 270, STAR_TRADE = 150;
 export const DWHEEL_SEGS = [
   { key: 'dragon', label: '🐉 มังกรเพลิงนิรันดร์', item: '', color: 0xd03a1a, w: 3, keep: true },

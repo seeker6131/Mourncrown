@@ -22,7 +22,7 @@ import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES, dayKey } from '../systems/daily';
 import { derive, expToNext } from '../systems/stats';
 import { rarOf, rarMult, affixText, isGear, GEAR_BASES } from '../systems/loot';
-import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeCost, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
+import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upgradeCost, upgradeChance, upgradeMult, MAX_UPGRADE, type ItemDef } from '../data/items';
 import { clampVitals, isEquipped, sellPrice, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, refreshCollect } from '../systems/quests';
@@ -52,6 +52,7 @@ import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListing
 import { openTopup } from './topupDom';
 import { askCharName } from './charDom';
 import { askQty } from './qtyDom';
+import { fuseSlots, fodderOk, fuseBonus, FUSE_CAP } from '../systems/fusion';
 import { charList, slotCount, MAX_SLOTS, SLOT_PRICE } from '../systems/chars';
 import { TICKET_PRICES } from '../server/handlers';
 import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKind } from '../systems/cosmetics';
@@ -410,17 +411,40 @@ export class Panels implements GuildHost {
         if (it.upg >= MAX_UPGRADE) btn('ระดับสูงสุดแล้ว', () => undefined, undefined, true);
         else {
           const cost = upgradeCost(it.upg, def);
+          // 🔥 fusion: spare gear sacrificed for luck (systems/fusion.ts) — slots by the forge's level; luck shown as a meter, never a number
+          const slots = fuseSlots(s), sure = upgradeChance(it.upg) >= 1;
+          if (slots && !sure) {
+            const fy = y + h - 150, bonus = fuseBonus(s, this.fodder, it.uid), fz = 24;
+            c.add(k.text(x + 6, fy, '🔥 สังเวยของ (เพิ่มโชค)', 8.5, '#ffb070'));
+            for (let i = 0; i < slots; i++) {
+              const sx = x + 6 + i * (fz + 4), sy = fy + 14, u = this.fodder[i], f = u !== undefined ? s.inventory.find(q => q.uid === u) : undefined;
+              k.iconSlot(g, sx, sy, fz, f ? RARITY_COLORS[rarOf(f)] : 0x5a3a2a, false);
+              if (f) c.add(this.ico(sx + fz / 2, sy + fz / 2, `icon_${itemDef(f.id).icon}`, fz)); else c.add(k.text(sx + fz / 2, sy + fz / 2, '+', 12, '#ffb070').setOrigin(0.5));
+              const z = ui.add.zone(sx, sy, fz, fz).setOrigin(0).setInteractive(); z.on('pointerup', () => { sfx.click(); if (f) this.fodder = this.fodder.filter(q => q !== u); else this.fusePick = true; this.fuseConfirm = false; this.rebuild(); }); c.add(z);
+            }
+            c.add(k.button(x + 10 + slots * (fz + 4), fy + 15, 64, 22, this.fusePick ? '✔ เลือกเสร็จ' : '🔥 เลือก', () => { this.fusePick = !this.fusePick; this.rebuild(); }, { size: 8, color: this.fusePick ? 0x1f4a2a : 0x6a3010 }));
+            // the luck meter (no numbers)
+            const mw = w - 12, my = fy + 44, r = bonus / FUSE_CAP;
+            g.fillStyle(0x0a0705, 1).fillRoundedRect(x + 6, my, mw, 8, 3).fillStyle(r >= 1 ? 0xffd84a : 0x9fffb0, 1).fillRoundedRect(x + 6, my, Math.max(0, mw * r), 8, 3);
+            c.add(k.text(x + 6, my + 10, `🍀 โชค: ${r <= 0 ? 'ปกติ' : r < 0.4 ? 'เพิ่มขึ้นเล็กน้อย' : r < 0.8 ? 'เพิ่มขึ้นมาก' : 'เต็มที่!'}`, 7.5, r > 0 ? '#9fffb0' : '#a89878'));
+          } else if (!slots) c.add(k.text(x + 6, y + h - 120, '🔥 สร้างโรงหลอมเพื่อสังเวยของเพิ่มโชค', 7.5, '#a89878', { wordWrap: { width: w - 12 } }));
           // success chances are never shown to players (director: rates stay behind the scenes)
           c.add(k.text(x + 6, y + h - 74, `ค่าใช้จ่าย: ${cost.gold} G\nผลึกมานา: ${cost.shards} (มี ${countItem(s, 'mana_shard')})\n${it.upg >= 6 ? '⚠ ยิ่งบวกสูงยิ่งเสี่ยง' : ''}`, 8, '#ffe7a0', { lineSpacing: 2 }));
-          btn(`ตีบวก → +${it.upg + 1}`, () => this.doUpgrade(it.uid), 0x6a3a10);
+          const nf = upgradeChance(it.upg) >= 1 ? 0 : this.fodder.length;
+          if (nf && !this.fuseConfirm) btn(`ตีบวก +${it.upg + 1} (สังเวย ${nf} ชิ้น)`, () => { this.fuseConfirm = true; this.rebuild(); }, 0x6a3a10);
+          else if (nf) btn(`⚠ ยืนยัน — ของที่สังเวยจะหายเสมอ`, () => { this.fuseConfirm = false; this.doUpgrade(it.uid); }, 0x8a2a10);
+          else btn(`ตีบวก → +${it.upg + 1}`, () => this.doUpgrade(it.uid), 0x6a3a10);
         }
       }
     }
   }
 
+  fodder: number[] = []; fusePick = false; fuseConfirm = false;
   doUpgrade(uid: number) {
-    if (isOnline()) { if (this.busyAct) return; this.busyAct = true; actServer('upgradeItem', { uid }).then(r => { this.busyAct = false; this.upgradeDone(uid, r); }); return; }   // the server rolls the dice
-    this.upgradeDone(uid, act('upgradeItem', { uid }));
+    const it = S().inventory.find(i => i.uid === uid), fodder = it && upgradeChance(it.upg) < 1 ? [...this.fodder] : [];
+    const after = (r: ReturnType<typeof act<'upgradeItem'>>) => { if (fodder.length && (r === 'ok' || r === 'fail')) { this.fodder = []; this.fusePick = false; } this.upgradeDone(uid, r); };
+    if (isOnline()) { if (this.busyAct) return; this.busyAct = true; actServer('upgradeItem', { uid, fodder }).then(r => { this.busyAct = false; after(r); }); return; }   // the server rolls the dice
+    after(act('upgradeItem', { uid, fodder }));
   }
   busyAct = false;
   upgradeDone(uid: number, r: ReturnType<typeof act<'upgradeItem'>>) {
@@ -1937,11 +1961,24 @@ export class Panels implements GuildHost {
       c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs));
       if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7.5, '#9fffb0').setOrigin(1, 0));
       if (isEquipped(s, it.uid)) c.add(k.text(cx + 2, cy + 1, 'E', 7, '#ffd84a'));
+      const picking = this.fusePick && this.selUid !== null, ok = picking && fodderOk(s, it.uid, this.selUid!), chosen = this.fodder.includes(it.uid);
+      if (picking) { if (chosen) g.lineStyle(2.5, 0xff7a3a, 1).strokeRoundedRect(cx - 1, cy - 1, cs + 2, cs + 2, 4); else if (ok) g.lineStyle(1.5, 0x9fffb0, 0.9).strokeRoundedRect(cx - 1, cy - 1, cs + 2, cs + 2, 4); else g.fillStyle(0x000000, 0.55).fillRect(cx, cy, cs, cs); }
+      if (chosen) c.add(k.text(cx + cs / 2, cy + cs / 2, '🔥', 14).setOrigin(0.5));
       const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
-      z.on('pointerup', () => { sfx.click(); this.selUid = it.uid; this.rebuild(); });
+      z.on('pointerup', () => {
+        sfx.click(); this.fuseConfirm = false;
+        if (picking) {   // 🔥 choosing what to sacrifice
+          if (chosen) this.fodder = this.fodder.filter(u => u !== it.uid);
+          else if (!ok) bus.emit(EV.TOAST, it.uid === this.selUid ? 'นี่คือของที่จะตีบวก' : 'สังเวยได้เฉพาะ Rare / Super Rare / Legend ที่ไม่ได้สวมและไม่ใช่ชุดเซ็ต', '#ff9a6a');
+          else if (this.fodder.length >= fuseSlots(s)) bus.emit(EV.TOAST, 'ช่องสังเวยเต็ม — อัปเลเวลโรงหลอมเพื่อเพิ่มช่อง', '#ff9a6a');
+          else this.fodder = [...this.fodder, it.uid];
+        } else { if (this.selUid !== it.uid) this.fodder = []; this.selUid = it.uid; }
+        this.rebuild();
+      });
       c.add(z);
     });
     if (!gear.length) c.add(k.text(x + 14, top, 'ไม่มีอุปกรณ์', 9, '#8a7a60'));
+    this.fodder = this.fodder.filter(u => this.selUid !== null && fodderOk(s, u, this.selUid));
     const dx = x + 14 + cols * (cs + 4) + 6;
     this.itemDetail(c, g, dx, top - 18, x + W - 14 - dx, H - 48, 'smith');
   }
