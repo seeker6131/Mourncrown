@@ -9,5 +9,30 @@
   "n": 8,
   "foot": 100,
   "idleN": 8
+ },
+ "mt_wolf": {
+  "fs": 76,
+  "n": 1,
+  "foot": 75
+ },
+ "mt_bear": {
+  "fs": 84,
+  "n": 1,
+  "foot": 82
+ },
+ "mt_stag": {
+  "fs": 84,
+  "n": 1,
+  "foot": 82
+ },
+ "mt_panther": {
+  "fs": 76,
+  "n": 1,
+  "foot": 73
+ },
+ "mt_gdragon": {
+  "fs": 96,
+  "n": 1,
+  "foot": 92
  }
 }

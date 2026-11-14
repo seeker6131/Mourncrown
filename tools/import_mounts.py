@@ -14,6 +14,12 @@ MAP = {
                  'north-east': ('north', False), 'north-west': ('north', True), 'north': ('north-west', False)},
     'mt_dragon': {'south': ('south-east', False), 'south-east': ('east', False), 'east': ('north-east', False), 'north-east': ('north', False),
                   'north': ('north-west', False), 'north-west': ('west', False), 'west': ('north-east', True), 'south-west': ('south', False)},
+    # 14 Nov: PixelLab now names these directions right
+    'mt_wolf': {d: (d, False) for d in ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']},
+    'mt_bear': {d: (d, False) for d in ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']},
+    'mt_stag': {d: (d, False) for d in ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']},
+    'mt_panther': {d: (d, False) for d in ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']},
+    'mt_gdragon': {d: (d, False) for d in ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']},
 }
 def load(z, n): return Image.open(io.BytesIO(z.read(n))).convert('RGBA')
 def centre(im, n): c = Image.new('RGBA', (n, n)); c.paste(im, ((n - im.width) // 2, (n - im.height) // 2)); return c
@@ -31,7 +37,9 @@ for key, mp in MAP.items():
             if m and m.group(1).lower().startswith(prefix): out.setdefault(m.group(2), []).append((int(m.group(3)), n))
         return {d: [load(z, n) for _, n in sorted(v)][1:] for d, v in out.items()}   # frame 0 = the idle picture: a loop goes without it
     walk, ida = anim('walk'), anim('idle')
-    if any(mp[d][0] not in walk for d in DIRS): print(key, 'walk not complete yet — skipped'); continue
+    if any(mp[d][0] not in walk for d in DIRS):
+        if os.environ.get('IDLE_ONLY') != '1': print(key, 'walk not complete yet — skipped'); continue
+        walk = {d: [rot[d]] for d in DIRS}   # (IDLE_ONLY=1: try the seats before the walk exists)
     fs = max([im.width for v in list(walk.values()) + list(ida.values()) for im in v] + [im.width for im in rot.values()])
     flip = lambda im, f: im.transpose(Image.FLIP_LEFT_RIGHT) if f else im
     idle = Image.new('RGBA', (fs * 8, fs)); n = min(len(v) for v in walk.values()); wk = Image.new('RGBA', (fs * n, fs * 8))
