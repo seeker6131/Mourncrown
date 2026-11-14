@@ -1,0 +1,14 @@
+{
+ "s2_cleave": 7,
+ "s2_whirl": 13,
+ "s2_guard": 10,
+ "a2_double": 14,
+ "a2_fan": 2,
+ "a2_focus": 7,
+ "m2_bolt": 0,
+ "m2_fire": 15,
+ "m2_heal": 6,
+ "t2_slam": 15,
+ "t2_wall": 15,
+ "t2_recover": 1
+}
