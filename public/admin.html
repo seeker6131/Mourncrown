@@ -81,7 +81,7 @@ const SRC = { kill: 'ฆ่ามอน', roomKill: 'ฆ่ามอน (แม�
   marketList: 'ลงขายตลาด', marketCancel: 'ยกเลิกขาย', donate: 'บริจาคกิลด์', guildCreate: 'ตั้งกิลด์', guildUpgrade: 'อัปกิลด์', guildShop: 'ร้านกิลด์', houseBuild: 'บ้านในกิลด์', bldRepair: 'ซ่อมอาคารกิลด์',
   houseRepair: 'ซ่อมบ้านกิลด์', hireGuard: 'จ้างทหาร', defBuild: 'ป้อมกิลด์', defUpgrade: 'อัปป้อม', defRepair: 'ซ่อมป้อม', raidEnd: 'ปล้นหมู่บ้าน', warEnd: 'สงครามกิลด์', warDone: 'สงครามกิลด์', seasonClaim: 'รางวัลฤดูกาล',
   mountBuy: 'ซื้อสัตว์ขี่', buyDiamond: 'เติมเพชร (เงินจริง)', vipGift: 'ของขวัญ VIP', supplyTick: 'เสบียงบนแมพ', upSkill: 'อัปสกิล', advanceClass: 'เปลี่ยนร่าง', adminKit: 'ชุดแอดมิน', bountySpawn: 'ค่าหัว',
-  sleep: 'นอนพัก', useItem: 'ใช้ไอเทม', stashPut: 'หีบเก็บของ', stashTake: 'หีบเก็บของ', dev: 'ปุ่มทดสอบ (แอดมิน)', wheelSpin: 'กงล้อนำโชค (ทอง)' };
+  sleep: 'นอนพัก', useItem: 'ใช้ไอเทม', stashPut: 'หีบเก็บของ', stashTake: 'หีบเก็บของ', dev: 'ปุ่มทดสอบ (แอดมิน)', wheelSpin: 'กงล้อนำโชค (ทอง)', dwheelSpin: 'กงล้อเพชร', starTrade: 'แลกเหรียญดาว' };
 const srcName = k => SRC[k] ? `${SRC[k]} <span class="dim" style="font-size:11px">${esc(k)}</span>` : esc(k);
 const sgn = v => { v = Math.round(Number(v) || 0); return v > 0 ? `<span style="color:var(--green)">+${num(v)}</span>` : v < 0 ? `<span style="color:var(--red)">−${num(-v)}</span>` : '<span class="dim">0</span>'; };
 function econVerdict(inn, out) {   // gold made vs gold removed (player-to-player market money cancels out)

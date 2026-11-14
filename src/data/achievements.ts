@@ -42,7 +42,7 @@ export const achProgress = (s: GameState, a: Ach) => Math.min(a.need, M[a.metric
 type TS = GameState & { titles?: string[]; title?: string | null };
 export const titlesOf = (s: GameState) => ((s as TS).titles ??= []);
 /** titles given by events, not by a goal (the CBT testers' title — src/systems/cbtGift.ts) */
-export const SPECIAL_TITLES: Record<string, string> = { cbt: 'ผู้บุกเบิก' };
+export const SPECIAL_TITLES: Record<string, string> = { cbt: 'ผู้บุกเบิก', storm: 'ผู้บุกเบิกพายุ' };   // (storm: 💎 diamond wheel, CBT — carries over to OBT)
 export const titleOf = (s: GameState) => { const id = (s as TS).title; return id ? ACHS.find(a => a.id === id)?.title ?? SPECIAL_TITLES[id] ?? null : null; };
 /** goal titles won (event titles not counted) */
 export const achDone = (s: GameState) => titlesOf(s).filter(id => ACHS.some(a => a.id === id)).length;

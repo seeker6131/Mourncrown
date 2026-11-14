@@ -471,7 +471,7 @@ export class TdUIScene extends Phaser.Scene {
 
   minimap?: Minimap; loot?: LootPopup; news?: NewsTicker; newsT = 0;
   update(time: number) {
-    if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ [${RN[n.rar]}] ${idef(n.item).name}!!`); } }
+    if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
     this.minimap?.update(time); this.drawBuffs(time);
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;

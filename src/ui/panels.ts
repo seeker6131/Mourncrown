@@ -16,6 +16,7 @@ import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/se
 import { buffClash, clock, type Incoming } from '../systems/buffs';
 import { lootOpt, toggleLoot, LOOT_RARS, LOOT_MAX } from '../systems/lootOpt';
 import { WHEEL_SEGS, WHEEL_PRICE, WHEEL_OPEN, pickChoices, type WheelPrize } from '../systems/wheel';
+import { DWHEEL_SEGS, DWHEEL_PRICE, DWHEEL_PRICE10, DWHEEL_OPEN, DIAMOND_ODDS_SHOWN, STAR_TRADE, dChance } from '../systems/diamondWheel';
 import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
 import { formKeyOf, loadIdle } from '../world/chars';
 import { ensureDaily, dailyProgress, DAILY_NAMES, dayKey } from '../systems/daily';
@@ -60,7 +61,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt' | 'wheel' | 'pick';
+type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt' | 'wheel' | 'pick' | 'dwheel';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -157,6 +158,7 @@ export class Panels implements GuildHost {
       case 'wardrobe': this.buildWardrobe(c); break;
       case 'lootopt': this.buildLootOpt(c); break;
       case 'wheel': this.buildWheel(c); break;
+      case 'dwheel': this.buildDWheel(c); break;
       case 'pick': this.buildPick(c); break;
       case 'dialog': this.buildDialog(c); break;
       case 'shop': this.buildShop(c); break;
@@ -672,61 +674,94 @@ export class Panels implements GuildHost {
       });
     }, { size: 9, color: 0x1f4a2a, disabled: !sel }));
   }
-  wheelRot = 0; wheelBusy = false; wheelLast: WheelPrize[] = [];
-  buildWheel(c: Phaser.GameObjects.Container) {
-    const s = S(), ui = this.ui, k = this.k;
+  wheelRot = 0; wheelBusy = false; wheelLast: string[] = [];
+  /** one lucky-wheel window for both wheels (gold 🎡 and diamond 💎) */
+  wheelPanel(c: Phaser.GameObjects.Container, o: {
+    title: string; segs: readonly { key: string; label: string; item: string; color: number; keep?: boolean }[];
+    line1: string; line2: string; btn1: string; btn10: string; can: (n: number) => string | null;
+    spin: (n: number) => Promise<unknown>; text: (p: { seg: number; rar?: number }) => string; odds?: (i: number) => number;
+    gearRar?: (key: string) => number; extra?: (c: Phaser.GameObjects.Container, x: number, y: number, w: number) => void; note?: string;
+  }) {
+    const ui = this.ui, k = this.k;
     const W = Math.min(620, ui.VW - 16), H = 330;
-    const { x, y, g } = this.window(c, W, H, '🎡 กงล้อนำโชค');
-    const R = 112, cx = x + 20 + R, cy = y + 40 + R + 6, N = WHEEL_SEGS.length, step = Math.PI * 2 / N;
+    const { x, y } = this.window(c, W, H, o.title);
+    const R = 112, cx = x + 20 + R, cy = y + 40 + R + 6, N = o.segs.length, step = Math.PI * 2 / N;
     // the wheel: a container turned by the spin (segment i is centred at angle i*step from the top, clockwise)
     const wh = ui.add.container(cx, cy); c.add(wh); wh.rotation = this.wheelRot;
     const wg = ui.add.graphics(); wh.add(wg);
-    WHEEL_SEGS.forEach((sg, i) => {
+    o.segs.forEach((sg, i) => {
       const a0 = -Math.PI / 2 + i * step - step / 2, a1 = a0 + step;
       wg.fillStyle(sg.color, 1).slice(0, 0, R, a0, a1, false).fillPath();
       wg.lineStyle(2, 0x1a120c, 1).beginPath().moveTo(0, 0).lineTo(Math.cos(a0) * R, Math.sin(a0) * R).strokePath();
-      const am = a0 + step / 2, ir = R * 0.66, gearRar = sg.key === 'legend' ? 4 : sg.key === 'sr' ? 3 : sg.key === 'rare' ? 2 : -1;
-      const icon = sg.item ? `icon_${itemDef(sg.item).icon}` : gearRar >= 0 ? `icon_${(GEAR_BASES.find(d => d.rarity === gearRar) ?? GEAR_BASES[0]).icon}` : '';
+      const am = a0 + step / 2, ir = R * 0.66, gr = o.gearRar?.(sg.key) ?? -1;
+      const icon = sg.item ? `icon_${itemDef(sg.item).icon}` : '';
       if (icon && ui.textures.exists(icon)) { const im = this.ico(Math.cos(am) * ir, Math.sin(am) * ir, icon, 26); im.setRotation(am + Math.PI / 2); wh.add(im); }
-      else { const t = k.text(Math.cos(am) * ir, Math.sin(am) * ir, '🪵', 14, '#ffffff').setOrigin(0.5).setRotation(am + Math.PI / 2); wh.add(t); }
-      if (gearRar >= 0) { const t = k.text(Math.cos(am) * R * 0.38, Math.sin(am) * R * 0.38, sg.key === 'legend' ? 'L' : sg.key === 'sr' ? 'SR' : 'R', 9, '#ffffff', { fontStyle: 'bold', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setRotation(am + Math.PI / 2); wh.add(t); }
+      else { const em = sg.label.match(/^\p{Extended_Pictographic}/u)?.[0] ?? '🪵'; const t = k.text(Math.cos(am) * ir, Math.sin(am) * ir, em, 15, '#ffffff').setOrigin(0.5).setRotation(am + Math.PI / 2); wh.add(t); }
+      const tag = gr >= 0 ? (gr >= 4 ? 'L' : gr >= 3 ? 'SR' : 'R') : sg.keep ? '🔒' : '';
+      if (tag) { const t = k.text(Math.cos(am) * R * 0.38, Math.sin(am) * R * 0.38, tag, 9, '#ffffff', { fontStyle: 'bold', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setRotation(am + Math.PI / 2); wh.add(t); }
     });
     wg.lineStyle(4, 0xd9b45a, 1).strokeCircle(0, 0, R).fillStyle(0x2a1d12, 1).fillCircle(0, 0, 16).lineStyle(2, 0xd9b45a, 1).strokeCircle(0, 0, 16);
     for (let i = 0; i < N; i++) { const a = -Math.PI / 2 + i * step - step / 2; wg.fillStyle(0xffe7a0, 1).fillCircle(Math.cos(a) * (R - 5), Math.sin(a) * (R - 5), 2.5); }
-    // the pointer at the top
-    { const pg = ui.add.graphics(); c.add(pg);   // (on top of the wheel — director: it was covered)
+    { const pg = ui.add.graphics(); c.add(pg);   // (the pointer on top of the wheel — director: it was covered)
       pg.fillStyle(0x000000, 0.35).fillTriangle(cx - 12, cy - R - 13, cx + 12, cy - R - 13, cx + 1, cy - R + 13);
       pg.fillStyle(0xffd84a, 1).fillTriangle(cx - 12, cy - R - 16, cx + 12, cy - R - 16, cx, cy - R + 12).lineStyle(2.5, 0x5a3a10, 1).strokeTriangle(cx - 12, cy - R - 16, cx + 12, cy - R - 16, cx, cy - R + 12);
       pg.fillStyle(0xfff4c8, 1).fillCircle(cx, cy - R - 10, 3); }
-    // right side: price, buttons, prizes, last result
     const rx = cx + R + 24, rw = x + W - 14 - rx;
-    c.add(k.text(rx, y + 36, `หมุนด้วยทอง • ครั้งละ 💰 ${WHEEL_PRICE.toLocaleString()}`, 10, '#ffe7a0'));
-    c.add(k.text(rx, y + 52, `มี 💰 ${s.gold.toLocaleString()}  •  รางวัลใหญ่สุด: อุปกรณ์ Legend`, 8, '#c8b898'));
+    c.add(k.text(rx, y + 36, o.line1, 10, '#ffe7a0'));
+    c.add(k.text(rx, y + 52, o.line2, 8, '#c8b898'));
     const spin = (n: number) => {
       if (this.wheelBusy) return;
-      if (s.gold < WHEEL_PRICE * n) { sfx.error(); bus.emit(EV.TOAST, 'ทองไม่พอ', '#ff8a8a'); return; }
+      const why = o.can(n); if (why) { sfx.error(); bus.emit(EV.TOAST, why, '#ff8a8a'); return; }
       this.wheelBusy = true; sfx.click();
-      actServer('wheelSpin', { n }).then(r => {
-        if (refused(r)) { this.wheelBusy = false; sfx.error(); bus.emit(EV.TOAST, r.refused === 'bag' ? `กระเป๋าต้องว่างอย่างน้อย ${n} ช่อง` : r.refused === 'gold' ? 'ทองไม่พอ' : r.refused === 'closed' ? 'กงล้อยังไม่เปิด' : 'หมุนไม่สำเร็จ ลองใหม่', '#ff8a8a'); if (this.cur === 'wheel') this.rebuild(); return; }
-        // land on the best prize of the spin (a 10-spin shows its best)
-        const best = r.prizes.reduce((b, p) => (p.rar ?? -1) > (b.rar ?? -1) ? p : b, r.prizes[r.prizes.length - 1]);
+      o.spin(n).then(r0 => {
+        const r = r0 as { prizes: { seg: number; rar?: number; id?: string; set?: string }[] } | { refused: string };
+        if (refused(r)) { this.wheelBusy = false; sfx.error(); bus.emit(EV.TOAST, r.refused === 'bag' ? `กระเป๋าต้องว่างอย่างน้อย ${n} ช่อง` : r.refused === 'gold' ? 'ทองไม่พอ' : r.refused === 'diamonds' ? 'เพชรไม่พอ' : r.refused === 'closed' ? 'กงล้อยังไม่เปิด' : 'หมุนไม่สำเร็จ ลองใหม่', '#ff8a8a'); if (this.cur) this.rebuild(); return; }
+        // land on the rarest prize of the spin (the smallest weight = the rarest)
+        const wOf = (p: { seg: number }) => (o.segs[p.seg] as { w?: number }).w ?? 999;
+        const best = r.prizes.reduce((b, p) => wOf(p) < wOf(b) ? p : b, r.prizes[r.prizes.length - 1]);
         const target = -best.seg * step, turns = Math.PI * 2 * (5 + Math.floor(Math.random() * 2));
         const from = this.wheelRot % (Math.PI * 2), to = target - turns + (Math.random() - 0.5) * step * 0.6;
         wh.rotation = from;
         ui.tweens.add({ targets: wh, rotation: to, duration: 3200, ease: 'Cubic.easeOut', onComplete: () => {
-          this.wheelRot = to; this.wheelBusy = false; this.wheelLast = r.prizes; sfx.levelUp();
+          this.wheelRot = to; this.wheelBusy = false; this.wheelLast = r.prizes.map(p => o.text(p)); sfx.levelUp();
           for (const p of r.prizes) if (p.id && (p.rar ?? 0) >= 2) bus.emit('loot:popup', { id: p.id, rar: p.rar, set: p.set });
-          bus.emit(EV.TOAST, `🎡 ได้: ${r.prizes.slice(0, 3).map(p => this.wheelName(p)).join(' • ')}${r.prizes.length > 3 ? ` และอีก ${r.prizes.length - 3}` : ''}`, '#ffd84a');
-          bus.emit(EV.STATE_CHANGED); if (this.cur === 'wheel') this.rebuild();
+          bus.emit(EV.TOAST, `🎡 ได้: ${this.wheelLast.slice(0, 3).join(' • ')}${this.wheelLast.length > 3 ? ` และอีก ${this.wheelLast.length - 3}` : ''}`, '#ffd84a');
+          bus.emit(EV.STATE_CHANGED); if (this.cur) this.rebuild();
         } });
       });
     };
-    c.add(k.button(rx, y + 70, rw, 26, `หมุน 1 ครั้ง  •  💰 ${WHEEL_PRICE.toLocaleString()}`, () => spin(1), { size: 9.5, color: 0x6a4a10, disabled: this.wheelBusy }));
-    c.add(k.button(rx, y + 100, rw, 26, `หมุน 10 ครั้ง  •  💰 ${(WHEEL_PRICE * 10).toLocaleString()}`, () => spin(10), { size: 9, color: 0x8a5a10, disabled: this.wheelBusy }));
+    c.add(k.button(rx, y + 70, rw, 26, o.btn1, () => spin(1), { size: 9.5, color: 0x6a4a10, disabled: this.wheelBusy }));
+    c.add(k.button(rx, y + 100, rw, 26, o.btn10, () => spin(10), { size: 9, color: 0x8a5a10, disabled: this.wheelBusy }));
     c.add(k.text(rx, y + 134, 'รางวัลในกงล้อ', 9, '#ffd84a'));
-    c.add(k.text(rx, y + 150, WHEEL_SEGS.map(q => q.label).join(' • '), 7.5, '#c8b898', { wordWrap: { width: rw } }));
-    c.add(k.text(rx, y + 196, this.wheelLast.length ? 'รอบล่าสุดได้:' : 'กระเป๋าต้องว่างเท่าจำนวนครั้งที่หมุน', 9, this.wheelLast.length ? '#9fffb0' : '#8a7a60'));
-    if (this.wheelLast.length) c.add(k.text(rx, y + 212, this.wheelLast.map(p => this.wheelName(p)).join(' • '), 7.5, '#f3e6c4', { wordWrap: { width: rw } }));
+    c.add(k.text(rx, y + 150, o.segs.map((q, i) => `${q.keep ? '🔒' : ''}${q.label}${o.odds ? ` ${o.odds(i).toFixed(1)}%` : ''}`).join(' • '), 7.2, '#c8b898', { wordWrap: { width: rw } }));
+    if (o.note) c.add(k.text(rx, y + 192, o.note, 7, '#9ad8ff', { wordWrap: { width: rw } }));
+    const ly = o.note ? y + 214 : y + 196;
+    c.add(k.text(rx, ly, this.wheelLast.length ? 'รอบล่าสุดได้:' : 'กระเป๋าต้องว่างเท่าจำนวนครั้งที่หมุน', 9, this.wheelLast.length ? '#9fffb0' : '#8a7a60'));
+    if (this.wheelLast.length) c.add(k.text(rx, ly + 16, this.wheelLast.join(' • '), 7.5, '#f3e6c4', { wordWrap: { width: rw } }));
+    o.extra?.(c, rx, y + H - 40, rw);
+  }
+  buildWheel(c: Phaser.GameObjects.Container) {
+    const s = S();
+    this.wheelPanel(c, { title: '🎡 กงล้อนำโชค', segs: WHEEL_SEGS,
+      line1: `หมุนด้วยทอง • ครั้งละ 💰 ${WHEEL_PRICE.toLocaleString()}`, line2: `มี 💰 ${s.gold.toLocaleString()}  •  รางวัลใหญ่สุด: อุปกรณ์ Legend`,
+      btn1: `หมุน 1 ครั้ง  •  💰 ${WHEEL_PRICE.toLocaleString()}`, btn10: `หมุน 10 ครั้ง  •  💰 ${(WHEEL_PRICE * 10).toLocaleString()}`,
+      can: n => S().gold < WHEEL_PRICE * n ? 'ทองไม่พอ' : null, spin: n => actServer('wheelSpin', { n }),
+      text: p => this.wheelName(p as WheelPrize), gearRar: key => key === 'legend' ? 4 : key === 'sr' ? 3 : key === 'rare' ? 2 : -1 });
+  }
+  buildDWheel(c: Phaser.GameObjects.Container) {
+    const s = S() as ReturnType<typeof S> & { diamonds?: number; stars?: number };
+    this.wheelPanel(c, { title: '💎 กงล้อเพชร', segs: DWHEEL_SEGS,
+      line1: `หมุนด้วยเพชร • ครั้งละ 💎 ${DWHEEL_PRICE} • 10 ครั้ง 💎 ${DWHEEL_PRICE10}`, line2: `มี 💎 ${(s.diamonds ?? 0).toLocaleString()}  •  ⭐ ${s.stars ?? 0}/${STAR_TRADE}`,
+      btn1: `หมุน 1 ครั้ง  •  💎 ${DWHEEL_PRICE}`, btn10: `หมุน 10 ครั้ง  •  💎 ${DWHEEL_PRICE10} (ลด 10%)`,
+      can: n => ((S() as typeof s).diamonds ?? 0) < (n === 10 ? DWHEEL_PRICE10 : DWHEEL_PRICE) ? 'เพชรไม่พอ — เติมเพชรที่ร้าน 💎' : null, spin: n => actServer('dwheelSpin', { n }),
+      text: p => (p as unknown as { text: string }).text, odds: DIAMOND_ODDS_SHOWN ? dChance : undefined,
+      note: '🔒 = ได้ไปต่อ OBT • ของอื่นจะหายตอนเปิด OBT • หมุนทุกครั้งได้ ⭐ 1 เหรียญ (ไปต่อ OBT)',
+      extra: (cc, ex, ey, ew) => {
+        const k = this.k, st = s.stars ?? 0, ok = st >= STAR_TRADE, half = (ew - 6) / 2;
+        const trade = (what: 'dragon' | 'cloud') => actServer('starTrade', { what }).then(r => { if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'owned' ? 'มีอยู่แล้ว' : r.refused === 'stars' ? `ต้องมี ⭐ ${STAR_TRADE}` : 'แลกไม่สำเร็จ', '#ff8a8a'); return; } sfx.levelUp(); bus.emit(EV.TOAST, what === 'dragon' ? '🐉 ได้มังกรเพลิงนิรันดร์!' : '⛈ ได้เมฆพายุ!', '#ffd84a'); bus.emit(EV.STATE_CHANGED); this.rebuild(); });
+        cc.add(k.button(ex, ey, half, 24, `⭐${STAR_TRADE} → 🐉 มังกร`, () => trade('dragon'), { size: 8, color: 0x6a1a1a, disabled: !ok }));
+        cc.add(k.button(ex + half + 6, ey, half, 24, `⭐${STAR_TRADE} → ⛈ เมฆ`, () => trade('cloud'), { size: 8, color: 0x3a2a6a, disabled: !ok }));
+      } });
   }
   wheelName(p: WheelPrize) { return p.res ? `${p.res === 'wood' ? '🪵 ไม้' : p.res === 'stone' ? '🪨 หิน' : '🍖 อาหาร'} ${p.qty}` : `${itemDef(p.id!).name}${p.qty > 1 ? ' x' + p.qty : ''}${p.rar !== undefined && p.rar >= 2 ? ` [${RARITY_NAMES[p.rar]}]` : ''}`; }
   // ---------------- 👑 VIP loot settings (systems/lootOpt.ts) ----------------
@@ -885,6 +920,7 @@ export class Panels implements GuildHost {
     b('⛶ เต็มจอ', () => { this.close(); ui.toggleFullscreen(); });
     b('🖥 ปรับ UI & เสียง (แถบเลื่อน)', () => this.open('uiopt'), 0x2a4a5a);
     b(lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 Language: English', () => { saveGame(s); setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, 0x2a4a5a);
+    if (DWHEEL_OPEN || isAdmin()) b(DWHEEL_OPEN ? '💎 กงล้อเพชร' : '💎 กงล้อเพชร (แอดมินทดสอบ — ผู้เล่นยังไม่เห็น)', () => this.open('dwheel'), 0x3a2a6a);
     if (WHEEL_OPEN || isAdmin()) b(WHEEL_OPEN ? '🎡 กงล้อนำโชค' : '🎡 กงล้อนำโชค (แอดมินทดสอบ — ผู้เล่นยังไม่เห็น)', () => this.open('wheel'), 0x6a4a10);
     if (isAdmin()) b('👑 แอดมิน: เปลี่ยนอาชีพ / ร่าง', () => this.open('forms'), 0x5a4a10);   // (the director's account only)
     if (isAdmin()) b('👑 เว็บหลังบ้าน (ดูทุกอย่างในเกม)', () => { window.open('./admin.html', '_blank'); }, 0x5a4a10);

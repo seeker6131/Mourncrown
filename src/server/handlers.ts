@@ -24,6 +24,7 @@ import { derive } from '../systems/stats';
 import { addItem, sellUid, sellJunk, tryUpgrade, dismantle, equip, unequipUid, useItem } from '../systems/inventory';
 import { dismantleYield, disMatch } from '../systems/lootOpt';
 import { spinWheel, openPick, WHEEL_OPEN } from '../systems/wheel';
+import { spinDiamond, starTrade, DWHEEL_OPEN } from '../systems/diamondWheel';
 import { itemDef, SHOP_STOCK, SHOP_SHARD_DAILY } from '../data/items';
 import { build, upgrade, collect, craft, cook, tick as settleTick } from '../systems/settlement';
 import {
@@ -401,6 +402,14 @@ export const handlers = {
     for (const p of r.prizes) if ((p.rar ?? 0) >= 4 && p.id) { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: p.id, rar: p.rar! }); if (news.length > 50) news.shift(); }
     return r;
   },
+  /** 💎 the diamond wheel (systems/diamondWheel.ts): diamonds are real money — the server alone spends them */
+  dwheelSpin(s: GameState, a: { n: number }, c: Ctx) {
+    if (!DWHEEL_OPEN && !c.admin) return no('closed');
+    const r = spinDiamond(s, Math.floor(Number(a.n) || 0), c.rnd, c.now); if (typeof r === 'string') return no(r);
+    for (const p of r.prizes) if (p.key === 'dragon' || p.key === 'cloud') { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: p.key === 'dragon' ? 'mount_dragon' : 'pet_cloud', rar: 5 }); if (news.length > 50) news.shift(); }
+    return r;
+  },
+  starTrade(s: GameState, a: { what: 'dragon' | 'cloud' }, c: Ctx) { if (!DWHEEL_OPEN && !c.admin) return no('closed'); const r = starTrade(s, a.what === 'cloud' ? 'cloud' : 'dragon'); return r === true ? { ok: true } : no(r); },
   /** 🎡 open a selector chest: the chosen gear of its rarity (systems/wheel.ts) */
   openPick(s: GameState, a: { uid: number; id: string }, c: Ctx) { const r = openPick(s, Number(a.uid), String(a.id), c.rnd); return typeof r === 'string' ? no(r) : r; },
   marketHistory: (_s: GameState, _a: { type?: number; rar?: number; page?: number; id?: string }) => no('offline') as Refused | { list: { item: import('../systems/market').Listing['item']; price: number; at: number }[]; total: number; week?: { n: number; avg: number; lo: number; hi: number } },
