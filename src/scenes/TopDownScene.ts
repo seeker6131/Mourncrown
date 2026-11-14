@@ -534,14 +534,16 @@ export class TopDownScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if (this.ui?.blocks(p) || this.selectUi) return;
       // 🖱 a mouse (PC — a player's report): click the ground to walk there, click a monster (or right-click) to attack
       if (!p.wasTouch && (p.event as PointerEvent | undefined)?.pointerType === 'mouse') {
-        if (p.rightButtonDown()) { this.attack(); return; }
         const w = this.cameras.main.getWorldPoint(p.x, p.y), m = this.combat.mons.find(q => q.alive && Math.hypot(q.x - w.x, q.y - (w.y + 10)) < 34);
+        if (p.rightButtonDown()) { this.walkTo(w.x, w.y, true); this.mouseHold = this.time.now; return; }   // (like a MOBA: right-click = move there)
+        this.mouseHold = this.time.now;
         if (m) { this.walkStop(); this.dir = (Math.round((Math.PI / 2 - Math.atan2(m.y - this.hero.y, m.x - this.hero.x)) / (Math.PI / 4)) % 8 + 8) % 8; this.attack(); return; }
         this.walkTo(w.x, w.y, true); return;
       }
       if (p.x > this.scale.width * 0.55) { this.attack(); return; } if (this.joy.id < 0) { this.joy.id = p.id; this.joy.x = p.x; this.joy.y = p.y; this.joy.dx = this.joy.dy = 0; } });
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
-    const up = (p: Phaser.Input.Pointer) => { if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => { if (this.mouseHold && p.isDown && !p.wasTouch && this.time.now - this.mouseHold > 120 && !this.ui?.blocks(p)) { this.mouseHold = this.time.now; const w = this.cameras.main.getWorldPoint(p.x, p.y); this.walkTo(w.x, w.y, true); return; }   // (🖱 hold and drag: keep walking toward the mouse)
+      if (p.id === this.joy.id) { this.joy.dx = p.x - this.joy.x; this.joy.dy = p.y - this.joy.y; } });
+    const up = (p: Phaser.Input.Pointer) => { this.mouseHold = 0; if (p.id === this.joy.id) { this.joy.id = -1; this.joy.dx = this.joy.dy = 0; } };
     this.input.on('pointerup', up); this.input.on('pointerupoutside', up);
   }
 
@@ -1134,6 +1136,7 @@ export class TopDownScene extends Phaser.Scene {
     }
   }
   gateSpots: { x: number; y: number }[] = [];
+  mouseHold = 0;
   /** 🎲 director: arrive somewhere different each time (by the gate on the left edge, or by one of the corner gates) */
   arrive(x: number, y: number) {
     const all = [{ x, y }, ...this.gateSpots], p = all[Math.floor(Math.random() * all.length)];
@@ -1762,7 +1765,7 @@ export class TopDownScene extends Phaser.Scene {
         if (!sk || (this.skillReady[id] ?? 0) > this.time.now || (s.mp ?? 0) < sk.mp) continue;
         if (sk.kind === 'heal' && s.hp > d.maxHp * 0.6) continue;
         if (sk.kind === 'shield' && s.hp > d.maxHp * 0.85) continue;
-        if (sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff' && dist > (sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain' ? 150 : 60)) continue;
+        if (sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff' && dist > (sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain' ? 150 : sk.kind === 'spin' ? 24 + m.m.size * 0.3 : 60)) continue;   // (a spin hits round the hero: wait until the monster is right there — a player saw it wasted)
         this.castSkill(i); return [0, 0];
       }
       tx = m.x; ty = m.y; reach = ranged ? 120 : 20 + m.m.size * 0.25; target = m;

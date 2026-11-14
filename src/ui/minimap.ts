@@ -70,8 +70,8 @@ export class Minimap {
     const P = (px: number, py: number) => [x + Phaser.Math.Clamp(px, 0, m.w) * sx, y + Phaser.Math.Clamp(py, 0, m.h) * sy] as const;
     for (const e of m.marks) { const [a, b] = P(e.x, e.y); g.fillStyle(0xffb040, 1).fillRect(a - 2, b - 2, 4, 4); }
     for (const d of m.dots) { const [a, b] = P(d.x, d.y), [c, r] = DOT[d.kind]; g.fillStyle(c, d.kind === 'boss' ? 1 : 0.9).fillCircle(a, b, r * (this.big ? 1.6 : 1)); }
-    const pulse = 3 + Math.sin(time / 200) * 1.5;
-    for (const e of m.exits) { const [a, b] = P(e.x, e.y); g.lineStyle(1.5, 0x9fffb0, 1).strokeCircle(a, b, pulse + (this.big ? 3 : 1)); g.fillStyle(0x3aff7a, 1).fillCircle(a, b, 2); }
+    void time;   // (exits no longer blink — a player: too many flashing dots)
+    for (const e of m.exits) { const [a, b] = P(e.x, e.y); g.lineStyle(1, 0x9fffb0, 0.8).strokeCircle(a, b, this.big ? 4 : 2.5); g.fillStyle(0x3aff7a, 1).fillCircle(a, b, 1.5); }
     // the hero: an arrow pointing where they face
     const [hx, hy] = P(m.hero.x, m.hero.y), ang = Math.PI / 2 - m.hero.dir * Math.PI / 4, R = this.big ? 6 : 4;
     const pt = (r: number, da: number) => [hx + Math.cos(ang + da) * r, hy + Math.sin(ang + da) * r] as const;
