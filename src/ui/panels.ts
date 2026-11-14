@@ -60,7 +60,7 @@ import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKin
 import { SKIN_TINT } from '../world/mount';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
 import { stageFood, supplyMinutes } from '../systems/supplies';
-import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, RANGE_STEPS, type PotSet } from '../systems/potions';
+import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, RANGE_STEPS, MP_KEEP, type PotSet } from '../systems/potions';
 import { farmGoal, setFarmGoal, farmDone, FARM_KEYS, FARM_NAMES, FARM_STEPS } from '../systems/farm';
 import { energyLeft } from '../systems/economy';
 import { lang, setLang } from '../core/i18n';
@@ -1386,7 +1386,7 @@ export class Panels implements GuildHost {
   // ---------------- POTION SETTINGS (the ⚙ beside the potion buttons) ----------------
   buildPotion(c: Phaser.GameObjects.Container) {
     const s = S(), k = this.k, p = potOf(s);
-    const W = Math.min(460, this.ui.VW - 20), H = 336, vip = vipActive(s);
+    const W = Math.min(460, this.ui.VW - 20), H = this.potTab === 'auto' ? 356 : 336, vip = vipActive(s);
     const { x, y, g } = this.window(c, W, H, this.potTab === 'auto' ? '⚔ ตั้งค่าออโต้' : '⚗ ตั้งค่าการใช้ยา');
     const set = (ch: Partial<PotSet>) => { sfx.click(); setPot(s, ch); saveGame(s); this.rebuild(); };
     const lx = x + 16, bx = x + 176, bw = (W - 176 - 16 - 3 * 4) / 4;
@@ -1398,13 +1398,27 @@ export class Panels implements GuildHost {
       const w = opts.length === 2 ? bw * 2 + 4 : bw;
       opts.forEach(([t, on, cb], j) => c.add(k.button(bx + j * (w + 4), ry, w, 20, t, cb, { size: 8.5, color: on ? 0x1f5a2a : 0x3a3a3a, disabled: dim })));
     };
-    if (this.potTab === 'auto') {   // ⚔ AUTO fighting (player feedback 14 Nov)
-      row(0, '📏 รัศมีล่ามอน', RANGE_STEPS.map(v => [v ? `${v}` : 'ทั้งแมพ', p.aRange === v, () => set({ aRange: v })] as [string, boolean, () => void]));
-      row(1, '👹 บอส / มอนเอลีท', ([['all', 'ตีปกติ'], ['first', 'ตีก่อน'], ['skip', 'ไม่ตี']] as const).map(([v, t]) => [t, p.aBoss === v, () => set({ aBoss: v })] as [string, boolean, () => void]));
-      row(2, '💰 เดินไปเก็บของที่ตก', [['เก็บ', p.aLoot, () => set({ aLoot: true })], ['ไม่เก็บ', !p.aLoot, () => set({ aLoot: false })]]);
-      row(3, '✨ ใช้สกิลเอง', [['ใช้', p.aSkill, () => set({ aSkill: true })], ['ไม่ใช้', !p.aSkill, () => set({ aSkill: false })]]);
-      c.add(k.text(x + W / 2, y + 182, 'รัศมีนับจากจุดที่กดเปิด AUTO — มอนในวงหมด ฮีโร่จะกลับไปรอที่กลางวง\n(100 ≈ ความกว้างตัวละคร 6 ตัว) • เปลี่ยนแล้วมีผลทันที', 7.5, '#c8b898', { align: 'center' }).setOrigin(0.5, 0));
-      c.add(k.button(x + W / 2 - 90, y + 222, 180, 24, vip ? '👑 ตั้งค่าเลือกเก็บของ (VIP)' : '👑 เลือกเก็บของตามระดับ (VIP)', () => { sfx.click(); this.open('lootopt'); }, { size: 8.5, color: 0x3a2a08 }));
+    if (this.potTab === 'auto') {   // ⚔ MMO-style AUTO (player feedback 14 Nov) — VIP only (director)
+      type O = [string, boolean, () => void];
+      const rowA = (i: number, label: string, opts: O[]) => {
+        const ry = y + 56 + i * 25, n = opts.length, ow = (W - 176 - 16 - (n - 1) * 4) / n;
+        g.fillStyle(0x0a0705, 0.45).fillRoundedRect(x + 10, ry - 2, W - 20, 22, 4);
+        c.add(k.text(lx, ry + 3, label, 8.5, vip ? '#f3e6c4' : '#7a6a58'));
+        opts.forEach(([t, on, cb], j) => c.add(k.button(bx + j * (ow + 4), ry, ow, 18, t, cb, { size: 8, color: on ? 0x1f5a2a : 0x3a3a3a, disabled: !vip })));
+      };
+      const pick = <V,>(key: keyof PotSet, list: [V, string][]): O[] => list.map(([v, t]) => [t, (p as unknown as Record<string, unknown>)[key] === v, () => set({ [key]: v } as Partial<PotSet>)]);
+      rowA(0, '📏 รัศมีล่ามอน', RANGE_STEPS.map(v => [v ? `${v}` : 'ทั้งแมพ', p.aRange === v, () => set({ aRange: v })] as O));
+      rowA(1, '🎯 เลือกเป้าหมาย', pick('aPick', [['near', 'ใกล้สุด'], ['weak', 'เลือดน้อยสุด'], ['strong', 'ตัวถึกสุด']]));
+      rowA(2, '👹 บอส / มอนเอลีท', pick('aBoss', [['all', 'ตีปกติ'], ['first', 'ตีก่อน'], ['skip', 'ไม่ตี']]));
+      rowA(3, '🤝 มอนที่คนอื่นตีอยู่', pick('aKs', [[true, 'ไม่แย่ง'], [false, 'ตีด้วย']]));
+      rowA(4, '✨ สกิลที่ให้ใช้', [0, 1, 2].map(i => [`${p.aSk[i] ? '☑' : '☐'} ช่อง ${i + 1}`, p.aSk[i], () => { const a = [...p.aSk] as PotSet['aSk']; a[i] = !a[i]; set({ aSk: a }); }] as O));
+      rowA(5, '⏱ ใช้สกิลโจมตีเมื่อ', pick('aSkWhen', [['always', 'ตลอด'], ['boss', 'เจอบอส'], ['pack', 'มอน ≥3']]));
+      rowA(6, '💧 เก็บ MP ไว้อย่างน้อย', MP_KEEP.map(v => [v ? `${v}%` : 'ไม่เก็บ', p.aMp === v, () => set({ aMp: v })] as O));
+      rowA(7, '💰 เดินไปเก็บของที่ตก', pick('aLoot', [[true, 'เก็บ'], [false, 'ไม่เก็บ']]));
+      rowA(8, '🧪 ยา HP หมด', pick('aNoPot', [['fight', 'สู้ต่อ'], ['home', 'เดินกลับบ้าน']]));
+      rowA(9, '🎒 กระเป๋าเต็ม', pick('aBag', [['fight', 'สู้ต่อ'], ['stop', 'หยุดออโต้'], ['home', 'เดินกลับบ้าน']]));
+      c.add(k.text(x + W / 2, y + 308, vip ? 'รัศมีนับจากจุดที่กดเปิด AUTO (มีวงบนพื้น) • มอนในวงหมด ฮีโร่กลับไปรอกลางวง • มีผลทันที' : '🔒 ตั้งค่าออโต้ละเอียด เฉพาะ VIP — ผู้เล่นทั่วไปใช้ออโต้แบบพื้นฐาน', 7.5, vip ? '#c8b898' : '#ffd84a', { align: 'center' }).setOrigin(0.5, 0));
+      c.add(k.button(x + W / 2 - 90, y + 324, 180, 22, vip ? '👑 ตั้งค่าเลือกเก็บของ (VIP)' : '👑 ดู VIP', () => { sfx.click(); this.open(vip ? 'lootopt' : 'premium'); }, { size: 8.5, color: 0x3a2a08 }));
       return;
     }
     row(0, '❤ ดื่มยา HP อัตโนมัติ', [['เปิด', p.auto, () => set({ auto: true })], ['ปิด', !p.auto, () => set({ auto: false })]]);

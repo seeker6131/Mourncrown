@@ -36,7 +36,8 @@ import { uiOpt, setUiOpt, RANGES, gfx, applyGfx } from '../core/uiOptions';
 import { resumeFrom } from '../core/resume';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
-import { potOf, pickPotion, POT_CD } from '../systems/potions';
+import { invSize } from '../core/state';
+import { potOf, pickPotion, POT_CD, autoOf, potCount } from '../systems/potions';
 import { farmGoal, farmLeft, farmDone, FARM_KEYS, FARM_NAMES, type FarmGoal } from '../systems/farm';
 import { accountName } from '../net/cloud';
 import { RoomLink } from '../net/room';
@@ -1068,12 +1069,12 @@ export class TopDownScene extends Phaser.Scene {
     const inClear = (x: number, y: number) => this.clearings.some(c => Math.hypot(x - c.x, (y - c.y) * 1.2) < c.r + 20);
     const TREE: Record<string, string> = { forest: 'oak_1', haunt: 'dead_0', lava: 'dead_1', snow: 'pine_1' };
     const key = TREE[g], hgt = key ? (OM[key]?.foot ?? 120) - (OM[key]?.top ?? 0) : 0;
-    // player feedback (14 Nov): too many trees, heroes got stuck between them and monsters hid under the crowns —
-    // a third fewer, spaced wider, and every crown is remembered so no monster appears under one
+    // player feedback (14 Nov): monsters hid under the crowns — every crown is remembered so no monster appears under one
+    // (director: keep the forest as it was, only stop the spawning there)
     this.canopies = [];
-    if (key) this.groves(rnd, (g === 'lava' ? 40 : 80) * area, (x, y, sc) => {
+    if (key) this.groves(rnd, (g === 'lava' ? 45 : 120) * area, (x, y, sc) => {
       // never hide a trail behind the crown, roots stay off it, clearings stay open
-      if (this.trailOff(x, y) < 88 || this.trailOff(x, y - hgt * 0.5 * sc) < 62 || this.trailOff(x, y - hgt * sc) < 40 || inClear(x, y) || !free(x, y, 58 * sc)) return false;
+      if (this.trailOff(x, y) < 88 || this.trailOff(x, y - hgt * 0.5 * sc) < 62 || this.trailOff(x, y - hgt * sc) < 40 || inClear(x, y) || !free(x, y, 46 * sc)) return false;
       const t = this.obj(key, x, y, 0.22, 16, true, sc);
       if (t && g !== 'forest') t.setTint(tint[g]);
       if (t) this.canopies.push({ x: t.x - t.displayWidth * 0.42, y: t.y - t.displayHeight * t.originY, w: t.displayWidth * 0.84, h: t.displayHeight * t.originY * 0.82 });
@@ -1771,26 +1772,39 @@ export class TopDownScene extends Phaser.Scene {
     } else {
       if (this.wild) { if (this.farm && vipActive(s)) return this.farmStep(time); if (this.farm) this.stopFarm('👑 VIP หมดอายุ — หยุดฟาร์มออโต้'); s.auto = false; return [0, 0]; }
       if (!this.stageN || this.wild) { if (time > this.autoTipT) { this.autoTipT = time + 15000; bus.emit(EV.TOAST, 'ออโต้ทำงานเฉพาะแผนที่มอน/ดันเจี้ยน — ป่าดงดิบต้องเก็บเอง', '#e8c872'); } return [0, 0]; }
-      // pick up loot lying close by before the next fight
+      // ⚔ MMO-style AUTO (player feedback 14 Nov) — the player's own settings for a VIP, the plain defaults for others (director)
       if (!this.autoHome || this.autoHome.n !== this.stageN) this.autoHome = { x: h.x, y: h.y, n: this.stageN };   // (AUTO already on when the map was entered)
-      const ao = potOf(s), home = this.autoHome, inR = (q: { x: number; y: number }) => !ao.aRange || !home || Math.hypot(q.x - home.x, q.y - home.y) <= ao.aRange;
-      const lt = !ao.aLoot ? null : near(this.combat.ground.filter(g => g.landed && !g.busy && !g.skip && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260 && inR(g)));   // (never walk to loot the VIP setting leaves on the ground: it went back and forth)
+      const ao = autoOf(s, vipActive(s)), home = this.autoHome, inR = (q: { x: number; y: number }) => !ao.aRange || !home || Math.hypot(q.x - home.x, q.y - home.y) <= ao.aRange;
+      // bag full / out of HP potions: as chosen (fight on, stop, or walk home)
+      const full = s.inventory.length >= invSize(s), noPot = potCount(s, 'hp') === 0 && !(potOf(s).vipAuto && vipActive(s));
+      const quit = (why: string, how: 'stop' | 'home') => { s.auto = false; saveGame(s); bus.emit(EV.STATE_CHANGED); bus.emit(EV.TOAST, why, '#ffd8a0'); if (how === 'home') this.navHome(); return [0, 0] as [number, number]; };
+      if (full && ao.aBag !== 'fight') return quit(ao.aBag === 'home' ? '🎒 กระเป๋าเต็ม — ออโต้พาเดินกลับหมู่บ้าน' : '🎒 กระเป๋าเต็ม — หยุดออโต้', ao.aBag);
+      if (noPot && ao.aNoPot === 'home') return quit('🧪 ยา HP หมด — ออโต้พาเดินกลับหมู่บ้าน', 'home');
+      // pick up loot lying close by before the next fight
+      const lt = !ao.aLoot || full ? null : near(this.combat.ground.filter(g => g.landed && !g.busy && !g.skip && g.retryT <= this.time.now && !bad(g) && Math.hypot(g.x - h.x, g.y - h.y) < 260 && inR(g)));   // (never walk to loot the VIP setting leaves on the ground: it went back and forth)
       if (lt) { const st = this.steer(lt, lt.x, lt.y, time); if (st) return st; }
       const big = (q: { boss: boolean; elite: boolean; wb?: boolean }) => q.boss || q.elite || !!q.wb;
-      const alive = this.combat.alive().filter(m => !bad(m) && inR(m) && !(ao.aBoss === 'skip' && big(m)));
-      const foes = alive.filter(m => !m.animal), bosses = ao.aBoss === 'first' ? foes.filter(big) : [];
-      const m = near(bosses.length ? bosses : foes.length ? foes : alive);
+      const ok = (q: (typeof all)[number]) => !bad(q) && inR(q) && !(ao.aBoss === 'skip' && big(q)) && !(ao.aKs && q.tgt);   // (tgt: another player is fighting it)
+      const all = this.combat.alive(), alive = all.filter(ok);
+      const foes = alive.filter(q => !q.animal), bosses = ao.aBoss === 'first' ? foes.filter(big) : [];
+      const pool = bosses.length ? bosses : foes.length ? foes : alive;
+      // stay on the one being fought until it falls (no hopping between targets); else the next one by the chosen rule
+      const cur = pool.find(q => q === this.autoTarget);
+      const m = cur ?? (ao.aPick === 'near' ? near(pool) : pool.reduce<(typeof pool)[number] | null>((b, q) => !b ? q : ao.aPick === 'weak' ? (q.hp < b.hp ? q : b) : (q.max > b.max ? q : b), null));
       if (!m) {   // nothing left in the circle: walk back to its middle and wait for the next spawn
         if (home && ao.aRange && Math.hypot(home.x - h.x, home.y - h.y) > 24) return this.steer(home, home.x, home.y, time) ?? [0, 0];
         return [0, 0];
       }
       const dist = Math.hypot(m.x - h.x, m.y - h.y);
-      // skills: buffs/attacks when a foe is close, heal and shield only when hurt
-      if (dist < 150 && ao.aSkill) for (let i = 0; i < 3; i++) {
+      // skills: the slots allowed; attacks only when the rule says so and MP stays above the reserve; heal / shield when hurt
+      const pack = all.filter(q => !q.animal && Math.hypot(q.x - h.x, q.y - h.y) < 90).length >= 3;
+      const atkOk = (ao.aSkWhen === 'always' || (ao.aSkWhen === 'boss' && big(m)) || (ao.aSkWhen === 'pack' && pack)) && (s.mp ?? 0) >= d.maxMp * ao.aMp / 100;
+      if (dist < 150) for (let i = 0; i < 3; i++) {
         const id = currentSkills(s)[i], sk = id ? SKILL_BY_ID[id] : null;
-        if (!sk || (this.skillReady[id] ?? 0) > this.time.now || (s.mp ?? 0) < sk.mp) continue;
+        if (!sk || !ao.aSk[i] || (this.skillReady[id] ?? 0) > this.time.now || (s.mp ?? 0) < sk.mp) continue;
         if (sk.kind === 'heal' && s.hp > d.maxHp * 0.6) continue;
         if (sk.kind === 'shield' && s.hp > d.maxHp * 0.85) continue;
+        if (sk.kind !== 'heal' && sk.kind !== 'shield' && !atkOk) continue;
         if (sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff' && dist > (sk.kind === 'shot' || sk.kind === 'pierce' || sk.kind === 'rain' ? 150 : sk.kind === 'spin' ? 24 + m.m.size * 0.3 : 60)) continue;   // (a spin hits round the hero: wait until the monster is right there — a player saw it wasted)
         this.castSkill(i); return [0, 0];
       }
@@ -2278,7 +2292,7 @@ export class TopDownScene extends Phaser.Scene {
       this.upgRing?.update(Math.round(h.x), Math.round(h.y), time, (h.visible || !!this.riding) && !this.dead);
     }
     {   // ⚔ AUTO's hunting circle on the ground (settings: range)
-      const ar = potOf(S()).aRange, hm = this.autoHome, on = !!ar && !!hm && S().auto && !!this.stageN && !this.wild && hm.n === this.stageN;
+      const ar = autoOf(S(), vipActive(S())).aRange, hm = this.autoHome, on = !!ar && !!hm && S().auto && !!this.stageN && !this.wild && hm.n === this.stageN;
       if (on) { this.autoRing ??= this.add.graphics().setDepth(2); this.autoRing.clear().lineStyle(1.5, 0xffe07a, 0.28 + Math.sin(time / 400) * 0.08).strokeCircle(hm!.x, hm!.y, ar).setVisible(true); }
       else this.autoRing?.setVisible(false);
     }

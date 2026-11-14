@@ -15,18 +15,33 @@ export interface PotSet {
   big: boolean;
   /** VIP: buy a potion by itself when out (else buy by hand with the VIP buttons) */
   vipAuto: boolean;
-  // ⚔ AUTO fighting (player feedback 14 Nov — kept here so it rides the same synced 'pot' save field)
+  // ⚔ AUTO fighting, MMO style (player feedback 14 Nov; director: VIP only — others fight with AUTO_DEFAULT).
+  // Kept here so it rides the same synced 'pot' save field.
   /** hunt only this far (px) from where AUTO was switched on; 0 = the whole map */
   aRange: number;
+  /** which monster next: the nearest, the one with the least HP left, or the toughest */
+  aPick: 'near' | 'weak' | 'strong';
   /** bosses / elites: 'all' = like any monster, 'skip' = leave them alone, 'first' = go for them first */
   aBoss: 'all' | 'skip' | 'first';
+  /** leave monsters another player is fighting alone (no stealing) */
+  aKs: boolean;
+  /** which of the three skill slots AUTO may cast */
+  aSk: [boolean, boolean, boolean];
+  /** attack skills: always, only on a boss / elite, or only when 3+ monsters are close */
+  aSkWhen: 'always' | 'boss' | 'pack';
+  /** keep this much MP (%) — no attack skills below it (heal / shield still allowed) */
+  aMp: number;
   /** walk to loot on the ground */
   aLoot: boolean;
-  /** cast skills by itself */
-  aSkill: boolean;
+  /** out of HP potions: fight on, or walk home */
+  aNoPot: 'fight' | 'home';
+  /** bag full: fight on, stop AUTO, or walk home */
+  aBag: 'fight' | 'stop' | 'home';
 }
-export const POT_DEFAULT: PotSet = { auto: true, hp: 35, mpAuto: false, mp: 20, big: true, vipAuto: true, aRange: 0, aBoss: 'all', aLoot: true, aSkill: true };
-export const RANGE_STEPS = [0, 150, 300, 500];
+export const POT_DEFAULT: PotSet = { auto: true, hp: 35, mpAuto: false, mp: 20, big: true, vipAuto: true, aRange: 0, aPick: 'near', aBoss: 'all', aKs: false, aSk: [true, true, true], aSkWhen: 'always', aMp: 0, aLoot: true, aNoPot: 'fight', aBag: 'fight' };
+export const RANGE_STEPS = [0, 150, 300, 500], MP_KEEP = [0, 20, 40, 60];
+/** the AUTO settings in force: the player's own for a VIP, the plain defaults for everyone else (director) */
+export const autoOf = (s: GameState, vip: boolean): PotSet => (vip ? potOf(s) : { ...potOf(s), ...Object.fromEntries(Object.entries(POT_DEFAULT).filter(([k]) => k.startsWith('a') && k !== 'auto')) } as PotSet);
 export const HP_STEPS = [20, 35, 50, 70], MP_STEPS = [10, 20, 35, 50];
 export const POT_CD = 2500;   // ms between two potions of one kind
 
