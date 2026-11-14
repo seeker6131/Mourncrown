@@ -308,6 +308,7 @@ const EN: Record<string, string> = {
   '🪨 เดินทะลุก้อนหินได้ทุกชนิด ไม่ติดหินอีกแล้ว': '🪨 Walk over every kind of rock — no more getting stuck',
   '🎞 เครื่องกระตุก? ตั้งค่า FPS 30 / กราฟิกต่ำ ได้ที่ เมนู → 🔊 เสียง': '🎞 Laggy? Set 30 FPS / low graphics in Menu → 🔊 Sound',
   '🔧 แก้ดันเจี้ยนรายวันเคลียร์แล้วไม่นับเควสต์ • รูปสกิลในหน้าตัวละครตรงกับปุ่มสกิลแล้ว': '🔧 Fixed daily dungeon clears not counting for quests • skill pictures in the character window now match the skill buttons',
+  '🗺 เลือกแผนที่': '🗺 Map select',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

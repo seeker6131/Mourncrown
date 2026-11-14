@@ -521,7 +521,7 @@ export class TopDownScene extends Phaser.Scene {
     ambience(this, this.inside >= 0 ? 'room' : this.stageN && !this.wild ? this.st.land.ground : this.wild ? 'forest' : 'village');
     // UI lives on its own unzoomed camera
     const ui = [this.vignette, this.label, this.joyG = this.add.graphics(), this.arrowG = this.add.graphics().setDepth(100003),
-      this.arrowT = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: Math.round(this.scale.height / 34) + 'px', color: '#fff4c8', stroke: '#0b0f0c', strokeThickness: 4 }).setOrigin(0.5).setDepth(100003)];
+      ...(this.arrowTs = [0, 1, 2].map(() => this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: Math.round(this.scale.height / 46) + 'px', color: '#fff4c8', stroke: '#0b0f0c', strokeThickness: 3 }).setOrigin(0.5).setDepth(100003)))];
     const uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     uiCam.ignore(this.children.list.filter(o => !ui.includes(o as never)));
     this.uiCam = uiCam;
@@ -1109,7 +1109,7 @@ export class TopDownScene extends Phaser.Scene {
     this.gateSpots = [];
     // (director: right at the map's corners, the two gates well apart — the map-select one along the edge)
     const spot = (cx: number, cy: number) => { let at: { x: number; y: number } | null = null; for (let k = 0; k <= 30 && !at; k++) { const x = cx + (MW / 2 - cx) * k * 0.012, y = cy + (MH / 2 - cy) * k * 0.012; at = this.canStand(x, y) ? { x, y } : null; } return at; };
-    for (const [cx, cy] of [[34, 52], [MW - 34, 52], [34, MH - 30], [MW - 34, MH - 30]]) {
+    for (const [cx, cy] of [[34, 100], [MW - 34, 100], [34, MH - 30], [MW - 34, MH - 30]]) {   // (the top row a little lower: clear of the top bar)
       const at = spot(cx, cy); if (!at) continue;
       const side = at.x < MW / 2 ? 1 : -1, b = spot(cx + side * 300, cy) ?? { x: at.x + side * 300, y: at.y };   // (300 px apart: a player stepped out of one into the other)
       this.addPortal(at.x, at.y, 0, 'กลับหมู่บ้าน'); this.addPortal(b.x, b.y, 'select', 'เลือกแผนที่');
@@ -1473,50 +1473,50 @@ export class TopDownScene extends Phaser.Scene {
       this.tweens.add({ targets: sp, y: sp.y - 30 - Math.random() * 20, alpha: 0, duration: 800 + Math.random() * 500, onComplete: () => sp.destroy() });
     }
   }
-  arrowG!: Phaser.GameObjects.Graphics; arrowT!: Phaser.GameObjects.Text;
-  /** Guide arrow to the portal you should take: the stage gate in the village, the next-stage gate in a stage
-   *  (before the stage is cleared it points to where that gate will open). On screen it bobs above the gate,
-   *  off screen it sits on the screen edge pointing the way. */
+  arrowG!: Phaser.GameObjects.Graphics; arrowTs: Phaser.GameObjects.Text[] = [];
+  /** Guide arrows (director: smaller, and smarter): the tutorial / dungeon target alone; otherwise the nearest gate home
+   *  (green) and the nearest map-select gate (gold) — whichever corner you run toward, its gates are the ones shown — and
+   *  a roaming boss (red) while one is alive. On screen an arrow bobs above the target; off screen it sits on the screen
+   *  edge pointing the way, with the distance. */
   updateGuide(time: number) {
-    const g = this.arrowG, t = this.arrowT; g.clear(); t.setVisible(false);
+    const g = this.arrowG; g.clear(); for (const t of this.arrowTs) t.setVisible(false);
     if (this.dead || this.selectUi || this.ui?.panels.isOpen) return;
-    let tx: number, ty: number, label: string;
-    const next = this.portals.find(p => p.to === 'select');
-    const boss = this.stageN ? this.combat.mons.find(m => m.boss && m.alive) : null;
-    const tut = this.tutTarget();
-    const dm = this.dungeon && !this.dDone ? this.combat.nearest(9999)[0] : null;
-    if (tut) { tx = tut.x; ty = tut.y; label = tut.label; }
-    else if (dm) { tx = dm.x; ty = dm.y; label = dm.boss ? `👑 ${dm.m.name}` : dm.m.name; }
-    else if (next) { tx = next.x; ty = next.y; label = 'ประตูแผนที่'; }
-    else if (boss) { tx = boss.x; ty = boss.y; label = `${boss.wb ? '👹' : '👑'} ${boss.m.name}`; }   // farming maps: point at the (roaming) boss while it is alive
-    else return;
-    const cam = this.cameras.main, z = cam.zoom, W = this.scale.width, H = this.scale.height;
-    const sx = (tx - cam.worldView.x) * z, sy = (ty - cam.worldView.y) * z;
-    const dist = Math.round(Math.hypot(tx - this.hero.x, ty - this.hero.y) / 16);
-    const sz = H / 22, bob = Math.sin(time / 180) * sz * 0.25;
-    const col = 0xffd24a;
-    const m = sz * 2.2;
-    if (sx > m && sx < W - m && sy > m && sy < H - m) {
-      // on screen: a bouncing arrow pointing down at the gate
-      const ax = sx, ay = sy - sz * 3.2 + bob;
-      g.fillStyle(0x0b0f0c, 0.6).fillTriangle(ax - sz * 0.75, ay - sz * 0.5 + 2, ax + sz * 0.75, ay - sz * 0.5 + 2, ax, ay + sz * 0.7 + 2);
-      g.fillStyle(col, 1).fillTriangle(ax - sz * 0.7, ay - sz * 0.5, ax + sz * 0.7, ay - sz * 0.5, ax, ay + sz * 0.6);
-      t.setText(label).setPosition(ax, ay - sz * 1.3).setVisible(true);
-      return;
+    const h = this.hero, near = (to: number | 'select') => this.portals.filter(p => p.to === to).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y))[0];
+    const tut = this.tutTarget(), dm = this.dungeon && !this.dDone ? this.combat.nearest(9999)[0] : null;
+    const list: { x: number; y: number; label: string; col: number }[] = [];
+    if (tut) list.push({ x: tut.x, y: tut.y, label: tut.label, col: 0xffd24a });
+    else if (dm) list.push({ x: dm.x, y: dm.y, label: dm.boss ? `👑 ${dm.m.name}` : dm.m.name, col: 0xff8a5a });
+    else if (!this.townRaid) {
+      const sel = near('select'), home = this.stageN ? near(0) : undefined;
+      if (home) list.push({ x: home.x, y: home.y, label: '🏠 กลับบ้าน', col: 0x7aff9a });
+      if (sel) list.push({ x: sel.x, y: sel.y, label: this.stageN ? '🗺 เลือกแผนที่' : 'ประตูแผนที่', col: 0xffd24a });
+      const boss = this.stageN ? this.combat.mons.find(m => m.boss && m.alive) : null;
+      if (boss) list.push({ x: boss.x, y: boss.y, label: `${boss.wb ? '👹' : '👑'} ${boss.m.name}`, col: 0xff6a5a });
     }
-    // off screen: arrow on the screen edge in the direction of the gate
-    const cx = W / 2, cy = H / 2, a = Math.atan2(sy - cy, sx - cx);
-    const top = H * 0.2;   // stay clear of the HUD strip
-    const k = Math.min((W / 2 - m) / Math.max(1e-6, Math.abs(Math.cos(a))), ((Math.sin(a) < 0 ? H / 2 - top : H / 2 - m)) / Math.max(1e-6, Math.abs(Math.sin(a))));
-    const ax = cx + Math.cos(a) * (k + bob * 0.6), ay = cy + Math.sin(a) * (k + bob * 0.6);
-    const pt = (r: number, da: number) => [ax + Math.cos(a + da) * r, ay + Math.sin(a + da) * r] as const;
-    const [x1, y1] = pt(sz, 0), [x2, y2] = pt(sz * 0.8, 2.4), [x3, y3] = pt(sz * 0.8, -2.4);
-    g.fillStyle(0x0b0f0c, 0.6).fillCircle(ax, ay, sz * 1.05);
-    g.fillStyle(col, 1).fillTriangle(x1, y1, x2, y2, x3, y3);
-    t.setText(`${label} ${dist} ก้าว`);
-    const hw = t.width / 2 + 8;
-    const lx = Phaser.Math.Clamp(ax - Math.cos(a) * (sz * 1.6 + hw * Math.abs(Math.cos(a))), hw, W - hw), ly = Phaser.Math.Clamp(ay - Math.sin(a) * sz * 1.9, top, H - sz * 1.5);
-    t.setPosition(lx, ly).setVisible(true);
+    const cam = this.cameras.main, z = cam.zoom, W = this.scale.width, H = this.scale.height;
+    const sz = H / 36, m = sz * 2.4, top = H * 0.2;
+    list.slice(0, 3).forEach((o, i) => {
+      const t = this.arrowTs[i], sx = (o.x - cam.worldView.x) * z, sy = (o.y - cam.worldView.y) * z;
+      const dist = Math.round(Math.hypot(o.x - h.x, o.y - h.y) / 16), bob = Math.sin(time / 180 + i) * sz * 0.25;
+      if (sx > m && sx < W - m && sy - sz * 4.5 > top && sy < H - m) {   // on screen (below the top bar): a small bouncing arrow over it
+        const ax = sx, ay = sy - sz * 3 + bob;
+        g.fillStyle(0x0b0f0c, 0.6).fillTriangle(ax - sz * 0.75, ay - sz * 0.5 + 2, ax + sz * 0.75, ay - sz * 0.5 + 2, ax, ay + sz * 0.7 + 2);
+        g.fillStyle(o.col, 1).fillTriangle(ax - sz * 0.7, ay - sz * 0.5, ax + sz * 0.7, ay - sz * 0.5, ax, ay + sz * 0.6);
+        t.setText(o.label).setPosition(ax, ay - sz * 1.3).setVisible(true); return;
+      }
+      // off screen: on the screen edge, pointing the way
+      const cx = W / 2, cy = H / 2, a = Math.atan2(sy - cy, sx - cx);
+      const k = Math.min((W / 2 - m) / Math.max(1e-6, Math.abs(Math.cos(a))), ((Math.sin(a) < 0 ? H / 2 - top : H / 2 - m)) / Math.max(1e-6, Math.abs(Math.sin(a))));
+      const ax = cx + Math.cos(a) * (k + bob * 0.6), ay = cy + Math.sin(a) * (k + bob * 0.6);
+      const pt = (r: number, da: number) => [ax + Math.cos(a + da) * r, ay + Math.sin(a + da) * r] as const;
+      const [x1, y1] = pt(sz, 0), [x2, y2] = pt(sz * 0.8, 2.4), [x3, y3] = pt(sz * 0.8, -2.4);
+      g.fillStyle(0x0b0f0c, 0.6).fillCircle(ax, ay, sz * 1.05);
+      g.fillStyle(o.col, 1).fillTriangle(x1, y1, x2, y2, x3, y3);
+      t.setText(`${o.label} ${dist} ก้าว`);
+      const hw = t.width / 2 + 6;
+      const lx = Phaser.Math.Clamp(ax - Math.cos(a) * (sz * 1.6 + hw * Math.abs(Math.cos(a))), hw, W - hw), ly = Phaser.Math.Clamp(ay - Math.sin(a) * sz * 1.9, top, H - sz * 1.5);
+      t.setPosition(lx, ly).setVisible(true);
+    });
   }
   heroKeyNow = '';
   lastLevel = 0;
