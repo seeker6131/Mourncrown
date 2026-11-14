@@ -9,7 +9,8 @@ import { addItem } from './inventory';
 import type { GameState } from '../core/state';
 import type { TownBld } from './town';
 
-export const RAID_SECS = 180;
+/** director (2026-11-14, after the first test): 6 waves × 100, fast, tougher every wave — 5 minutes to hold */
+export const RAID_SECS = 300;
 /** the raid map's size and where the five central buildings stand on it (the same on the server and in every game) */
 export const RAID_W = 1536, RAID_H = 1024;
 export const RAID_BLD: { bid: TownBld; x: number; y: number }[] = [
@@ -18,20 +19,27 @@ export const RAID_BLD: { bid: TownBld; x: number; y: number }[] = [
 ];
 /** where the monsters come from: the four edges of the map */
 export const RAID_GATES = [{ x: 70, y: 512 }, { x: 1466, y: 512 }, { x: 768, y: 70 }, { x: 768, y: 960 }];
-/** monsters in the whole raid for this many defenders (director: few players → fewer and weaker) — 1 ≈ 15 … 8+ ≈ 78 */
-export const raidCount = (defenders: number) => Math.min(80, 15 + 9 * (Math.max(1, Math.min(8, defenders)) - 1));
+/** the waves: this many, this many monsters each (director: 6 × 100) */
+export const RAID_WAVES = 6, RAID_WAVE_SIZE = 100, RAID_WAVE_GAP = 35000;
+export const raidTotal = () => RAID_WAVES * RAID_WAVE_SIZE;
+/** a wave walks in as groups of 25, 2 seconds apart, each from one edge (director) */
+export const RAID_GROUP = 25, RAID_GROUP_GAP = 2000;
+/** at most this many on the map at once (phones + the room's message); the rest wait at the edges and come as room frees */
+export const RAID_ALIVE_MAX = 120;
+/** toughness by wave (1st ×1.6 … 6th ×4.1 of a normal monster's HP) */
+export const raidWaveHp = (wave: number) => 1.6 + 0.5 * Math.max(0, wave);
+/** run speed: much faster than a normal monster, a little faster each wave */
+export const raidSpeed = (base: number, wave: number) => (base + 30) * 1.6 + wave * 6;
 /** their HP: weaker when few defend */
 export const raidHpMult = (defenders: number) => defenders <= 1 ? 0.6 : defenders <= 2 ? 0.75 : defenders <= 4 ? 0.9 : 1;
-/** the waves: the raid's monsters come in this many groups, this far apart */
-export const RAID_WAVES = 4, RAID_WAVE_GAP = 30000;
 /** a share of them go for the buildings (the rest for the heroes) */
 export const RAID_BLD_SHARE = 0.55;
 /** a building's HP: each blow at a building takes 1 — enough that a defended village loses 0–1, an undefended one most */
-export const raidBldHp = (count: number) => Math.max(60, Math.round(count * 9));
+export const raidBldHp = (_count: number) => 2000;   // (measured: up to 120 raiders on the map wear an undefended outer building down in ~3 min)
 /** every raider hits a hero this hard (the same for every kind): ~0.45 of a normal monster of that level */
 export const raidAtk = (lv: number) => Math.max(4, Math.round(scaleStats(MONSTERS.wolf, Math.max(1, lv), false).atk * 0.45));
 /** a raider's HP at this level */
-export const raidHp = (kind: keyof typeof MONSTERS, lv: number, defenders: number) => Math.max(1, Math.round(scaleStats(MONSTERS[kind], Math.max(1, lv), false).hp * raidHpMult(defenders)));
+export const raidHp = (kind: keyof typeof MONSTERS, lv: number, defenders: number, wave = 0) => Math.max(1, Math.round(scaleStats(MONSTERS[kind], Math.max(1, lv), false).hp * raidHpMult(defenders) * raidWaveHp(wave)));
 /** kills needed for the defender's chest */
 export const RAID_MIN_KILLS = 5;
 

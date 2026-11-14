@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MapSim, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { RAID, RAID_LAND } from '../src/world/stages';
-import { raidCount, RAID_SECS, raidChest, RAID_W, RAID_H } from '../src/systems/townRaid';
+import { raidTotal, RAID_SECS, raidChest, RAID_W, RAID_H, RAID_ALIVE_MAX, raidWaveHp } from '../src/systems/townRaid';
 import { handlers, useMem, newMem } from '../src/server/handlers';
 import { startNewGame } from '../src/core/save';
 import { addItem } from '../src/systems/inventory';
@@ -15,12 +15,12 @@ const run = (sim: MapSim, from: number, secs: number, players: SimPlayer[], each
 };
 
 describe('⚔ village raid (the room runs it)', () => {
-  it('nobody defends: monsters come in waves (15 for one hero), break buildings, it ends in 3 minutes', () => {
+  it('nobody defends: waves pile up (never more than the cap on the map), buildings break, it ends on time', () => {
     const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000;
     const me: SimPlayer = { id: 'a', x: 1500, y: 1000, hp: 100, lv: 30 };   // (far in a corner)
     sim.startRaid(at, [me]); run(sim, at, RAID_SECS + 1, [me]);
     const r = sim.raid!;
-    expect(r.total).toBe(raidCount(1)); expect(r.spawned).toBe(r.total); expect(r.done).toBe(true); expect(r.won).toBe(false);
+    expect(r.total).toBe(600); expect(r.spawned).toBe(RAID_ALIVE_MAX); expect(r.done).toBe(true); expect(r.won).toBe(false);
     expect(r.blds.filter(b => b.hp <= 0).length).toBeGreaterThanOrEqual(1); expect(r.blds.reduce((a, b) => a + b.max - b.hp, 0)).toBeGreaterThan(r.blds[0].max * 2);   // an undefended village loses buildings
     expect(sim.mons.size).toBe(0);
   });
@@ -31,13 +31,21 @@ describe('⚔ village raid (the room runs it)', () => {
     const r = sim.raid!;
     expect(r.done).toBe(true); expect(r.won).toBe(true); expect(r.blds.every(b => b.hp > 0)).toBe(true); expect(r.kills.a).toBe(r.total);
   });
-  it('more defenders: more monsters (up to 80); hero-hunters go for the heroes', () => {
-    expect(raidCount(1)).toBe(15); expect(raidCount(5)).toBe(51); expect(raidCount(20)).toBe(78);
+  it('6 waves × 100, each tougher; hero-hunters go for the heroes', () => {
+    expect(raidTotal()).toBe(600); expect(raidWaveHp(5)).toBeGreaterThan(raidWaveHp(0) * 2);
     const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000;
     const ps: SimPlayer[] = [0, 1, 2].map(i => ({ id: 'p' + i, x: 760 + i * 10, y: 590, hp: 100, lv: 20 }));
     sim.startRaid(at, ps); const hits = run(sim, at, 40, ps);
-    expect(sim.raid!.total).toBe(raidCount(3)); expect(hits.length).toBeGreaterThan(0);
+    expect(sim.raid!.total).toBe(600); expect(hits.length).toBeGreaterThan(0);
     expect([...sim.mons.values()].every(m => RAID_LAND.mobs.includes(m.mob) && !m.boss)).toBe(true);   // small monsters only, no bosses
+  });
+  it('a wave walks in 25 at a time, 2 seconds apart, each group from one edge', () => {
+    const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, me: SimPlayer = { id: 'a', x: 768, y: 590, hp: 100, lv: 20 };
+    sim.startRaid(at, [me]);
+    sim.run(at, [me]); expect(sim.mons.size).toBe(25);
+    sim.run(at + 1000, [me]); expect(sim.mons.size).toBe(25);
+    sim.run(at + 2000, [me]); expect(sim.mons.size).toBe(50);
+    sim.run(at + 6000, [me]); expect(sim.mons.size).toBe(100);
   });
   it('a fallen hero (hp 0) is left alone', () => {
     const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, dead: SimPlayer = { id: 'd', x: 768, y: 590, hp: 0, lv: 20 };

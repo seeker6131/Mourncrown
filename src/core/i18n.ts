@@ -267,6 +267,7 @@ const EN: Record<string, string> = {
   'หลอมของ / ตีบวก': 'crafting / upgrading',
   'เก็บอาหารจากคอกสัตว์': 'collecting food from the barn',
   'โบนัส EXP ของโรงเตี๊ยม': 'the tavern EXP bonus',
+  'คลื่นที่': 'Wave', 'มาแล้ว! ถึกขึ้นอีก': 'is here! Even tougher',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

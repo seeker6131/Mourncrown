@@ -572,7 +572,7 @@ export class Room {
     if (r.done && r.told) return;
     if (now - this.rsT >= 400 || r.done) {   // the buildings' HP and the clock, for every game here
       this.rsT = now; const left = [...sim.mons.values()].filter(m => m.alive).length;
-      const t = JSON.stringify({ t: 'rs', at: r.at, end: r.end, b: r.blds.map(b => [b.bid, b.hp, b.max]), n: left, tot: r.total, sp: r.spawned, done: r.done ? 1 : 0 });
+      const t = JSON.stringify({ t: 'rs', at: r.at, end: r.end, b: r.blds.map(b => [b.bid, b.hp, b.max]), n: left, tot: r.total, sp: r.spawned, w: r.wave, done: r.done ? 1 : 0 });
       for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } }
     }
     if (r.done && !r.told) { r.told = true; this.raidEnd(r); }
