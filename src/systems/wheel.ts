@@ -9,7 +9,7 @@ import { makeGear, GEAR_BASES } from './loot';
 import { ITEMS } from '../data/items';
 
 /** open to players? (director: not until approved — the admin account can already try it) */
-export const WHEEL_OPEN = false;
+export const WHEEL_OPEN = true;   // (opened 2026-11-14, director)
 export const WHEEL_PRICE = 2000;
 /** the wheel's segments (what is drawn: `item` = whose icon, '' = gear of that rarity / resources); `w` = the weight out of 1000 (never shown) */
 export const WHEEL_SEGS = [
