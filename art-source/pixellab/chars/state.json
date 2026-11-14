@@ -1072,5 +1072,14 @@
  "gd_sword": {
   "cid": "bf136d67-36c0-4b37-8dc5-8971a0d46d16",
   "zip": 1
+ },
+ "mt_wolf": {
+  "cid": "bacea69a-cda4-452e-a0bf-edd0b3ac6cea"
+ },
+ "mt_stag": {
+  "cid": "a16c3cf4-1ace-4f2f-a083-22ec3a28ef02"
+ },
+ "mt_bear": {
+  "cid": "aaa5f13b-2687-4976-a8e4-2b2baa158d36"
  }
 }

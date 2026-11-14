@@ -8,6 +8,12 @@ import gen_chars as G
 PL = ', top-down pixel art, muted desaturated dark-forest colours, soft shading'
 MOUNTS = {   # key: (size, quadruped template, description)
     'mt_horse': (80, 'horse', 'a sturdy brown riding horse with a dark mane, an EMPTY brown leather saddle and bridle on its back, nobody riding it, standing calmly'),
+    # 5 more (director 14 Nov): Legend 140% wolf / bear, SL 145% stag / panther, Limited 150% nightmare
+    'mt_wolf': (76, 'dog', 'a huge riding dire wolf with dark grey and black fur, pale glowing blue eyes, an EMPTY dark leather saddle with straps on its back, nobody riding it, standing proudly'),
+    'mt_stag': (84, 'horse', 'a large white spirit stag with huge antlers glowing soft green and wrapped in vines, an EMPTY carved wooden saddle with green cloth on its back, nobody riding it, standing calmly'),
+    'mt_bear': (84, 'bear', 'a huge brown war bear wearing iron armour plates on its head and shoulders, an EMPTY heavy leather war saddle on its back, nobody riding it, standing on four legs'),
+    'mt_panther': (76, 'lion', 'a sleek black panther with faint purple stripes and glowing yellow eyes, an EMPTY slim purple leather saddle on its back, nobody riding it, standing on four legs'),
+    'mt_nightmare': (80, 'horse', 'a black nightmare horse with a burning violet flame mane and flame tail, glowing red eyes, dark iron horseshoes, an EMPTY black and silver saddle on its back, nobody riding it, standing proudly'),
     'mt_dragon': (88, 'lion', 'a young four-legged riding dragon with emerald green scales, golden belly, small folded wings, short horns, an EMPTY ornate red-and-gold saddle on its back, nobody riding it, proud and majestic'),
 }
 def bal(): return P.call('GET', '/balance')['credits']['usd']
