@@ -40,7 +40,7 @@ out = os.path.join(ROOT, 'server', '.build', 'worker.js'); os.makedirs(os.path.d
 subprocess.run([os.path.join(ROOT, 'node_modules', '.bin', 'esbuild'), os.path.join(ROOT, 'server', 'worker.ts'), '--bundle', '--format=esm',
                 '--target=es2022', '--platform=neutral', '--minify', '--outfile=' + out], check=True)
 code = open(out, 'rb').read()
-meta = {'main_module': 'worker.js', 'compatibility_date': '2025-01-01',
+meta = {'main_module': 'worker.js', 'compatibility_date': '2025-01-01', 'keep_bindings': ['secret_text', 'secret_key'],   # keep secrets the director adds in the dashboard (THUNDER_API_KEY)
         'bindings': [{'type': 'd1', 'name': 'DB', 'id': cfg['db']}, {'type': 'durable_object_namespace', 'name': 'ROOM', 'class_name': 'Room'}, {'type': 'durable_object_namespace', 'name': 'PLAYER', 'class_name': 'Player'}, {'type': 'durable_object_namespace', 'name': 'GUILD', 'class_name': 'Guild'}]
                     + ([{'type': 'plain_text', 'name': 'GOOGLE_CLIENT_ID', 'text': cfg['googleClientId']}] if cfg.get('googleClientId') else [])
                     + [{'type': 'plain_text', 'name': 'ADMINS', 'text': ','.join(cfg.get('admins', []))}]
