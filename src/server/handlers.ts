@@ -10,6 +10,7 @@ import { fillRooms, pickRoom } from '../systems/rooms';
 import { startWar, warTick, warHit, warKill, warEnd, warDone } from '../systems/war';
 import { buyMount, selectMount, grantMount, hasMount } from '../systems/mounts';
 import { setCosmetic, type CosKind } from '../systems/cosmetics';
+import { createChar, switchChar, buySlot, nameOk, giveToChar } from '../systems/chars';
 import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
 import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
@@ -327,7 +328,12 @@ export const handlers = {
   /** mounts: buy the horse with gold, choose what you ride (the dragon only comes from playing) */
   mountBuy: (s: GameState, a: { id: MountId }) => buyMount(s, a.id),
   mountSelect: (s: GameState, a: { id: MountId | null }) => selectMount(s, a.id),
-  cosmetic: (s: GameState, a: { k: CosKind; on: boolean }) => setCosmetic(s, a.k, !!a.on),   // (the diamond wheel's looks: on / off)
+  cosmetic: (s: GameState, a: { k: CosKind; on: boolean }) => setCosmetic(s, a.k, !!a.on),
+  // 👥 characters on the account (systems/chars.ts) — online the server's own checks (unique names, the shown name) run first
+  charCreate: (s: GameState, a: { name: string }) => { const n = String(a.name ?? '').trim(); if (!nameOk(n)) return no('name'); return createChar(s, n); },
+  charSwitch: (s: GameState, a: { slot: number }) => { const r = switchChar(s, Number(a.slot)); return 'refused' in r ? r : { ok: true as const, st: s }; },
+  charSlotBuy: (s: GameState) => buySlot(s),
+  charGive: (s: GameState, a: { uid: number; slot: number; qty?: number }) => giveToChar(s, Number(a.uid), Number(a.slot), Number(a.qty) || 0),   // (the diamond wheel's looks: on / off)
   /** guild war (mixed): the server runs the whole war; heroes add hits / kills (systems/war.ts) */
   warStart(s: GameState, a: { id: string }, c: Ctx) { const r = startWar(s, a.id, c.now); if (!('refused' in r)) { mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; } return r; },
   warSync: (s: GameState, _a: object, c: Ctx) => ({ war: warTick(s, c.now) }),

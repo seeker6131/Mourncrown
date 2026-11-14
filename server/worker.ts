@@ -18,6 +18,7 @@ import { CBT_ACTIVE, cbtGot } from '../src/systems/cbtGift';
 import { GUILD_MAX } from '../src/data/guild';
 import { packOf, packDiamonds, qrCheck, qrWithAmount, slipVerdict, SLIP_PER_HOUR, type SlipData } from '../src/systems/topup';
 import { grantDiamonds, grantVip } from '../src/systems/premium';
+import { charList, createChar, switchChar } from '../src/systems/chars';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
 // not yet decide the rules; step 2 moves src/server/handlers.ts here (docs/ONLINE_RISKS.md).
@@ -394,6 +395,7 @@ export default {
         if (me.name) return json(req, { error: 'set', name: me.name }, 409);
         const body = await req.json().catch(() => ({})) as { name?: string };
         const n = cleanName(body.name); if (!n) return json(req, { error: 'bad' }, 400);
+        if (await env.DB.prepare('SELECT 1 AS x FROM char_names WHERE name_key = ? AND id <> ?').bind(n.toLowerCase(), me.id).first()) return json(req, { error: 'taken' }, 409);   // (another account's other character)
         try { await env.DB.prepare('UPDATE accounts SET name = ?, name_key = ? WHERE id = ? AND name IS NULL').bind(n, n.toLowerCase(), me.id).run(); }
         catch { return json(req, { error: 'taken' }, 409); }
         return json(req, { name: n });
@@ -763,6 +765,25 @@ export class Player {
     if (res.guild === null) { delete this.st!.guild; delete this.st!.guildId; } else if (res.guild) this.st!.guild = res.guild;
     return { r: res.r, own: this.diff(b) };
   }
+  /** 👥 a new character (its name unique across the whole server) / play another one (the name others see follows it) */
+  private async chars(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
+    const DB = this.env.DB, st = this.st as unknown as GameState, b = this.snap();
+    { const acc = await DB.prepare('SELECT name FROM accounts WHERE id = ?').bind(this.id).first<{ name: string | null }>(); if (acc?.name) st.name = acc.name; else return { r: { refused: 'noname' }, own: {} }; }   // (the account's name is the truth for the character being played; a guest without a name sets one first)
+    if (name === 'charCreate') {
+      const n = cleanName(a.name); if (!n) return { r: { refused: 'name' }, own: {} };
+      const k = n.toLowerCase();
+      if (charList(st).some(c => c.name.toLowerCase() === k) || await DB.prepare('SELECT 1 AS x FROM accounts WHERE name_key = ? AND id <> ? UNION ALL SELECT 1 AS x FROM char_names WHERE name_key = ? AND id <> ?').bind(k, this.id, k, this.id).first()) return { r: { refused: 'taken' }, own: {} };
+      // (every character's name is kept for this account — nobody can take one while another character is being played)
+      for (const c of charList(st)) if (c.name) await DB.prepare('INSERT OR IGNORE INTO char_names (name_key, id, slot, name) VALUES (?, ?, ?, ?)').bind(c.name.toLowerCase(), this.id, c.slot, c.name).run();
+      const r = createChar(st, n); if ('refused' in r) return { r, own: {} };
+      try { await DB.prepare('INSERT INTO char_names (name_key, id, slot, name) VALUES (?, ?, ?, ?)').bind(k, this.id, r.slot, n).run(); }
+      catch { delete (st as unknown as { alts: Record<string, unknown> }).alts[String(r.slot)]; return { r: { refused: 'taken' }, own: {} }; }
+      return { r: { ok: true, slot: r.slot }, own: this.diff(b) };
+    }
+    const r = switchChar(st, Number(a.slot)); if ('refused' in r) return { r, own: {} };
+    try { await DB.prepare('UPDATE accounts SET name = ?, name_key = ? WHERE id = ?').bind(st.name || null, st.name ? st.name.toLowerCase() : null, this.id).run(); } catch { /* (a clash: the old name stays shown until the next switch) */ }
+    return { r: { ok: true, st: this.st }, own: this.diff(b) };   // (the game takes the whole state and starts over in the village)
+  }
   /** found / find / join / leave a real guild */
   private async guildMeta(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
     const DB = this.env.DB, now = Date.now(), b = this.snap(), st = this.st as St & { guild?: St & { id: string; name: string; members: { id: string; name: string }[] }; guildId?: string; name?: string };
@@ -998,6 +1019,7 @@ export class Player {
     const out = MARKET.has(m.name) ? await this.market(m.name, (m.args ?? {}) as Record<string, unknown>)
       : CBT.has(m.name) ? await this.cbt(m.name)
       : ['guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave'].includes(m.name) ? await this.guildMeta(m.name, (m.args ?? {}) as Record<string, unknown>)
+      : ['charCreate', 'charSwitch'].includes(m.name) ? await this.chars(m.name, (m.args ?? {}) as Record<string, unknown>)
       : gid && GUILD_ACTS.has(m.name) ? await this.guildAct(gid, m.name, m.args) : this.run(m.name, m.args);
     this.eAdd(m.name, eb);
     if (Object.keys(out.own).length) { await this.later(); await this.eFlush(); }

@@ -50,6 +50,8 @@ import { mailOf, mailWaiting, hasGift, mailLive, giftText } from '../systems/mai
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { openTopup } from './topupDom';
+import { askCharName } from './charDom';
+import { charList, slotCount, MAX_SLOTS, SLOT_PRICE } from '../systems/chars';
 import { TICKET_PRICES } from '../server/handlers';
 import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKind } from '../systems/cosmetics';
 import { SKIN_TINT } from '../world/mount';
@@ -65,7 +67,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt' | 'wheel' | 'pick' | 'dwheel';
+type PanelId = 'chars' | 'charsend' | 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt' | 'wheel' | 'pick' | 'dwheel';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -183,6 +185,8 @@ export class Panels implements GuildHost {
       case 'trophy': buildTrophy(this, c); break;
       case 'bounty': this.buildBounty(c); break;
       case 'mounts': this.buildMounts(c); break;
+      case 'chars': this.buildChars(c); break;
+      case 'charsend': this.buildCharSend(c); break;
       case 'cbt': this.buildCbt(c); break;
       case 'mail': this.buildMail(c); break;
     }
@@ -533,6 +537,107 @@ export class Panels implements GuildHost {
       kinds.forEach((q, i) => { const isOn = cosOn(s, q); c.add(k.button(x + 92 + i * (bw + 6), ry - 4, bw, 22, `${NAMES[q]}: ${isOn ? 'เปิด' : 'ปิด'}`, () => { act('cosmetic', { k: q, on: !isOn }); sfx.click(); bus.emit(EV.STATE_CHANGED); saveGame(s); this.rebuild(); }, { size: 8.5, color: isOn ? 0x1f4a2a : 0x3a2a2a })); });
       c.add(k.text(x + 16, ry + 22, (aura ? `🌩 ออร่าพายุ เหลือ ${Math.floor(aura / 86400000)} วัน ${Math.floor(aura / 3600000) % 24} ชม. • ` : '') + (kinds.includes('pet') ? 'เมฆพายุ: วิ่งเร็วขึ้น 5% + ⚡ ลูกศรชี้ทางไปบอสเร่ร่อน และบอกเมื่อบอสโผล่แผนที่อื่น' : '') + (kinds.includes('horse') ? ' • ม้าดำนิล: วิ่งเร็วขึ้น 35% (ม้าปกติ 30%)' : ''), 7.5, '#c8b898', { wordWrap: { width: W - 32 } }));
     }
+  }
+  /** 👥 the account's characters (systems/chars.ts): play another, make a new one, buy a slot; the shared house chest */
+  buildChars(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, list = charList(s), slots = slotCount(s);
+    const W = Math.min(560, ui.VW - 16), H = 300, { x, y, g } = this.window(c, W, H, '👥 ตัวละครของฉัน');
+    const td = (ui as unknown as { td?: { stageN?: number; dungeon?: unknown; raid?: unknown; defense?: unknown; warSide?: unknown; inside?: number } }).td;
+    const canSwitch = !!td && !td.stageN && !td.dungeon && !td.raid && !td.defense && !td.warSide;
+    const CLS: Record<string, string> = { novice: 'ชาวบ้าน', sword: 'สายดาบ', archer: 'สายธนู', mage: 'สายเวท', cleric: 'สายผู้พิทักษ์' };
+    const rh = 40;
+    for (let i = 1; i <= MAX_SLOTS; i++) {
+      const ch = list.find(q => q.slot === i), cy = y + 32 + (i - 1) * (rh + 6), rx = x + 14, rw = W - 28;
+      g.fillStyle(ch?.active ? 0x2a3a1a : 0x22180f, 0.95).fillRoundedRect(rx, cy, rw, rh, 5).lineStyle(1, ch?.active ? 0x9fffb0 : 0x5a4a3a, 1).strokeRoundedRect(rx, cy, rw, rh, 5);
+      c.add(k.text(rx + 10, cy + 6, `ช่อง ${i}`, 8, '#a89878'));
+      if (ch) {
+        c.add(k.text(rx + 54, cy + 5, ch.name || '(ไม่มีชื่อ)', 11, '#ffe7a0'));
+        c.add(k.text(rx + 54, cy + 22, `${CLS[ch.cls] ?? ch.cls}${ch.cls !== 'novice' ? ` • ${formName(ch.cls as ClassId, ch.tier)}` : ''} • Lv ${ch.level}`, 8, '#c8b898'));
+        if (ch.active) c.add(k.text(rx + rw - 10, cy + 13, '✅ กำลังเล่น', 9, '#9fffb0').setOrigin(1, 0));
+        else c.add(k.button(rx + rw - 130, cy + 8, 120, 24, '▶ เล่นตัวนี้', () => {
+          if (!canSwitch) { bus.emit(EV.TOAST, 'สลับตัวละครได้เฉพาะในหมู่บ้าน', '#ff9a6a'); return; }
+          if (this.busyAct) return; this.busyAct = true;
+          actServer('charSwitch', { slot: ch.slot }).then(r => {
+            this.busyAct = false;
+            if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, 'สลับตัวละครไม่สำเร็จ ลองใหม่', '#ff9a6a'); return; }
+            const st = (r as unknown as { st: Record<string, unknown> }).st, cur = S() as unknown as Record<string, unknown>;   // (the whole state of the chosen character: start over with it)
+            for (const key of Object.keys(cur)) delete cur[key]; Object.assign(cur, st); saveGame(S());
+            bus.emit(EV.TOAST, `👥 กำลังสลับเป็น ${ch.name}...`, '#ffe7a0'); setTimeout(() => location.reload(), 400);
+          });
+        }, { size: 9.5, color: 0x1f4a2a }));
+      } else if (i <= slots) {
+        c.add(k.button(rx + 54, cy + 8, rw - 64, 24, '➕ สร้างตัวละครใหม่ (ฟรี)', () => askCharName(() => { sfx.levelUp(); bus.emit(EV.TOAST, 'สร้างตัวละครแล้ว — กด ▶ เล่นตัวนี้ เพื่อสลับไปเล่น', '#9fffb0'); this.rebuild(); }), { size: 9.5, color: 0x2a4a6a }));
+      } else {
+        c.add(k.button(rx + 54, cy + 8, rw - 64, 24, i === slots + 1 ? `🔒 ซื้อช่องตัวละคร 💎${SLOT_PRICE}` : '🔒 ปลดช่องก่อนหน้าก่อน', () => {
+          if (i !== slots + 1 || this.busyAct) return; this.busyAct = true;
+          actServer('charSlotBuy', undefined).then(r => { this.busyAct = false;
+            if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'diamonds' ? `เพชรไม่พอ (ต้องใช้ 💎${SLOT_PRICE})` : 'ซื้อไม่ได้', '#ff9a6a'); }
+            else { sfx.coin(); bus.emit(EV.TOAST, 'ปลดช่องตัวละครแล้ว!', '#9fffb0'); saveGame(S()); bus.emit(EV.STATE_CHANGED); }
+            this.rebuild(); });
+        }, { size: 9.5, color: 0x3a2a4a, disabled: i !== slots + 1 }));
+      }
+    }
+    const fy = y + 32 + MAX_SLOTS * (rh + 6) + 2;
+    c.add(k.text(x + 16, fy, '🤝 ใช้ร่วมกัน: ทอง เพชร VIP หมู่บ้าน หีบเก็บของ พาหนะ ของพิเศษ • แยกกัน: อาชีพ เลเวล อุปกรณ์ กระเป๋า สกิล เควส', 7.5, '#c8b898', { wordWrap: { width: W - 180 } }));
+    c.add(k.button(x + W - 160, fy - 2, 146, 24, '📤 ส่งของให้ตัวละคร', () => this.open('charsend'), { size: 9, color: 0x1f4a5a }));
+    c.add(k.button(x + W - 160, fy + 24, 146, 22, '📦 หีบเก็บของรวม', () => this.open('stash'), { size: 8.5, color: 0x4a3a10 }));
+  }
+  /** 📤 send items to another of the account's characters: pick who, tap an item, send (straight into their bag) */
+  sendTo = 0; sendUid = -1; sendQty = 1;
+  buildCharSend(c: Phaser.GameObjects.Container) {
+    const s = S(), ui = this.ui, k = this.k, others = charList(s).filter(q => !q.active);
+    const W = Math.min(640, ui.VW - 16), H = 320, { x, y, g } = this.window(c, W, H, '📤 ส่งของให้ตัวละคร');
+    if (!others.length) {
+      c.add(k.text(x + W / 2, y + H / 2 - 16, 'ยังไม่มีตัวละครอื่นในไอดีนี้', 11, '#e8dcc0').setOrigin(0.5));
+      c.add(k.button(x + W / 2 - 100, y + H / 2 + 6, 200, 26, '👥 สร้างตัวละครใหม่', () => this.open('chars'), { size: 10, color: 0x2a4a6a })); return;
+    }
+    if (!others.some(q => q.slot === this.sendTo)) this.sendTo = others[0].slot;
+    const to = others.find(q => q.slot === this.sendTo)!, CLS: Record<string, string> = { novice: 'ชาวบ้าน', sword: 'ดาบ', archer: 'ธนู', mage: 'เวท', cleric: 'ผู้พิทักษ์' };
+    // who receives: one big button per character
+    c.add(k.text(x + 16, y + 34, 'ส่งให้:', 10, '#ffe7a0'));
+    others.forEach((q, i) => c.add(k.button(x + 66 + i * 168, y + 28, 160, 26, `${q.name} • ${CLS[q.cls] ?? q.cls} Lv${q.level}`, () => { this.sendTo = q.slot; this.rebuild(); }, { size: 9, color: q.slot === this.sendTo ? 0x6a4a10 : 0x2a1d12 })));
+    // my bag (equipped pieces cannot be sent)
+    const cols = 6, cs = 36, gap = 4, gx = x + 14, gy = y + 66, rows = 6, items = s.inventory.slice(0, cols * rows);
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(gx - 4, gy - 4, cols * (cs + gap) + 4, rows * (cs + gap) + 4, 4);
+    if (!s.inventory.some(i => i.uid === this.sendUid)) { this.sendUid = -1; this.sendQty = 1; }
+    items.forEach((it, j) => {
+      const cx = gx + (j % cols) * (cs + gap), cy = gy + Math.floor(j / cols) * (cs + gap), def = itemDef(it.id), eq = isEquipped(s, it.uid);
+      k.iconSlot(g, cx, cy, cs, RARITY_COLORS[rarOf(it)], it.uid === this.sendUid);
+      c.add(this.ico(cx + cs / 2, cy + cs / 2, `icon_${def.icon}`, cs).setAlpha(eq ? 0.35 : 1));
+      if (it.qty > 1) c.add(k.text(cx + cs - 2, cy + cs - 1, String(it.qty), 8, '#ffffff').setOrigin(1, 1));
+      if (it.upg) c.add(k.text(cx + cs - 2, cy + 1, '+' + it.upg, 7.5, '#9fffb0').setOrigin(1, 0));
+      if (eq) c.add(k.text(cx + 2, cy + 1, 'E', 8, '#ffd84a'));
+      const z = ui.add.zone(cx, cy, cs, cs).setOrigin(0).setInteractive();
+      z.on('pointerup', () => { if (eq) { bus.emit(EV.TOAST, 'ถอดอุปกรณ์ออกก่อนส่ง', '#ff9a6a'); return; } sfx.click(); this.sendUid = it.uid; this.sendQty = it.qty; this.rebuild(); });
+      c.add(z);
+    });
+    // the card on the right: what, how many, to whom, the send button
+    const dx = gx + cols * (cs + gap) + 8, dw = x + W - 14 - dx, dy = gy - 4, dh = rows * (cs + gap) + 4;
+    g.fillStyle(0x1a140e, 0.95).fillRoundedRect(dx, dy, dw, dh, 6).lineStyle(1.5, 0xd9b45a, 1).strokeRoundedRect(dx, dy, dw, dh, 6);
+    const it = s.inventory.find(i => i.uid === this.sendUid);
+    if (!it) { c.add(k.text(dx + dw / 2, dy + dh / 2, `แตะไอเทมในกระเป๋า\nเพื่อส่งให้ ${to.name}`, 10, '#a89878', { align: 'center' }).setOrigin(0.5)); return; }
+    const def = itemDef(it.id), rr = rarOf(it), col = '#' + RARITY_COLORS[rr].toString(16).padStart(6, '0'), stack = !!def.stack;
+    k.iconSlot(g, dx + dw / 2 - 26, dy + 12, 52, RARITY_COLORS[rr]); c.add(this.ico(dx + dw / 2, dy + 38, `icon_${def.icon}`, 52));
+    c.add(k.text(dx + dw / 2, dy + 70, def.name + (it.upg ? ` +${it.upg}` : ''), 10.5, col, { align: 'center', wordWrap: { width: dw - 16 } }).setOrigin(0.5, 0));
+    c.add(k.text(dx + dw / 2, dy + 90, isGear(def) ? `★ ${RARITY_NAMES[rr]}` : `มี ${it.qty} ชิ้น`, 8.5, col).setOrigin(0.5, 0));
+    if (stack && it.qty > 1) {   // how many
+      const q = Math.max(1, Math.min(it.qty, this.sendQty)), set = (n: number) => { this.sendQty = Math.max(1, Math.min(it.qty, n)); this.rebuild(); };
+      c.add(k.button(dx + 12, dy + 110, 30, 22, '−', () => set(q - 1), { size: 11 }));
+      c.add(k.text(dx + dw / 2, dy + 114, `${q} / ${it.qty}`, 11, '#ffffff').setOrigin(0.5, 0));
+      c.add(k.button(dx + dw - 42, dy + 110, 30, 22, '+', () => set(q + 1), { size: 11 }));
+      c.add(k.button(dx + dw / 2 - 40, dy + 138, 80, 18, 'ทั้งหมด', () => set(it.qty), { size: 8 }));
+    }
+    const n = stack ? Math.max(1, Math.min(it.qty, this.sendQty)) : it.qty;
+    c.add(k.text(dx + dw / 2, dy + dh - 66, `➜ ${to.name}`, 11, '#9fffb0').setOrigin(0.5, 0));
+    c.add(k.button(dx + 10, dy + dh - 42, dw - 20, 30, `📤 ส่ง${n > 1 ? ` x${n}` : ''} ให้ ${to.name}`, () => {
+      if (this.busyAct) return; this.busyAct = true;
+      actServer('charGive', { uid: it.uid, slot: to.slot, qty: n }).then(r => {
+        this.busyAct = false;
+        if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, ({ full: `กระเป๋าของ ${to.name} เต็ม`, equipped: 'ถอดอุปกรณ์ออกก่อนส่ง' } as Record<string, string>)[r.refused] ?? 'ส่งไม่สำเร็จ ลองใหม่', '#ff9a6a'); }
+        else { sfx.coin(); bus.emit(EV.TOAST, `📤 ส่ง ${def.name}${n > 1 ? ' x' + n : ''} ให้ ${to.name} แล้ว — อยู่ในกระเป๋าของเขา`, '#9fffb0'); saveGame(S()); bus.emit(EV.STATE_CHANGED); }
+        this.rebuild();
+      });
+    }, { size: 10, color: 0x1f4a5a }));
   }
   /** the guild window on a tab (and a defense slot picked) */
   openGuild(tab: GuildTab, slot = -1) { this.guildTab = tab; if (slot >= 0) this.guildSlot = slot; this.guildPick = null; this.open('guild'); }
@@ -958,6 +1063,8 @@ export class Panels implements GuildHost {
     let n = 0;
     const b = (label: string, cb: () => void, color?: number) => { const col = n % 2, row = Math.floor(n / 2); c.add(k.button(x + 16 + col * (colW + 14), y + 34 + row * 26, colW, 22, label, cb, { size: 8.5, color })); n++; };
     { const n = mailWaiting(s); b(`📬 จดหมาย${n ? ` (${n})` : ''}`, () => this.open('mail'), n ? 0x7a4a10 : 0x4a3a10); }
+    b('👥 ตัวละครของฉัน (สลับ / สร้างใหม่)', () => this.open('chars'), 0x2a4a6a);
+    if (charList(s).length > 1) b('📤 ส่งของให้ตัวละคร', () => this.open('charsend'), 0x1f4a5a);
     b(`📅 ล็อกอินรายวัน${loginInfo(s).ready ? ' (รับได้!)' : ''}`, () => this.open('login'), 0x4a3a10);
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);

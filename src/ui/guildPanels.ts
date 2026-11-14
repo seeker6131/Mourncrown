@@ -337,7 +337,7 @@ function buildNoGuild(h: GuildHost, c: Phaser.GameObjects.Container, x: number, 
 export function buildStash(h: GuildHost, c: Phaser.GameObjects.Container) {
   const s = S(), k = h.k, ui = h.scene, hm = homeOf(s), lv = houseLv(s), cap = stashSlots(lv);
   const W = Math.min(560, (ui as unknown as { VW: number }).VW - 16), H = 300;
-  const { x, y, g } = h.window(c, W, H, `🧰 หีบส่วนตัว ${hm.stash.length}/${cap}`);
+  const { x, y, g } = h.window(c, W, H, `🧰 หีบเก็บของรวม (ทุกตัวละครใช้ร่วมกัน) ${hm.stash.length}/${cap}`);
   const half = (W - 36) / 2, L = x + 12, R = L + half + 12, top = y + 30;
   g.fillStyle(0x0a0705, 0.6).fillRoundedRect(L, top, half, H - 40, 4).fillRoundedRect(R, top, half, H - 40, 4);
   c.add(k.text(L + 6, top + 4, `กระเป๋า ${s.inventory.length}/${invSize(s)} (แตะ = ฝาก)`, 8.5, '#ffe7a0'));

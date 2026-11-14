@@ -59,3 +59,6 @@ CREATE INDEX IF NOT EXISTS payments_id ON payments (id, status);
 CREATE TABLE IF NOT EXISTS pay_try (id TEXT NOT NULL, at INTEGER NOT NULL, pack TEXT, why TEXT NOT NULL, code TEXT);
 CREATE INDEX IF NOT EXISTS pay_try_id ON pay_try (id, at);
 CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT, at INTEGER);
+-- 👥 every character's name (unique across the server; accounts.name shows the character being played)
+CREATE TABLE IF NOT EXISTS char_names (name_key TEXT PRIMARY KEY, id TEXT NOT NULL, slot INTEGER NOT NULL, name TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS char_names_id ON char_names (id);

@@ -304,6 +304,8 @@ export class TdUIScene extends Phaser.Scene {
       const link = (this.td as unknown as { link?: { me: string } }).link;
       if (e.id && e.id !== link?.me) this.chatLog = [...this.chatLog, { id: e.id, name: e.name, text: e.text }].slice(-10);   // (for 🚩 reports)
     };
+    // 👥 my characters (switch / new / send items) — on the game screen, not hidden in a menu (director)
+    { const pb = k.button(8, 140, 30, 20, '👥', () => this.panels.open('chars'), { size: 10, color: 0x2a3a6a }); this.root.add(pb); }
     // 🚩 report a chat line (net/report.ts)
     { const rb = k.button(8, 118, 30, 18, '🚩', () => { const link = (this.td as unknown as { link?: { room: string } }).link; openReport([...this.chatLog].reverse(), link?.room ?? '', (t, c) => this.toast(t, c)); }, { size: 9, color: 0x4a2a2a }); this.root.add(rb); }
     bus.on('td:chat', onChat); bus.on('chat:line', onChat); this.events.once('shutdown', () => { bus.off('td:chat', onChat); bus.off('chat:line', onChat); });
