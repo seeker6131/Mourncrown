@@ -68,3 +68,17 @@ describe('SL pity', () => {
     s.inventory.pop(); const r = claimLogin(s, d1); expect(r && r !== 'bag').toBe(true); expect(s.gold).toBe(g0 + 300); expect(claimLogin(s, d1)).toBeNull();
   });
 });
+
+import { handlers } from '../src/server/handlers';
+describe('dungeon tickets for gold', () => {
+  it('3 a day, dearer each, adds runs; resets next day', () => {
+    const s = startNewGame(); s.gold = 30000; const now = Date.parse('2026-11-14T10:00:00+07:00'), c = { now, rnd: () => 0.5, admin: false } as never;
+    const base = (handlers.dungeonInfo(s, {}, c) as { max: number }).max;
+    expect((handlers.dungeonTicket(s, {}, c) as { price: number }).price).toBe(3000);
+    expect((handlers.dungeonTicket(s, {}, c) as { price: number }).price).toBe(6000);
+    expect((handlers.dungeonTicket(s, {}, c) as { max: number }).max).toBe(base + 3);
+    expect(handlers.dungeonTicket(s, {}, c)).toEqual({ refused: 'max' }); expect(s.gold).toBe(30000 - 19000);
+    const next = { now: now + 86400000, rnd: () => 0.5, admin: false } as never;
+    expect((handlers.dungeonInfo(s, {}, next) as { max: number }).max).toBe(base);
+  });
+});

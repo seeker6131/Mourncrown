@@ -50,6 +50,7 @@ import { mailOf, mailWaiting, hasGift, mailLive, giftText } from '../systems/mai
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { openTopup } from './topupDom';
+import { TICKET_PRICES } from '../server/handlers';
 import { cosOwned, cosOn, stormAuraLeft, activeHorseSkin, rideSpeed, type CosKind } from '../systems/cosmetics';
 import { SKIN_TINT } from '../world/mount';
 import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, vipLeftMs, vipGiftReady } from '../systems/premium';
@@ -999,16 +1000,31 @@ export class Panels implements GuildHost {
   }
 
   // ---------------- 💎 PREMIUM: top-up / VIP / diamond shop ----------------
-  premTab: 'topup' | 'vip' | 'shop' = 'vip';
+  premTab: 'topup' | 'vip' | 'shop' | 'ticket' = 'vip';
   buildPremium(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;
     const W = Math.min(620, ui.VW - 16), H = 330;
     const { x, y, g } = this.window(c, W, H, '🏪 ร้านค้า');
-    const tabs: [typeof this.premTab, string][] = [['vip', '👑 บัตร VIP'], ['shop', '💎 ร้านเพชร'], ['topup', '💳 เติมเพชร']];
+    const tabs: [typeof this.premTab, string][] = [['vip', '👑 บัตร VIP'], ['shop', '💎 ร้านเพชร'], ['topup', '💳 เติมเพชร'], ['ticket', '🎟 ตั๋วดันเจี้ยน']];
     tabs.forEach(([id, label], i) => c.add(k.button(x + 14 + i * 104, y + 30, 98, 22, label, () => { this.premTab = id; this.rebuild(); }, { size: 9, color: this.premTab === id ? 0x6a4a10 : 0x2a1d12 })));
     c.add(k.text(x + W - 16, y + 34, `💎 ${diamonds(s).toLocaleString()}`, 11, '#8fe8ff').setOrigin(1, 0));
     const top = y + 60;
-    if (this.premTab === 'vip') {
+    if (this.premTab === 'ticket') {   // 🎟 extra daily-dungeon tickets for gold (handlers dungeonTicket)
+      const d = act('dungeonInfo', {}) as unknown as { used: number; max: number; extra?: number }, n = d.extra ?? 0, price = TICKET_PRICES[n];
+      g.fillStyle(0x22180f, 0.95).fillRoundedRect(x + 14, top, W - 28, H - 76, 6).lineStyle(1.5, 0xd9b45a, 1).strokeRoundedRect(x + 14, top, W - 28, H - 76, 6);
+      c.add(k.text(x + W / 2, top + 12, '🎟', 30).setOrigin(0.5, 0));
+      c.add(k.text(x + W / 2, top + 54, 'ตั๋วดันเจี้ยนรายวัน (เพิ่ม 1 รอบ)', 12, '#ffe7a0').setOrigin(0.5, 0));
+      c.add(k.text(x + W / 2, top + 76, `วันนี้เข้าแล้ว ${d.used}/${d.max} รอบ • ซื้อตั๋วเพิ่มแล้ว ${n}/${TICKET_PRICES.length} ใบ`, 9, '#c8b898').setOrigin(0.5, 0));
+      c.add(k.text(x + W / 2, top + 96, TICKET_PRICES.map((p, i) => `ใบที่ ${i + 1}: 💰${p.toLocaleString()}`).join('   •   '), 9, '#9fe8ff').setOrigin(0.5, 0));
+      c.add(k.button(x + W / 2 - 110, top + 124, 220, 28, price === undefined ? 'ซื้อครบ 3 ใบแล้ววันนี้' : `🎟 ซื้อตั๋ว 💰${price.toLocaleString()}`, () => {
+        if (this.busyAct) return; this.busyAct = true;
+        actServer('dungeonTicket', {}).then(r => { this.busyAct = false;
+          if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, r.refused === 'gold' ? 'ทองไม่พอ' : 'ซื้อครบแล้ววันนี้', '#ff9a6a'); }
+          else { sfx.coin(); bus.emit(EV.TOAST, '🎟 ได้ตั๋วดันเจี้ยนเพิ่ม 1 รอบ — ไปที่ประตูดันเจี้ยนได้เลย', '#9fffb0'); saveGame(S()); bus.emit(EV.STATE_CHANGED); }
+          if (this.cur === 'premium') this.rebuild(); });
+      }, { size: 10, color: 0x1f4a2a, disabled: price === undefined }));
+      c.add(k.text(x + W / 2, top + 164, 'ซื้อได้วันละ 3 ใบ ราคาเพิ่มทุกใบ • นับใหม่ทุกวัน 07:00 น. • ใช้ทองเท่านั้น (ไม่ขายด้วยเพชร)', 8, '#a89878', { wordWrap: { width: W - 60 }, align: 'center' }).setOrigin(0.5, 0));
+    } else if (this.premTab === 'vip') {
       const left = vipLeftMs(s), on = left > 0;
       g.fillStyle(on ? 0x3a2a08 : 0x1a140e, 0.9).fillRoundedRect(x + 14, top, 236, H - 76, 5).lineStyle(1.5, on ? 0xffd84a : 0x6a5a40, 1).strokeRoundedRect(x + 14, top, 236, H - 76, 5);
       c.add(k.text(x + 24, top + 8, on ? `👑 VIP เหลือ ${Math.floor(left / 86400000)} วัน ${Math.floor(left / 3600000) % 24} ชม.` : '👑 สิทธิ์ VIP', 10, '#ffd84a'));

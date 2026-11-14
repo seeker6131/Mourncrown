@@ -13,7 +13,7 @@ import { isAdmin } from './cloud';
 export const refused = (r: unknown): r is { refused: string } => !!r && typeof r === 'object' && 'refused' in (r as object) && !!(r as { refused?: string }).refused;
 const local = (name: string, args: unknown) => (handlers as unknown as Record<string, (s: unknown, a: unknown, c: unknown) => unknown>)[name](S(), args, { now: Date.now(), rnd: Math.random, admin: TEST_HOOKS || isAdmin() })   // (the server checks the admin for real; this only lets the device show the same result);
 /** actions the server alone decides when online (they roll dice or hand out loot) */
-export const SERVER_ONLY = new Set(['kill', 'gather', 'upgradeItem', 'craft', 'pickup', 'dungeonClear', 'marketCancel', 'marketBuy', 'marketBrowse', 'marketHistory', 'wheelSpin', 'openPick', 'dwheelSpin', 'starTrade', 'guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave', 'cbtClaim']);
+export const SERVER_ONLY = new Set(['kill', 'gather', 'upgradeItem', 'craft', 'pickup', 'dungeonClear', 'marketCancel', 'marketBuy', 'marketBrowse', 'marketHistory', 'wheelSpin', 'openPick', 'dwheelSpin', 'starTrade', 'guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave', 'cbtClaim', 'dungeonTicket']);
 export const isOnline = () => play.online;
 /** an answer that means "not done" */
 const failed = (r: unknown) => r === false || r === null || refused(r);

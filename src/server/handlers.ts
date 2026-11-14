@@ -81,10 +81,12 @@ function rateOk(key: string, perSec: number, now: number) {
 /** damage budget: the hero can only deal so much damage per second (generous: crits, skills, area hits) */
 function dpsOf(s: GameState) { const d = derive(s); return Math.max(d.atk, d.matk) * (1 + d.crit) * (1000 / d.attackInterval) * 2.5; }
 
+/** 🎟 extra dungeon tickets a day: the 1st, 2nd, 3rd cost this much gold */
+export const TICKET_PRICES = [3000, 6000, 10000];
 function dungeonRuns(s: GameState, now: number) {
-  const t = s as GameState & { dng?: { day: string; used: number } }, day = dayKey(now);
+  const t = s as GameState & { dng?: { day: string; used: number; extra?: number } }, day = dayKey(now);
   if (t.dng?.day !== day) t.dng = { day, used: 0 };
-  return Object.assign(t.dng, { max: vipActive(s, now) ? 3 : 2 }) as { day: string; used: number; max: number };
+  return Object.assign(t.dng, { max: (vipActive(s, now) ? 3 : 2) + (t.dng.extra ?? 0) }) as { day: string; used: number; max: number; extra?: number };
 }
 
 export const handlers = {
@@ -446,6 +448,14 @@ export const handlers = {
     return { gold, shards, gear };
   },
   dungeonInfo: (s: GameState, _a: object, c: Ctx) => ({ ...dungeonRuns(s, c.now), li: dungeonLand(s.level) }),
+  /** 🎟 an extra dungeon ticket for gold (director): up to 3 a day, dearer each time — a gold sink, never for diamonds */
+  dungeonTicket: (s: GameState, _a: object, c: Ctx) => {
+    const d = dungeonRuns(s, c.now), n = d.extra ?? 0, price = TICKET_PRICES[n];
+    if (price === undefined) return no('max');
+    if (s.gold < price) return no('gold');
+    s.gold -= price; (s as GameState & { dng: { extra?: number } }).dng.extra = n + 1;
+    return { ok: true, price, bought: n + 1, ...dungeonRuns(s, c.now) };
+  },
   /** tutorial finished (or skipped): one-time starter reward */
   tutorialDone: (s: GameState, _a: object) => (tutPay(s) ? { ok: true } : no('paid')),
   /** daily login calendar: one claim per day */
