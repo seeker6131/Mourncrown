@@ -498,7 +498,7 @@ export class Panels implements GuildHost {
     c.add(k.text(rx + rw - 12, ly + 9, s.skillPts ? 'กด + เพื่ออัปสกิล' : 'แต้มได้จาก: เลเวลอัป • บอสครั้งแรก • เควสต์หลัก • ล็อกอิน 7 วัน', 7.5, s.skillPts ? '#c8f0c0' : '#8a7a60').setOrigin(1, 0));
     currentSkills(s).map(id => SKILL_BY_ID[id]).forEach((sk, i) => {
       const sy = ly + 30 + i * 62;
-      c.add(ui.add.image(rx + 20, sy + 16, skillIconKey(ui, sk)).setDisplaySize(30, 30));   // (the painted round icon, the same as the skill button — players liked these best)
+      c.add(ui.add.image(rx + 20, sy + 16, ui.textures.exists('sk_' + sk.id) ? 'sk_' + sk.id : skillIconKey(ui, sk)).setDisplaySize(30, 30));   // (the same picture as the skill button — a player saw different ones)
       const slv = s.skillLv[sk.id] ?? 1, max = slv >= SKILL_MAX, can = !max && s.skillPts >= 1;
       const pct = (lv: number) => Math.round(sk.power * (1 + 0.15 * (lv - 1)) * 100), st = sk.stat === 'matk' ? 'MATK' : 'ATK';
       c.add(k.text(rx + 38, sy, `${sk.name}  Lv ${slv}${max ? ' (MAX)' : `/${SKILL_MAX}`}`, 9, '#9ad8ff'));

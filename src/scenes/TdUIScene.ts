@@ -109,7 +109,7 @@ export class TdUIScene extends Phaser.Scene {
       const x = ax + pos[i][0], y = ay + pos[i][1], R = 17 * bs * this.VH / 400;
       const c = this.add.container(x, y);
       const bg = this.add.circle(0, 0, R + 2, 0x0b0806, 0.8).setStrokeStyle(2, 0x8a6a40, 1);
-      const key = skillIconKey(this, sk);   // player feedback: the painted round icons (ui/skill0-7) look better than the small pixel ones
+      const key = this.textures.exists('sk_' + id) ? 'sk_' + id : skillIconKey(this, sk);
       const icon = this.add.image(0, 0, key); icon.setScale((R * 2 - 4) / Math.max(icon.width, icon.height));
       const mask = this.add.graphics().fillCircle(x, y, R).setVisible(false); icon.setMask(mask.createGeometryMask());
       const cd = this.add.graphics();
@@ -526,7 +526,7 @@ export class TdUIScene extends Phaser.Scene {
     let mode: '' | 'join' | 'town' = '';
     const td = this.td as unknown as { townRaid: boolean; dungeon: boolean; enterStage(n: number): void };
     const join = () => { if (td.townRaid) return;
-      { let f = ''; try { f = localStorage.getItem(RAID_FALLEN_KEY) ?? ''; } catch { /* storage blocked */ } if (f && f === String(raidAtLocal()) && Date.now() < (raidAtLocal() ?? 0) + RAID_SECS * 1000) { sfx.error(); bus.emit(EV.TOAST, '💀 คุณล้มในรอบนี้แล้ว — กลับไปช่วยไม่ได้จนกว่าจะจบรอบ', '#ffb08a'); return; } } if (td.dungeon && !confirm(tr('ออกจากดันเจี้ยนไปป้องกันหมู่บ้าน? (รอบดันนี้จะหายไป)'))) return; td.enterStage(RAID); };
+      { let f = ''; try { f = localStorage.getItem(RAID_FALLEN_KEY) ?? ''; } catch { /* storage blocked */ } if (Date.now() < Number(f || 0)) { sfx.error(); bus.emit(EV.TOAST, '💀 คุณตายแล้ว — กลับเข้าไปช่วยรอบนี้ไม่ได้', '#ffb08a'); return; } } if (td.dungeon && !confirm(tr('ออกจากดันเจี้ยนไปป้องกันหมู่บ้าน? (รอบดันนี้จะหายไป)'))) return; td.enterStage(RAID); };
     z.on('pointerup', () => { sfx.click(); if (mode === 'join') join(); else if (mode === 'town') openTown(join); });
     const tick = () => {
       if (!t.active) return;

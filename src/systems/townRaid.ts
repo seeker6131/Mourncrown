@@ -41,7 +41,7 @@ export const RAID_BLD_SHARE = 0.55;
 /** a building's HP: each blow at a building takes 1 — enough that a defended village loses 0–1, an undefended one most */
 export const raidBldHp = (_count: number) => 1300;   // (measured ~12 blows/s on an undefended outer building with the map full: it falls in about 2 minutes)
 /** every raider hits this hard (the same for every kind) — as a normal monster of the raid's level, harder each wave */
-export const raidAtk = (lv: number, wave = 0) => Math.max(4, Math.round(scaleStats(MONSTERS.wolf, Math.max(1, Math.min(100, lv)), false).atk * (0.9 + 0.15 * Math.max(0, wave)) * 0.95));   // (harder each wave: 0.9× … 1.65×, then −5% — director)
+export const raidAtk = (lv: number, wave = 0) => Math.max(4, Math.round(scaleStats(MONSTERS.wolf, Math.max(1, Math.min(100, lv)), false).atk * (0.9 + 0.15 * Math.max(0, wave)) * 0.95 * 0.95));   // (harder each wave: 0.9× … 1.65×, then −5% and −5% again — director, 14 Nov)
 /** a raider's HP at this level */
 export const raidHp = (kind: keyof typeof MONSTERS, lv: number, defenders: number, wave = 0) => Math.max(1, Math.round(scaleStats(MONSTERS[kind], Math.max(1, lv), false).hp * raidHpMult(defenders) * raidWaveHp(wave)));
 /** (this device) a hero who fell in this raid (its start time) — they may not come back to help until it ends (director) */

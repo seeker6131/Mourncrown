@@ -95,6 +95,7 @@ export class MapSim {
   /** a player hit it: it turns on that player (game bolts away, and now and then kicks back) */
   hit(sid: number, by: string, now: number, players: SimPlayer[]) {
     const m = this.mons.get(sid); if (!m || !m.alive) return;
+    if (this.raid?.fallen.has(by)) return;   // (director: a hero who fell in the raid is out — back on another device or not)
     m.hitT = now; m.tgt = by;
     if (m.animal) {
       m.fleeT = now + 1100;
@@ -248,7 +249,7 @@ export class MapSim {
     this.raid = { at, end: at + RAID_SECS * 1000, wave: 0, lv, defenders: n, total, spawned: 0, blds: RAID_BLD.map(b => ({ ...b, hp, max: hp })), kills: {}, done: false, won: false, told: false, queue: [], fallen: new Set() };
   }
   /** who killed a raider: each player with a fair share of its damage counts one kill */
-  raidKill(sh: Record<string, number>) { const r = this.raid; if (!r) return; for (const [k, v] of Object.entries(sh)) if (v >= 0.1) r.kills[k] = (r.kills[k] ?? 0) + 1; }
+  raidKill(sh: Record<string, number>) { const r = this.raid; if (!r) return; for (const [k, v] of Object.entries(sh)) if (v >= 0.1 && !r.fallen.has(k)) r.kills[k] = (r.kills[k] ?? 0) + 1; }
   /** a wave arrives at the edges (it walks in as the map has room: RAID_ALIVE_MAX at once) */
   private raidWave(players: SimPlayer[]) {
     const r = this.raid!, n = Math.max(1, players.filter(p => p.hp > 0).length);
