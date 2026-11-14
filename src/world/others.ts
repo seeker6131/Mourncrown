@@ -12,6 +12,11 @@ import { MOUNTS, type MountId } from '../data/mounts';
 import { StormCloud } from './petCloud';
 import { nameStyle } from './nameTag';
 import { UpgRing } from './upgRing';
+import { raidFlag } from '../systems/townRaid';
+import { gfx } from '../core/uiOptions';
+import { SKILL_BY_ID } from '../data/skills';
+import { playSkill } from '../audio/skillSfx';
+import { fx2, hasFx2 } from './fx2';
 
 interface View { sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; bubble?: Phaser.GameObjects.Text; bubbleT: number; form: string; aura: number; glow?: Phaser.FX.Glow; busy: number; dir: number; moving: boolean; ride?: Riding; pet?: StormCloud; gold?: boolean; ring?: UpgRing }
 
@@ -28,7 +33,22 @@ export class OtherPlayers {
       const v = this.views.get(e.id), k = v ? (hasAnim(v.form, e.k) ? e.k : hasAnim(v.form, 'attack') ? 'attack' : '') : ''; if (!v || !k) return;
       v.dir = e.d; v.busy = this.sc.time.now + 450; playAnim(v.sp, v.form, k, e.d, false);
       v.sp.off('animationcomplete').once('animationcomplete', () => { if (!v.moving && v.sp.active) setIdle(v.sp, v.form, v.dir); });
+      if (e.s && raidFlag.on && !gfx.low) this.skillFx(v, e.s, e.d);
     }
+  }
+  /** ⚔ (village raid only — director) a friend's skill: its effect at their spot, a little fainter, and its sound, softer
+   *  than your own and fading with distance; a few at a time at most (phones) */
+  private fxBusy = 0; private fxT = 0;
+  private skillFx(v: View, id: string, d: number) {
+    const sk = SKILL_BY_ID[id]; if (!sk) return;
+    const now = this.sc.time.now; if (now - this.fxT > 1500) this.fxBusy = 0;
+    if (this.fxBusy >= 6) return; this.fxBusy++; this.fxT = now;
+    const fx = Math.sin(d * Math.PI / 4), fy = Math.cos(d * Math.PI / 4), key = 'fx_sk_' + id;
+    const front = /cleave|bash|slam|crusade|double|fan|pierce|bolt|fire|chain|volley|void|spirit|rain/.test(id);
+    const x = v.sp.x + (front ? fx * 28 : 0), y = v.sp.y + (front ? fy * 16 : 4);
+    if (hasFx2(key)) fx2(this.sc, key, x, y, y + 1, 0.95)?.setAlpha(0.7);
+    const me = (this.sc as unknown as { hero?: { x: number; y: number } }).hero, dist = me ? Math.hypot(me.x - v.sp.x, me.y - v.sp.y) : 0;
+    if (dist < 520) playSkill(sk, 0.4 * (1 - dist / 650));
   }
   say(v: View, text: string) {
     v.bubble?.destroy();
@@ -65,7 +85,8 @@ export class OtherPlayers {
       if (rid && !v.ride) v.ride = new Riding(this.sc, rid, o.x, o.y, skin);
       if (v.ride) { v.ride.update(Math.round(o.x), Math.round(o.y), o.d, moving, form, v.sp.scaleX, now); v.sp.setAlpha(0); v.sh.setVisible(false); }
       // their storm cloud
-      if (o.pe && !v.pet) v.pet = new StormCloud(this.sc, o.x, o.y - 30); else if (!o.pe && v.pet) { v.pet.destroy(); v.pet = undefined; }
+      const pe = o.pe && !gfx.low;   // (low graphics: other players' pets hidden)
+      if (pe && !v.pet) v.pet = new StormCloud(this.sc, o.x, o.y - 30); else if (!pe && v.pet) { v.pet.destroy(); v.pet = undefined; }
       // the top of the head: the name sits on it; the HP bar only on monster maps / the Deepwild (villages: the name only)
       const fight = /^[mw]/.test(this.link.room), head = v.ride ? v.ride.headY() : o.y - headH(this.sc, form) * v.sp.scaleY;
       v.pet?.update(o.x, o.y, o.d, now, true, head - (fight ? 6 : 1));
@@ -75,9 +96,10 @@ export class OtherPlayers {
       v.tag.setText(o.name).setPosition(Math.round(o.x), Math.round(head - (fight ? 6 : 1)));
       if (v.bubble) { if (now > v.bubbleT) { v.bubble.destroy(); v.bubble = undefined; } else v.bubble.setPosition(Math.round(o.x), Math.round(head - (fight ? 16 : 12))); }
       // the VIP aura by card
-      if (o.a !== v.aura) {
+      const au = gfx.low ? 0 : o.a;   // (low graphics: other players' auras off)
+      if (au !== v.aura) {
         if (v.glow) { v.sp.preFX?.remove(v.glow); v.glow = undefined; }
-        v.aura = o.a; const c = VIP_AURA[o.a]; if (c && v.sp.preFX) v.glow = v.sp.preFX.addGlow(c.col, 1.6, 0, false, 0.1, 4);
+        v.aura = au; const c = VIP_AURA[au]; if (c && v.sp.preFX) v.glow = v.sp.preFX.addGlow(c.col, 1.6, 0, false, 0.1, 4);
       }
       if (v.glow) v.glow.outerStrength = 1.5 + Math.sin(now / 90 + o.x) * 0.5;
     }

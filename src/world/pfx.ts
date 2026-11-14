@@ -1,5 +1,6 @@
 // Skill effects from pixelfx (https://github.com/patch-gg/pixelfx, MIT — src/assets/pfx/LICENSE.txt).
 // Sheets are made by tools/import_pfx.py; only the effects of the hero's current skills are loaded (they are big).
+import { gfx } from '../core/uiOptions';
 import Phaser from 'phaser';
 import meta from '../assets/pfx/pfx.json';
 
@@ -70,7 +71,7 @@ export function ensurePfx(scene: Phaser.Scene, keys: string[]) {
 /** play one effect with its pivot on (x, y); returns ms until its flash (for timing damage), or -1 if not loaded */
 export function playPfx(scene: Phaser.Scene, key: string, x: number, y: number, o: { scale?: number; flip?: boolean; depth?: number; delay?: number } = {}) {
   const m = PFX_META[key], tk = 'pfx_' + key;
-  if (!m || !scene.anims.exists(tk)) return -1;
+  if (!m || !scene.anims.exists(tk) || gfx.low) return -1;   // (low graphics: the extra effect layer is skipped)
   const go = () => {
     const sp = scene.add.sprite(Math.round(x), Math.round(y), tk, 0).setOrigin(m.px / m.fw, m.py / m.fh).setScale(o.scale ?? 1).setFlipX(!!o.flip).setDepth(o.depth ?? 99952);
     sp.play(tk); sp.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => sp.destroy());

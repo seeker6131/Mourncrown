@@ -31,7 +31,7 @@ import { beginCast, castQ } from '../systems/skillCast';
 import { SKILL_BY_ID } from '../data/skills';
 
 import { vipActive, vipTier, VIP_AURA, VIP_WALK } from '../systems/premium';
-import { uiOpt, setUiOpt, RANGES } from '../core/uiOptions';
+import { uiOpt, setUiOpt, RANGES, gfx, applyGfx } from '../core/uiOptions';
 import { resumeFrom } from '../core/resume';
 import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
@@ -363,6 +363,7 @@ export class TopDownScene extends Phaser.Scene {
   create() {
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
+    applyGfx(this.game, uiOpt(S()));   // (FPS cap + low graphics from the settings)
     if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)
     if (TEST_HOOKS) (window as unknown as { __town: typeof setTownView }).__town = setTownView;
     this.selectUi = null; this.portalCool = this.time.now + 1500; this.makingUi = false; this.portalArmed = false;
@@ -1235,6 +1236,7 @@ export class TopDownScene extends Phaser.Scene {
 
   /** Soft chimney smoke: puffs grow, drift with the wind and fade. */
   smoke(x: number, y: number) {
+    if (gfx.low) return;   // (low graphics: no chimney smoke)
     if (!this.textures.exists('td_puff')) {
       const c = document.createElement('canvas'); c.width = 24; c.height = 24; const k = c.getContext('2d')!;
       const g = k.createRadialGradient(12, 12, 1, 12, 12, 12); g.addColorStop(0, 'rgba(200,204,198,0.9)'); g.addColorStop(0.6, 'rgba(170,176,172,0.45)'); g.addColorStop(1, 'rgba(160,166,162,0)');
@@ -1765,9 +1767,10 @@ export class TopDownScene extends Phaser.Scene {
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
     castQ.n = Math.min(50, castQ.n + 1);
     if (hasAnim(this.F.key, this.swing)) {
-      this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false); this.link?.hit(this.swing, this.dir);
+      this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false); if (!this.townRaid) this.link?.hit(this.swing, this.dir);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
     }
+    if (this.townRaid) this.link?.hit(this.swing, this.dir, r.id);   // (⚔ the raid: the others see + hear this skill)
     sfx.cast(r.stat === 'matk'); playSkill(r);
     this.combat.castSkill(r);
     this.raid?.skill(r);
@@ -1893,7 +1896,7 @@ export class TopDownScene extends Phaser.Scene {
     this.dead = true; this.attacking = false;
     const h = this.hero;
     this.deathFx(h, 0xbfe8ff, () => {
-      if (this.rv?.started && !this.rv.done) { bus.emit(EV.TOAST, '💀 คุณล้มแล้ว — ดูเพื่อนป้องกันหมู่บ้านได้อย่างเดียวจนจบ แล้วจะได้กลับบ้าน (ไม่เสียของ)', '#ffb08a'); return; }   // (⚔ the raid: watch until the end)
+      if (this.rv?.started && !this.rv.done) { bus.emit(EV.TOAST, '💀 คุณล้มแล้ว — ดูเพื่อนป้องกันต่อ หรือกด 🏠 กลับบ้าน (กลับมาช่วยรอบนี้ไม่ได้แล้ว • ไม่เสียของ)', '#ffb08a'); this.rv.fallen(() => this.raidBack()); return; }   // (⚔ the raid: watch until the end)
       if (this.stageN) { this.time.delayedCall(1200, () => { const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); showWait(); this.time.delayedCall(30, () => this.scene.restart({ stage: 0 })); }); return; }
       this.time.delayedCall(900, () => {
         const sp = this.spawnPoint(); h.setPosition(sp.x, sp.y).setAngle(0).setAlpha(0).setVisible(true).clearTint();

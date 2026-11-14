@@ -66,8 +66,8 @@ describe('⚔ village raid (the room runs it)', () => {
   it('⏰ 3 raids a day at 12:00 / 18:00 / 21:00 Thai time; a time the admin set comes first', () => {
     const th = (d: number, h: number, m = 0) => Date.UTC(2026, 10, d, h - 7, m);   // (Thai clock → ms)
     expect(nextRaid(th(14, 9)).at).toBe(th(14, 12));
-    expect(nextRaid(th(14, 12, 3)).at).toBe(th(14, 12));   // (under way: still this one)
-    expect(nextRaid(th(14, 12, 6)).at).toBe(th(14, 18));
+    expect(nextRaid(th(14, 12, 2)).at).toBe(th(14, 12));   // (under way: still this one)
+    expect(nextRaid(th(14, 12, 4)).at).toBe(th(14, 18));
     expect(nextRaid(th(14, 19)).at).toBe(th(14, 21));
     expect(nextRaid(th(14, 22)).at).toBe(th(15, 12));
     expect(nextRaid(th(15, 2)).at).toBe(th(15, 12));   // (after midnight)
@@ -75,8 +75,13 @@ describe('⚔ village raid (the room runs it)', () => {
     expect(nextRaid(th(14, 11), { at: th(14, 10) }).at).toBe(th(14, 12));   // (an old one is ignored)
   });
   it('a fallen hero (hp 0) is left alone', () => {
-    const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, dead: SimPlayer = { id: 'd', x: 768, y: 590, hp: 0, lv: 20 };
-    sim.startRaid(at, [dead]); expect(run(sim, at, 60, [dead])).toEqual([]);
+    const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, dead: SimPlayer = { id: 'd', x: 768, y: 590, hp: 0, lv: 20 }, live: SimPlayer = { id: 'l', x: 1500, y: 1000, hp: 100, lv: 20 };
+    sim.startRaid(at, [dead, live]); expect(run(sim, at, 30, [dead, live]).filter(t => t === 'd')).toEqual([]);
+  });
+  it('every defender fallen: the raid ends at once (lost)', () => {
+    const sim = new MapSim('m' + RAID, grid(), rnd), at = 1_000_000, p: SimPlayer = { id: 'a', x: 768, y: 590, hp: 100, lv: 20 };
+    sim.startRaid(at, [p]); run(sim, at, 10, [p]); expect(sim.raid!.done).toBe(false);
+    p.hp = 0; sim.run(at + 11000, [p]); expect(sim.raid!.done).toBe(true); expect(sim.raid!.won).toBe(false);
   });
   it('the defender\'s chest: MVP twice, a lost raid half', () => {
     const a = raidChest(40, false, true), b = raidChest(40, true, true), c = raidChest(40, false, false);

@@ -712,7 +712,8 @@ export class Room {
       // (not on every position — that kept the room awake all the time)
       if (this.sim && !this.timer && ((!SOLO_MONSTERS) || (this.sim.quietUntil(now) === 0 && !this.sim.boss()) || this.sim.bossNear(now, this.players()))) this.start();
     } else if (m.t === 'hit') {   // swing / skill (for the animation others see)
-      this.others(ws, JSON.stringify({ t: 'hit', id: me.id, k: String(m.k ?? 'attack').slice(0, 12), d: Math.max(0, Math.min(7, Number(m.d) || 0)) }));
+      const sk = typeof m.s === 'string' && /^[a-z0-9_]{1,16}$/.test(m.s) ? m.s : undefined;   // (⚔ the raid: the skill, for its effect + a softer sound on the others' screens)
+      this.others(ws, JSON.stringify({ t: 'hit', id: me.id, k: String(m.k ?? 'attack').slice(0, 12), d: Math.max(0, Math.min(7, Number(m.d) || 0)), ...(sk ? { s: sk } : {}) }));
     } else if (m.t === 'grid' && shared) {   // the map's walls from this player's game
       const w = Number(m.w), h = Number(m.h), c = Number(m.c); let bits: Uint8Array;
       try { const bin = atob(String(m.b ?? '')); bits = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bits[i] = bin.charCodeAt(i); } catch { return; }
@@ -726,6 +727,7 @@ export class Room {
       this.choose(room);
     } else if (m.t === 'dmg' && this.sim) {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
       const sid = Number(m.sid), r = this.sim.mons.get(sid); if (!r || !r.alive) return;
+      if (this.sim.raid && !this.sim.raid.done && this.sim.raid.fallen.has(me.id)) return;   // (⚔ fell in this raid: out until it ends)
       const lv = await this.lvOf(ws, me, now), cap = (lv * 30 + 100) * 10;   // damage per second, generous
       me.bud = Math.min(cap * 4, me.bud + (now - me.budT) / 1000 * cap); me.budT = now;
       const n = Math.max(0, Math.min(Math.round(Number(m.n) || 0), me.bud)); if (!n) { (ws as WSX).serializeAttachment(me); return; }

@@ -74,8 +74,11 @@ export function element(sk: SkillDef): 'fire' | 'ice' | 'holy' | 'storm' | 'dark
 }
 
 /** play the sound for a skill cast (timed to match the visual effects in tdCombat.castSkill) */
-export function playSkill(sk: SkillDef) {
-  const ch = chain(); if (!ch) return;
+export function playSkill(sk: SkillDef, vol = 1) {
+  const ch0 = chain(); if (!ch0) return;
+  // (another player's skill: the same sound through a quieter send — director: softer than your own)
+  let ch = ch0;
+  if (vol < 1) { const b = ch0.c.createGain(), v = ch0.c.createGain(); b.gain.value = vol; v.gain.value = vol; b.connect(ch0.bus); v.connect(ch0.verb); ch = { c: ch0.c, bus: b, verb: v as unknown as ConvolverNode }; setTimeout(() => { try { b.disconnect(); v.disconnect(); } catch { /* gone */ } }, 4000); }
   const el = element(sk), magic = sk.stat === 'matk';
   const accent = (at: number, big = false) => {
     if (el === 'fire') roar(ch, at, big ? 1.1 : 0.6, big ? 0.55 : 0.4);

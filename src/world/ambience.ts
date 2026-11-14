@@ -1,6 +1,7 @@
 // Ambient pixel particles per land, following the camera: fireflies and leaves in the forest and the villages,
 // ghost wisps in the haunted woods, embers and ash in the lava lands, snow on the mountain, dust motes in the dungeon.
 // Plain pixels (no blur) to match the art; light enough for phones.
+import { gfx } from '../core/uiOptions';
 import Phaser from 'phaser';
 
 function dot(scene: Phaser.Scene, key: string, w: number, h: number, col: string) {
@@ -18,7 +19,7 @@ function leaf(scene: Phaser.Scene) {
 export type Land = 'forest' | 'haunt' | 'lava' | 'snow' | 'dung' | 'village' | 'room';
 /** start the ambience; it follows the main camera until the scene shuts down */
 export function ambience(scene: Phaser.Scene, land: Land) {
-  if (land === 'room') return;
+  if (land === 'room' || gfx.low) return;   // (low graphics: no weather particles)
   const cam = scene.cameras.main;
   const view = () => cam.worldView;
   const zone = (pad = 40) => ({ type: 'random' as const, source: { getRandomPoint: (p: Phaser.Types.Math.Vector2Like) => { const v = view(); p.x = v.x - pad + Math.random() * (v.width + pad * 2); p.y = v.y - pad + Math.random() * (v.height + pad * 2); return p; } } as unknown as Phaser.Types.GameObjects.Particles.RandomZoneSource });

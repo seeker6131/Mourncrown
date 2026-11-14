@@ -1,7 +1,7 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import { RAID } from '../world/stages';
-import { RAID_SECS, RAID_WARN_MS } from '../systems/townRaid';
+import { RAID_SECS, RAID_WARN_MS, RAID_FALLEN_KEY } from '../systems/townRaid';
 import { townBroken } from '../systems/town';
 import { raidAtLocal } from '../net/townView';
 import { openTown } from '../ui/townDom';
@@ -512,7 +512,8 @@ export class TdUIScene extends Phaser.Scene {
     const z = this.add.zone(x - w / 2, y, w, h).setOrigin(0).setInteractive().setDepth(9097);
     let mode: '' | 'join' | 'town' = '';
     const td = this.td as unknown as { townRaid: boolean; dungeon: boolean; enterStage(n: number): void };
-    const join = () => { if (td.townRaid) return; if (td.dungeon && !confirm(tr('ออกจากดันเจี้ยนไปป้องกันหมู่บ้าน? (รอบดันนี้จะหายไป)'))) return; td.enterStage(RAID); };
+    const join = () => { if (td.townRaid) return;
+      { let f = ''; try { f = localStorage.getItem(RAID_FALLEN_KEY) ?? ''; } catch { /* storage blocked */ } if (f && f === String(raidAtLocal()) && Date.now() < (raidAtLocal() ?? 0) + RAID_SECS * 1000) { sfx.error(); bus.emit(EV.TOAST, '💀 คุณล้มในรอบนี้แล้ว — กลับไปช่วยไม่ได้จนกว่าจะจบรอบ', '#ffb08a'); return; } } if (td.dungeon && !confirm(tr('ออกจากดันเจี้ยนไปป้องกันหมู่บ้าน? (รอบดันนี้จะหายไป)'))) return; td.enterStage(RAID); };
     z.on('pointerup', () => { sfx.click(); if (mode === 'join') join(); else if (mode === 'town') openTown(join); });
     const tick = () => {
       if (!t.active) return;

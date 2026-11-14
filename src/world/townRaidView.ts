@@ -1,7 +1,7 @@
 // ⚔ The village raid as the game shows it: the five central buildings (HP bars, fire, ruin), the clock, the result.
 // The map room runs everything (src/server/mapSim.ts startRaid); this view only draws what it says ('rs' / 'rend').
 import Phaser from 'phaser';
-import { RAID_BLD, RAID_WAVES, raidFlag } from '../systems/townRaid';
+import { RAID_BLD, RAID_WAVES, raidFlag, RAID_FALLEN_KEY } from '../systems/townRaid';
 import { TOWN_NAME, type TownBld } from '../systems/town';
 import { burnFx, fireKey } from './guildTown';
 import { makeRuin } from './ruin';
@@ -58,6 +58,15 @@ export class RaidView {
       this.burn(b);
     }
     this.draw();
+  }
+  /** I fell: out of this raid (no coming back to help — director), a 🏠 button to go home now instead of watching */
+  fallen(back: () => void) {
+    try { localStorage.setItem(RAID_FALLEN_KEY, String(this.at)); } catch { /* storage blocked */ }
+    if (document.getElementById('mc-raidhome')) return;
+    const b = document.createElement('button'); b.id = 'mc-raidhome'; b.textContent = tr('🏠 กลับบ้าน');
+    b.style.cssText = 'position:fixed;left:50%;bottom:18%;transform:translateX(-50%);z-index:41;padding:12px 26px;font:700 17px system-ui,sans-serif;color:#fff3d0;background:#5a2a1a;border:2px solid #ffb08a;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.6)';
+    b.onclick = () => { b.remove(); back(); };
+    document.body.append(b); this.sc.events.once('shutdown', () => b.remove());
   }
   /** the end: who held, what fell, the best defenders */
   onEnd(e: RaidEnd, me: string, back: () => void) {

@@ -24,7 +24,7 @@ export interface SMon {
 export interface RaidRun {
   at: number; end: number; wave: number; lv: number; defenders: number; total: number; spawned: number; /** waiting at the edges: their wave, when they may come in, from which edge */ queue: { wave: number; at: number; gate: number }[];
   blds: { bid: TownBld; x: number; y: number; hp: number; max: number }[];
-  kills: Record<string, number>; done: boolean; won: boolean; told: boolean;
+  kills: Record<string, number>; done: boolean; won: boolean; told: boolean; /** heroes who fell: out until the end (director: no coming back to help) */ fallen: Set<string>;
 }
 /** what a tick wants told: a swing that lands on one player, an effect everyone sees */
 export interface SimEvents { atk: { to: string; sid: number; k: 'hit' | 'shot' | 'special' | 'charge' | 'stun' }[]; fx: { sid: number; k: 'special' | 'charge'; x: number; y: number }[]; wb: { k: 'warn' | 'spawn' | 'leave'; sid: number; key: string; name: string; x: number; y: number }[] }
@@ -245,7 +245,7 @@ export class MapSim {
     const lv = Math.min(100, lvs.length ? lvs[lvs.length - 1] : 1),   // (the band's strongest hero)
       total = raidTotal(), hp = raidBldHp(total);
     this.mons.clear(); this.pending = [];
-    this.raid = { at, end: at + RAID_SECS * 1000, wave: 0, lv, defenders: n, total, spawned: 0, blds: RAID_BLD.map(b => ({ ...b, hp, max: hp })), kills: {}, done: false, won: false, told: false, queue: [] };
+    this.raid = { at, end: at + RAID_SECS * 1000, wave: 0, lv, defenders: n, total, spawned: 0, blds: RAID_BLD.map(b => ({ ...b, hp, max: hp })), kills: {}, done: false, won: false, told: false, queue: [], fallen: new Set() };
   }
   /** who killed a raider: each player with a fair share of its damage counts one kill */
   raidKill(sh: Record<string, number>) { const r = this.raid; if (!r) return; for (const [k, v] of Object.entries(sh)) if (v >= 0.1) r.kills[k] = (r.kills[k] ?? 0) + 1; }
@@ -279,7 +279,9 @@ export class MapSim {
     while (r.queue.length && r.queue[0].at <= now && alive < RAID_ALIVE_MAX) { const q = r.queue.shift()!; this.raidSpawnOne(now, players, q.wave, q.gate); alive++; }
     for (const m of this.mons.values()) this.raidThink(m, now, dt, players);
     const standing = r.blds.some(b => b.hp > 0), cleared = r.wave >= RAID_WAVES && !r.queue.length && alive === 0;
-    if (now >= r.end || cleared || !standing) { r.done = true; r.won = cleared; this.mons.clear(); r.queue = []; }
+    if (now - r.at > 3000) for (const p of players) if (p.hp <= 0) r.fallen.add(p.id);
+    const wiped = now - r.at > 5000 && players.every(p => p.hp <= 0 || r.fallen.has(p.id));   // (director: every defender has fallen — or left — the raid ends, all go home)
+    if (now >= r.end || cleared || !standing || wiped) { r.done = true; r.won = cleared; this.mons.clear(); r.queue = []; }
   }
   private raidThink(m: SMon, now: number, dt: number, players: SimPlayer[]) {
     const r = this.raid!, base = MONSTERS[m.mob.kind], reach = base.attackRange + m.mob.size * 0.2;
@@ -288,7 +290,7 @@ export class MapSim {
     // a hero-hunter: the nearest standing hero (or the one who hit it); none left = it goes for the buildings
     let p: SimPlayer | undefined;
     if (m.role === 'hero' || (m.hitT && now - m.hitT < 4000)) {
-      const live = players.filter(q => q.hp > 0);
+      const live = players.filter(q => q.hp > 0 && !r.fallen.has(q.id));
       p = (m.tgt ? live.find(q => q.id === m.tgt) : undefined) ?? live.sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y))[0];
       if (p && m.role === 'bld' && Math.hypot(p.x - m.x, p.y - m.y) > 140) p = undefined;   // (a building-breaker turns on a hero only close by)
     }

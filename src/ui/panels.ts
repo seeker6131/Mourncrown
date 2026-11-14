@@ -63,7 +63,7 @@ import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, type PotSet } from '../sys
 import { farmGoal, setFarmGoal, farmDone, FARM_KEYS, FARM_NAMES, FARM_STEPS } from '../systems/farm';
 import { energyLeft } from '../systems/economy';
 import { lang, setLang } from '../core/i18n';
-import { uiOpt, setUiOpt, RANGES, type UiOpt } from '../core/uiOptions';
+import { uiOpt, setUiOpt, RANGES, applyGfx, type UiOpt } from '../core/uiOptions';
 import { sfx, audioState, setVolume } from '../audio/sfx';
 import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
@@ -1800,7 +1800,7 @@ export class Panels implements GuildHost {
   }
   buildUiOpt(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k, o = uiOpt(s);
-    const W = 340, H = 300;
+    const W = 340, H = 332;
     const { x, y } = this.window(c, W, H, 'ตั้งค่าเสียง & UI');
     const apply = () => { saveGame(s); bus.emit(EV.STATE_CHANGED); (ui as unknown as { applyUiOpt?: () => void }).applyUiOpt?.(); };
     const pct = (v: number) => Math.round(v * 100) + '%';
@@ -1824,8 +1824,13 @@ export class Panels implements GuildHost {
     c.add(k.text(x + 18, yy - 6, 'ลากปุ่มกลมเพื่อปรับ • ขนาด UI เปลี่ยนเมื่อปล่อยนิ้ว • ซูมในเกม: สองนิ้วถ่าง/หุบ หรือหมุนลูกกลิ้งเมาส์', 7.5, '#a89878', { wordWrap: { width: W - 36 } }));
     yy += 8;
     yy += 12;
+    // director: for weak phones — a frame cap and low graphics
+    const gfxNow = () => applyGfx(ui.game, uiOpt(s));
+    c.add(k.button(x + 18, yy, 130, 22, `🎞 FPS: ${o.fps === 30 ? '30 (ประหยัดเครื่อง)' : '60'}`, () => { setUiOpt(s, { fps: o.fps === 30 ? 60 : 30 }); gfxNow(); apply(); }, { size: 8.5 }));
+    c.add(k.button(x + 156, yy, 166, 22, `🖼 กราฟิก: ${o.low ? 'ต่ำ (ลื่นขึ้น)' : 'สูง'}`, () => { setUiOpt(s, { low: !o.low }); gfxNow(); apply(); bus.emit(EV.TOAST, 'เปลี่ยนกราฟิกแล้ว — บางส่วนมีผลเมื่อเปลี่ยนแผนที่', '#c8e8ff'); }, { size: 8.5 }));
+    yy += 30;
     c.add(k.button(x + 18, yy, 130, 22, `ชื่อบนหัวชาวบ้าน: ${o.names ? 'แสดง' : 'ซ่อน'}`, () => { setUiOpt(s, { names: !o.names }); apply(); }, { size: 8.5 }));
-    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 0.9, btn: 1, alpha: 1, names: true, vol: 0.8, zoom: 1 }); setVolume(0.8); bus.emit('td:zoom', 1, false); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
+    c.add(k.button(x + 156, yy, 80, 22, 'ค่าเริ่มต้น', () => { setUiOpt(s, { scale: 0.9, btn: 1, alpha: 1, names: true, vol: 0.8, zoom: 1, fps: 60, low: false }); applyGfx(ui.game, uiOpt(s)); setVolume(0.8); bus.emit('td:zoom', 1, false); s.sfx = true; audioState.sfx = true; apply(); }, { size: 8.5, color: 0x5a3a1a }));
     c.add(k.button(x + W - 96, yy, 80, 22, '◀ กลับเมนู', () => this.open('menu'), { size: 8.5 }));
   }
 

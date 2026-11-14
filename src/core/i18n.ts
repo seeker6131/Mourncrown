@@ -268,6 +268,14 @@ const EN: Record<string, string> = {
   'เก็บอาหารจากคอกสัตว์': 'collecting food from the barn',
   'โบนัส EXP ของโรงเตี๊ยม': 'the tavern EXP bonus',
   'คลื่นที่': 'Wave', 'มาแล้ว! ถึกขึ้นอีก': 'is here! Even tougher',
+  '30 (ประหยัดเครื่อง)': '30 (battery saver)',
+  'ต่ำ (ลื่นขึ้น)': 'Low (smoother)',
+  'เปลี่ยนกราฟิกแล้ว — บางส่วนมีผลเมื่อเปลี่ยนแผนที่': 'Graphics changed — some parts apply after changing maps',
+  '🖼 กราฟิก': '🖼 Graphics',
+  '🖼 กราฟิก: สูง': '🖼 Graphics: High',
+  '🏠 กลับบ้าน': '🏠 Go home',
+  '💀 คุณล้มแล้ว — ดูเพื่อนป้องกันต่อ หรือกด 🏠 กลับบ้าน (กลับมาช่วยรอบนี้ไม่ได้แล้ว • ไม่เสียของ)': '💀 You fell — keep watching or tap 🏠 Go home (you cannot rejoin this raid • nothing is lost)',
+  '💀 คุณล้มในรอบนี้แล้ว — กลับไปช่วยไม่ได้จนกว่าจะจบรอบ': '💀 You fell in this raid — you cannot rejoin until it ends',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 
