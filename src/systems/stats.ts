@@ -21,10 +21,16 @@ export interface Derived {
 
 export const MAX_LEVEL = 100;
 
-export function expToNext(level: number): number {
+/** the reference curve: what one kill's EXP is measured against (stages.ts) — kill rewards never change with the bar below */
+export function expBase(level: number): number {
   // early levels stay quick; from Lv20 the curve steepens so Lv100 is a long-term goal
   const base = 25 * Math.pow(level, 1.65);
   return Math.round(level > 20 ? base * Math.pow(level / 20, 1.25) : base);
+}
+/** EXP to the next level: from Lv60 the bar grows longer (x3 by Lv100) — a long late game without smaller numbers per kill
+ *  (director 2026-11-14: players notice a smaller EXP per kill, not a longer bar) */
+export function expToNext(level: number): number {
+  return Math.round(expBase(level) * (1 + 2 * Math.max(0, Math.min(1, (level - 60) / 40))));
 }
 
 export function equippedItems(s: GameState) {

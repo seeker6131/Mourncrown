@@ -1,6 +1,6 @@
 // 50 stages in 5 lands. Monster level, numbers and loot rarity scale with the stage; every 10th stage is a boss.
 import type { MonsterKind } from '../data/monsters';
-import { expToNext } from '../systems/stats';
+import { expBase } from '../systems/stats';
 
 export interface StageMon { key: string; kind: MonsterKind; name: string; size: number }
 export interface Land { id: string; name: string; ground: 'forest' | 'haunt' | 'lava' | 'snow' | 'dung'; mobs: StageMon[]; boss: StageMon }
@@ -72,7 +72,7 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   // MMO pace (target: Lv100 in about one month of 24 h auto farming, ~1300 kills/h):
   // a level takes about 12 + 1.2·L^2.2 kills on a map of your level → Lv10 ≈ 200 kills (10 min), Lv50 ≈ 6 500 (5 h), Lv90 ≈ 24 000 (18 h)
   const killsPerLevel = 12 + 1.2 * Math.pow(L, 2.2);
-  const one = expToNext(L) * (0.8 + 0.4 * kf) / (1.2 * killsPerLevel);
+  const one = expBase(L) * (0.8 + 0.4 * kf) / (1.2 * killsPerLevel);   // (the reference curve: a longer bar from Lv60 does not raise kill EXP)
   const exp = Math.max(1, Math.round(boss ? one * 60 : one));
   const g = (k: number) => Math.round(k * (boss ? 15 : 1));
   // gold is scarce (director: no inflation) — and only ~40% of kills drop any (rewards.ts)

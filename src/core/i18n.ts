@@ -205,6 +205,7 @@ const EN: Record<string, string> = {
   "ชิ้นละ": "each",
   "🛒 ร้านค้า: ซื้อยา / ของใช้ใส่จำนวนได้ทีละหลายชิ้น": "🛒 Shop: buy potions / supplies several at a time",
   "⚔ แผนที่ปลายเกม (มอนเลเวล 65+) ยากขึ้นทีละขั้น: มอนอึดขึ้น ตีแรงขึ้น ยิ่งลึกยิ่งโหด — ตีบวกอุปกรณ์ (+1 ถึง +10) จะเห็นผลชัดมาก": "⚔ Late-game maps (monster level 65+) get tougher step by step: sturdier, harder-hitting monsters, worse the deeper you go — gear upgrades (+1 to +10) now clearly matter", "💡 แนะนำ: ตีบวกอาวุธ/เกราะที่ช่างตีเหล็กก่อนลงแผนที่ 35 ขึ้นไป": "💡 Tip: upgrade your weapon / armour at the blacksmith before map 35 and beyond",
+  "📈 ตั้งแต่เลเวล 60 หลอด EXP ยาวขึ้น (ทางสู่เลเวล 100 คือเป้าหมายระยะยาว) — EXP ที่ได้จากมอนเท่าเดิม": "📈 From level 60 the EXP bar is longer (level 100 is a long-term goal) — EXP from monsters stays the same",
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 
