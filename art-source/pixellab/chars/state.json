@@ -1090,5 +1090,11 @@
  },
  "mt_hydra": {
   "cid": "d1250a54-2993-4437-a2f0-0b6dc4f51128"
+ },
+ "mt_gdragon_up": {
+  "cid": "78c6a1d4-c020-49b9-853a-0dceeff0866d"
+ },
+ "mt_gdragon": {
+  "cid": "8ab2b78f-8a11-47f1-aca8-aeed7c7c4071"
  }
 }
