@@ -314,6 +314,12 @@ export class TdUIScene extends Phaser.Scene {
     };
     // 👥 my characters (switch / new / send items) — on the game screen, not hidden in a menu (director)
     { const pb = k.button(8, 140, 30, 20, '👥', () => this.panels.open('chars'), { size: 10, color: 0x2a3a6a }); this.root.add(pb); }
+    // 🗺 choose a map from anywhere — no walking back to a gate or the village (player feedback 14 Nov)
+    { const mb = k.button(8, 164, 30, 20, '🗺', () => {
+        const td = this.td as unknown as { dungeon?: unknown; raid?: unknown; defense?: unknown; townRaid?: boolean; warSide?: unknown; dead?: boolean; stageSelect(): void };
+        if (td.dungeon || td.raid || td.defense || td.townRaid || td.warSide || td.dead) { sfx.error(); bus.emit(EV.TOAST, 'ตอนนี้เลือกแผนที่ไม่ได้ — จบกิจกรรมที่ทำอยู่ก่อน', '#ffb08a'); return; }
+        td.stageSelect();
+      }, { size: 10, color: 0x3a5a2a }); this.root.add(mb); }
     // 🚩 report a chat line (net/report.ts)
     { const rb = k.button(8, 118, 30, 18, '🚩', () => { const link = (this.td as unknown as { link?: { room: string } }).link; openReport([...this.chatLog].reverse(), link?.room ?? '', (t, c) => this.toast(t, c)); }, { size: 9, color: 0x4a2a2a }); this.root.add(rb); }
     bus.on('td:chat', onChat); bus.on('chat:line', onChat); this.events.once('shutdown', () => { bus.off('td:chat', onChat); bus.off('chat:line', onChat); });
