@@ -4,7 +4,7 @@ import { fx2, hasFx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater, SIGHT } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
 import { lootSkip, lootDis } from '../systems/lootOpt';
@@ -76,6 +76,8 @@ export interface NetLink { me: string; online: boolean; isHost: boolean; others:
 
 export class Combat {
   mons: Mon[] = [];
+  /** the one monster walking over to the hero (noticed, not hit yet) — director: only one at a time */
+  seeker: Mon | null = null;
   /** shared map (online): the room keeps every monster's HP; the host's game moves them, the others mirror the host */
   net: NetLink | null = null; mirror = false; msT = 0;
   /** (director "C") the common monsters are this game's own, on this device — the room runs only roaming bosses
@@ -711,15 +713,29 @@ export class Combat {
       const base = MONSTERS[m.m.kind], reach = base.attackRange + m.m.size * 0.2;
       // every creature is peaceful until the hero hits it (fleeing game never fights); it calms down when the hero gets far away
       const dg = !!this.dungeon;
-      // player feedback (14 Nov): a monster that sees the hero close by comes at them (bosses wait at their meadow)
-      if (!dg && !m.hitT && !m.animal && !m.boss && !m.wb && me0 && !peer && dist < SIGHT) m.hitT = time;
+      // director (14 Nov): ONE monster — the nearest — notices the hero close by and walks over slowly; it fights when it
+      // gets there; only the hero's hit makes it rush in (below). Bosses, roaming bosses and animals never come.
+      let seekMove = false;
+      // (it stays 'the one' while it fights the hero too: the next comes only when it is dead or the hero got away)
+      if (this.seeker === m && (!me0 || dist > SEEK_GIVEUP)) this.seeker = null;
+      if (!dg && !m.hitT && !m.animal && !m.boss && !m.wb && me0 && !peer && dist < SIGHT && (!this.seeker || !this.seeker.alive)) this.seeker = m;
+      if (this.seeker === m && !m.hitT) {
+        const reach0 = MONSTERS[m.m.kind].attackRange + m.m.size * 0.2;
+        if (dist <= reach0 + 4) m.hitT = time - 2000;   // (there: it fights — no rush)
+        else if (time - m.atkT >= 500) {
+          const sp = MONSTERS[m.m.kind].speed * SEEK_SPEED * dt / 1000, nx = m.x + dx / dist * sp, ny = m.y + dy / dist * sp;
+          if (!this.s.isBlocked(nx, m.y)) m.x = nx;
+          if (!this.s.isBlocked(m.x, ny)) m.y = ny;
+          m.dir = dirOf(dx, dy); seekMove = true;
+        }
+      }
       if (!dg && m.hitT > 0 && dist > 320) m.hitT = 0;
       const angry = (m.hitT > 0 || dg) && !m.animal;
       const aggro = !angry ? 0 : dg ? 420 : m.boss ? 260 : 130;
-      let moving = false;
+      let moving = seekMove;
       // stand still while swinging / casting (no sliding across the ground with an attack pose)
       const busy = time - m.atkT < (m.boss ? Math.max(750, animMs(m.m.key, 'attack')) : 500) || time - (m.spT ?? -1e9) < 1300 || (m.chargeT ?? 0) > time || (m.leapUntil ?? 0) > time;
-      if (!angry && !busy) {
+      if (!angry && !busy && !seekMove) {
         let tx = 0, ty = 0;
         const fleeing = m.animal && (m.fleeT ?? 0) > time;
         if (fleeing) { tx = -dx / dist; ty = -dy / dist; }      // hit game bolts away for a moment (a bit slower than the hero)

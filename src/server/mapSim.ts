@@ -5,7 +5,7 @@
 // bolt and now and then kick back. The map's walls come from the players' games (Grid, checked by the room).
 import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater, SIGHT } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP } from '../systems/spawnRate';
 import { RAID_LAND, isRaid } from '../world/stages';
 import { RAID_SECS, RAID_BLD, RAID_GATES, raidTotal, raidHp, raidBldHp, RAID_WAVES, RAID_WAVE_SIZE, RAID_WAVE_GAP, RAID_BLD_SHARE, RAID_ALIVE_MAX, raidSpeed, RAID_GROUP, RAID_GROUP_GAP } from '../systems/townRaid';
 import type { TownBld } from '../systems/town';
@@ -17,7 +17,7 @@ export interface SMon {
   sid: number; mob: StageMon; boss: boolean; elite: boolean; animal: boolean; hp: number; max: number; dmg: Record<string, number>; alive: boolean;
   x: number; y: number; hx: number; hy: number; dir: number; mv: boolean; atT: number; last: number; hitT: number; tgt?: string;
   wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number; /** seconds it has tried to move and not got anywhere */ stuck: number;
-  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; /** gave up a chase: does not notice heroes again until then */ calmT?: number; lv?: number; until?: number;
+  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; /** gave up a chase: does not notice heroes again until then */ calmT?: number; /** walking over slowly to this hero (noticed, not hit yet) */ seek?: string; lv?: number; until?: number;
   /** (village raid) what it goes for: a building or the heroes; its wave */ role?: 'bld' | 'hero'; wave?: number;
 }
 /** ⚔ the village raid as the room runs it */
@@ -59,6 +59,8 @@ export class MapSim {
    *  "C" — much less server time on the free plan). true = the room runs every monster (tests / an earlier design) */
   regular = true;
   private ev: SimEvents = { atk: [], fx: [], wb: [] };
+  /** each hero's one monster walking over to them (hero id → monster sid) */
+  private seekers = new Map<string, number>();
   constructor(room: string, public grid: Grid, private rnd: () => number = Math.random) {
     this.n = mapOfRoom(room); this.wild = this.n === WILD; this.stage = this.wild ? wildStage(1) : STAGES[this.n - 1] ?? null;
     if (isRaid(this.n)) this.regular = false;   // (the raid's monsters come only from startRaid)
@@ -102,6 +104,7 @@ export class MapSim {
     const m = this.mons.get(sid); if (!m || !m.alive) return;
     if (this.raid?.fallen.has(by)) return;   // (director: a hero who fell in the raid is out — back on another device or not)
     m.hitT = now; m.tgt = by;
+    if (m.seek) { if (this.seekers.get(m.seek) === m.sid) this.seekers.delete(m.seek); m.seek = undefined; }   // (hit: the old rush, no more slow walk)
     if (m.animal) {
       m.fleeT = now + 1100;
       const p = players.find(q => q.id === by), base = MONSTERS[m.mob.kind];
@@ -175,10 +178,25 @@ export class MapSim {
     const base = MONSTERS[m.mob.kind], reach = base.attackRange + m.mob.size * 0.2;
     let p = m.tgt ? players.find(q => q.id === m.tgt && q.hp > 0) : undefined;
     if (m.tgt && !p) { m.tgt = undefined; m.hitT = 0; }
+    // director (14 Nov): ONE monster — the nearest — notices a hero walking close by and walks over slowly; it fights when
+    // it gets there, and only a hero's hit makes it rush in (as before). Bosses, roaming bosses and animals never come.
     if (!p && !m.animal && !m.boss && !m.wb && !this.raid && now > (m.calmT ?? 0)) {   // (calmT: it just gave up a chase it could not finish)
-   // director / player feedback: it notices a hero walking close by and comes
-      const near = players.filter(q => q.hp > 0 && Math.hypot(q.x - m.x, q.y - m.y) < SIGHT).sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y))[0];
-      if (near) { p = near; m.tgt = near.id; m.hitT = now; }
+      const dd = (q: SimPlayer) => Math.hypot(q.x - m.x, q.y - m.y);
+      let q = m.seek ? players.find(x => x.id === m.seek && x.hp > 0) : undefined;
+      if (m.seek && (!q || dd(q) > SEEK_GIVEUP)) { if (this.seekers.get(m.seek) === m.sid) this.seekers.delete(m.seek); m.seek = undefined; q = undefined; }
+      if (!m.seek) {
+        const taken = (id: string) => { const sid = this.seekers.get(id), o = sid != null ? this.mons.get(sid) : undefined; return !!o && o.alive && (o.seek === id || o.tgt === id); };   // (still walking over, or fighting that hero: the next waits)
+        q = players.filter(x => x.hp > 0 && dd(x) < SIGHT && !taken(x.id)).sort((a, b) => dd(a) - dd(b))[0];
+        if (q) { m.seek = q.id; this.seekers.set(q.id, m.sid); }
+      }
+      if (m.seek && q) {
+        const base0 = MONSTERS[m.mob.kind], reach0 = base0.attackRange + m.mob.size * 0.2, d0 = dd(q);
+        if (d0 <= reach0 + 4) { m.seek = undefined; p = q; m.tgt = q.id; m.hitT = now - 2000; }   // (there: it fights — no rush)
+        else if (now - m.atT >= 500) {
+          const sp = base0.speed * SEEK_SPEED * dt; this.step(m, m.x + (q.x - m.x) / d0 * sp, m.y + (q.y - m.y) / d0 * sp);
+          m.dir = dirOf(q.x - m.x, q.y - m.y); m.mv = true; return;
+        }
+      }
     }
     const dx = p ? p.x - m.x : 0, dy = p ? p.y - m.y : 0, dist = p ? Math.hypot(dx, dy) : Infinity;
     if (m.hitT > 0 && dist > 320) { m.hitT = 0; m.tgt = undefined; p = undefined; }

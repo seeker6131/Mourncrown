@@ -97,11 +97,18 @@ describe('monsters never stay stuck on a corner', () => {
     expect(m.hitT).toBe(0); expect(m.tgt).toBeUndefined();
     expect(m.x).toBeLessThan(1000);
   });
-  it('a monster notices a hero walking close by and comes (player feedback) — not one far away', () => {
+  it('director: ONE monster notices a hero close by and walks over slowly, then fights; a hit makes it rush as before', () => {
     const s = new MapSim('m1', grid(), rnd); s.run(T0, [me(100, 700)]);
-    const m = [...s.mons.values()].find(q => !q.boss && !q.animal)!; m.x = m.hx = 500; m.y = m.hy = 500;
-    s.run(T0 + 200, [me(800, 500)]); expect(m.tgt).toBeUndefined();
-    s.run(T0 + 400, [me(560, 500)]); expect(m.tgt).toBe('A'); expect(m.hitT).toBeGreaterThan(0);
+    const [m, n] = [...s.mons.values()].filter(q => !q.boss && !q.animal);
+    m.x = m.hx = 500; m.y = m.hy = 500; n.x = n.hx = 520; n.y = n.hy = 540;
+    s.run(T0 + 200, [me(800, 500)]); expect(m.seek).toBeUndefined();
+    const p = me(570, 500);
+    s.run(T0 + 400, [p]); expect(m.seek).toBe('A'); expect(n.seek).toBeUndefined(); expect(m.hitT).toBe(0);   // only the nearest, not angry yet
+    const x0 = m.x; s.run(T0 + 600, [p]); expect(m.x).toBeGreaterThan(x0); expect(m.x - x0).toBeLessThan(20);   // slowly over
+    for (let t = 3; t < 40 && !m.tgt; t++) s.run(T0 + t * 200, [p]);
+    expect(m.tgt).toBe('A'); expect(m.seek).toBeUndefined();   // there: it fights
+    for (let t = 41; t < 46; t++) s.run(T0 + t * 200, [p]);
+    expect(n.seek).toBeUndefined();   // the next one waits while the first fights
   });
   it('one that strayed far from its spot walks back (or is put back if it cannot)', () => {
     const s = new MapSim('m1', grid(), rnd); s.run(T0, [me(100, 700)]);
