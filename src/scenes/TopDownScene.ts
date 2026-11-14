@@ -190,6 +190,8 @@ export function queueTd(sc: Phaser.Scene, o: { gv: boolean; stageN: number; st: 
   preloadChars(sc, keys);
 }
 
+/** rocks of every kind (rocks, ore, pebbles, boulders, rock piles, crystals) never block the way */
+const ROCKY = /^(rock_|ore_|pebble_|pp_\w+_(boulder|rockpile|vinerock|skullrock|crystal))/;
 export class TopDownScene extends Phaser.Scene {
   hero!: Phaser.GameObjects.Sprite;
   shadow!: Phaser.GameObjects.Image;
@@ -1229,7 +1231,7 @@ export class TopDownScene extends Phaser.Scene {
       const tree = /^(oak|pine|dead|jtree|palm)_/.test(name);
       if ((m.foot - m.top) * sc > 24) this.castShadow(im, false, tree ? Math.round((m.foot - m.top) * 0.38) : 0);
     }
-    for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);
+    if (!ROCKY.test(name)) for (let j = -fd; j <= 1; j += 2) for (let i = -w / 2; i <= w / 2; i += 2) this.block(x + i, y + j);   // (director: every kind of rock can be walked over — heroes kept getting stuck)
     if (m.chim) this.smoke(Math.round(x) - m.w / 2 * sc + m.chim[0] * sc, Math.round(y) - m.foot * sc + m.chim[1] * sc);
     return im;
   }
