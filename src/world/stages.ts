@@ -54,6 +54,8 @@ export const PITS = [
  *  ATK ≈ 10+5L, HP ≈ 150+43L, DEF ≈ 1.7L (checked with tests/sim). Targets: a normal monster dies in ~3 hits and
  *  alone would kill the hero in ~55 s; a boss takes ~120 hits (about a minute with skills) and kills in ~28 s.
  *  Each monster keeps its own character via kind factors (tougher / harder-hitting than average). */
+/** 0 below monster level 65, rising to 1 at level 84 and up (the late-game toughness — scaleStats) */
+export const lateGame = (L: number) => Math.max(0, Math.min(1, (L - 64) / 20));
 export function scaleStats(base: { level: number; hp: number; atk: number; def: number; exp: number; gold: [number, number]; attackCooldown?: number }, level: number, boss: boolean) {
   const L = level, refAtk = 10 + 5 * L, refHp = 150 + 43 * L, refDef = 1.7 * L;
   const kf = Math.min(1.6, Math.max(0.6, base.hp / (60 * Math.pow(Math.max(1, base.level), 1.35))));
@@ -74,5 +76,9 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   const exp = Math.max(1, Math.round(boss ? one * 60 : one));
   const g = (k: number) => Math.round(k * (boss ? 15 : 1));
   // gold is scarce (director: no inflation) — and only ~40% of kills drop any (rewards.ts)
-  return { hp, atk, def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
+  // ⚔ the late game (director 2026-11-14): from monster level 65 normal monsters get tougher step by step (HP up to x4,
+  // attack up to x3 at level 84+) so gear upgrades (+1..+10) clearly matter. EXP stays the same: the late levels take
+  // longer on purpose (director: a game that lasts — Lv100 should not come in 2–3 days). Bosses keep their own numbers.
+  const f = boss ? 0 : lateGame(L);
+  return { hp: Math.round(hp * (1 + 3 * f)), atk: Math.round(atk * (1 + 2 * f)), def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
 }

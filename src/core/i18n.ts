@@ -204,6 +204,7 @@ const EN: Record<string, string> = {
   "👥 มีได้หลายตัวละครแล้ว! ปุ่ม 👥 ฝั่งซ้ายจอ • ฟรี 2 ตัว (ซื้อช่องเพิ่ม 💎300 สูงสุด 4 ตัว) • สลับตัวได้ในหมู่บ้าน": "👥 Several characters per account! The 👥 button on the left • 2 free (more slots 💎300, up to 4) • switch in the village", "🤝 ใช้ร่วมกันทุกตัว: ทอง เพชร VIP หมู่บ้าน หีบเก็บของ พาหนะ ของพิเศษ • แยกกัน: อาชีพ เลเวล อุปกรณ์ กระเป๋า สกิล เควส": "🤝 Shared by all: gold, diamonds, VIP, village, chest, mounts, specials • Own: class, level, gear, bag, skills, quests", "📤 ส่งของให้ตัวละครอื่นของเราได้ตรงเข้ากระเป๋า (👥 → ส่งของให้ตัวละคร)": "📤 Send items straight into another of your characters' bags (👥 → Send to a character)",
   "ชิ้นละ": "each",
   "🛒 ร้านค้า: ซื้อยา / ของใช้ใส่จำนวนได้ทีละหลายชิ้น": "🛒 Shop: buy potions / supplies several at a time",
+  "⚔ แผนที่ปลายเกม (มอนเลเวล 65+) ยากขึ้นทีละขั้น: มอนอึดขึ้น ตีแรงขึ้น ยิ่งลึกยิ่งโหด — ตีบวกอุปกรณ์ (+1 ถึง +10) จะเห็นผลชัดมาก": "⚔ Late-game maps (monster level 65+) get tougher step by step: sturdier, harder-hitting monsters, worse the deeper you go — gear upgrades (+1 to +10) now clearly matter", "💡 แนะนำ: ตีบวกอาวุธ/เกราะที่ช่างตีเหล็กก่อนลงแผนที่ 35 ขึ้นไป": "💡 Tip: upgrade your weapon / armour at the blacksmith before map 35 and beyond",
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
 };
 

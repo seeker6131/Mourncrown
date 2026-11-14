@@ -2,7 +2,7 @@ import { it, expect } from 'vitest';
 // Balance guard: a hero of the stage's level with typical gear vs that stage's monsters.
 import { startNewGame } from '../src/core/save';
 import { derive, calcDamage } from '../src/systems/stats';
-import { STAGES, scaleStats } from '../src/world/stages';
+import { STAGES, lateGame, scaleStats } from '../src/world/stages';
 import { MONSTERS } from '../src/data/monsters';
 import { addItem, equip } from '../src/systems/inventory';
 import { pickBase, makeGear } from '../src/systems/loot';
@@ -24,7 +24,7 @@ it('every stage stays balanced (normal ~3 hits, boss ~120 hits, survivable)', ()
     const hitsToKill = ms.hp / heroHit, secToKill = hitsToKill * d.attackInterval / 1000;
     const monCd = (base as unknown as { attackCooldown: number }).attackCooldown / 1000, secToDie = d.maxHp / monHit * monCd;
     if (st.boss) { expect(hitsToKill).toBeGreaterThan(55); expect(hitsToKill).toBeLessThan(180); expect(secToDie).toBeGreaterThan(15); }
-    else { expect(hitsToKill).toBeGreaterThan(1); expect(hitsToKill).toBeLessThan(5); expect(secToDie).toBeGreaterThan(25); }
+    else { const late = 1 + 3 * lateGame(st.level); expect(hitsToKill).toBeGreaterThan(1); expect(hitsToKill).toBeLessThan(5 * late); expect(secToDie).toBeGreaterThan(st.level >= 65 ? 8 : 25); }   // (late game: tougher on purpose — upgrades matter)
     rows.push(`stage ${n}${st.boss ? ' BOSS' : ''} mobLv ${st.level} | hero HP ${d.maxHp} ATK ${d.atk} DEF ${d.def} | mon HP ${ms.hp} ATK ${ms.atk} DEF ${ms.def} | kill ${secToKill.toFixed(1)}s (${hitsToKill.toFixed(1)} hits) | die in ${secToDie.toFixed(0)}s vs 1 mon`);
   }
   if ((globalThis as { SIM?: boolean }).SIM) console.log(rows.join('\n'));
