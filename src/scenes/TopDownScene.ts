@@ -64,6 +64,7 @@ import { makeRuin } from '../world/ruin';
 import { loadAtlas, unpackAtlas } from '../world/atlas';
 import { preloadMounts, createMountAnims, Riding, mountReady } from '../world/mount';
 import { StormCloud } from '../world/petCloud';
+import { UpgRing, upgTier, weaponUpg } from '../world/upgRing';
 import { nameStyle } from '../world/nameTag';
 import { activePet, activeNameColor, activeHorseSkin, auraOf, CLOUD_SPEED, rideSpeed } from '../systems/cosmetics';
 import { SERVER } from '../net/cloud';
@@ -326,6 +327,8 @@ export class TopDownScene extends Phaser.Scene {
   pet?: StormCloud; guide?: Phaser.GameObjects.Graphics; guideTx?: Phaser.GameObjects.Text; heroTagGold = false;
   /** 🗺 tapped on the big map: walking there by itself (any move of the stick / AUTO cancels it) */
   walkGoal: { x: number; y: number; key: object } | null = null; walkMark?: Phaser.GameObjects.Graphics;
+  /** ⚔ the +5 / +10 weapon circle under the feet (world/upgRing.ts) */
+  upgRing?: UpgRing;
   raidMode = false;
   hot: { x: number; y: number; label: string; act: HotAct }[] = [];
   get roomKind(): RoomKind | null { if (this.inside < 0) return null; if (this.inside >= 10) return 'house'; const t = GUILD_BLD_AT[this.inside]; return t ? roomOf(t) : null; }
@@ -432,7 +435,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined;   // (scene objects are made anew on restart)
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
@@ -2103,7 +2106,13 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN) this.combat.update(time, dt);
     this.crowd?.update(time, dt);
     this.hunters?.update(time, dt);
-    if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead).setPosition(h.x, h.y + 1).setDepth(h.y - 3); }
+    { // ⚔ the upgrade circle (+5 gold runes, +10 red fire) — it takes the place of the plain fight ring
+      const t = upgTier(weaponUpg(S()));
+      if (this.upgRing && this.upgRing.tier !== t) { this.upgRing.destroy(); this.upgRing = undefined; }
+      if (t && !this.upgRing) this.upgRing = new UpgRing(this, t);
+      this.upgRing?.update(Math.round(h.x), Math.round(h.y + 1), time, (h.visible || !!this.riding) && !this.dead);
+    }
+    if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead && !this.upgRing).setPosition(h.x, h.y + 1).setDepth(h.y - 3); }
     { // riding: on when a mount is chosen, outdoors, not in a fight / at work (attacks and gathering get off for 2.5 s)
       const want = mountOn(S()), can = !!want && this.inside < 0 && !this.dead && time > this.rideBlockT && mountReady(this, want);
       const skin = want === 'horse' ? activeHorseSkin(S()) : null;
@@ -2115,7 +2124,7 @@ export class TopDownScene extends Phaser.Scene {
     this.updatePet(time);
     if (this.link) {
       const s0 = S(), d0 = derive(s0);
-      this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: auraOf(s0, vipTier(s0)), r: this.riding?.id ?? '', lv: s0.level, pe: activePet(s0) ? 1 : 0, nc: activeNameColor(s0) ? 1 : 0, sk: this.riding?.skin ? 1 : 0 });
+      this.link.pos({ x: Math.round(h.x), y: Math.round(h.y), d: this.dir, f: this.F.key, mv: this.heroMoving ? 1 : 0, hp: Math.round(100 * s0.hp / Math.max(1, d0.maxHp)), a: auraOf(s0, vipTier(s0)), r: this.riding?.id ?? '', lv: s0.level, pe: activePet(s0) ? 1 : 0, nc: activeNameColor(s0) ? 1 : 0, sk: this.riding?.skin ? 1 : 0, wu: upgTier(weaponUpg(s0)) });
       this.peers?.update(dt);
     }
     // the top of the head (director: the name sits ON the head, never over the face); the HP bar only where there is fighting

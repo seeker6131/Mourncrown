@@ -1198,13 +1198,13 @@ export class Panels implements GuildHost {
         if (it.id.startsWith('fx_')) g.fillStyle(FX_COLOR[it.id], 1).fillCircle(cx + 12, cy + 12, 5);
         c.add(k.text(cx + (it.id.startsWith('fx_') ? 22 : 8), cy + 5, it.name, 8.5, it.soon ? '#8a7a60' : '#ffe7a0', { wordWrap: { width: cw - 30 } }));
         c.add(k.text(cx + 8, cy + 24, it.desc, 6.8, '#c8b898', { wordWrap: { width: cw - 84 } }));
-        const label = it.soon ? 'เร็วๆ นี้' : owned ? (worn ? 'ใช้อยู่' : 'ใช้') : `💎 ${it.price}`;
+        const label = owned ? (worn ? 'ใช้อยู่' : 'ใช้') : it.soon ? 'เร็วๆ นี้' : `💎 ${it.price}`;
         c.add(k.button(cx + cw - 72, cy + ch - 26, 66, 20, label, () => {
           const r = act('buyDiamond', { id: it.id });
           if (r === 'ok' || r === 'owned') { sfx.coin(); bus.emit(EV.TOAST, r === 'ok' ? `ซื้อ ${it.name} แล้ว` : `ใช้ ${it.name}`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); }
-          else bus.emit(EV.TOAST, r === 'diamonds' ? 'เพชรไม่พอ — เติมได้เมื่อระบบชำระเงินเปิด' : r === 'max' ? 'ขยายครบแล้ว' : 'เร็วๆ นี้', '#ff9a6a');
+          else bus.emit(EV.TOAST, r === 'diamonds' ? 'เพชรไม่พอ — เติมเพชรได้ที่แท็บ 💳 เติมเพชร' : r === 'max' ? 'ขยายครบแล้ว' : 'เร็วๆ นี้', '#ff9a6a');
           this.rebuild();
-        }, { size: 8.5, color: it.soon ? 0x2a2420 : 0x1f4a5a, disabled: it.soon || worn }));
+        }, { size: 8.5, color: it.soon && !owned ? 0x2a2420 : 0x1f4a5a, disabled: worn }));   // (a closed shelf: tapping says 'coming soon' — director)
       });
     }
   }

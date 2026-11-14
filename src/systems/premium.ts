@@ -36,10 +36,10 @@ export const VIP_PERKS = [
 export interface DiamondItem { id: string; name: string; desc: string; price: number; soon?: boolean }
 export const DIAMOND_SHOP: DiamondItem[] = [
   { id: 'bag10', name: 'ขยายกระเป๋า +10 ช่อง (ถาวร)', desc: 'เก็บของได้มากขึ้น ซื้อซ้ำได้สูงสุด 5 ครั้ง', price: 120 },
-  { id: 'fx_gold', name: 'เอฟเฟกต์ดาบ: เปลวทอง', desc: 'รอยฟันและแสงโจมตีเป็นสีทอง (ความสวยอย่างเดียว)', price: 300 },
-  { id: 'fx_void', name: 'เอฟเฟกต์ดาบ: ม่วงทมิฬ', desc: 'รอยฟันและแสงโจมตีเป็นสีม่วงเข้ม', price: 300 },
-  { id: 'fx_frost', name: 'เอฟเฟกต์ดาบ: น้ำแข็ง', desc: 'รอยฟันและแสงโจมตีเป็นสีฟ้าน้ำแข็ง', price: 300 },
-  { id: 'fx_blood', name: 'เอฟเฟกต์ดาบ: เลือดชาด', desc: 'รอยฟันและแสงโจมตีเป็นสีแดงเลือด', price: 300 },
+  { id: 'fx_gold', name: 'เอฟเฟกต์ดาบ: เปลวทอง', desc: 'รอยฟันและแสงโจมตีเป็นสีทอง (ความสวยอย่างเดียว)', price: 300, soon: true },
+  { id: 'fx_void', name: 'เอฟเฟกต์ดาบ: ม่วงทมิฬ', desc: 'รอยฟันและแสงโจมตีเป็นสีม่วงเข้ม', price: 300, soon: true },
+  { id: 'fx_frost', name: 'เอฟเฟกต์ดาบ: น้ำแข็ง', desc: 'รอยฟันและแสงโจมตีเป็นสีฟ้าน้ำแข็ง', price: 300, soon: true },
+  { id: 'fx_blood', name: 'เอฟเฟกต์ดาบ: เลือดชาด', desc: 'รอยฟันและแสงโจมตีเป็นสีแดงเลือด', price: 300, soon: true },
   { id: 'scroll10', name: 'ม้วนกลับหมู่บ้าน x10', desc: 'ประหยัดเวลาเดินกลับ', price: 40 },
   { id: 'build_now', name: 'สร้าง/อัปอาคารเสร็จทันที', desc: 'ข้ามเวลารอก่อสร้างทุกหลังที่กำลังสร้างอยู่', price: 30 },
   { id: 'costume', name: 'ชุดแฟชั่น (สกินตัวละคร)', desc: 'เปลี่ยนรูปลักษณ์ ไม่เพิ่มค่าพลัง', price: 600, soon: true },
@@ -84,8 +84,9 @@ export const vipGiftReady = (s: GameState, now = Date.now()) => vipActive(s, now
 export type BuyResult = 'ok' | 'diamonds' | 'soon' | 'owned' | 'max';
 export function buyDiamondItem(s: GameState, id: string, now = Date.now()): BuyResult {
   const p = s as PS, it = DIAMOND_SHOP.find(q => q.id === id);
-  if (!it || it.soon) return 'soon';
-  if (id.startsWith('fx_') && (p.fxOwned ?? []).includes(id)) { p.fx = id; return 'owned'; }
+  if (!it) return 'soon';
+  if (id.startsWith('fx_') && (p.fxOwned ?? []).includes(id)) { p.fx = id; return 'owned'; }   // (one already owned can still be worn while the shelf is closed)
+  if (it.soon) return 'soon';
   if (id === 'bag10' && (p.bagPlus ?? 0) >= 50) return 'max';
   if (diamonds(s) < it.price) return 'diamonds';
   p.diamonds = diamonds(s) - it.price;
@@ -98,3 +99,5 @@ export function buyDiamondItem(s: GameState, id: string, now = Date.now()): BuyR
 /** cosmetic slash colour (null = the form's own colour) */
 export const FX_COLOR: Record<string, number> = { fx_gold: 0xffc83a, fx_void: 0xa040ff, fx_frost: 0x7ae0ff, fx_blood: 0xff2a3a };
 export const slashFx = (s: GameState) => { const f = (s as PS).fx; return f ? FX_COLOR[f] ?? null : null; };
+/** the colour of the hero's strikes: a weapon effect the player owns and wears first, otherwise the weapon's +level (+5 gold, +10 red) */
+export const strikeColor = (s: GameState) => { const f = slashFx(s); if (f !== null) return f; const w = s.equip.weapon != null ? s.inventory.find(i => i.uid === s.equip.weapon)?.upg ?? 0 : 0; return w >= 10 ? 0xff3a2a : w >= 5 ? 0xffd23a : null; };

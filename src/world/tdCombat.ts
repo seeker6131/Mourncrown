@@ -17,7 +17,7 @@ import { element } from '../audio/skillSfx';
 import { SKILL_PFX, playPfx } from './pfx';
 import { SETS } from '../data/sets';
 import { Vfx } from './vfx';
-import { slashFx } from '../systems/premium';
+import { strikeColor } from '../systems/premium';
 import { sellJunk } from '../systems/inventory';
 import { invSize } from '../core/state';
 import { selfEffect, skillHit, castQ } from '../systems/skillCast';
@@ -529,7 +529,7 @@ export class Combat {
     const magic = MAGIC.has(formKey);
     // damage and the slash effect land on the frame where the weapon / bow / staff strikes
     this.s.time.delayedCall(hitMs(formKey, formKey === 'hg' ? (hasAnim('hg', 'hunt') ? 'hunt' : 'chop') : 'attack', ranged ? 260 : 120), () => {
-      const pl = hasFx2('fx_hit_sword'), wfx = slashFx(S());   // 💎 the weapon effect colour (diamond shop) — every class line (director)
+      const pl = hasFx2('fx_hit_sword'), wfx = strikeColor(S());   // 💎 the weapon effect colour (diamond shop) — every class line (director)
       if (!ranged && (!pl || formKey === 'hg' || wfx !== null)) this.slash(h.x + fx * 10, h.y - 14 + fy * 6, this.s.dir, formKey);
       for (const m of hits) {
         if (!m.alive) continue;
@@ -557,7 +557,7 @@ export class Combat {
   /** sword swing: big glowing crescent + sparks off the blade */
   slashN = 0;
   slash(x: number, y: number, dir: number, form: string) {
-    const col = slashFx(S()) ?? (form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8);
+    const col = strikeColor(S()) ?? (form === 'hr3' ? 0x9ae8ff : form === 'hr12' || form === 'hr11' ? 0xffa040 : form === 'hr2' ? 0xc8e0ff : 0xfff2c8);
     const fx = Math.sin(dir * Math.PI / 4), fy = Math.cos(dir * Math.PI / 4);
     if (form === 'hg') { this.vfx.thrust(x + fx * 4, y + fy * 3, Math.atan2(fy, fx), col, 0.9); return; }   // hunting spear: a stab, not a sweep
     this.vfx.slash(x + fx * 6, y + fy * 4, Math.atan2(fy, fx), col, form === 'hero' ? 0.85 : 1.05, (this.slashN++ & 1) === 1);
