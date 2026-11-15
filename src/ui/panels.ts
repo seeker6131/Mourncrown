@@ -12,7 +12,7 @@ import Phaser from 'phaser';
 import type { UIKit } from './kit';
 /** the scene hosting the panels (TdUIScene) */
 export interface UIScene extends Phaser.Scene {
-  kit: UIKit; VW: number;
+  kit: UIKit; VW: number; VH?: number;
   world: { hero: { ai: boolean; portrait(): { key: string; frame?: string | number } }; levelUpFx(): void };
   controlsReset(): void; reloadWorld(): void; toggleFullscreen(): void;
 }
@@ -484,11 +484,62 @@ export class Panels implements GuildHost {
       const ui = this.ui;
       const fl = ui.add.rectangle(0, 0, ui.VW, 360, r === 'ok' ? 0xfff0a0 : 0xff2020, 0.35).setOrigin(0);
       ui.tweens.add({ targets: fl, alpha: 0, duration: 400, onComplete: () => fl.destroy() });
-      // a big +N over the window for a moment, and the window shows the new level at once
       const it = s.inventory.find(i => i.uid === uid);
-      if (it) { const big = this.k.text(ui.VW / 2, 150, `+${it.upg}`, 40, r === 'ok' ? '#ffe07a' : '#ff8a8a', { stroke: '#1a0806', strokeThickness: 6 }).setOrigin(0.5).setDepth(10050).setScale(0.4); ui.tweens.add({ targets: big, scale: 1, duration: 220, ease: 'Back.easeOut' }); ui.tweens.add({ targets: big, alpha: 0, y: 120, delay: 900, duration: 500, onComplete: () => big.destroy() }); }
+      this.upgradeCard(it ?? null, r === 'ok');
     }
     bus.emit(EV.STATE_CHANGED); if (this.isOpen) this.rebuild();
+  }
+
+  /** ⚒ the upgrade result card (director 15 Nov: show the level, and make it look good): the item's icon glowing in its
+   *  rarity colour, a big +N; success = gold rays turning, sparks bursting out, the number pops; failure = red, a shake,
+   *  the number greys (or "broken" when the item is gone). Tap or wait ~1.8 s. */
+  upgradeCard(it: InvItem | null, ok: boolean) {
+    const ui = this.ui, k = this.k, VH = ui.VH ?? 360, cx = ui.VW / 2, cy = VH / 2 - 10, D = 10050;
+    const rar = it ? rarOf(it) : 0, rc = RARITY_COLORS[rar], col = ok ? 0xffd84a : 0xff5a4a;
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const add = <T extends Phaser.GameObjects.GameObject>(o: T) => { parts.push(o); return o; };
+    const dim = add(ui.add.rectangle(0, 0, ui.VW, VH, 0x000000, 0.45).setOrigin(0).setDepth(D).setInteractive());
+    const c = add(ui.add.container(cx, cy).setDepth(D + 1)) as Phaser.GameObjects.Container;
+    if (!ui.textures.exists('ui_glow')) {   // a soft round glow (made once)
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x2 = cv.getContext('2d')!, gr = x2.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x2.fillStyle = gr; x2.fillRect(0, 0, 128, 128); ui.textures.addCanvas('ui_glow', cv);
+    }
+    if (!ui.textures.exists('ui_ray')) {   // light rays (made once)
+      const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x2 = cv.getContext('2d')!; x2.translate(128, 128);
+      for (let i = 0; i < 12; i++) { x2.rotate(Math.PI / 6); const gr = x2.createLinearGradient(0, 0, 0, -128); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x2.fillStyle = gr; x2.beginPath(); x2.moveTo(-6, 0); x2.lineTo(-18, -128); x2.lineTo(18, -128); x2.lineTo(6, 0); x2.fill(); }
+      ui.textures.addCanvas('ui_ray', cv);
+    }
+    const glowKey = 'ui_glow';
+    if (ok) {   // turning rays behind the card
+      for (let i = 0; i < 2; i++) { const ray = ui.add.image(0, 0, 'ui_ray').setTint(i ? 0xfff2b0 : col).setBlendMode(Phaser.BlendModes.ADD).setScale(i ? 1.3 : 1.8).setAlpha(i ? 0.5 : 0.7); c.add(ray); ui.tweens.add({ targets: ray, angle: i ? -360 : 360, duration: i ? 9000 : 6000, repeat: -1 }); ui.tweens.add({ targets: ray, alpha: { from: 0.35, to: 0.8 }, duration: 700, yoyo: true, repeat: -1 }); }
+      const back = ui.add.image(0, 0, glowKey).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setScale(2.6, 1.8).setAlpha(0.55); c.add(back);
+    }
+    const W = 220, H = 150, g = ui.add.graphics();
+    g.fillStyle(0x140c08, 0.96).fillRoundedRect(-W / 2, -H / 2, W, H, 10).lineStyle(3, col, 1).strokeRoundedRect(-W / 2, -H / 2, W, H, 10).lineStyle(1, 0x000000, 0.6).strokeRoundedRect(-W / 2 + 4, -H / 2 + 4, W - 8, H - 8, 8);
+    c.add(g);
+    c.add(k.text(0, -H / 2 + 10, ok ? tr('✨ ตีบวกสำเร็จ! ✨') : it ? tr('💥 ตีบวกล้มเหลว') : tr('💥 ของแตกหายไป'), 12, ok ? '#ffe07a' : '#ff8a7a').setOrigin(0.5, 0));
+    // the item: rarity halo + icon
+    { const halo = ui.add.image(-56, 4, glowKey).setTint(ok ? (rar >= 2 ? rc : 0xffd84a) : 0xff4a3a).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9).setAlpha(0.8); c.add(halo); ui.tweens.add({ targets: halo, scale: { from: 0.75, to: 1 }, alpha: { from: 0.5, to: 0.9 }, duration: 700, yoyo: true, repeat: -1 }); }
+    const slot = ui.add.graphics(); k.iconSlot(slot, -56 - 22, 4 - 22, 44, rc, false); c.add(slot);
+    if (it) { const ic = this.ico(-56, 4, `icon_${itemDef(it.id).icon}`, 40); if (!ok) (ic as Phaser.GameObjects.Image).setTint?.(0x8a6a6a); c.add(ic); }
+    // the number
+    const num = k.text(30, -2, it ? `+${it.upg}` : '✖', 38, ok ? '#ffe07a' : '#9a8a8a', { stroke: ok ? '#6a3a00' : '#200a0a', strokeThickness: 6 }).setOrigin(0.5);
+    c.add(num);
+    if (it) c.add(k.text(30, 30, itemDef(it.id).name, 8.5, '#' + rc.toString(16).padStart(6, '0'), { wordWrap: { width: 110 }, align: 'center' }).setOrigin(0.5, 0));
+    c.add(k.text(0, H / 2 - 16, ok ? tr('แตะเพื่อปิด') : tr('เสียวัตถุดิบ • แตะเพื่อปิด'), 7, '#a89878').setOrigin(0.5, 0));
+    // motion
+    c.setScale(0.3).setAlpha(0); ui.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 260, ease: 'Back.easeOut' });
+    num.setScale(ok ? 2.4 : 1); ui.tweens.add({ targets: num, scale: 1, duration: ok ? 420 : 1, delay: 180, ease: 'Bounce.easeOut' });
+    if (ok) {
+      {
+        const em = ui.add.particles(cx + 30, cy - 4, 'ui_glow', { speed: { min: 70, max: 200 }, lifespan: 1000, scale: { start: 0.14, end: 0 }, alpha: { start: 1, end: 0 }, tint: [0xffe07a, 0xffffff, rc], blendMode: Phaser.BlendModes.ADD, emitting: false }).setDepth(D + 2);
+        em.explode(36); add(em);
+      }
+      ui.cameras.main.flash(180, 255, 236, 160);
+    } else { ui.tweens.add({ targets: c, x: { from: cx - 7, to: cx + 7 }, duration: 50, yoyo: true, repeat: 4, delay: 260, onComplete: () => c.setX(cx) }); ui.cameras.main.shake(160, 0.006); }
+    let gone = false;
+    const close = () => { if (gone) return; gone = true; ui.tweens.add({ targets: [c, dim], alpha: 0, duration: 220, onComplete: () => parts.forEach(o => o.destroy()) }); };
+    dim.on('pointerup', close); ui.time.delayedCall(1900, close);
   }
 
   // ---------------- CHARACTER ----------------

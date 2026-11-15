@@ -333,6 +333,11 @@ const EN: Record<string, string> = {
   '💥 ตีบวกล้มเหลว...': '💥 Upgrade failed...',
   '(เสียวัตถุดิบ)': '(materials lost)',
   'ของแตกหายไป': 'the item broke',
+  '✨ ตีบวกสำเร็จ! ✨': '✨ Upgrade success! ✨',
+  '💥 ตีบวกล้มเหลว': '💥 Upgrade failed',
+  '💥 ของแตกหายไป': '💥 The item broke',
+  'แตะเพื่อปิด': 'tap to close',
+  'เสียวัตถุดิบ • แตะเพื่อปิด': 'materials lost • tap to close',
   '🎰 ปุ่มตู้สุ่มอยู่แถบบนข้างกงล้อ — ตู้เดียว 2 แท็บ: 🪽 ปีก / 🐎 พาหนะ': '🎰 The slot machine button is on the top bar next to the wheel — one machine, two tabs: 🪽 Wings / 🐎 Mounts',
   '🎰 ตู้สุ่ม': '🎰 Slot machine', 'ตู้สุ่ม': 'Slot', 'พาหนะของฉัน': 'My mounts', '🐎 พาหนะของฉัน (ขี่ / ลง)': '🐎 My mounts (ride / get off)', 'หมาป่าเงาจันทร์': 'Moonshadow Wolf', 'หมีศึกเกราะเหล็ก': 'Iron War Bear', 'กวางวิญญาณพงไพร': 'Forest Spirit Stag', 'เสือดำทมิฬ': 'Shadow Panther', 'มังกรทองเหินฟ้า': 'Skyborne Golden Dragon',
   // PvP
