@@ -77,6 +77,21 @@ export class MapSim {
     const i = Math.floor(y / this.grid.c) * this.grid.w + Math.floor(x / this.grid.c);
     return !(this.grid.bits[i >> 3] & (1 << (i & 7)));
   }
+  /** cells reachable on foot from the map's gate (closed pockets between walls / channels are not) — worked out once per grid */
+  private reachOf: { g: Grid; r: Uint8Array } | null = null;
+  reachable(x: number, y: number) {
+    const g = this.grid;
+    if (this.reachOf?.g !== g) {
+      const r = new Uint8Array(g.w * g.h), q: number[] = [], cell = (cx: number, cy: number) => cy * g.w + cx, isFree = (i: number) => !(g.bits[i >> 3] & (1 << (i & 7)));
+      let sx = Math.floor(g.gate.x / g.c), sy = Math.floor(g.gate.y / g.c);
+      search: for (let d = 0; d < 40; d++) for (let a = -d; a <= d; a++) for (const [px, py] of [[sx + a, sy - d], [sx + a, sy + d], [sx - d, sy + a], [sx + d, sy + a]]) if (px >= 0 && py >= 0 && px < g.w && py < g.h && isFree(cell(px, py))) { sx = px; sy = py; break search; }
+      if (sx >= 0 && sy >= 0 && sx < g.w && sy < g.h && isFree(cell(sx, sy))) { r[cell(sx, sy)] = 1; q.push(cell(sx, sy)); }
+      while (q.length) { const i = q.pop()!, cx = i % g.w, cy = (i - cx) / g.w; for (const [nx, ny] of [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]]) { if (nx < 0 || ny < 0 || nx >= g.w || ny >= g.h) continue; const j = cell(nx, ny); if (!r[j] && isFree(j)) { r[j] = 1; q.push(j); } } }
+      this.reachOf = { g, r: r.some(v => v) ? r : new Uint8Array(g.w * g.h).fill(1) };   // (no gate found: do not block anything)
+    }
+    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return false;
+    return !!this.reachOf.r[Math.floor(y / g.c) * g.w + Math.floor(x / g.c)];
+  }
   hidden(x: number, y: number) {
     const hd = this.grid.hide; if (!hd || x < 0 || y < 0 || x >= this.W || y >= this.H) return false;
     const i = Math.floor(y / this.grid.c) * this.grid.w + Math.floor(x / this.grid.c);
@@ -91,17 +106,17 @@ export class MapSim {
       const a = live[Math.floor(r() * live.length)];
       if (live.filter(o => Math.hypot(o.hx - a.hx, o.hy - a.hy) < CLUSTER.r * 1.6).length >= CLUSTER.max) continue;
       const ang = r() * Math.PI * 2, d = 26 + r() * CLUSTER.r, x = a.hx + Math.cos(ang) * d, y = a.hy + Math.sin(ang) * d * 0.75;
-      if (!this.free(x, y) || this.hidden(x, y) || Math.hypot(x - g.x, y - g.y) < 260 || players.some(p => Math.hypot(x - p.x, y - p.y) < 240)) continue;
+      if (!this.free(x, y) || !this.reachable(x, y) || this.hidden(x, y) || Math.hypot(x - g.x, y - g.y) < 260 || players.some(p => Math.hypot(x - p.x, y - p.y) < 240)) continue;
       return { x, y };
     }
     for (let i = 0; i < 80; i++) {
       const c = C.length && r() < (this.wild ? 0.7 : 0.55) ? C[Math.floor(r() * C.length)] : null;
       const x = c ? c.x + (r() - 0.5) * c.r * 1.6 : 40 + r() * (this.W - 80), y = c ? c.y + (r() - 0.5) * c.r * (this.wild ? 1.3 : 1.2) : 40 + r() * (this.H - 80);
-      if (!this.free(x, y) || Math.hypot(x - g.x, y - g.y) < (this.wild ? 200 : 260) || (i < 70 && this.hidden(x, y))) continue;
+      if (!this.free(x, y) || !this.reachable(x, y) || Math.hypot(x - g.x, y - g.y) < (this.wild ? 200 : 260) || (i < 70 && this.hidden(x, y))) continue;
       if (i < 60 && players.some(p => Math.hypot(x - p.x, y - p.y) < 240)) continue;
       return { x, y };
     }
-    for (let i = 0; i < 400; i++) { const x = r() * this.W, y = r() * this.H; if (this.free(x, y)) return { x, y }; }
+    for (let i = 0; i < 400; i++) { const x = r() * this.W, y = r() * this.H; if (this.free(x, y) && (i < 300 ? this.reachable(x, y) : true)) return { x, y }; }
     return { x: this.W / 2, y: this.H / 2 };
   }
   private make(mob: StageMon, boss: boolean, at: { x: number; y: number }, lv: number, now: number) {
@@ -196,7 +211,7 @@ export class MapSim {
     const c = this.crowd(players); if (!c) return null; const g = this.grid.gate;
     for (let i = 0; i < 40; i++) {
       const a = this.rnd() * Math.PI * 2, d = 280 + this.rnd() * 140, x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d * 0.8;
-      if (x < 40 || y < 40 || x > this.W - 40 || y > this.H - 40 || !this.free(x, y) || this.hidden(x, y) || Math.hypot(x - g.x, y - g.y) < 260 || players.some(p => Math.hypot(x - p.x, y - p.y) < 220)) continue;
+      if (x < 40 || y < 40 || x > this.W - 40 || y > this.H - 40 || !this.free(x, y) || !this.reachable(x, y) || this.hidden(x, y) || Math.hypot(x - g.x, y - g.y) < 260 || players.some(p => Math.hypot(x - p.x, y - p.y) < 220)) continue;
       return { x, y };
     }
     return null;

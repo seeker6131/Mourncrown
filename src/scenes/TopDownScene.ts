@@ -1126,13 +1126,14 @@ export class TopDownScene extends Phaser.Scene {
         const a = live[Math.floor(Math.random() * live.length)];
         if (live.filter(o => Math.hypot(o.hx - a.hx, o.hy - a.hy) < CLUSTER.r * 1.6).length >= CLUSTER.max) continue;
         const ang = Math.random() * Math.PI * 2, d = 26 + Math.random() * CLUSTER.r, x = a.hx + Math.cos(ang) * d, y = a.hy + Math.sin(ang) * d * 0.75;
-        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || this.underCanopy(x, y) || Math.hypot(x - 24, y - gy) < 260 || Math.hypot(x - this.hero.x, y - this.hero.y) < 240) continue;
+        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || this.underCanopy(x, y) || !this.openGrid().near(x, y) || Math.hypot(x - 24, y - gy) < 260 || Math.hypot(x - this.hero.x, y - this.hero.y) < 240) continue;
         return { x, y };
       }
       for (let i = 0; i < 80; i++) {
         const c = rnd() < 0.55 ? this.clearings[Math.floor(rnd() * this.clearings.length)] : null;
         const x = c ? c.x + (rnd() - 0.5) * c.r * 1.6 : 40 + rnd() * (MW - 80), y = c ? c.y + (rnd() - 0.5) * c.r * 1.2 : 40 + rnd() * (MH - 80);
-        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || Math.hypot(x - 24, y - gy) < 260 || (i < 70 && this.underCanopy(x, y))) continue;
+        // (player report 16 Nov, maps 41+: monsters sat in closed pockets between the channels — AUTO stood still) only where the hero can walk to
+        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || !this.openGrid().near(x, y) || Math.hypot(x - 24, y - gy) < 260 || (i < 70 && this.underCanopy(x, y))) continue;
         if (Math.hypot(x - this.hero.x, y - this.hero.y) < 240 && i < 60) continue;
         return { x, y };
       }

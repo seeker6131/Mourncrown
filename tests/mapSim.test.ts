@@ -192,3 +192,14 @@ describe('packs (director 15 Nov)', () => {
     expect(near / ms.length).toBeGreaterThan(0.6);
   });
 });
+
+describe('closed pockets (player report 16 Nov, maps 41+)', () => {
+  it('nothing appears where nobody can walk to from the gate', () => {
+    const g = grid(); const W = g.w;   // wall in a box: cells x 160-200, y 20-60 (a pocket at 1280-1600, 160-480 px)
+    const wall = (i: number, j: number) => { const k = j * W + i; g.bits[k >> 3] |= 1 << (k & 7); };
+    for (let i = 160; i <= 200; i++) { wall(i, 20); wall(i, 60); } for (let j = 20; j <= 60; j++) { wall(160, j); wall(200, j); }
+    const s = new MapSim('m3', g, rnd);
+    expect(s.reachable(1400, 300)).toBe(false); expect(s.reachable(600, 700)).toBe(true);
+    for (let i = 0; i < 300; i++) { const p = s.spot([me(100, 700)]); expect(p.x > 1280 && p.x < 1600 && p.y > 160 && p.y < 480).toBe(false); }
+  });
+});
