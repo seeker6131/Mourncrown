@@ -25,3 +25,10 @@ export const lowWater = (target: number) => Math.ceil(target * 0.6);
 export const SIGHT = 80;
 /** the noticing monster walks over at this share of its speed (director: slowly), and gives up past this distance */
 export const SEEK_SPEED = 0.55, SEEK_GIVEUP = 220;
+
+/** director 15 Nov: hit one and the PACK_N nearest (within PACK_R px) rush in with it — 5-6 at once */
+export const PACK_N = 5, PACK_R = 190;
+/** how far (px) an ordinary monster strolls from where it appeared (was 110 — packs drifted apart) */
+export const WANDER = 70;
+/** share of new monsters that appear next to a living one (a pack of up to CLUSTER.max), not alone somewhere */
+export const CLUSTER = { share: 0.7, max: 6, r: 70 };

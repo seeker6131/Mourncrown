@@ -163,3 +163,25 @@ describe('roaming boss costs little server time: leaves when ignored, the room s
     s.run(b.join + WB.idle + 1000, far); expect(s.boss()).toBeTruthy();
   });
 });
+
+describe('packs (director 15 Nov)', () => {
+  it('hit one and up to 5 nearby rush the player; far ones stay calm', () => {
+    const s = new MapSim('m1', grid(), rnd); for (let t = 0; t < 30; t++) s.run(T0 + t * 200, [me(100, 700)]);
+    const all = [...s.mons.values()].filter(m => !m.boss); all.forEach(m => { m.x = m.hx = 1800; m.y = m.hy = 1300; m.hitT = 0; });
+    const ms = all.slice(0, 8);
+    ms.forEach((m, i) => { m.x = m.hx = 700 + (i % 4) * 30; m.y = m.hy = 600 + Math.floor(i / 4) * 30; m.hitT = 0; });
+    const far = ms[7]; far.x = far.hx = 1500; far.y = far.hy = 300;
+    const p = me(900, 600);
+    s.hit(ms[0].sid, 'A', T0 + 7000, [p]);
+    for (let t = 1; t < 10; t++) s.run(T0 + 7000 + t * 100, [p]);
+    const angry = ms.filter(m => m.hitT > 0);
+    expect(angry.length).toBe(6); expect(far.hitT).toBe(0);
+  });
+  it('new monsters mostly appear in packs, next to a living one', () => {
+    const s = new MapSim('m3', grid(), rnd);
+    for (let t = 0; t < 60; t++) s.run(T0 + t * 200, [me(100, 700)]);
+    const ms = [...s.mons.values()].filter(m => !m.boss);
+    const near = ms.filter(m => ms.some(o => o !== m && Math.hypot(o.hx - m.hx, o.hy - m.hy) < 110)).length;
+    expect(near / ms.length).toBeGreaterThan(0.6);
+  });
+});

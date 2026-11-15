@@ -6,7 +6,7 @@ import { fx2, hasFx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, PACK_N, PACK_R, WANDER } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
 import { lootSkip, lootDis } from '../systems/lootOpt';
@@ -595,14 +595,14 @@ export class Combat {
   }
 
   /** director: ranged heroes (mages, archers) must not win before monsters even reach them. A monster shot from afar
-   *  leaps at the hero (every 2.5 s), and the ones standing near it come along as a pack (the 2 nearest — director 14 Nov:
+   *  leaps at the hero (every 2.5 s), and the ones standing near it come along as a pack (the 5 nearest — director 15 Nov; was 2 on 14 Nov:
    *  hit one and 2-3 rush you; walking by, only one comes over slowly). */
   answer(m: Mon, far: boolean) {
     const now = this.s.time.now, h = this.s.hero;
     if (!m.packed) {
       m.packed = true;
-      this.mons.filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.bounty && now - o.hitT > 1600 && Math.hypot(o.x - m.x, o.y - m.y) < 150)
-        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, 2)
+      this.mons.filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.bounty && now - o.hitT > 1600 && Math.hypot(o.x - m.x, o.y - m.y) < PACK_R)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, PACK_N)
         .forEach((o, i) => this.s.time.delayedCall(120 + i * 140, () => { if (o.alive) { o.hitT = this.s.time.now; o.packed = true; } }));
     }
     if (!far || now - (m.leapT ?? 0) < 2500 || this.dungeon) return;
@@ -760,7 +760,7 @@ export class Combat {
         if (tx || ty) {
           const sp = (fleeing ? Math.min(base.speed * 1.4, 84) : base.speed * 1.25) * dt / 1000, nx = m.x + tx * sp, ny = m.y + ty * sp;
           // wander around their own spawn point (fleeing game may go a bit further)
-          const lim = fleeing ? 220 : m.boss ? 60 : 110;
+          const lim = fleeing ? 220 : m.boss ? 60 : WANDER;
           if (!this.s.isBlocked(nx, m.y) && Math.abs(nx - m.hx) < lim) m.x = nx; else if (!fleeing) m.wanderT = 0;
           if (!this.s.isBlocked(m.x, ny) && Math.abs(ny - m.hy) < lim * 0.75) m.y = ny; else if (!fleeing) m.wanderT = 0;
           m.dir = dirOf(tx, ty); moving = true;

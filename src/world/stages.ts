@@ -23,7 +23,7 @@ export const LANDS: Land[] = [
 export const STAGES: Stage[] = Array.from({ length: 50 }, (_, i) => {
   const n = i + 1, land = LANDS[Math.floor(i / 10)], boss = n % 10 === 0;
   const level = Math.round(1 + (n - 1) * 2.05);
-  return { n, land, level, req: Math.max(1, level - 2), count: 26 + Math.floor(n / 2), boss,
+  return { n, land, level, req: Math.max(1, level - 2), count: 34 + Math.floor(n / 2), boss,   // (director 15 Nov: more monsters, less walking)
            minRar: n >= 41 ? 2 : n >= 21 ? 1 : 0, mf: n * 3 + (boss ? 60 : 0) };
 });
 /** The Deepwild (ป่าดงดิบ): one big shared jungle for the whole server — no monsters, only game animals, trees,
@@ -53,7 +53,7 @@ export const PVP = 400;
 export const isPvp = (n: number) => n === PVP;
 export const PVP_LAND: Land = { id: 'war', name: 'สมรภูมิเลือด', ground: 'lava', boss: LANDS[2].boss,
   mobs: [LANDS[1].mobs[1], LANDS[1].mobs[2], LANDS[2].mobs[0], LANDS[2].mobs[1], LANDS[3].mobs[0]] };
-export const pvpStage = (level: number): Stage => ({ n: PVP, land: PVP_LAND, level: Math.max(40, Math.min(100, level)), req: 40, count: 34, boss: false, minRar: 2, mf: 60 });
+export const pvpStage = (level: number): Stage => ({ n: PVP, land: PVP_LAND, level: Math.max(40, Math.min(100, level)), req: 40, count: 40, boss: false, minRar: 2, mf: 60 });
 export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : isRaid(n) ? raidStage(level) : isPvp(n) ? pvpStage(level) : STAGES[n - 1];
 /** mine pits of the Deepwild: each pit has its own ore, rare gem and the level needed to dig there */
 export const PITS = [
@@ -69,6 +69,10 @@ export const PITS = [
  *  Each monster keeps its own character via kind factors (tougher / harder-hitting than average). */
 /** 0 below monster level 65, rising to 1 at level 84 and up (the late-game toughness — scaleStats) */
 export const lateGame = (L: number) => Math.max(0, Math.min(1, (L - 64) / 20));
+/** director 15 Nov: every monster hits 5% harder (balance — not announced) */
+export const MON_ATK_UP = 1.05;
+/** director 15 Nov: ordinary farming pays closer to roaming-boss hunting */
+export const NORMAL_EXP = 1.3;
 export function scaleStats(base: { level: number; hp: number; atk: number; def: number; exp: number; gold: [number, number]; attackCooldown?: number }, level: number, boss: boolean) {
   const L = level, refAtk = 10 + 5 * L, refHp = 150 + 43 * L, refDef = 1.7 * L;
   const kf = Math.min(1.6, Math.max(0.6, base.hp / (60 * Math.pow(Math.max(1, base.level), 1.35))));
@@ -86,7 +90,7 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   // a level takes about 12 + 1.2·L^2.2 kills on a map of your level → Lv10 ≈ 200 kills (10 min), Lv50 ≈ 6 500 (5 h), Lv90 ≈ 24 000 (18 h)
   const killsPerLevel = 12 + 1.2 * Math.pow(L, 2.2);
   const one = expBase(L) * (0.8 + 0.4 * kf) / (1.2 * killsPerLevel);   // (the reference curve: a longer bar from Lv60 does not raise kill EXP)
-  const exp = Math.max(1, Math.round(boss ? one * 60 : one));
+  const exp = Math.max(1, Math.round(boss ? one * 60 : one * NORMAL_EXP));
   const g = (k: number) => Math.round(k * (boss ? 15 : 1));
   // gold is scarce (director: no inflation) — and only ~40% of kills drop any (rewards.ts)
   // ⚔ the late game (director 2026-11-14): from monster level 65 normal monsters get tougher step by step (HP up to x4,
@@ -95,5 +99,5 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   // (bosses — roaming and dungeon — too, a little less: HP up to x2.5, attack up to x2 — director: the roaming boss on a
   //  high-level map must hit harder)
   const f = lateGame(L), hm = boss ? 1 + 1.5 * f : 1 + 3 * f, am = boss ? 1 + f : 1 + 2 * f;
-  return { hp: Math.round(hp * hm), atk: Math.round(atk * am), def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
+  return { hp: Math.round(hp * hm), atk: Math.round(atk * am * MON_ATK_UP), def, exp, gold: [g(1 + L * 0.2), g(2 + L * 0.4)] as [number, number] };
 }

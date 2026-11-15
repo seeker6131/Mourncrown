@@ -5,7 +5,7 @@
 // bolt and now and then kick back. The map's walls come from the players' games (Grid, checked by the room).
 import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, PACK_N, PACK_R, WANDER, CLUSTER } from '../systems/spawnRate';
 import { RAID_LAND, isRaid } from '../world/stages';
 import { RAID_SECS, RAID_BLD, RAID_GATES, raidTotal, raidHp, raidBldHp, RAID_WAVES, RAID_WAVE_SIZE, RAID_WAVE_GAP, RAID_BLD_SHARE, RAID_ALIVE_MAX, raidSpeed, RAID_GROUP, RAID_GROUP_GAP } from '../systems/townRaid';
 import type { TownBld } from '../systems/town';
@@ -38,7 +38,9 @@ export const BOSS_RESPAWN = 300000;
  *  follow the players farming there: level = their median (never under the map's, at most 10 above), HP 1.5x a land
  *  boss of that level for one player and +70% for each more player (a strong player can win alone, others band
  *  together); it hits 1.3x as hard as a land boss. */
-export const WB = { first: [180000, 360000], gap: [480000, 840000], life: 480000, idle: 180000, near: 420, hp: 1.5, perPlayer: 0.7, atk: 1.3, maxPlayers: 8 } as const;   // (idle: nobody hit it for 3 min = it leaves; near: a player this close wakes the room)
+// (15 Nov balance check: real players hit 3-5x the reference hero, so a roaming boss fell in ~25 s and paid as much EXP as
+//  ~480 kills — hp 1.5 → 2.5 makes the hunt a real fight; its rewards per kill stay the same)
+export const WB = { first: [180000, 360000], gap: [480000, 840000], life: 480000, idle: 180000, near: 420, hp: 2.5, perPlayer: 0.7, atk: 1.3, maxPlayers: 8 } as const;   // (idle: nobody hit it for 3 min = it leaves; near: a player this close wakes the room)
 export const WB_KEYS = LANDS.map(l => l.boss.key);
 /** roaming boss level and HP for these players on this map */
 export function wbStats(stageLv: number, lvs: number[], mob: StageMon) {
@@ -81,6 +83,15 @@ export class MapSim {
   /** a free spot: often in a meadow, never by the gate, out of the players' sight when possible */
   spot(players: SimPlayer[]) {
     const r = this.rnd, C = this.grid.clear.filter(c => !c.boss), g = this.grid.gate;
+    // director 15 Nov: monsters come in packs (next to a living one), not scattered one by one far apart
+    const live = this.wild ? [] : [...this.mons.values()].filter(m => m.alive && !m.boss && !m.wb && !m.animal);
+    if (live.length && r() < CLUSTER.share) for (let i = 0; i < 24; i++) {
+      const a = live[Math.floor(r() * live.length)];
+      if (live.filter(o => Math.hypot(o.hx - a.hx, o.hy - a.hy) < CLUSTER.r * 1.6).length >= CLUSTER.max) continue;
+      const ang = r() * Math.PI * 2, d = 26 + r() * CLUSTER.r, x = a.hx + Math.cos(ang) * d, y = a.hy + Math.sin(ang) * d * 0.75;
+      if (!this.free(x, y) || this.hidden(x, y) || Math.hypot(x - g.x, y - g.y) < 260 || players.some(p => Math.hypot(x - p.x, y - p.y) < 240)) continue;
+      return { x, y };
+    }
     for (let i = 0; i < 80; i++) {
       const c = C.length && r() < (this.wild ? 0.7 : 0.55) ? C[Math.floor(r() * C.length)] : null;
       const x = c ? c.x + (r() - 0.5) * c.r * 1.6 : 40 + r() * (this.W - 80), y = c ? c.y + (r() - 0.5) * c.r * (this.wild ? 1.3 : 1.2) : 40 + r() * (this.H - 80);
@@ -103,7 +114,14 @@ export class MapSim {
   hit(sid: number, by: string, now: number, players: SimPlayer[]) {
     const m = this.mons.get(sid); if (!m || !m.alive) return;
     if (this.raid?.fallen.has(by)) return;   // (director: a hero who fell in the raid is out — back on another device or not)
+    const fresh = !m.hitT;
     m.hitT = now; m.tgt = by;
+    // director 15 Nov: hit one and its pack (the 5 nearest close by) rushes the player at once
+    if (fresh && !m.animal && !m.boss && !m.wb) {
+      [...this.mons.values()].filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.wb && !o.hitT && Math.hypot(o.x - m.x, o.y - m.y) < PACK_R)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, PACK_N)
+        .forEach((o, i) => { const at = now + 100 + i * 90; this.later.push({ at, f: () => { if (o.alive && !o.hitT) { o.hitT = at; o.tgt = by; if (o.seek) { if (this.seekers.get(o.seek) === o.sid) this.seekers.delete(o.seek); o.seek = undefined; } } } }); });
+    }
     if (m.seek) { if (this.seekers.get(m.seek) === m.sid) this.seekers.delete(m.seek); m.seek = undefined; }   // (hit: the old rush, no more slow walk)
     if (m.animal) {
       m.fleeT = now + 1100;
@@ -216,14 +234,14 @@ export class MapSim {
         if (!m.idle) { tx = Math.sin(m.dir * Math.PI / 4) * 0.35; ty = Math.cos(m.dir * Math.PI / 4) * 0.35; }
       }
       if (tx || ty) {
-        const sp = (fleeing ? Math.min(base.speed * 1.4, 84) : base.speed * 1.25) * dt, nx = m.x + tx * sp, ny = m.y + ty * sp, lim = fleeing ? 220 : m.boss ? 60 : 110;
+        const sp = (fleeing ? Math.min(base.speed * 1.4, 84) : base.speed * 1.25) * dt, nx = m.x + tx * sp, ny = m.y + ty * sp, lim = fleeing ? 220 : m.boss ? 60 : WANDER;
         if (this.free(nx, m.y) && Math.abs(nx - m.hx) < lim) m.x = nx; else if (!fleeing) m.wanderT = 0;
         if (this.free(m.x, ny) && Math.abs(ny - m.hy) < lim * 0.75) m.y = ny; else if (!fleeing) m.wanderT = 0;
         m.dir = dirOf(tx, ty); m.mv = true;
       }
     }
     const ox = m.x, oy = m.y; let want: 'chase' | 'home' | '' = '';
-    const homeD = Math.hypot(m.hx - m.x, m.hy - m.y), wanderLim = m.boss ? 60 : 110;
+    const homeD = Math.hypot(m.hx - m.x, m.hy - m.y), wanderLim = m.boss ? 60 : WANDER;
     if (angry && p && !busy && dist < aggro && dist > reach * 0.8 && now - m.hitT > 120) {
       want = 'chase';
       const rush = now - m.hitT < 1600;

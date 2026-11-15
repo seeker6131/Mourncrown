@@ -33,7 +33,9 @@ export interface SkillDef {
   buff?: { atk?: number; def?: number; aspd?: number; dur: number };
 }
 
-const S = (d: SkillDef) => d;
+/** director 15 Nov: mana potions are plentiful — every skill costs 40% more MP */
+export const MP_UP = 1.4;
+const S = (d: SkillDef) => ({ ...d, mp: Math.round(d.mp * MP_UP) });
 
 export const SKILL_LIST: SkillDef[] = [
   // villager

@@ -55,7 +55,7 @@ export const MONSTERS = <Record<MonsterKind, MonsterDef>><unknown>{
   wisp: {
     kind: 'wisp', name: 'วิญญาณพงไพร', level: 11, hp: 240, atk: 34, def: 10, exp: 70, gold: [18, 34], speed: 40, aggro: 130,
     attackRange: 100, attackCooldown: 2000, ranged: true, bodyRadius: 7,
-    drops: [{ id: 'wisp_essence', chance: 0.5 }, { id: 'mp_potion', chance: 0.15 }, { id: 'mana_shard', chance: 0.12 }, { id: 'sage_pendant', chance: 0.02 }],
+    drops: [{ id: 'wisp_essence', chance: 0.5 }, { id: 'mp_potion', chance: 0.1 }, { id: 'mana_shard', chance: 0.12 }, { id: 'sage_pendant', chance: 0.02 }],
   },
   treant: {
     kind: 'treant', name: 'ผู้พิทักษ์ธอร์นวูด', level: 15, hp: 4200, atk: 48, def: 16, exp: 900, gold: [400, 600], speed: 34, aggro: 170,
@@ -78,7 +78,7 @@ export const MONSTERS = <Record<MonsterKind, MonsterDef>><unknown>{
 const R = (kind: MonsterKind, name: string, level: number, o: Partial<MonsterDef> = {}): MonsterDef => ({
   kind, name, level, hp: Math.round(60 * Math.pow(level, 1.35)), atk: Math.round(7 + level * 2.6), def: Math.round(level * 0.9),
   exp: Math.round(9 * Math.pow(level, 1.25)), gold: [level * 2, level * 4], speed: 44, aggro: 0, attackRange: 20, attackCooldown: 1300,
-  bodyRadius: 8, drops: [{ id: 'mana_shard', chance: 0.1 }, { id: 'hp_potion', chance: 0.1 }], ...o,
+  bodyRadius: 8, drops: [{ id: 'mana_shard', chance: 0.1 }, { id: 'hp_potion', chance: 0.05 }], ...o,   // (15 Nov: 10% → 5% — players held up to 7,000 small potions)
 });
 Object.assign(MONSTERS, {
   rat: R('rat', 'หนูยักษ์ตาแดง', 4, { speed: 60, bodyRadius: 6 }),

@@ -5,6 +5,7 @@
 import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
 import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage, dungeonLand, PVP, isPvp } from '../world/stages';
+import { CLUSTER } from '../systems/spawnRate';
 import { PVP_REQ, PVP_FEE, PVP_HOURS, pvpOpen, pvpOutLeft } from '../systems/pvp';
 import { isAdmin } from '../net/cloud';
 import type { RoomEvent } from '../net/room';
@@ -1112,6 +1113,15 @@ export class TopDownScene extends Phaser.Scene {
     this.arrive(56, this.trailMain(56));
     // monsters appear anywhere walkable, away from the gate and out of the hero's sight
     const spot = () => {
+      // director 15 Nov: monsters come in packs — most appear next to a living one (systems/spawnRate.ts CLUSTER)
+      const live = this.dungeon || this.stageN === WILD ? [] : this.combat.mons.filter(m => m.alive && !m.boss && !m.animal && !m.bounty);
+      if (live.length && Math.random() < CLUSTER.share) for (let i = 0; i < 24; i++) {
+        const a = live[Math.floor(Math.random() * live.length)];
+        if (live.filter(o => Math.hypot(o.hx - a.hx, o.hy - a.hy) < CLUSTER.r * 1.6).length >= CLUSTER.max) continue;
+        const ang = Math.random() * Math.PI * 2, d = 26 + Math.random() * CLUSTER.r, x = a.hx + Math.cos(ang) * d, y = a.hy + Math.sin(ang) * d * 0.75;
+        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || this.underCanopy(x, y) || Math.hypot(x - 24, y - gy) < 260 || Math.hypot(x - this.hero.x, y - this.hero.y) < 240) continue;
+        return { x, y };
+      }
       for (let i = 0; i < 80; i++) {
         const c = rnd() < 0.55 ? this.clearings[Math.floor(rnd() * this.clearings.length)] : null;
         const x = c ? c.x + (rnd() - 0.5) * c.r * 1.6 : 40 + rnd() * (MW - 80), y = c ? c.y + (rnd() - 0.5) * c.r * 1.2 : 40 + rnd() * (MH - 80);
