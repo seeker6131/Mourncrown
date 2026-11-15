@@ -329,6 +329,10 @@ const EN: Record<string, string> = {
   '— ล่ามอนได้ EXP เพิ่ม • ⚡ แรงเก็บของ': '— bonus EXP from monsters • ⚡ Gathering energy',
   'บ้านของคุณเอง (สร้าง/อัปด้วยของส่วนตัว) — พักฟื้นเร็วขึ้น • ข้างในมีเตียงพักผ่อน (ล่ามอนได้ EXP เพิ่ม) ตู้โชว์ของแรร์ (บัฟถาวร) หีบเก็บของส่วนตัว': 'Your own house (built / upgraded with your own things) — faster recovery • inside: a bed (bonus monster EXP), a trophy case for rare items (permanent buffs), a private chest',
   '⚠ นับเฉพาะเพื่อนจริง: คนละเครือข่ายเน็ต • บัญชีเล่นมาแล้ว 2 วัน • ล่ามอน 1,000 ตัว': '⚠ Real friends only: a different internet connection • an account 2 days old • 1,000 monsters hunted',
+  '✨ ตีบวกสำเร็จ!': '✨ Upgrade success!',
+  '💥 ตีบวกล้มเหลว...': '💥 Upgrade failed...',
+  '(เสียวัตถุดิบ)': '(materials lost)',
+  'ของแตกหายไป': 'the item broke',
   '🎰 ปุ่มตู้สุ่มอยู่แถบบนข้างกงล้อ — ตู้เดียว 2 แท็บ: 🪽 ปีก / 🐎 พาหนะ': '🎰 The slot machine button is on the top bar next to the wheel — one machine, two tabs: 🪽 Wings / 🐎 Mounts',
   '🎰 ตู้สุ่ม': '🎰 Slot machine', 'ตู้สุ่ม': 'Slot', 'พาหนะของฉัน': 'My mounts', '🐎 พาหนะของฉัน (ขี่ / ลง)': '🐎 My mounts (ride / get off)', 'หมาป่าเงาจันทร์': 'Moonshadow Wolf', 'หมีศึกเกราะเหล็ก': 'Iron War Bear', 'กวางวิญญาณพงไพร': 'Forest Spirit Stag', 'เสือดำทมิฬ': 'Shadow Panther', 'มังกรทองเหินฟ้า': 'Skyborne Golden Dragon',
   // PvP

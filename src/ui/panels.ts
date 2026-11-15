@@ -475,15 +475,20 @@ export class Panels implements GuildHost {
       ok: ['ตีบวกสำเร็จ!', '#9fffb0'], fail: ['ตีบวกล้มเหลว... (เสียวัตถุดิบ)', '#ff8a8a'], max: ['ระดับสูงสุดแล้ว', '#ffe7a0'],
       no_gold: ['ทองไม่พอ', '#ff8a8a'], no_shard: ['ผลึกมานาไม่พอ (ดรอปจากมอนสเตอร์/ซื้อที่ร้าน)', '#ff8a8a'], invalid: ['ตีบวกไม่ได้', '#ff8a8a'],
     };
-    const [t, col] = msg[r];
+    let [t, col] = msg[r];
+    // (player report 15 Nov: "it does not show what level it is now — I have to leave and look") the result says the level
+    if (r === 'ok' || r === 'fail') { const it = s.inventory.find(i => i.uid === uid); if (it) t = r === 'ok' ? `✨ ตีบวกสำเร็จ! ${itemDef(it.id).name} → +${it.upg}` : `💥 ตีบวกล้มเหลว... ${itemDef(it.id).name} ตอนนี้ +${it.upg} (เสียวัตถุดิบ)`; else if (r === 'fail') t = '💥 ตีบวกล้มเหลว... ของแตกหายไป'; }
     if (r === 'ok') { sfx.upgradeOk(); bus.emit('td:fx', 'fx_upgrade_ok'); } else if (r === 'fail') { sfx.upgradeFail(); bus.emit('td:fx', 'fx_upgrade_fail'); } else sfx.error();
     bus.emit(EV.TOAST, t, col);
     if (r === 'ok' || r === 'fail') {
       const ui = this.ui;
       const fl = ui.add.rectangle(0, 0, ui.VW, 360, r === 'ok' ? 0xfff0a0 : 0xff2020, 0.35).setOrigin(0);
       ui.tweens.add({ targets: fl, alpha: 0, duration: 400, onComplete: () => fl.destroy() });
+      // a big +N over the window for a moment, and the window shows the new level at once
+      const it = s.inventory.find(i => i.uid === uid);
+      if (it) { const big = this.k.text(ui.VW / 2, 150, `+${it.upg}`, 40, r === 'ok' ? '#ffe07a' : '#ff8a8a', { stroke: '#1a0806', strokeThickness: 6 }).setOrigin(0.5).setDepth(10050).setScale(0.4); ui.tweens.add({ targets: big, scale: 1, duration: 220, ease: 'Back.easeOut' }); ui.tweens.add({ targets: big, alpha: 0, y: 120, delay: 900, duration: 500, onComplete: () => big.destroy() }); }
     }
-    bus.emit(EV.STATE_CHANGED);
+    bus.emit(EV.STATE_CHANGED); if (this.isOpen) this.rebuild();
   }
 
   // ---------------- CHARACTER ----------------
