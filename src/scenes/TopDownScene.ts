@@ -1120,14 +1120,25 @@ export class TopDownScene extends Phaser.Scene {
     this.arrive(56, this.trailMain(56));
     // monsters appear anywhere walkable, away from the gate and out of the hero's sight
     const spot = () => {
-      // director 15 Nov: monsters come in packs — most appear next to a living one (systems/spawnRate.ts CLUSTER)
+      // director 15 Nov: monsters come in packs (systems/spawnRate.ts CLUSTER) — and the packs spread over the whole map
+      // (16 Nov: packs grew into each other and whole parts of a map stayed empty): a new one joins a pack that is still
+      // small, else it starts a new pack as far as possible from every monster there is
       const live = this.dungeon || this.stageN === WILD ? [] : this.combat.mons.filter(m => m.alive && !m.boss && !m.animal && !m.bounty);
-      if (live.length && Math.random() < CLUSTER.share) for (let i = 0; i < 24; i++) {
-        const a = live[Math.floor(Math.random() * live.length)];
-        if (live.filter(o => Math.hypot(o.hx - a.hx, o.hy - a.hy) < CLUSTER.r * 1.6).length >= CLUSTER.max) continue;
-        const ang = Math.random() * Math.PI * 2, d = 26 + Math.random() * CLUSTER.r, x = a.hx + Math.cos(ang) * d, y = a.hy + Math.sin(ang) * d * 0.75;
-        if (this.isBlocked(x, y) || this.surfAt(x, y) === 'water' || this.underCanopy(x, y) || !this.openGrid().near(x, y) || Math.hypot(x - 24, y - gy) < 260 || Math.hypot(x - this.hero.x, y - this.hero.y) < 240) continue;
-        return { x, y };
+      const ok = (x: number, y: number) => !this.isBlocked(x, y) && this.surfAt(x, y) !== 'water' && !this.underCanopy(x, y) && this.openGrid().near(x, y) && Math.hypot(x - 24, y - gy) >= 260 && Math.hypot(x - this.hero.x, y - this.hero.y) >= 240;
+      const packOf = (a: { hx: number; hy: number }) => live.filter(o => Math.hypot(o.hx - a.hx, o.hy - a.hy) < CLUSTER.r * 1.6).length;
+      if (live.length) {
+        const small = live.filter(a => packOf(a) < CLUSTER.max - 1);
+        if (small.length && Math.random() < CLUSTER.share) for (let i = 0; i < 24; i++) {
+          const a = small[Math.floor(Math.random() * small.length)];
+          const ang = Math.random() * Math.PI * 2, d = 26 + Math.random() * CLUSTER.r, x = a.hx + Math.cos(ang) * d, y = a.hy + Math.sin(ang) * d * 0.75;
+          if (ok(x, y)) return { x, y };
+        }
+        let best: { x: number; y: number } | null = null, bd = -1;   // a new pack: the emptiest place of a few tries
+        for (let i = 0; i < 60 && (!best || i < 14); i++) {
+          const x = 40 + rnd() * (MW - 80), y = 40 + rnd() * (MH - 80); if (!ok(x, y)) continue;
+          const dn = Math.min(...live.map(o => Math.hypot(o.hx - x, o.hy - y))); if (dn > bd) { bd = dn; best = { x, y }; }
+        }
+        if (best) return best;
       }
       for (let i = 0; i < 80; i++) {
         const c = rnd() < 0.55 ? this.clearings[Math.floor(rnd() * this.clearings.length)] : null;
