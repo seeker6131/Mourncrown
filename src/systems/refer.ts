@@ -17,3 +17,6 @@ export const REF_KEY = 'mcRef';
 export function catchRefLink() {
   try { const r = new URLSearchParams(location.search).get('ref'); if (r && /^[0-9a-fA-F]{8}$/.test(r)) localStorage.setItem(REF_KEY, r.toUpperCase()); } catch { /* storage blocked */ }
 }
+
+/** the inviter's Lv30 reward needs a real player: an account this old and this many monster kills (player report 15 Nov: alts) */
+export const REF_AGE = 2 * 86400000, REF_KILLS = 1000;

@@ -42,7 +42,7 @@ import {
   rivalStructs, canRaid, raidResult, devGuild, seasonClaim, bldRepair, houseRepair, setFlag, type Rival, type Wreck,
 } from '../systems/guild';
 import { RAID_SECS, REST_EXP, GUILD_BLD, type DefenseId, type GuildBld, type GuardType } from '../data/guild';
-import { gainExp } from '../systems/stats';
+import { gainExp, expToNext } from '../systems/stats';
 import { upSkill, advanceClass, lastRefund, bonusSkillPt } from '../systems/stats';
 import { adminForm } from '../systems/adminKit';
 import { listItem, cancelListing } from '../systems/market';
@@ -97,6 +97,8 @@ function dungeonRuns(s: GameState, now: number) {
   return Object.assign(t.dng, { max: (vipActive(s, now) ? 3 : 2) + (t.dng.extra ?? 0) }) as { day: string; used: number; max: number; extra?: number };
 }
 
+/** one roaming boss pays at most this share of the hero's level bar (no carrying new accounts up) */
+export const WB_EXP_CAP = 0.3;
 export const handlers = {
   /** entering a map (server remembers where the player is) */
   enterMap(s: GameState, a: { n: number }, c: Ctx) {
@@ -167,7 +169,10 @@ export const handlers = {
     if (!c.admin && mem.dmg < part) return no('dps');
     mem.dmg = Math.max(0, mem.dmg - part);
     const d = derive(s), vip = ((s as GameState & { vipUntil?: number }).vipUntil ?? 0) > c.now;
-    const gold = Math.round((st.gold[0] + st.gold[1]) / 2 * 10 * share * (vip ? 1.3 : 1)), exp = Math.round(st.exp * 8 * d.expBonus * share);
+    // (player report 15 Nov: new accounts carried to Lv30 in half an hour by a high-level friend's roaming bosses) the pay is
+    //  worked out at the level of the boss or of the hero +5, whichever is lower, and one boss gives at most 30% of a level
+    const est = s.level + 5 < lv ? scaleStats(base, s.level + 5, true) : st;
+    const gold = Math.round((est.gold[0] + est.gold[1]) / 2 * 10 * share * (vip ? 1.3 : 1)), exp = Math.min(Math.round(est.exp * 8 * d.expBonus * share), Math.round(expToNext(s.level) * WB_EXP_CAP));
     s.gold += gold; const levels = gainExp(s, exp);
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [], gear: { id: string; rar: number }[] = [];
     if (a.killer) for (let k = 0, cnt = c.rnd() < 0.35 ? 2 : 1; k < cnt; k++) {

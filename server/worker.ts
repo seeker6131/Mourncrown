@@ -1,5 +1,5 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
-import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, REF_WING, REF_MAX, REF_DAYS, refCode } from '../src/systems/refer';
+import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, REF_WING, REF_MAX, REF_DAYS, REF_AGE, REF_KILLS, refCode } from '../src/systems/refer';
 import { loseWarBag, warBag, PVP_SHIELD_MS, pvpDamage } from '../src/systems/pvp';
 import { CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH, CHEST_SIGHT } from '../src/systems/pvpChest';
 import { brRoundById, brZone, brResult, brPay, brRoll, BR_CHESTS, BR_DC_MS, BR_MIN_TEAMS, BR_TEAM_MAX, BR_ZONE_DMG, type BrPrize } from '../src/systems/br';
@@ -1082,6 +1082,9 @@ export class Player {
       const f = inv.results?.length === 1 ? inv.results[0] : null;
       if (!f || f.id === this.id) return { r: { refused: 'code' }, own: {} };
       if (f.ip_hash && me.ip_hash && f.ip_hash === me.ip_hash) return { r: { refused: 'same' }, own: {} };   // (one network: alt accounts)
+      // (player report 15 Nov: three 'friends' from one network, one after another — the same person) a second friend from the
+      // same network as one already invited by this inviter does not count
+      if (me.ip_hash && await DB.prepare('SELECT 1 AS x FROM referrals r JOIN accounts a ON a.id = r.invitee WHERE r.inviter = ? AND a.ip_hash = ? LIMIT 1').bind(f.id, me.ip_hash).first()) return { r: { refused: 'same' }, own: {} };
       await DB.prepare('INSERT INTO referrals (invitee, inviter, at) VALUES (?, ?, ?)').bind(this.id, f.id, Date.now()).run();
       await this.refCheck();
       return { r: { ok: true, name: f.name ?? '' }, own: {} };
@@ -1101,6 +1104,11 @@ export class Player {
       this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: `🤝 ถึง Lv10 แล้ว! ได้ 💎${REF_NEW_DIA} จากการเข้าเกมด้วยรหัสเพื่อน` });
     }
     if (!r.lv30 && st.level >= 30) {
+      // the inviter is paid only for a real player: an account at least REF_AGE old with REF_KILLS monster kills counted by the
+      // server (alts carried to Lv30 by a high-level friend in half an hour do not pass)
+      const acc = await DB.prepare('SELECT created FROM accounts WHERE id = ?').bind(this.id).first<{ created: number }>();
+      const kills = (await DB.prepare("SELECT COALESCE(SUM(n), 0) AS n FROM econ WHERE id = ? AND src = 'kill'").bind(this.id).first<{ n: number }>())?.n ?? 0;
+      if (!acc || Date.now() - acc.created < REF_AGE || kills < REF_KILLS) return;
       await DB.prepare('UPDATE referrals SET lv30 = 1 WHERE invitee = ?').bind(this.id).run();
       const n = (await DB.prepare('SELECT COUNT(*) AS n FROM referrals WHERE inviter = ? AND lv30 = 1').bind(r.inviter).first<{ n: number }>())?.n ?? 0;
       if (n <= REF_MAX) try { await this.env.PLAYER.get(this.env.PLAYER.idFromName(r.inviter)).fetch(new Request('https://p/refpay?id=' + r.inviter, { method: 'POST', body: JSON.stringify({ name: st.name ?? '', n }) })); } catch { /* next time */ }
