@@ -12,3 +12,8 @@
   (≈10-15 hits), x sqrt(power ratio), at least 6 hits, at most 30; class factor, ranged falloff past 110 px, melee take 15% less. Range and
   attack speed checked; the room keeps its own HP count (never above what the game reports).
 - Not done yet: red names / bounties for killers, the treasure chest, weekly ranking.
+
+## 📦 Treasure chests (15 Nov)
+- One at a time, every 4-7 min (first 1-2 min after the room wakes), away from the heroes; goes after 3 min unopened.
+- Stand within 44 px for 5 s; a hit from a hero stops it (room: `pcopen`/`pcdone`/`pcstop`/`pcgone`, Player `/pvpchest`).
+- Prize (rates never shown; `src/systems/pvpChest.ts`): gold 3-8k ~66%, Super Rare ~24%, Legend ~8%, SL ~1.5%, Limited wing / golden dragon ~0.3%. Gold and gear go into the war bag; a Limited prize is kept at once.

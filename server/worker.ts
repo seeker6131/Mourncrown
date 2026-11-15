@@ -1,6 +1,7 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
 import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, REF_WING, REF_MAX, REF_DAYS, refCode } from '../src/systems/refer';
 import { loseWarBag, warBag, PVP_SHIELD_MS, pvpDamage } from '../src/systems/pvp';
+import { openChest, CHEST_GAP, CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH } from '../src/systems/pvpChest';
 import { isPvp } from '../src/world/stages';
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
@@ -497,7 +498,7 @@ const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
-  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number }
+  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number; /** 📦 the chest this game was told about */ pcs?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
@@ -719,8 +720,36 @@ export class Room {
     }
     return me.pv;
   }
+  // 📦 battlefield treasure chests (src/systems/pvpChest.ts): one at a time, away from the heroes; stand by it unhurt to open
+  private chest: { id: number; x: number; y: number; until: number; opener?: string; start?: number } | null = null;
+  private chestAt = 0; private chestN = 1;
+  private pvpChestTick(ws: WebSocket, me: Who, now: number) {
+    const gap = () => now + CHEST_GAP[0] + Math.random() * (CHEST_GAP[1] - CHEST_GAP[0]);
+    if (!this.chestAt) this.chestAt = now + 60000 + Math.random() * 60000;   // (the first one a minute or two after the room wakes)
+    const c = this.chest;
+    if (c && now > c.until && !c.opener) { this.send({ t: 'pcgone', id: c.id }); this.chest = null; this.chestAt = gap(); }
+    if (!this.chest && now > this.chestAt) {
+      const ps = this.players(); let at: { x: number; y: number } | null = this.sim ? this.sim.spot(ps) : null;
+      if (!at && ps.length) { const q = ps[Math.floor(Math.random() * ps.length)], a = Math.random() * Math.PI * 2; at = { x: Math.max(60, q.x + Math.cos(a) * 400), y: Math.max(60, q.y + Math.sin(a) * 300) }; }
+      if (at) { this.chest = { id: this.chestN++, x: Math.round(at.x), y: Math.round(at.y), until: now + CHEST_LIFE }; this.send({ t: 'pchest', ...this.chest }); me.pcs = this.chest.id; (ws as WSX).serializeAttachment(me); }
+    }
+    if (this.chest && me.pcs !== this.chest.id) { me.pcs = this.chest.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'pchest', id: this.chest.id, x: this.chest.x, y: this.chest.y, until: this.chest.until })); } catch { /* closing */ } }
+  }
   private async pvpMsg(ws: WebSocket, me: Who, m: Record<string, unknown>, now: number) {
     const all = this.all(), meP = me.p as { x: number; y: number; hp: number } | undefined; if (!meP || (me.dead && now - me.dead < 4000)) return;
+    if (m.t === 'pcopen' || m.t === 'pcdone') {
+      const c = this.chest; if (!c || Number(m.id) !== c.id || Math.hypot(c.x - meP.x, c.y - meP.y) > CHEST_REACH + 12) return;
+      if (m.t === 'pcopen') {
+        if (c.opener && c.opener !== me.id && now - (c.start ?? 0) < CHEST_OPEN_MS + 3000) return;   // (somebody else is at it)
+        c.opener = me.id; c.start = now; this.send({ t: 'pcopen', id: c.id, by: me.id, name: me.name }); return;
+      }
+      if (c.opener !== me.id || now - (c.start ?? now) < CHEST_OPEN_MS - 400) return;
+      this.chest = null; this.chestAt = now + CHEST_GAP[0] + Math.random() * (CHEST_GAP[1] - CHEST_GAP[0]);
+      let prize: Record<string, unknown> = {};
+      try { prize = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/pvpchest?id=' + me.id, { method: 'POST' }))).json() as Record<string, unknown>; } catch { /* lost */ }
+      this.send({ t: 'pcgone', id: c.id, by: me.id, name: me.name, prize });
+      return;
+    }
     if (m.t === 'ppick') {   // walk onto loot: the first to reach it takes it
       const did = Number(m.did), d = this.pdrops.get(did); if (!d || d.until < now) { this.pdrops.delete(did); return; }
       if (Math.hypot(d.x - meP.x, d.y - meP.y) > 48) return;
@@ -741,6 +770,7 @@ export class Room {
     const back = tg.php === undefined ? b.hp : Math.min(b.hp, tg.php + (now - (tg.phT ?? now)) / 1000 * b.hp * 0.04);
     const cur = Math.min(back, b.hp * Math.max(1, tp.hp) / 100) - dmg; tg.phT = now;
     tg.php = Math.max(0, cur); (tw.w as WSX).serializeAttachment(tg);
+    if (this.chest?.opener === tg.id) { this.chest.opener = undefined; this.send({ t: 'pcstop', id: this.chest.id, by: tg.id }); }   // (📦 a hit stops the opening)
     this.send({ t: 'php', id: tg.id, by: me.id, dmg, hp: Math.max(0, Math.round(100 * cur / b.hp)) });
     if (cur > 0) return;
     tg.dead = now; tg.php = undefined; (tw.w as WSX).serializeAttachment(tg);
@@ -769,6 +799,7 @@ export class Room {
       const num = (v: unknown, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
       const p = { x: num(m.x, 0, 4000), y: num(m.y, 0, 4000), d: num(m.d, 0, 7), f: String(m.f ?? 'hero').slice(0, 8), mv: m.mv ? 1 : 0, hp: num(m.hp, 0, 100), a: num(m.a, 0, 4), r: String(m.r ?? '').slice(0, 8), lv: num(m.lv, 1, 999), pe: m.pe ? 1 : 0, nc: m.nc ? 1 : 0, sk: m.sk ? 1 : 0, wu: num(m.wu, 0, 2), wg: String(m.wg ?? '').replace(/[^a-z_]/g, '').slice(0, 12), ...(m.ts !== undefined ? { ts: num(m.ts, 0, 4e9) } : {}) };   // (ts: the sender's clock, for smooth movement)
       me.p = p; (ws as WSX).serializeAttachment(me);
+      if (isPvp(mapOfRoom(room))) this.pvpChestTick(ws, me, now);
       this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
       // a sleeping room wakes only for a reason: a boss is due (a missed alarm) or someone came near the standing boss
       // (not on every position — that kept the room awake all the time)
@@ -789,7 +820,7 @@ export class Room {
       const e = this.grids.get(hk) ?? { g, ids: new Set<string>() }; e.ids.add(me.id); this.grids.set(hk, e);
       if (!this.sim && !this.wbKeep) this.wbKeep = Number(await this.store.get('wbAt').catch(() => 0)) || 0;
       this.choose(room);
-    } else if ((m.t === 'pa' || m.t === 'ppick') && isPvp(mapOfRoom(room))) {   // ⚔ PvP: I hit a hero / I pick up battlefield loot
+    } else if ((m.t === 'pa' || m.t === 'ppick' || m.t === 'pcopen' || m.t === 'pcdone') && isPvp(mapOfRoom(room))) {   // ⚔ PvP: I hit a hero / I pick up battlefield loot
       await this.pvpMsg(ws, me, m, now);
     } else if (m.t === 'dmg' && this.sim) {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
       const sid = Number(m.sid), r = this.sim.mons.get(sid); if (!r || !r.alive) return;
@@ -1178,6 +1209,11 @@ export class Player {
       this.dirty = true; await this.persist();
       this.send({ t: 'note', own: this.diff(b), text: out.gold || out.items.length ? '💀 ล้มในสมรภูมิ — ของที่ได้จากสมรภูมิรอบนี้ตกอยู่ที่พื้น' : '💀 ล้มในสมรภูมิ' });
       return new Response(JSON.stringify(out));
+    }
+    if (u.pathname === '/pvpchest' && this.st) {   // 📦 opened a battlefield chest: the roll happens here
+      const b = this.snap(), pr = openChest(this.st as unknown as GameState, Math.random);
+      this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
+      return new Response(JSON.stringify(pr));
     }
     if (u.pathname === '/pvpgain' && this.st) {
       const g = JSON.parse(await req.text()) as { gold?: number; item?: { id: string; qty: number; gear?: Record<string, unknown> } }, st = this.st as unknown as GameState, b = this.snap(), bag = warBag(st);

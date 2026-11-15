@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
 import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage, dungeonLand, PVP, isPvp } from '../world/stages';
 import { CLUSTER } from '../systems/spawnRate';
+import { CHEST_OPEN_MS, CHEST_REACH } from '../systems/pvpChest';
 import { PVP_REQ, PVP_FEE, PVP_HOURS, pvpOpen, pvpOutLeft } from '../systems/pvp';
 import { isAdmin } from '../net/cloud';
 import type { RoomEvent } from '../net/room';
@@ -25,7 +26,8 @@ import { TUT_STEPS, tutStep, tutActive } from '../systems/progress';
 import { titleOf } from '../data/achievements';
 import { energyLeft, resCap } from '../systems/economy';
 import { type Vein } from '../systems/alchemy';
-import { itemDef } from '../data/items';
+import { itemDef, RARITY_NAMES } from '../data/items';
+import { tr } from '../core/i18n';
 import { S } from '../core/events';
 import { saveGame, loadGame, startNewGame } from '../core/save';
 import { runtime } from '../core/events';
@@ -42,7 +44,7 @@ import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { invSize } from '../core/state';
 import { activeWing } from '../systems/wings';
-import { WING_SPEED, WING_LIFT } from '../data/wings';
+import { WING_SPEED, WING_LIFT, WING_BY_ID } from '../data/wings';
 import { WingView, liftSprite } from '../world/wingView';
 import { potOf, pickPotion, POT_CD, autoOf, potCount } from '../systems/potions';
 import { farmGoal, farmLeft, farmDone, FARM_KEYS, FARM_NAMES, type FarmGoal } from '../systems/farm';
@@ -385,6 +387,7 @@ export class TopDownScene extends Phaser.Scene {
 
   create() {
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
+    this.pChest = null; this.pvpLoot = new Map();   // (the scene instance survives a restart: its battlefield objects are gone)
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     applyGfx(this.game, uiOpt(S()));   // (FPS cap + low graphics from the settings)
     if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)
@@ -466,6 +469,7 @@ export class TopDownScene extends Phaser.Scene {
         if (e.t === 'rs') { this.rv?.onState(e); return; }
         if (e.t === 'rend') { this.rv?.onEnd(e, link.me, () => this.raidBack()); return; }
         if (e.t === 'php' || e.t === 'pkill' || e.t === 'pdrop' || e.t === 'pgone') { this.pvpEvent(e, link.me); return; }
+        if (e.t === 'pchest' || e.t === 'pcopen' || e.t === 'pcstop' || e.t === 'pcgone') { this.chestEvent(e, link.me); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
       });
       this.link = link; this.peers = new OtherPlayers(this, link);
@@ -2101,6 +2105,43 @@ export class TopDownScene extends Phaser.Scene {
       this.pvpLoot.set(d.did, { x: d.x, y: d.y, im, tx });
     }
   }
+  // ---------------------------------------------------------------- 📦 battlefield treasure chest (systems/pvpChest.ts; the room rolls)
+  pChest: { id: number; x: number; y: number; im: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; tx: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Graphics; start: number; sent: boolean } | null = null;
+  chestEvent(e: Extract<RoomEvent, { t: 'pchest' | 'pcopen' | 'pcstop' | 'pcgone' }>, me: string) {
+    const c = this.pChest;
+    if (e.t === 'pchest') {
+      if (c?.id === e.id) return; this.chestGone();
+      const key = this.textures.exists('o_fu_chest') ? 'o_fu_chest' : 'icon_gold';
+      const glow = this.add.image(e.x, e.y - 6, 'td_glow').setTint(0xffd84a).setBlendMode(Phaser.BlendModes.ADD).setDepth(e.y - 1).setAlpha(0.7);
+      this.tweens.add({ targets: glow, alpha: { from: 0.45, to: 0.95 }, scale: { from: 0.9, to: 1.25 }, duration: 700, yoyo: true, repeat: -1 });
+      const im = this.add.image(e.x, e.y, key).setOrigin(0.5, 0.8).setDepth(e.y).setScale(key === 'icon_gold' ? 0.6 : 0.75);
+      const tx = this.add.text(e.x, e.y - 46, tr('📦 กล่องสมบัติ'), { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 2, resolution: 6 }).setOrigin(0.5).setDepth(99990);
+      this.pChest = { id: e.id, x: e.x, y: e.y, im, glow, tx, bar: this.add.graphics().setDepth(99991), start: 0, sent: false };
+      bus.emit(EV.TOAST, '📦 กล่องสมบัติปรากฏในสมรภูมิ! ยืนเปิด 5 วินาที — โดนตีจะหยุด', '#ffd84a'); sfx.chest?.();
+      return;
+    }
+    if (!c || c.id !== e.id) return;
+    if (e.t === 'pcopen') { if (e.by !== me) { c.tx.setText(tr(`📦 ${e.name} กำลังเปิด!`)); c.start = 0; c.sent = false; } return; }
+    if (e.t === 'pcstop') { c.tx.setText(tr('📦 กล่องสมบัติ')); if (e.by === me) { c.start = 0; c.sent = false; bus.emit(EV.TOAST, '⛔ โดนตี! การเปิดกล่องหยุด', '#ff8a6a'); } return; }
+    // gone: opened (by someone) or nobody came
+    const pr = e.prize, mine = e.by === me;
+    const what = !pr ? '' : pr.kind === 'ltd' ? (pr.wing ? `🪽 ${WING_BY_ID[pr.wing]?.name ?? 'ปีก'} (Limited)` : pr.mount ? '🐉 มังกรทองคำ (Limited)' : `⭐ ${pr.stars ?? 0}`) : pr.kind === 'gear' && pr.id ? `${RARITY_NAMES[pr.rar ?? 0]} ${itemDef(pr.id).name}` : pr.kind === 'gold' ? `💰${(pr.gold ?? 0).toLocaleString()}` : '';
+    if (mine && what) { bus.emit(EV.TOAST, `📦 เปิดได้ ${what}!${pr?.kind !== 'ltd' ? ' (อยู่ในกระเป๋าสงคราม — ออกจากสมรภูมิให้รอดนะ)' : ''}`, '#ffd84a'); this.combat.vfx.star(c.x, c.y - 20, 0xffd84a, 2); this.cameras.main.flash(200, 255, 220, 120); }
+    else if (e.name && what && (pr?.kind === 'ltd' || (pr?.rar ?? 0) >= 4)) bus.emit(EV.TOAST, `🎉 ${e.name} เปิดกล่องได้ ${what}!`, '#ffb04a');
+    this.chestGone();
+  }
+  chestGone() { const c = this.pChest; if (!c) return; c.im.destroy(); c.glow.destroy(); c.tx.destroy(); c.bar.destroy(); this.pChest = null; }
+  /** stand by the chest: start opening, fill the bar, report when held long enough (moving away stops it) */
+  chestTick(time: number) {
+    const c = this.pChest; if (!c || !this.link) return;
+    const h = this.hero, near = !this.dead && Math.hypot(h.x - c.x, h.y - c.y) < CHEST_REACH;
+    c.bar.clear();
+    if (!near) { if (c.start) { c.start = 0; c.sent = false; c.tx.setText(tr('📦 กล่องสมบัติ')); } return; }
+    if (!c.start) { c.start = time; c.sent = false; this.link.pcopen(c.id); c.tx.setText(tr('📦 กำลังเปิด...')); }
+    const k = Math.min(1, (time - c.start) / CHEST_OPEN_MS);
+    c.bar.fillStyle(0x000000, 0.6).fillRect(c.x - 16, c.y - 28, 32, 4).fillStyle(0xffd84a, 1).fillRect(c.x - 15, c.y - 27, 30 * k, 2);
+    if (k >= 1 && !c.sent) { c.sent = true; this.link.pcdone(c.id); }
+  }
   /** ⚔ the raid is over: home, healed (a fallen hero loses nothing) */
   raidBack() {
     if (!this.sys.isActive() || !this.townRaid) return;
@@ -2383,6 +2424,7 @@ export class TopDownScene extends Phaser.Scene {
       liftSprite(h, this.wingLift);
       this.wingView?.update(h.x, h.y, this.wingLift, headH(this, this.F.key) * h.scaleY, this.dir, this.heroMoving, time, h.visible && !this.dead);
     }
+    if (this.pChest) this.chestTick(time);
     if (this.pvpLoot.size && time > this.pvpPickT && !this.dead) { this.pvpPickT = time + 250; for (const [did, l] of this.pvpLoot) if (Math.hypot(l.x - h.x, l.y - h.y) < 30) this.link?.ppick(did); }
     this.updateAura();
     this.updatePet(time);
