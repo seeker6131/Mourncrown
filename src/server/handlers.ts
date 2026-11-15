@@ -4,6 +4,8 @@
 // Today this module runs inside the game (net/client.ts calls it directly); when the server exists it runs there
 // unchanged (no Phaser, pure rules) with the player's state loaded from the database, and the client copy is deleted.
 // Rules here: never trust numbers from the client — only ids; check everything; random rolls happen here.
+import { PVP, isPvp, PVP_LAND } from '../world/stages';
+import { PVP_REQ, PVP_FEE, PVP_GOLD, PVP_MON_HP, pvpOpen, pvpOutLeft, clearWarBag, warBag } from '../systems/pvp';
 import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
 import { fillRooms, pickRoom } from '../systems/rooms';
@@ -100,7 +102,15 @@ export const handlers = {
     mem.spawns.clear(); mem.drops.clear();
     { const t = s as { dng?: { run?: unknown } }; if (t.dng) delete t.dng.run; }   // (left the dungeon: its run is over)
     if (a.n === 0) { mem.map = 0; heroFed(s); return { ok: true }; }   // home: the hero has eaten
+    if (mem.map === PVP && a.n !== PVP) clearWarBag(s);   // (left the battlefield alive: what was farmed there is safe now)
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
+    if (isPvp(a.n)) {   // ⚔ the battlefield: Lv40+, open hours, not right after a fall, an entry fee
+      if (s.level < PVP_REQ) return no('level');
+      if (!pvpOpen(c.now) && !c.admin) return no('closed');
+      if (pvpOutLeft(s, c.now)) return no('out');
+      if (mem.map !== PVP) { if (s.gold < PVP_FEE) return no('gold'); s.gold -= PVP_FEE; clearWarBag(s); }
+      mem.map = PVP; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; return { ok: true };
+    }
     if (isRaid(a.n)) { mem.map = RAID; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; return { ok: true }; }   // ⚔ the village raid (the room runs it; anyone may come)
     if (isDungeon(a.n)) {   // daily dungeon: 2 runs a day (VIP 3), land by level
       const li = a.n - DUNGEON; if (li > dungeonLand(s.level)) return no('level');
@@ -187,8 +197,9 @@ export const handlers = {
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); mem.dungeon?.sids?.add(a.sid); }   // (the wave counts even when this kill's pay is refused below: area skills drop a whole wave at once)
     else if (isRaid(n)) { if (base.animal || !RAID_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
+    else if (isPvp(n)) { if (base.animal || !PVP_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
-    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1), dps = dpsOf(s);
+    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1) * (isPvp(n) ? PVP_MON_HP : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
     if (!c.admin && mem.dmg < part) return no('dps');
@@ -207,6 +218,7 @@ export const handlers = {
       const dragon = !hasMount(s, 'dragon') && c.rnd() < DRAGON_BOUNTY && grantMount(s, 'dragon');   // the limited dragon: very rare, never shown as a rate
       (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty = { gold: b.gold, name: b.name, dragon };
     }
+    if (isPvp(n) && r.gold) { const extra = r.gold * (PVP_GOLD - 1); s.gold += extra; r.gold += extra; warBag(s).gold += r.gold; }   // (⚔ gold x2 here — and it is at stake until you leave)
     if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
     if (base.animal) {   // meat and hides follow the daily hunting energy
       const hm = huntMult(s, c.now); energy(s, c.now).hunt++;
@@ -236,6 +248,7 @@ export const handlers = {
     }
     if (!addItem(s, d.id, d.qty, 0, d.gear)) return no('bag');
     mem.drops.delete(a.did);
+    if (mem.map === PVP) { const last = s.inventory[s.inventory.length - 1], gear = !itemDef(d.id).stack; warBag(s).items.push(gear && last?.id === d.id ? { id: d.id, qty: 1, uid: last.uid } : { id: d.id, qty: d.qty }); }   // (⚔ farmed on the battlefield: at stake)
     const rar = d.gear?.rar ?? itemDef(d.id).rarity;
     if (rar >= 5) { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: d.id, rar }); if (news.length > 50) news.shift(); }
     return { id: d.id, qty: d.qty, rar, set: d.gear?.set };

@@ -1,4 +1,6 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
+import { loseWarBag, warBag, PVP_SHIELD_MS, pvpDamage } from '../src/systems/pvp';
+import { isPvp } from '../src/world/stages';
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
 import { MONSTERS, type MonsterKind } from '../src/data/monsters';
@@ -22,7 +24,7 @@ import { charList, createChar, switchChar } from '../src/systems/chars';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
 import { RAID_SECS, RAID_MIN_KILLS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
-import { gainExp } from '../src/systems/stats';
+import { gainExp, derive } from '../src/systems/stats';
 import type { RaidRun } from '../src/server/mapSim';
 // Step 1 (now): accounts (a guest account per device, Google login links it so any device loads the same hero) and the
 // save kept on the server. ⚠️ The save is still WRITTEN by the game on the player's device — the server stores it but does
@@ -493,7 +495,8 @@ const SOLO_MONSTERS = true;
 const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith('m300') ? 50 : room.startsWith('chat') ? 60 : room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
-interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number }
+interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
+  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; paT?: number; dead?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
@@ -704,6 +707,51 @@ export class Room {
     if (this.sim) { const ms = JSON.stringify({ t: 'ms', a: this.sim.rows(Date.now()) }); try { server.send(ms); } catch { /* closing */ } this.start(); }
     return new Response(null, { status: 101, webSocket: client } as ResponseInit);
   }
+  // ---------------------------------------------------------------- ⚔ PvP battlefield (src/systems/pvp.ts)
+  /** loot of fallen heroes lying on the battlefield */
+  private pdrops = new Map<number, { x: number; y: number; gold?: number; item?: { id: string; qty: number; gear?: Record<string, unknown> }; until: number }>();
+  private pdid = 1;
+  private async pvStat(ws: WebSocket, me: Who, now: number) {
+    if (!me.pv || now - me.pv.t > 60000) {
+      try { const j = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/pvpstat?id=' + me.id))).json() as Who['pv']; if (j && j.hp) me.pv = { ...j, t: now }; } catch { /* keep the old */ }
+      (ws as WSX).serializeAttachment(me);
+    }
+    return me.pv;
+  }
+  private async pvpMsg(ws: WebSocket, me: Who, m: Record<string, unknown>, now: number) {
+    const all = this.all(), meP = me.p as { x: number; y: number; hp: number } | undefined; if (!meP || (me.dead && now - me.dead < 4000)) return;
+    if (m.t === 'ppick') {   // walk onto loot: the first to reach it takes it
+      const did = Number(m.did), d = this.pdrops.get(did); if (!d || d.until < now) { this.pdrops.delete(did); return; }
+      if (Math.hypot(d.x - meP.x, d.y - meP.y) > 48) return;
+      this.pdrops.delete(did); this.send({ t: 'pgone', did });
+      try { await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/pvpgain?id=' + me.id, { method: 'POST', body: JSON.stringify({ gold: d.gold, item: d.item }) })); } catch { /* lost */ }
+      return;
+    }
+    const tgtId = String(m.to ?? ''), tw = all.find(x => x.a.id === tgtId); if (!tw || tgtId === me.id) return;
+    const tg = tw.a, tp = tg.p as { x: number; y: number; hp: number } | undefined; if (!tp || (tg.dead && now - tg.dead < 6000)) return;
+    if (now - (tg.join ?? 0) < PVP_SHIELD_MS || now - (me.join ?? 0) < PVP_SHIELD_MS) return;   // (just arrived: shielded — and the arriving hero cannot strike yet)
+    const a = await this.pvStat(ws, me, now), b = await this.pvStat(tw.w, tg, now); if (!a || !b) return;
+    const skill = m.k === 'sk', ranged = a.cls === 'archer' || a.cls === 'mage';
+    if (now - (me.paT ?? 0) < Math.max(450, a.iv * 0.8) * (skill ? 0.5 : 1)) return;   // (as fast as the hero really swings)
+    const dist = Math.hypot(tp.x - meP.x, tp.y - meP.y); if (dist > (ranged || skill ? 180 : 64)) return;
+    me.paT = now;
+    const dmg = pvpDamage(a, b, { skill, dist, crit: Math.random() < Math.min(0.5, a.crit) });
+    const cur = Math.min(tg.php ?? b.hp, b.hp * Math.max(1, tp.hp) / 100) - dmg;   // (the server's count, never above what the game says)
+    tg.php = Math.max(0, cur); (tw.w as WSX).serializeAttachment(tg);
+    this.send({ t: 'php', id: tg.id, by: me.id, dmg, hp: Math.max(0, Math.round(100 * cur / b.hp)) });
+    if (cur > 0) return;
+    tg.dead = now; tg.php = undefined; (tw.w as WSX).serializeAttachment(tg);
+    this.send({ t: 'pkill', id: tg.id, name: tg.name, by: me.id, kname: me.name });
+    try {
+      const out = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(tg.id)).fetch(new Request('https://p/pvpdie?id=' + tg.id, { method: 'POST' }))).json() as { gold: number; items: { id: string; qty: number; gear?: Record<string, unknown> }[] };
+      const drops: { did: number; x: number; y: number; id?: string; qty?: number; gold?: number; rar?: number }[] = [], spot = (i: number) => ({ x: tp.x + Math.cos(i * 1.9) * (14 + i * 3), y: tp.y + Math.sin(i * 1.9) * (10 + i * 2) });
+      if (out.gold > 0) { const did = this.pdid++, p = spot(0); this.pdrops.set(did, { ...p, gold: out.gold, until: now + 120000 }); drops.push({ did, ...p, gold: out.gold }); }
+      out.items.slice(0, 40).forEach((it, i) => { const did = this.pdid++, p = spot(i + 1); this.pdrops.set(did, { ...p, item: it, until: now + 120000 }); drops.push({ did, ...p, id: it.id, qty: it.qty, rar: Number((it.gear as { rar?: number } | undefined)?.rar ?? -1) }); });
+      if (drops.length) this.send({ t: 'pdrop', a: drops });
+    } catch { /* the bag could not be taken */ }
+  }
+  /** to everyone in this room */
+  private send(o: unknown) { const t = JSON.stringify(o); for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } } }
   private others(ws: WebSocket, msg: string) { for (const w of this.state.getWebSockets()) if (w !== ws) { try { w.send(msg); } catch { /* closing */ } } }
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
     const me = (ws as WSX).deserializeAttachment() as Who; if (!me || typeof data !== 'string' || data.length > 24000) return;
@@ -738,6 +786,8 @@ export class Room {
       const e = this.grids.get(hk) ?? { g, ids: new Set<string>() }; e.ids.add(me.id); this.grids.set(hk, e);
       if (!this.sim && !this.wbKeep) this.wbKeep = Number(await this.store.get('wbAt').catch(() => 0)) || 0;
       this.choose(room);
+    } else if ((m.t === 'pa' || m.t === 'ppick') && isPvp(mapOfRoom(room))) {   // ⚔ PvP: I hit a hero / I pick up battlefield loot
+      await this.pvpMsg(ws, me, m, now);
     } else if (m.t === 'dmg' && this.sim) {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
       const sid = Number(m.sid), r = this.sim.mons.get(sid); if (!r || !r.alive) return;
       if (this.sim.raid && !this.sim.raid.done && this.sim.raid.fallen.has(me.id)) return;   // (⚔ fell in this raid: out until it ends)
@@ -1081,6 +1131,25 @@ export class Player {
     }
     if (u.pathname === '/claim') { const c = await this.claim(); if (c.text) this.send({ t: 'note', own: c.own, text: c.text }); return new Response('{}'); }
     if (u.pathname === '/gid') return new Response(JSON.stringify({ gid: (this.st as { guildId?: string } | null)?.guildId ?? null, lv: Number(this.st?.level) || 1 }));
+    // ⚔ PvP (src/systems/pvp.ts): the map room asks for the hero's fighting numbers, takes the war bag of a fallen hero,
+    // and hands loot picked up from the battlefield ground to whoever reached it
+    if (u.pathname === '/pvpstat') { const st = this.st as unknown as GameState | null; if (!st) return new Response('{}'); const d = derive(st); return new Response(JSON.stringify({ atk: d.atk, matk: d.matk, def: d.def, hp: d.maxHp, crit: d.crit, iv: d.attackInterval, cls: (st as { cls?: string }).cls ?? 'novice', lv: st.level })); }
+    if (u.pathname === '/pvpdie' && this.st) {
+      const b = this.snap(), out = loseWarBag(this.st as unknown as GameState);
+      this.dirty = true; await this.persist();
+      this.send({ t: 'note', own: this.diff(b), text: out.gold || out.items.length ? '💀 ล้มในสมรภูมิ — ของที่ได้จากสมรภูมิรอบนี้ตกอยู่ที่พื้น' : '💀 ล้มในสมรภูมิ' });
+      return new Response(JSON.stringify(out));
+    }
+    if (u.pathname === '/pvpgain' && this.st) {
+      const g = JSON.parse(await req.text()) as { gold?: number; item?: { id: string; qty: number; gear?: Record<string, unknown> } }, st = this.st as unknown as GameState, b = this.snap(), bag = warBag(st);
+      if (g.gold) { st.gold += Math.max(0, Math.floor(g.gold)); bag.gold += Math.max(0, Math.floor(g.gold)); }
+      if (g.item) {
+        if (g.item.gear) { if (st.inventory.length >= invSize(st)) return new Response(JSON.stringify({ error: 'bag' })); const it = { ...(g.item.gear as object), uid: st.nextUid++ } as GameState['inventory'][number]; st.inventory.push(it); bag.items.push({ id: it.id, qty: 1, uid: it.uid }); }
+        else { if (!addItem(st, g.item.id, g.item.qty)) return new Response(JSON.stringify({ error: 'bag' })); bag.items.push({ id: g.item.id, qty: g.item.qty }); }
+      }
+      this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
+      return new Response(JSON.stringify({ ok: true }));
+    }
     if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1 }));   // (rooms ask: the damage cap uses the server's level)
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
       const body = JSON.parse(await req.text()) as { data?: St };

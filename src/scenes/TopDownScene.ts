@@ -4,7 +4,10 @@
 // Open with ?td in the URL.
 import Phaser from 'phaser';
 import { Combat, MONSTER_PFX } from '../world/tdCombat';
-import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage, dungeonLand } from '../world/stages';
+import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage, dungeonLand, PVP, isPvp } from '../world/stages';
+import { PVP_REQ, PVP_FEE, PVP_HOURS, pvpOpen, pvpOutLeft } from '../systems/pvp';
+import { isAdmin } from '../net/cloud';
+import type { RoomEvent } from '../net/room';
 import { RAID_W, RAID_H, RAID_BLD, raidFlag } from '../systems/townRaid';
 import { tdQuest } from '../systems/tdQuests';
 import { RaidView } from '../world/townRaidView';
@@ -332,6 +335,7 @@ export class TopDownScene extends Phaser.Scene {
   roomId(): string | null {
     if (this.dungeon || this.raid || this.defense || this.raidMode || this.warSide || this.inside >= 0) return null;
     if (this.wild) return 'w';
+    if (isPvp(this.stageN)) return 'm' + PVP + 'b' + Math.max(0, Math.min(2, Math.floor((S().level - 40) / 20)));   // (⚔ by level band: 40-59, 60-79, 80+)
     if (this.stageN) return 'm' + this.stageN;
     if (this.gv) { const g = guildOf(S()) as { id?: string } | null; return g?.id ? ('g-' + String(g.id).toLowerCase().replace(/[^a-z0-9]/g, '')).slice(0, 32) : 'gv'; }
     return 'v';
@@ -412,7 +416,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.stageN && !this.wild) ensurePfx(this, MONSTER_PFX(this.st.land.id));   // monsters / boss attacking the hero
     this.placeProps();
     // return scroll: back to the village from any map
-    const recall = () => { if (!this.stageN || this.dead) return; this.portalCool = this.time.now + 99999; fx2(this, 'fx_recall', this.hero.x, this.hero.y + 6, this.hero.y + 1); sfx.cast(); this.time.delayedCall(650, () => this.cameras.main.fadeOut(250)); this.time.delayedCall(910, () => showWait()); this.time.delayedCall(950, () => this.scene.restart({ stage: 0 })); };
+    const recall = () => { if (!this.stageN || this.dead) return; if (isPvp(this.stageN)) { bus.emit(EV.TOAST, '⚔ ในสมรภูมิใช้ม้วนกลับบ้านไม่ได้ — เดินไปที่ประตูทางออก', '#ff8a6a'); return; } this.portalCool = this.time.now + 99999; fx2(this, 'fx_recall', this.hero.x, this.hero.y + 6, this.hero.y + 1); sfx.cast(); this.time.delayedCall(650, () => this.cameras.main.fadeOut(250)); this.time.delayedCall(910, () => showWait()); this.time.delayedCall(950, () => this.scene.restart({ stage: 0 })); };
     bus.on('td:recall', recall); this.events.once('shutdown', () => bus.off('td:recall', recall));
     const qNav = (spec?: NavSpec) => this.questNav(spec); bus.on('td:questNav', qNav); this.events.once('shutdown', () => bus.off('td:questNav', qNav));
     if (navAuto.on) { navAuto.on = false; if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(1500, () => { if (this.sys.isActive() && !S().auto) this.toggleAuto(); }); }   // (🧭 quest guide: fight on arrival)
@@ -460,6 +464,7 @@ export class TopDownScene extends Phaser.Scene {
         if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx' || e.t === 'wb') { if (shared) this.combat.netEvent(e); return; }
         if (e.t === 'rs') { this.rv?.onState(e); return; }
         if (e.t === 'rend') { this.rv?.onEnd(e, link.me, () => this.raidBack()); return; }
+        if (e.t === 'php' || e.t === 'pkill' || e.t === 'pdrop' || e.t === 'pgone') { this.pvpEvent(e, link.me); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
       });
       this.link = link; this.peers = new OtherPlayers(this, link);
@@ -973,12 +978,13 @@ export class TopDownScene extends Phaser.Scene {
       lava: [['pillar', 'obelisk', 'skullrock'], ['spike', 'vent', 'boulder', 'bones', 'geyser', 'cart'], ['crystal', 'ashbush']],   // (the beast ribcage reads like a monster: not scattered)
       snow: [['statue', 'frozenfall', 'tent'], ['boulder', 'snowman', 'bush', 'spike', 'log', 'tent', 'sled', 'icebear', 'signpost'], ['crystal']],
       dung: [['pillar', 'torch', 'statue'], ['chains', 'cage', 'rubble', 'bones', 'spike', 'barrel', 'rack', 'altar', 'coffin', 'irons', 'brazier', 'bookpile'], ['crystal']],
+      war: [['catapult', 'tower', 'tent', 'ballista'], ['banner', 'barricade', 'weapons', 'cart', 'pike', 'palisade', 'brazier', 'crater', 'banner', 'barricade'], ['arrows', 'helmet', 'shield']],
       wild: [['totem', 'ruinhead', 'bigshroom'], ['vinerock', 'hollowlog', 'bush', 'flower', 'nest', 'pitcher'], ['shroomring', 'waterlily']],
     };
     const set = L[land]; if (!set) return;
     const pre = `pp_${land}_`, ok = (k: string) => !!OM[pre + k];
     const [big, mid, small] = set.map(a => a.filter(ok));
-    const area = (MW * MH) / (1280 * 800), LIGHT = new Set(['pp_haunt_lantern', 'pp_dung_torch', 'pp_lava_vent', 'pp_lava_crystal', 'pp_haunt_cauldron', 'pp_lava_geyser', 'pp_dung_brazier', 'pp_dung_crystal', 'pp_wild_bigshroom']);
+    const area = (MW * MH) / (1280 * 800), LIGHT = new Set(['pp_war_brazier', 'pp_haunt_lantern', 'pp_dung_torch', 'pp_lava_vent', 'pp_lava_crystal', 'pp_haunt_cauldron', 'pp_lava_geyser', 'pp_dung_brazier', 'pp_dung_crystal', 'pp_wild_bigshroom']);
     const put = (k: string, x: number, y: number, fw: number, fd: number) => {
       const im = this.obj(k, x, y, fw, fd, true); if (!im) return;
       if (land === 'snow') im.setTint(0xa8c8ff);   // the colour reference warms whites to pink: cool the snow back down
@@ -1092,7 +1098,7 @@ export class TopDownScene extends Phaser.Scene {
       const o = this.obj(rnd() < 0.7 ? pick('rock', 8) : pick('ore', 7), x, y, 0.6, 4); o?.setTint(g === 'lava' ? 0xd09080 : 0x9aa8b8);
       void o;
     }
-    this.placeLandProps(g, rnd, free, (x, y) => this.trailOff(x, y), inClear);
+    this.placeLandProps(isPvp(this.stageN) ? 'war' : g, rnd, free, (x, y) => this.trailOff(x, y), inClear);
     if (g !== 'dung') this.roadEdges(rnd, g === 'snow' ? 0xc8dcff : g === 'lava' ? 0x9a7060 : g === 'haunt' ? 0xa898c8 : 0xffffff);
     for (let k = 0; k < 220 * area; k++) {
       const x = 20 + rnd() * (MW - 40), y = 30 + rnd() * (MH - 40);
@@ -1180,6 +1186,13 @@ export class TopDownScene extends Phaser.Scene {
     if (isRaid(n)) {   // ⚔ the village raid: anyone may come, any level
       if (s.outfit === 'gather') s.outfit = 'hunt';
       saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: RAID })); return;
+    }
+    if (isPvp(n)) {   // ⚔ the PvP battlefield (systems/pvp.ts): Lv40+, open hours, an entry fee — checked again by the server
+      const why = s.level < PVP_REQ ? `ต้องเลเวล ${PVP_REQ} ขึ้นไป` : !pvpOpen() && !isAdmin() ? `สมรภูมิเปิด ${PVP_HOURS.map(([a, b]) => `${a}:00–${b}:00`).join(' และ ')} น.` : pvpOutLeft(s) ? `เพิ่งล้มในสมรภูมิ — เข้าได้อีกใน ${Math.ceil(pvpOutLeft(s) / 60000)} นาที` : s.gold < PVP_FEE ? `ค่าเข้า 💰${PVP_FEE.toLocaleString()} — ทองไม่พอ` : '';
+      if (why) { sfx.error(); bus.emit(EV.TOAST, `⚔ ${why}`, '#ff8a6a'); return; }
+      if (s.outfit === 'gather') s.outfit = 'hunt';
+      bus.emit(EV.TOAST, `⚔ เข้าสมรภูมิ (ค่าเข้า 💰${PVP_FEE.toLocaleString()}) — ระวัง! ผู้เล่นตีกันได้ ของที่ได้ในนี้ตกเมื่อถูกฆ่า`, '#ff9a6a');
+      saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: PVP })); return;
     }
     if (isDungeon(n)) {   // daily dungeon: free, the server counts the runs
       if (s.outfit === 'gather') s.outfit = 'hunt';
@@ -1494,6 +1507,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.rv) return this.rv.title(Date.now());
     if (this.gv && WC.war && !WC.war.over) return warLine(WC.war) + (this.warSide === 'enemy' ? ' • 👁 หมู่บ้านศัตรู' : this.warSide === 'home' ? ' • 👁 หมู่บ้านเรา' : ' • กด ⚔ ดูสงคราม'); if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${testBots.n ? this.online : (this.link?.others.size ?? 0) + 1}/100 • ⚡ แรง ${energyLeft(S())}`;   // (real players here — director: no bots)
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
+    if (isPvp(this.stageN)) return `⚔ สมรภูมิเลือด (PvP) • มอน Lv${this.st.level}`;
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
     if (this.raid) return this.raid.title();
     if (this.defense && !this.defense.over) return this.defense.title();
@@ -1869,6 +1883,7 @@ export class TopDownScene extends Phaser.Scene {
     const r = beginCast(s, id, this.time.now, this.skillReady);
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
     castQ.n = Math.min(50, castQ.n + 1);
+    { const sk = SKILL_BY_ID[id]; if (sk && sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff') this.pvpStrike('sk'); }   // (⚔ battlefield: an attack skill can strike a hero)
     if (hasAnim(this.F.key, this.swing)) {
       this.attacking = true; playAnim(this.hero, this.F.key, this.swing, this.dir, false); if (!this.townRaid) this.link?.hit(this.swing, this.dir);
       this.hero.once('animationcomplete', () => { this.attacking = false; setIdle(this.hero, this.F.key, this.dir); });
@@ -2036,6 +2051,44 @@ export class TopDownScene extends Phaser.Scene {
       case 'tier': village('กลับหมู่บ้าน — คุยกับผู้เฒ่าเพื่อเปลี่ยนร่าง'); break;
       case 'brews': village('กลับหมู่บ้าน — เข้าครัวแล้วกดปรุงยา'); break;
       default: go(best, `ไปแผนที่ ${best} (เหมาะกับเลเวลคุณ) — กด AUTO เพื่อสู้เอง`);
+    }
+  }
+  // ---------------------------------------------------------------- ⚔ PvP battlefield (systems/pvp.ts; the room decides every hit)
+  pvpLoot = new Map<number, { x: number; y: number; im: Phaser.GameObjects.Image; tx: Phaser.GameObjects.Text }>();
+  pvpPickT = 0;
+  /** my swing / skill: the nearest other hero in reach (in front for melee) is struck — the room checks and works it out */
+  pvpStrike(k: 'atk' | 'sk') {
+    if (!isPvp(this.stageN) || !this.link) return;
+    const h = this.hero, ranged = ['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9'].includes(this.F.key) || k === 'sk', reach = ranged ? 170 : 58;
+    let best: { id: string; d: number } | null = null;
+    for (const o of this.link.others.values()) {
+      const d = Math.hypot(o.x - h.x, o.y - h.y); if (d > reach || o.hp <= 0) continue;
+      if (!ranged) { const a = Math.atan2(o.y - h.y, o.x - h.x), f = Math.PI / 2 - this.dir * Math.PI / 4; if (Math.cos(a - f) < 0.2 && d > 22) continue; }   // (melee: in front)
+      if (!best || d < best.d) best = { id: o.id, d };
+    }
+    if (best) this.link.pa(best.id, k);
+  }
+  pvpEvent(e: Extract<RoomEvent, { t: 'php' | 'pkill' | 'pdrop' | 'pgone' }>, me: string) {
+    const s = S(), h = this.hero;
+    if (e.t === 'php') {
+      if (e.id === me) {   // I was hit: the room's count is the truth (never more HP than it says)
+        const d = derive(s), hp = Math.round(d.maxHp * e.hp / 100); if (hp < s.hp) s.hp = Math.max(0, hp);
+        this.combat.float(h.x, h.y - 40, `-${e.dmg}`, '#ff5a4a', 11); h.setTintFill(0xff8a7a); this.time.delayedCall(80, () => h.clearTint()); sfx.hurt?.();
+      } else { const o = this.link?.others.get(e.id); if (o) { o.hp = e.hp; this.combat.float(o.x, o.y - 40, `-${e.dmg}`, e.by === me ? '#ffd84a' : '#ffffff', 10); } }
+      return;
+    }
+    if (e.t === 'pkill') {
+      bus.emit(EV.TOAST, e.id === me ? `💀 คุณถูก ${e.kname} ล้มในสมรภูมิ` : e.by === me ? `⚔ คุณล้ม ${e.name}!` : `⚔ ${e.kname} ล้ม ${e.name}`, e.id === me ? '#ff6a5a' : '#ffd84a');
+      if (e.id === me) { s.hp = 0; this.heroDie(); }
+      return;
+    }
+    if (e.t === 'pgone') { const l = this.pvpLoot.get(e.did); if (l) { l.im.destroy(); l.tx.destroy(); this.pvpLoot.delete(e.did); } return; }
+    for (const d of e.a) {   // a fallen hero's war bag on the ground: walk onto it to take it
+      const key = d.gold ? 'icon_gold' : 'icon_' + (d.id ? itemDef(d.id).icon : 'gold');
+      const im = this.add.image(d.x, d.y, this.textures.exists(key) ? key : 'icon_gold').setDepth(d.y).setScale(0.45);
+      this.tweens.add({ targets: im, y: d.y - 4, duration: 600, yoyo: true, repeat: -1 });
+      const tx = this.add.text(d.x, d.y - 14, d.gold ? `💰${d.gold.toLocaleString()}` : `${d.id ? itemDef(d.id).name : ''}${(d.qty ?? 1) > 1 ? ' x' + d.qty : ''}`, { fontFamily: 'sans-serif', fontSize: '6px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 2, resolution: 6 }).setOrigin(0.5).setDepth(99990);
+      this.pvpLoot.set(d.did, { x: d.x, y: d.y, im, tx });
     }
   }
   /** ⚔ the raid is over: home, healed (a fallen hero loses nothing) */
@@ -2239,7 +2292,7 @@ export class TopDownScene extends Phaser.Scene {
     const F = this.F;
     playAnim(h, F.key, this.swing, this.dir, false); this.link?.hit(this.swing, this.dir);
     this.time.delayedCall(Math.max(60, hitMs(F.key, this.swing, 210) - 90), () => sfx.swing());   // the whoosh just before the weapon lands
-    if (this.stageN) this.combat.heroAttack(F.key);
+    if (this.stageN) { this.combat.heroAttack(F.key); this.pvpStrike('atk'); }
     else if (this.defense) this.defense.heroAttack(F.key);
     else if (this.raid) this.raid.heroAttack(F.key);
     h.once('animationcomplete', () => { this.attacking = false; setIdle(h, F.key, this.dir); });
@@ -2274,8 +2327,8 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero; this.heroMoving = false;
     if (this.dead) { /* dying */ } else if (time < this.stunUntil) { /* dazed */ } else if (this.attacking) { /* finish the swing first */ } else if (len > 0) {
       mx /= len; my /= len;
-      const wg = this.riding ? null : activeWing(S());   // (🪽 / ⛈: one at a time, never on a mount — director)
-      const sp = 108 * (this.riding ? rideSpeed(MOUNTS[this.riding.id].speed, this.riding.skin) : vipActive(S()) ? VIP_WALK : 1) * (this.riding ? 1 : wg ? WING_SPEED[wg.tier] : activePet(S()) ? CLOUD_SPEED : 1) * dt / 1000;   // (⛈ storm cloud +5%)   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
+      const wg = this.riding || isPvp(this.stageN) ? null : activeWing(S());   // (⚔ battlefield: no speed bought with diamonds)   // (🪽 / ⛈: one at a time, never on a mount — director)
+      const sp = 108 * (this.riding ? rideSpeed(MOUNTS[this.riding.id].speed, this.riding.skin) : vipActive(S()) && !isPvp(this.stageN) ? VIP_WALK : 1) * (this.riding || isPvp(this.stageN) ? 1 : wg ? WING_SPEED[wg.tier] : activePet(S()) ? CLOUD_SPEED : 1) * dt / 1000;   // (⛈ storm cloud +5%)   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
       this.heroMoving = true;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
       const ok = (x: number, y: number) => this.canStand(x, y);
@@ -2305,7 +2358,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     if (this.heroRing) { const fight = (!!this.stageN && !this.wild) || !!this.raid || !!this.defense; this.heroRing.setVisible(fight && h.visible && !this.dead && !this.upgRing).setPosition(h.x, h.y - 1).setDepth(h.y - 3); }   // (centred on the feet — 2px lower read as floating, director)
     { // riding: on when a mount is chosen, outdoors, not in a fight / at work (attacks and gathering get off for 2.5 s)
-      const want = activeWing(S()) ? null : mountOn(S()), can = !!want && this.inside < 0 && !this.dead && time > this.rideBlockT && mountReady(this, want);
+      const want = activeWing(S()) || isPvp(this.stageN) ? null : mountOn(S()), can = !!want && this.inside < 0 && !this.dead && time > this.rideBlockT && mountReady(this, want);
       const skin = want === 'horse' ? activeHorseSkin(S()) : null;
       if (can && (!this.riding || this.riding.id !== want || this.riding.skin !== skin)) { this.riding?.destroy(); this.riding = new Riding(this, want!, h.x, h.y, skin); this.combat.vfx.dust(h.x, h.y, 6, 16); }
       else if (!can && this.riding) { this.riding.destroy(); this.riding = undefined; this.combat.vfx.dust(h.x, h.y, 6, 16); if (h.alpha === 0) h.setAlpha(1); }
@@ -2320,6 +2373,7 @@ export class TopDownScene extends Phaser.Scene {
       liftSprite(h, this.wingLift);
       this.wingView?.update(h.x, h.y, this.wingLift, headH(this, this.F.key) * h.scaleY, this.dir, this.heroMoving, time, h.visible && !this.dead);
     }
+    if (this.pvpLoot.size && time > this.pvpPickT && !this.dead) { this.pvpPickT = time + 250; for (const [did, l] of this.pvpLoot) if (Math.hypot(l.x - h.x, l.y - h.y) < 30) this.link?.ppick(did); }
     this.updateAura();
     this.updatePet(time);
     if (this.link) {

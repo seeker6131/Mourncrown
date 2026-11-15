@@ -1,4 +1,6 @@
 import { tdQuest, rewardText } from '../systems/tdQuests';
+import { PVP, isPvp } from '../world/stages';
+import { pvpOpen, PVP_HOURS } from '../systems/pvp';
 import { WINGS, WING_BY_ID, WING_SPEED, TIER_NAME, TIER_COL } from '../data/wings';
 import { activeWing, ownsWing, setWing, wingsOf, WSLOT_OPEN, WSLOT_LTD, WSLOT_PRICE, WSLOT_PRICE10, SLOT_GOLD, SLOT_ELIXIR, SLOT_MOUNTS, type WPrize, type MPrize } from '../systems/wings';
 import { ensureAllWings } from '../world/wingView';
@@ -390,6 +392,7 @@ export class Panels implements GuildHost {
       else if (def.type === 'consumable') btn(ask || !clash ? 'ใช้' : '⚠ ยืนยัน ใช้ทับบัพเดิม', () => {
         if (ask) { sfx.click(); this.buffAsk = `i${it.uid}`; bus.emit(EV.TOAST, `⚠ จะทับบัพ ${clash} — คนละบัพจะทับกัน (บัพเดียวกันจะบวกเวลา) • แตะอีกครั้งเพื่อยืนยัน`, '#ffd84a'); this.rebuild(); return; }
         this.buffAsk = '';
+        if (it.id === 'scroll_return' && isPvp(((this.ui as unknown as { td?: { stageN?: number } }).td?.stageN) ?? 0)) { sfx.error(); bus.emit(EV.TOAST, '⚔ ในสมรภูมิใช้ม้วนกลับบ้านไม่ได้ — เดินไปที่ประตูทางออก', '#ff8a6a'); return; }   // (the war bag must be walked out)
         const r = act('useItem', { uid: it.uid }); if (!r) return;
         if (r.full) { sfx.error(); bus.emit(EV.TOAST, `⏳ ${r.buff} สะสมเวลาเต็มแล้ว (สูงสุด ${vipActive(s) ? '3 ชม. • VIP' : '1 ชม. • VIP ได้ 3 ชม.'})`, '#ffd84a'); return; }
         sfx.potion();
@@ -1565,6 +1568,7 @@ export class Panels implements GuildHost {
     // top row: the Deepwild and the daily dungeon on the left, the five lands as pills on the right
     const ty = y + 28;
     c.add(k.button(x + 12, ty, 92, 20, '🌿 ป่าดงดิบ', () => go(WILD), { size: 8.5, color: 0x1f5a2a }));
+    c.add(k.button(x + 216, ty, 96, 20, pvpOpen() ? '⚔ สมรภูมิ PvP' : `⚔ PvP ${PVP_HOURS.map(([a]) => a + ':00').join('/')}`, () => go(PVP), { size: 8.5, color: pvpOpen() ? 0x8a1a1a : 0x3a2a2a }));   // (⚔ the battlefield: Lv40+, open hours, entry fee — systems/pvp.ts)
     { const di = act('dungeonInfo', {}); c.add(k.button(x + 108, ty, 104, 20, `⚔ ดันเจี้ยน ${di.max - di.used}/${di.max}`, () => this.open('dungeon'), { size: 8.5, color: 0x6a2a10 })); }
     const pw = 22, px0 = x + W - 14 - LANDS.length * (pw + 5);
     LANDS.forEach((_, i) => {

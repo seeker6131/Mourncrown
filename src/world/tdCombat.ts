@@ -1,4 +1,6 @@
 import { raidAtk, raidFlag } from '../systems/townRaid';
+import { isPvp, stageOf } from './stages';
+import { PVP_MON_HP, PVP_MON_ATK } from '../systems/pvp';
 import { fx2, hasFx2 } from './fx2';
 // Monsters, combat, loot and stage flow for the top-down world.
 import { pxShadow } from './pxShadow';
@@ -107,7 +109,7 @@ export class Combat {
       for (let i = 0; i < 40; i++) { const p = pick(); this.spawn(GAME[i % 3 === 0 ? 1 : 0], p.x, p.y, false); this.mons[this.mons.length - 1].animal = true; }
       return;
     }
-    const st = STAGES[n - 1]; this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
+    const st = stageOf(n, S().level); this.stage = st; this.pickSpot = pick; this.bossSpot = bossSpot; this.baseCount = st.count; this.pending = [];
     if (!this.ownMobs) { this.spawnBounty(n); return; }   // (the room runs this map's monsters)
     for (let i = 0; i < st.count; i++) { const p = pick(); this.spawn(st.land.mobs[(i + n) % st.land.mobs.length], p.x, p.y, false); }
     // (no land bosses any more — director: roaming bosses come instead, online)
@@ -272,6 +274,7 @@ export class Combat {
     const reg0 = mir ? (act('mirror', { sid: mir.sid, key: m.key, boss, elite: mir.elite }), mir) : forced ? { sid: forced.sid, elite: false } : act('spawn', { key: m.key, boss, animal: !!base.animal }, online ? r => { if (r.elite) this.makeGolden(r.sid); } : undefined);
     const reg = { sid: reg0.sid, elite: online ? false : reg0.elite };   // online: the server says later whether it is golden   // the server names the spawn and decides golden monsters
     if (reg.elite) st.hp *= 5;
+    if (isPvp(this.stage?.n ?? 0)) { st.hp = Math.round(st.hp * PVP_MON_HP); st.atk = Math.round(st.atk * PVP_MON_ATK); }   // (⚔ battlefield: tough, soft-hitting)
     if (forced) { st.hp *= forced.hpMult; st.atk = Math.round(st.atk * 2.2); st.exp *= 20; }
     const sc = this.s;
     let sp: Phaser.GameObjects.Sprite;

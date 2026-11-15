@@ -7,7 +7,8 @@ import { SERVER, accountToken } from './cloud';
 
 export interface Pos { x: number; y: number; d: number; f: string; mv: number; hp: number; a: number; r: string; lv: number; /** ⛈ cloud pet out, gold name, black horse skin (systems/cosmetics.ts) */ pe?: number; nc?: number; sk?: number; /** ⚔ weapon circle: 1 = +5, 2 = +10 */ wu?: number; /** 🪽 wings out (data/wings.ts id) */ wg?: string }
 export interface Other extends Pos { id: string; name: string; tx: number; ty: number; seen: number; /** the reported spots on the sender's clock (smooth movement: net/interp.ts) */ tr: Track; ts?: number }
-export type RoomEvent = { t: 'hit'; id: string; k: string; d: number; s?: string } | { t: 'c'; id: string; name: string; text: string } | { t: 'bye'; id: string } | { t: 'join'; id: string }
+export type PDrop = { did: number; x: number; y: number; id?: string; qty?: number; gold?: number; rar?: number };
+export type RoomEvent = { t: 'php'; id: string; by: string; dmg: number; hp: number } | { t: 'pkill'; id: string; name: string; by: string; kname: string } | { t: 'pdrop'; a: PDrop[] } | { t: 'pgone'; did: number } | { t: 'hit'; id: string; k: string; d: number; s?: string } | { t: 'c'; id: string; name: string; text: string } | { t: 'bye'; id: string } | { t: 'join'; id: string }
   | RaidState | RaidEnd | { t: 'host'; id: string } | { t: 'ms'; a: MonRow[] } | { t: 'mhp'; sid: number; hp: number; by: string } | { t: 'mdead'; sid: number; sh: Record<string, number>; wb?: number; killer?: string; kname?: string } | { t: 'matk'; sid: number; k: string }
   | { t: 'mfx'; sid: number; k: 'special' | 'charge'; x: number; y: number } | { t: 'srv'; solo?: boolean } | { t: 'grid?' }
   | { t: 'wb'; k: 'warn' | 'spawn' | 'leave'; sid: number; key: string; name: string; x: number; y: number };
@@ -48,7 +49,7 @@ export class RoomLink {
     else if (m.t === 'ms' || m.t === 'mhp' || m.t === 'mdead' || m.t === 'matk' || m.t === 'mfx' || m.t === 'grid?' || m.t === 'wb' || m.t === 'rs' || m.t === 'rend') this.on(m as unknown as RoomEvent);
     else if (m.t === 'p' && m.id !== this.me) this.put(m as unknown as Other);
     else if (m.t === 'bye') { this.others.delete(String(m.id)); this.on(m as RoomEvent); }
-    else if (m.t === 'hit' || m.t === 'c') this.on(m as unknown as RoomEvent);
+    else if (m.t === 'hit' || m.t === 'c' || m.t === 'php' || m.t === 'pkill' || m.t === 'pdrop' || m.t === 'pgone') this.on(m as unknown as RoomEvent);
   }
   /** the hero's state; sent when it changed (5 a second at most, or every 3 s when alone in the room) */
   pos(p: Pos) {
@@ -58,6 +59,9 @@ export class RoomLink {
     if ((key === this.last && now - this.lastT < 3000) || now - this.lastT < gap) return;
     this.last = key; this.lastT = now; this.ws!.send(JSON.stringify({ t: 'p', ...p, ts: Math.round(now) }));   // (ts: my clock — the others space my spots by it)
   }
+  /** ⚔ PvP: I hit hero `to` (k: 'atk' | 'sk'); I step on battlefield loot */
+  pa(to: string, k: 'atk' | 'sk') { if (this.online) this.ws!.send(JSON.stringify({ t: 'pa', to, k })); }
+  ppick(did: number) { if (this.online) this.ws!.send(JSON.stringify({ t: 'ppick', did })); }
   hit(k: string, d: number, s?: string) { if (this.online) this.ws!.send(JSON.stringify(s ? { t: 'hit', k, d, s } : { t: 'hit', k, d })); }
   /** (host) the map's monsters, 5 times a second */
   mons(a: MonRow[]) { if (this.online) this.ws!.send(JSON.stringify({ t: 'ms', a })); }
