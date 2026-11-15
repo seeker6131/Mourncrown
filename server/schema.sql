@@ -64,3 +64,6 @@ CREATE TABLE IF NOT EXISTS char_names (name_key TEXT PRIMARY KEY, id TEXT NOT NU
 CREATE INDEX IF NOT EXISTS char_names_id ON char_names (id);
 -- 🏘 the central village's shared buildings (village raid): broken ones are unusable server-wide until repaired
 CREATE TABLE IF NOT EXISTS town (bid TEXT PRIMARY KEY, broken INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL DEFAULT 0, donated INTEGER NOT NULL DEFAULT 0, need INTEGER NOT NULL DEFAULT 300, donors TEXT);
+-- 🤝 invite a friend (src/systems/refer.ts): who brought whom, and which rewards were paid
+CREATE TABLE IF NOT EXISTS referrals (invitee TEXT PRIMARY KEY, inviter TEXT NOT NULL, at INTEGER NOT NULL, lv10 INTEGER NOT NULL DEFAULT 0, lv30 INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS referrals_inviter ON referrals (inviter);

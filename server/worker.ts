@@ -1,4 +1,5 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
+import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, REF_WING, REF_MAX, REF_DAYS, refCode } from '../src/systems/refer';
 import { loseWarBag, warBag, PVP_SHIELD_MS, pvpDamage } from '../src/systems/pvp';
 import { isPvp } from '../src/world/stages';
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
@@ -921,6 +922,42 @@ export class Player {
       return { bid: r.bid, broken: r.broken && !isRepaired(r, now) ? 1 : 0, at: r.at, need: r.need, prog: repairProgress(r, now), top: Object.values(d).sort((a, b) => b.p - a.p).slice(0, 10) }; }) };
   }
   /** 🙏 give resources / gold to repair a broken central building (anyone, any amount; full bar = usable again) */
+  // ---------------------------------------------------------------- 🤝 invite a friend (src/systems/refer.ts)
+  private async refer(name: string, a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
+    const DB = this.env.DB, st = this.st as unknown as GameState;
+    if (name === 'refUse') {
+      const code = String(a.code ?? '').trim().toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 8); if (code.length !== 8) return { r: { refused: 'code' }, own: {} };
+      if (await DB.prepare('SELECT 1 AS x FROM referrals WHERE invitee = ?').bind(this.id).first()) return { r: { refused: 'used' }, own: {} };
+      const me = await DB.prepare('SELECT created, ip_hash FROM accounts WHERE id = ?').bind(this.id).first<{ created: number; ip_hash: string | null }>();
+      if (!me || Date.now() - me.created > REF_DAYS * 86400000 || st.level >= 10) return { r: { refused: 'late' }, own: {} };
+      const inv = await DB.prepare("SELECT id, ip_hash, name FROM accounts WHERE id LIKE ? AND banned = 0 LIMIT 2").bind(code.toLowerCase() + '%').all<{ id: string; ip_hash: string | null; name: string | null }>();
+      const f = inv.results?.length === 1 ? inv.results[0] : null;
+      if (!f || f.id === this.id) return { r: { refused: 'code' }, own: {} };
+      if (f.ip_hash && me.ip_hash && f.ip_hash === me.ip_hash) return { r: { refused: 'same' }, own: {} };   // (one network: alt accounts)
+      await DB.prepare('INSERT INTO referrals (invitee, inviter, at) VALUES (?, ?, ?)').bind(this.id, f.id, Date.now()).run();
+      await this.refCheck();
+      return { r: { ok: true, name: f.name ?? '' }, own: {} };
+    }
+    const mine = await DB.prepare('SELECT r.lv10, r.lv30, a.name FROM referrals r LEFT JOIN accounts a ON a.id = r.invitee WHERE r.inviter = ? ORDER BY r.at DESC LIMIT 50').bind(this.id).all<{ lv10: number; lv30: number; name: string | null }>();
+    const used = await DB.prepare('SELECT inviter FROM referrals WHERE invitee = ?').bind(this.id).first<{ inviter: string }>();
+    const me = await DB.prepare('SELECT created FROM accounts WHERE id = ?').bind(this.id).first<{ created: number }>();
+    return { r: { code: refCode(this.id), friends: mine.results ?? [], used: !!used, canUse: !used && !!me && Date.now() - me.created < REF_DAYS * 86400000 && st.level < 10 }, own: {} };
+  }
+  /** (every couple of minutes) pay what this player's referral has earned */
+  private async refCheck() {
+    const st = this.st as unknown as GameState | null; if (!st || st.level < 10) return;
+    const DB = this.env.DB, r = await DB.prepare('SELECT inviter, lv10, lv30 FROM referrals WHERE invitee = ?').bind(this.id).first<{ inviter: string; lv10: number; lv30: number }>(); if (!r) return;
+    if (!r.lv10) {
+      const b = this.snap(); (st as { diamonds?: number }).diamonds = ((st as { diamonds?: number }).diamonds ?? 0) + REF_NEW_DIA;
+      await DB.prepare('UPDATE referrals SET lv10 = 1 WHERE invitee = ?').bind(this.id).run();
+      this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: `🤝 ถึง Lv10 แล้ว! ได้ 💎${REF_NEW_DIA} จากการเข้าเกมด้วยรหัสเพื่อน` });
+    }
+    if (!r.lv30 && st.level >= 30) {
+      await DB.prepare('UPDATE referrals SET lv30 = 1 WHERE invitee = ?').bind(this.id).run();
+      const n = (await DB.prepare('SELECT COUNT(*) AS n FROM referrals WHERE inviter = ? AND lv30 = 1').bind(r.inviter).first<{ n: number }>())?.n ?? 0;
+      if (n <= REF_MAX) try { await this.env.PLAYER.get(this.env.PLAYER.idFromName(r.inviter)).fetch(new Request('https://p/refpay?id=' + r.inviter, { method: 'POST', body: JSON.stringify({ name: st.name ?? '', n }) })); } catch { /* next time */ }
+    }
+  }
   private async townDonate(a: Record<string, unknown>): Promise<{ r: unknown; own: St }> {
     const bid = String(a.bid ?? '') as TownBld, st = this.st as unknown as GameState, now = Date.now();
     if (!(TOWN_BLDS as readonly string[]).includes(bid)) return { r: { refused: 'bld' }, own: {} };
@@ -1150,6 +1187,14 @@ export class Player {
       this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
       return new Response(JSON.stringify({ ok: true }));
     }
+    if (u.pathname === '/refpay' && this.st) {   // 🤝 a friend I invited reached Lv30: diamonds (and the Limited wing at REF_WING_AT friends)
+      const j = JSON.parse(await req.text()) as { name: string; n: number }, st = this.st as unknown as GameState & { diamonds?: number; wings?: string[] }, b = this.snap();
+      st.diamonds = (st.diamonds ?? 0) + REF_INVITER_DIA;
+      const wing = j.n >= REF_WING_AT && !(st.wings ?? []).includes(REF_WING); if (wing) (st.wings ??= []).push(REF_WING);
+      this.dirty = true; await this.persist();
+      this.send({ t: 'note', own: this.diff(b), text: `🤝 เพื่อน ${String(j.name).slice(0, 16)} ถึง Lv30! ได้ 💎${REF_INVITER_DIA}${wing ? ' + 🪽 ปีกพายุอสนี (Limited)!' : ''}` });
+      return new Response('{}');
+    }
     if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1 }));   // (rooms ask: the damage cap uses the server's level)
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
       const body = JSON.parse(await req.text()) as { data?: St };
@@ -1239,6 +1284,7 @@ export class Player {
       : CBT.has(m.name) ? await this.cbt(m.name)
       : ['guildCreate', 'guildBrowse', 'guildJoinReal', 'guildLeave'].includes(m.name) ? await this.guildMeta(m.name, (m.args ?? {}) as Record<string, unknown>)
       : ['charCreate', 'charSwitch'].includes(m.name) ? await this.chars(m.name, (m.args ?? {}) as Record<string, unknown>)
+      : m.name === 'refInfo' || m.name === 'refUse' ? await this.refer(m.name, (m.args ?? {}) as Record<string, unknown>)
       : m.name === 'townDonate' ? await this.townDonate((m.args ?? {}) as Record<string, unknown>)
       : m.name === 'townInfo' ? { r: await this.townView(), own: {} }
       : gid && GUILD_ACTS.has(m.name) ? await this.guildAct(gid, m.name, m.args) : this.run(m.name, m.args);
@@ -1254,7 +1300,8 @@ export class Player {
     try {
       const j = await (await this.env.ROOM.get(this.env.ROOM.idFromName('chat-world')).fetch(new Request('https://r' + path, { method: 'POST', body: JSON.stringify({ id: this.id }) }))).json() as { n?: number; ann?: { id: number; text: string; until: number } };
       if (path === '/hello' && typeof j.n === 'number') this.send({ t: 'on', n: j.n });
-      if (path === '/hello') this.send({ t: 'town', ...(await this.townView()) });   // (🏘 the central buildings + the next raid: the game's warning bar)
+      if (path === '/hello') this.send({ t: 'town', ...(await this.townView()) });
+      if (path === '/hello') await this.refCheck().catch(() => undefined);   // (🤝 referral rewards, when earned)   // (🏘 the central buildings + the next raid: the game's warning bar)
       if (path === '/hello' && j.ann) this.send({ t: 'ann', id: j.ann.id, text: j.ann.text, until: j.ann.until });   // (📢 the admin's announcement: the game shows it once)   // (the 🟢 online count on the game's screen: fresh every 2 minutes, no extra request)
     } catch { /* not counted this time */ }
   }
