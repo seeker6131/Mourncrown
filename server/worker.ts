@@ -15,7 +15,8 @@ import { addItem } from '../src/systems/inventory';
 import { MARKET_FEE, type Listing } from '../src/systems/market';
 import { startNewGame } from '../src/core/save';
 import { grantAdminKit } from '../src/systems/adminKit';
-import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallLv, type RaidHit, type Rival } from '../src/systems/guild';
+import { goalProgress, rivals, type GuildState, rivalOf, raidedBy, weekOf, hallLv, type RaidHit, type Rival, botGuild, maxGuild } from '../src/systems/guild';
+import { startWar, warTick, warDone, WAR_SECS } from '../src/systems/war';
 import { dayKey } from '../src/systems/daily';
 import { grantCbt } from '../src/systems/cbtGift';
 import { ensureHomeVillage, homeFix } from '../src/systems/settlement';
@@ -377,6 +378,34 @@ export default {
           }
           const t = await townInfo(env, true);
           return json(req, { plan: t.plan, rows: t.rows, now });
+        }
+        if (path === '/admin/gw') {   // 🧪 guild-war test kit (director 15 Nov): bot guilds + the admin's own guild only — never a player's guild
+          const G = (id: string) => env.GUILD.get(env.GUILD.idFromName(id)), gcall = async (id: string, p: string, b: unknown = {}) => (await G(id).fetch(new Request('https://g' + p, { method: 'POST', body: JSON.stringify(b) }))).json() as Promise<Record<string, unknown>>;
+          const kv = async () => { const r = await one<{ v: string }>("SELECT v FROM kv WHERE k = 'gwbots'"); try { return JSON.parse(r?.v ?? '[]') as { id: string; name: string; tier: number }[]; } catch { return []; } };
+          const setKv = (v: unknown) => DB.prepare("INSERT INTO kv (k, v, at) VALUES ('gwbots', ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at").bind(JSON.stringify(v), now).run();
+          const mine = ((await (await env.PLAYER.get(env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/gid?id=' + me.id))).json()) as { gid: string | null }).gid;
+          const bots = await kv(), ok = (gid: string) => gid === mine || bots.some(b => b.id === gid);
+          if (req.method !== 'POST') {
+            const info = async (id: string) => { try { return await (await G(id).fetch(new Request('https://g/gwinfo', { method: 'POST', body: '{}' }))).json(); } catch { return null; } };
+            return json(req, { mine: mine ? await info(mine) : null, bots: await Promise.all(bots.map(async b => ({ ...b, info: await info(b.id) }))) });
+          }
+          const b = await req.json() as { op: string; tier?: number; gid?: string; bot?: string };
+          if (b.op === 'bot') {
+            const tier = Math.max(1, Math.min(5, Number(b.tier) || 3)), id = 'bot-' + Math.random().toString(36).slice(2, 9), name = `[BOT] ${['กิลด์ทดสอบอ่อน', 'กิลด์ทดสอบ', 'กิลด์ทดสอบกลาง', 'กิลด์ทดสอบแกร่ง', 'กิลด์ทดสอบเทพ'][tier - 1]} ${id.slice(4, 7)}`;
+            await gcall(id, '/gwbot', { id, name, tier }); bots.push({ id, name, tier }); await setKv(bots.slice(-10));
+            return json(req, { ok: true, id });
+          }
+          if (b.op === 'delbot') { if (!bots.some(q => q.id === b.gid)) return json(req, { error: 'bot' }, 400); await gcall(b.gid!, '/gwdel'); await setKv(bots.filter(q => q.id !== b.gid)); return json(req, { ok: true }); }
+          if (!mine && b.op !== 'max' && b.op !== 'restore') return json(req, { error: 'ตัวแอดมินยังไม่มีกิลด์ — ตั้งกิลด์ในเกมก่อน' }, 400);
+          if (b.op === 'max' || b.op === 'restore' || b.op === 'open') { if (!b.gid || !ok(b.gid)) return json(req, { error: 'ใช้ได้เฉพาะกิลด์แอดมินกับกิลด์บอท' }, 400); return json(req, await gcall(b.gid, b.op === 'max' ? '/gwmax' : b.op === 'restore' ? '/gwrestore' : '/gwopen')); }
+          if (b.op === 'rival' || b.op === 'attack') {
+            if (!b.bot || !bots.some(q => q.id === b.bot)) return json(req, { error: 'bot' }, 400);
+            await gcall(b.bot, '/gwopen');
+            if (b.op === 'rival') { const rv = await (await G(b.bot).fetch(new Request('https://g/snap'))).json(); return json(req, await gcall(mine!, '/gwrival', { rival: rv })); }
+            await gcall(mine!, '/gwopen');   // (the admin's guild: no shield for the test)
+            return json(req, await gcall(b.bot, '/gwattack', { target: mine }));
+          }
+          return json(req, { error: 'op' }, 400);
         }
         if (path === '/admin/ann') {   // 📢 the megaphone: a short line shown in every game (sent with the next heartbeat, ≤ 2 min)
           const r = await cw.fetch(new Request('https://r/ann', req.method === 'POST' ? { method: 'POST', body: await req.text() } : {})); const out = await r.json() as { ann: unknown };
@@ -1471,7 +1500,8 @@ export class Guild {
     let rows = (await this.env.DB.prepare('SELECT id FROM guilds WHERE id != ? AND hall BETWEEN ? AND ? AND shield < ? ORDER BY RANDOM() LIMIT 3').bind(g.id, my - 1, my + 1, now).all<{ id: string }>()).results;
     if (rows.length < 3) { const more = (await this.env.DB.prepare('SELECT id FROM guilds WHERE id != ? AND shield < ? ORDER BY RANDOM() LIMIT 6').bind(g.id, now).all<{ id: string }>()).results; rows = [...rows, ...more.filter(r => !rows.some(q => q.id === r.id))].slice(0, 3); }
     const real = (await Promise.all(rows.map(r => this.snapOf(r.id)))).filter((r): r is Rival => !!r);
-    g.rivals = { day, list: real, at: now } as typeof g.rivals;
+    const bots = (rv?.list ?? []).filter(r => r.id.startsWith('g:bot-'));   // (🧪 the admin's test rivals stay on the admin's own list)
+    g.rivals = { day, list: [...real, ...bots], at: now } as typeof g.rivals;
   }
   /** the real guilds' season board (this week + last week), refreshed every 5 minutes */
   private async board(now: number) {
@@ -1505,6 +1535,8 @@ export class Guild {
   async fetch(req: Request) {
     await this.load(); const u = new URL(req.url), body = req.method === 'POST' ? JSON.parse(await req.text()) : {};
     if (u.pathname === '/init') { if (!this.g) { this.g = body.g as G; delete this.g.me; this.g.real = true; await this.state.storage.put('g', this.g); } return new Response(JSON.stringify(this.view(body.pid))); }
+    if (u.pathname === '/gwbot') { if (!this.g) { this.g = botGuild(String(body.id), String(body.name), Number(body.tier) || 3) as unknown as G; this.g.real = true; await this.state.storage.put('g', this.g); } return new Response('{"ok":true}'); }
+    if (u.pathname === '/gwdel') { this.g = null; await this.state.storage.put('g', null); await this.state.storage.put('gbak', null); return new Response('{"ok":true}'); }
     if (u.pathname === '/view') { const pid = u.searchParams.get('pid') ?? ''; return new Response(JSON.stringify(this.g?.members.some(m => m.id === pid) ? this.view(pid) : null)); }
     if (!this.g) return new Response(JSON.stringify({ refused: 'target' }));
     if (u.pathname === '/join') {
@@ -1522,6 +1554,28 @@ export class Guild {
       if (!this.g.members.length) { await this.env.DB.prepare('DELETE FROM guilds WHERE id = ?').bind(this.g.id).run(); this.g = null; await this.state.storage.put('g', null); return new Response('{}'); }
       if (me.role === 'leader') { const next = this.g.members.find(m => m.role === 'deputy') ?? [...this.g.members].sort((a, b) => a.joined - b.joined)[0]; next.role = 'leader'; }   // the guild goes on
       await this.save(body.pid); return new Response('{}');
+    }
+    // ---- 🧪 the admin's guild-war test kit (only the worker's /admin/gw routes call these; bot guilds never reach players)
+    if (u.pathname === '/gwmax' || u.pathname === '/gwrestore' || u.pathname === '/gwopen' || u.pathname === '/gwrival' || u.pathname === '/gwattack' || u.pathname === '/gwinfo') {
+      const g = this.g, now = Date.now();
+      if (u.pathname === '/gwinfo') return new Response(JSON.stringify({ id: g.id, name: g.name, hall: g.buildings.find(b => b.type === 'hall')?.level ?? 1, members: g.members.length, shield: g.shieldUntil, treasury: g.treasury, defenses: g.defenses.length, guards: g.guards, backup: !!(await this.state.storage.get('gbak')) }));
+      if (u.pathname === '/gwmax') { if (!(await this.state.storage.get('gbak'))) await this.state.storage.put('gbak', JSON.parse(JSON.stringify(g))); maxGuild(g as never, now); await this.save(); return new Response('{"ok":true}'); }
+      if (u.pathname === '/gwrestore') { const b = await this.state.storage.get('gbak') as G | undefined; if (!b) return new Response('{"refused":"none"}'); b.members = g.members; this.g = b; this.g.real = true; await this.state.storage.put('gbak', null); await this.save(); return new Response('{"ok":true}'); }
+      if (u.pathname === '/gwopen') { g.shieldUntil = 0; g.raids = { day: dayKey(now), used: 0 }; if (g.war?.over) delete g.war; await this.save(); return new Response('{"ok":true}'); }
+      if (u.pathname === '/gwrival') {   // put a bot guild on this guild's target list for today (the admin declares war on it in the game)
+        const rv = body.rival as Rival, day = dayKey(now), cur = g.rivals as { day: string; list: Rival[]; at?: number };
+        const list = (cur.day === day ? cur.list : []).filter(r => r.id !== rv.id); list.unshift(rv);
+        g.rivals = { day, list, at: cur.day === day ? cur.at ?? now : now } as typeof g.rivals; g.raids = { day, used: 0 };
+        await this.save(); return new Response('{"ok":true}');
+      }
+      // /gwattack: THIS (bot) guild wars the target guild now — the whole 4 minutes worked out at once on the server; the
+      // target takes the loss like any war on it (/raided) and its members are told
+      const target = await this.snapOf(String(body.target)); if (!target) return new Response('{"refused":"target"}');
+      const lead = g.members.find(m => m.role === 'leader') ?? g.members[0], st = { guild: { ...g, me: lead.id, war: undefined } } as unknown as GameState;
+      const r = startWar(st, target.id, now, target); if ('refused' in r) return new Response(JSON.stringify(r));
+      warTick(st, now + (WAR_SECS + 2) * 1000); const over = warDone(st);
+      const ng = (st as unknown as { guild: G }).guild; delete ng.me; this.g = ng; await this.deal(); await this.save();
+      return new Response(JSON.stringify({ ok: true, over }));
     }
     if (u.pathname === '/snap') {   // another guild was matched with us: our village as they will see it (none while shielded)
       return new Response(JSON.stringify(this.g.shieldUntil > Date.now() || !this.g.members.length ? null : rivalOf(this.asSt())));

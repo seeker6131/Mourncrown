@@ -35,10 +35,11 @@ function rivalDefense(r: Rival) {
 }
 
 /** declare war on one of today's matched rivals (uses one of the day's raids; leader / deputy) */
-export function startWar(s: GameState, id: string, now = Date.now()): R | { war: War } {
+export function startWar(s: GameState, id: string, now = Date.now(), force?: Rival): R | { war: War } {
   const g = guildOf(s); if (!g) return no('guild');
   if (g.war && !g.war.over) return no('war');
-  const c = canRaid(s, id, now); if ('refused' in c) return c;
+  // (force: the admin's test — a bot guild attacks this rival now: no daily limit / role / strength checks)
+  const c = force ? { rival: force } : canRaid(s, id, now); if ('refused' in c) return c;
   const rv = c.rival;
   const ours: WarSide = { blds: [], troops: 0, troops0: 0, atk: 0, def: 0 };
   for (const b of g.buildings) { if (isRuin(b)) continue; const max = bldHp(b.type, b.level); ours.blds.push({ id: 'b:' + b.type, kind: b.type === 'hall' ? 'hall' : 'building', name: `${GUILD_BLD[b.type].icon} ${GUILD_BLD[b.type].name}`, hp: max * (1 - (b.dmg ?? 0)), max }); }

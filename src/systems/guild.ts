@@ -689,3 +689,32 @@ export function seasonClaim(s: GameState, now = Date.now()): R | { rank: number;
   return { rank, ...rw, dragon };
 }
 export const raidsLeft = (s: GameState, now = Date.now()) => { const g = guildOf(s)!; return g.raids.day === dayKey(now) ? Math.max(0, RAIDS_PER_DAY - g.raids.used) : RAIDS_PER_DAY; };
+
+// ---------------------------------------------------------------- 🧪 the admin's guild-war test kit (director 15 Nov)
+// Bot guilds live only on the server for the admin's tests: never in the guild list, the matching or the season board,
+// so no real player ever meets them. Used by server/worker.ts (/admin/gw*).
+export const GUILD_MAX_LV = 5;
+/** a bot guild of this tier (1 weak … 5 god): 10 bot members, buildings / defenses / guards / treasury by tier, no shield */
+export function botGuild(id: string, name: string, tier: number, now = Date.now(), rnd: () => number = Math.random): GuildState {
+  const T = Math.max(1, Math.min(GUILD_MAX_LV, Math.round(tier))), g = newGuild(id, name, now - 86400000 * 5);
+  for (let i = 0; i < HOUSE_SLOTS; i++) { const m = simMember(i, 15 + T * 15, rnd, now, i); m.houseLv = Math.min(GUILD_MAX_LV, T); g.members.push(m); }
+  g.members[0].role = 'leader'; g.members[1].role = 'deputy';
+  for (const b of g.buildings) { b.level = T; b.last = now; }
+  const types = DEF_ORDER.filter(t => DEFENSES[t].hall <= T);
+  for (let i = 0; i < defSlots(T); i++) { const t = types[i % types.length]; g.defenses.push({ slot: i, type: t, level: T, hp: defStat(DEFENSES[t], T).hp }); }
+  const cap = guardCap(T); g.guards = { spear: Math.ceil(cap / 2), archer: Math.floor(cap / 2) };
+  g.treasury = { gold: 15000 * T, wood: 12000 * T, stone: 10000 * T, food: 8000 * T, items: {} };
+  g.shieldUntil = 0; g.simAt = now; g.incomingAt = now;
+  (g as GuildState & { bot?: boolean }).bot = true;
+  return g;
+}
+/** every building / defense slot / guard at the top, the treasury full, nothing broken (the admin's test button) */
+export function maxGuild(g: GuildState, now = Date.now()) {
+  const M = GUILD_MAX_LV;
+  for (const b of g.buildings) { b.level = M; b.dmg = 0; b.last = now; delete (b as { done?: number }).done; }
+  const types = DEF_ORDER.filter(t => DEFENSES[t].hall <= M), slots = defSlots(M);
+  for (let i = 0; i < slots; i++) { const t = g.defenses.find(q => q.slot === i)?.type ?? types[i % types.length]; g.defenses = g.defenses.filter(q => q.slot !== i); g.defenses.push({ slot: i, type: t, level: M, hp: defStat(DEFENSES[t], M).hp }); }
+  const cap = guardCap(M); g.guards = { spear: Math.ceil(cap / 2), archer: Math.floor(cap / 2) };
+  const full = 20000 + 20000 * M; g.treasury = { ...g.treasury, gold: full, wood: full, stone: full, food: full };
+  return g;
+}
