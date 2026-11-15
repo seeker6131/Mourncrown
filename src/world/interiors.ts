@@ -82,7 +82,7 @@ export const ROOMS: Record<RoomKind, Room> = {
     { k: 'cart_0', x: 90, y: 250, label: '🏗 อาคารหมู่บ้าน', act: { tab: 'build' } }, { k: 'fu_sacks', x: 404, y: 270 }, { k: 'hay_0', x: 380, y: 250 },
   ] },
   house: { name: 'บ้านของฉัน', floor: 'plank', wall: 'wood', win: [412], furn: [
-    { k: 'fu_bed', x: 66, y: 140, label: '🛏 นอนพัก (สะสมพลังพักผ่อน)', act: { sleep: true } },
+    { k: 'fu_bed', x: 66, y: 140, label: '🛏 นอนพัก (สะสมพลังพักผ่อน + ฟื้นแรง)', act: { sleep: true } },
     { k: 'fu_chest', x: 162, y: 114, label: '🧰 หีบส่วนตัว', act: { panel: 'stash' } },
     { k: 'fu_fireplace', x: 246, y: 112 },
     { k: 'fu_trophy', x: 340, y: 114, label: '🏆 ตู้โชว์ของแรร์', act: { panel: 'trophy' } },

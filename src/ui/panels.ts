@@ -69,7 +69,8 @@ import { DIAMOND_PACKS, VIP_CARDS, VIP_PERKS, DIAMOND_SHOP, FX_COLOR, diamonds, 
 import { stageFood, supplyMinutes } from '../systems/supplies';
 import { potOf, setPot, potCount, HP_STEPS, MP_STEPS, RANGE_STEPS, MP_KEEP, type PotSet } from '../systems/potions';
 import { farmGoal, setFarmGoal, farmDone, FARM_KEYS, FARM_NAMES, FARM_STEPS } from '../systems/farm';
-import { energyLeft } from '../systems/economy';
+import { energyLeft, BED_REGEN, GATHER_REGEN } from '../systems/economy';
+import { homeOf } from '../systems/guild';
 import { lang, setLang, tr } from '../core/i18n';
 import { uiOpt, setUiOpt, RANGES, applyGfx, type UiOpt } from '../core/uiOptions';
 import { sfx, audioState, setVolume } from '../audio/sfx';
@@ -741,8 +742,8 @@ export class Panels implements GuildHost {
     const d = BUILDINGS[b.type as BuildingId];
     const lx = x + 14, lw = 230;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(lx, top, lw, H - 48, 4);
-    c.add(k.text(lx + 8, top + 6, d.desc, 8.5, '#e8dcc0', { wordWrap: { width: lw - 16 }, lineSpacing: 2 }));
-    c.add(k.text(lx + 8, top + 50, `ตอนนี้: ${d.effect(b.level)}`, 8.5, '#9ad8ff', { wordWrap: { width: lw - 16 } }));
+    const dsc = k.text(lx + 8, top + 6, d.desc, 8.5, '#e8dcc0', { wordWrap: { width: lw - 16 }, lineSpacing: 2 }); c.add(dsc);
+    c.add(k.text(lx + 8, Math.max(top + 50, dsc.y + dsc.height + 4), `ตอนนี้: ${d.effect(b.level)}`, 8.5, '#9ad8ff', { wordWrap: { width: lw - 16 } }));
     if (underConstruction(b)) {
       c.add(k.text(lx + 8, top + 90, `🔨 กำลังก่อสร้าง Lv ${b.level}… เสร็จใน ${Math.ceil((b.done! - Date.now()) / 1000)} วินาที`, 9, '#ffd84a', { wordWrap: { width: lw - 16 } }));
     } else if (b.level < d.maxLevel) {
@@ -755,6 +756,11 @@ export class Panels implements GuildHost {
     } else c.add(k.text(lx + 8, top + 90, 'เลเวลสูงสุดแล้ว', 9, '#ffd84a'));
     const rx = lx + lw + 8, rw = x + W - 14 - rx;
     g.fillStyle(0x0a0705, 0.6).fillRoundedRect(rx, top, rw, H - 48, 4);
+    if (b.type === 'home' && !underConstruction(b)) {   // 🛏 sleep from the house's front (player feedback 15 Nov: no need to walk in to the bed)
+      c.add(k.text(rx + 8, top + 6, '🛏 นอนพัก', 11, '#9ad8ff'));
+      c.add(k.text(rx + 8, top + 26, `นอนแล้วออกจากเกมได้เลย ระหว่างนอน:\n• พลังพักผ่อน ชั่วโมงละ 10 ตัว (ล่ามอนได้ EXP +50%) — มีอยู่ ${homeOf(s).rest}\n• ⚡ แรงเก็บของคืนเร็วขึ้น ชั่วโมงละ ${BED_REGEN} (+${GATHER_REGEN} ที่ฟื้นเอง)\n• HP / MP เต็มทันที\nกลับเข้าเกมแล้วตื่นเอง`, 8, '#e8dcc0', { wordWrap: { width: rw - 16 }, lineSpacing: 3 }));
+      c.add(k.button(rx + 8, top + H - 90, rw - 16, 30, homeOf(s).sleptAt ? '😴 กำลังนอนอยู่' : '🛏 นอนพักเลย', () => { ((this.ui as unknown as { td: { useHot(a: { sleep: true }): void } }).td).useHot({ sleep: true }); this.close(); }, { size: 11, color: 0x1f3a5a, disabled: !!homeOf(s).sleptAt }));
+    }
     if (b.type === 'forge') {
       c.add(k.text(rx + 8, top + 6, `หลอมของ (ใช้ผลึกมานา ${b.level} ชิ้น • มี ${countItem(s, 'mana_shard')})`, 9, '#ffe7a0'));
       (['weapon', 'armor', 'accessory'] as const).forEach((slot, i) => {

@@ -484,7 +484,7 @@ export class TopDownScene extends Phaser.Scene {
     this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined; this.autoRing = undefined; this.navGo = null; this.wingView = undefined; this.wingLift = 0;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(300, () => this.joinRoom());
-    { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม`, '#9ad8ff')); } }
+    { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม • ⚡ แรงเก็บของ ${energyLeft(S())}/1200`, '#9ad8ff')); } }
     this.castShadow(this.hero, true);
     if (this.village) { populateVillage(this.village, roadY); for (const n of this.village.npcs) this.castShadow(n.sp, true); }
     this.plotViews = []; this.heroKeyNow = this.F.key;
@@ -621,7 +621,7 @@ export class TopDownScene extends Phaser.Scene {
       const r = act('sleep', {});
       if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, 'ต้องสร้างบ้านก่อน', '#ff8a8a'); return; }
       sfx.heal(); saveGame(S()); bus.emit(EV.STATE_CHANGED);
-      bus.emit(EV.TOAST, '🛏 นอนพักแล้ว — HP/MP เต็ม • ออกจากเกมได้เลย ยิ่งนอนนาน พลังพักผ่อนยิ่งสะสม (ล่ามอนได้ EXP เพิ่ม)', '#9ad8ff');
+      bus.emit(EV.TOAST, '🛏 นอนพักแล้ว — HP/MP เต็ม • ออกจากเกมได้เลย ยิ่งนอนนาน พลังพักผ่อนยิ่งสะสม (ล่ามอนได้ EXP เพิ่ม) + ⚡ แรงเก็บของคืนเร็วขึ้น', '#9ad8ff');
     }
     else ui.panels.open(a.panel);
   }
