@@ -1,5 +1,6 @@
 import { brRound, brNext } from '../systems/br';
 import { PVP } from '../world/stages';
+import { PVP_REQ } from '../systems/pvp';
 import { energyLeft, GATHER_FULL, GATHER_TAIL } from '../systems/economy';
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
@@ -584,7 +585,7 @@ export class TdUIScene extends Phaser.Scene {
     const r = brRound(), td = this.td as unknown as { enterStage(n: number): void; stageN: number };
     if (r?.phase === 'lobby') { if (td.stageN !== PVP) td.enterStage(PVP); return; }
     sfx.error();
-    this.toast(r ? `⚔ ${tr('รอบนี้เริ่มสู้แล้ว — รอบหน้าเปิดรับในอีก')} ${Math.ceil(brNext() / 60000)} ${tr('นาที')}` : `⚔ ${tr('สมรภูมิทีมเปิด')} 13:00–14:00 ${tr('และ')} 20:00–22:00 (${tr('รอบละ 20 นาที เข้าได้ช่วง 3 นาทีแรก')}) • Lv40+`, '#ffb08a');
+    this.toast(r ? `⚔ ${tr('รอบนี้เริ่มสู้แล้ว — รอบหน้าเปิดรับในอีก')} ${Math.ceil(brNext() / 60000)} ${tr('นาที')}` : `⚔ ${tr('สมรภูมิทีมเปิด')} 13:00–14:00 ${tr('และ')} 20:00–22:00 (${tr('รอบละ 20 นาที เข้าได้ช่วง 3 นาทีแรก')}) • Lv${PVP_REQ}+`, '#ffb08a');
   }
   /** ⚡ the daily gathering energy, as a bar in the Deepwild (player feedback 15 Nov: "it stopped by itself — tired?").
    *  Green = full yield left, orange = the tired part (a quarter of the yield); it comes back slowly by itself, faster

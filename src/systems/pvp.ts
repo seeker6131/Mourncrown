@@ -3,7 +3,7 @@
 // in, VIP, diamonds, wings and mounts never drop. Damage between heroes is worked out by the map room (server).
 import type { GameState } from '../core/state';
 
-export const PVP_REQ = 40;
+export const PVP_REQ = 20;   // (director 15 Nov: from Lv20 — was 40)
 export const PVP_FEE = 5000;
 /** open hours (Bangkok, [from, to)) */
 export const PVP_HOURS: [number, number][] = [[13, 14], [20, 22]];

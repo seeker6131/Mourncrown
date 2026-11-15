@@ -10,7 +10,7 @@ const refused = (r: unknown) => (r as { refused?: string })?.refused ?? null;
 describe('⚔ PvP battlefield (director 15 Nov)', () => {
   it('Lv40+, only in a team round\'s lobby, the entry fee once per round', () => {
     const lobby = Date.UTC(2026, 10, 15, 13, 21), fight = Date.UTC(2026, 10, 15, 13, 25);   // (20:21 / 20:25 Bangkok)
-    useMem(newMem()); const s = startNewGame(); s.level = 39; s.gold = 20000;
+    useMem(newMem()); const s = startNewGame(); s.level = 19; s.gold = 20000;
     expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: lobby }))).toBe('level');
     s.level = 45; expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: Date.UTC(2026, 10, 15, 3) }))).toBe('closed');
     expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: fight }))).toBe('closed');   // (the fight started: no way in)

@@ -310,6 +310,10 @@ const EN: Record<string, string> = {
   '⚔ เริ่มสู้ใน': '⚔ Fight in',
   '🟢 เข้าได้': '🟢 Join',
   '⚔ สู้อยู่': '⚔ Fighting',
+  '⚔ สมรภูมิทีมเข้าได้ตั้งแต่ Lv20 แล้ว! • ปุ่ม PvP ใหม่บนแถบบน มีนับถอยหลัง กดเข้าได้เลยตอนเปิดรับ • นาฬิกาใหญ่ในแมพ': '⚔ The Team Battlefield is open from Lv20! • New PvP button on the top bar with a countdown — tap to join while the lobby is open • a big clock on the map',
+  '⚔ ช่วงรอ 3 นาทีไม่มีมอน • ตกรอบแล้วเข้ารอบเดิมไม่ได้ (รอรอบหน้า)': '⚔ No monsters during the 3-minute lobby • out of a round = wait for the next one',
+  '⚡ หลอดแรงเก็บของในป่าดงดิบ • แรงฟื้นเองชั่วโมงละ 60 • นอนเตียงบ้านฟื้นไวขึ้น • 🧪 ยาฟื้นแรง (ร้านค้า วันละ 3 ขวด)': '⚡ A gathering energy bar in the Deepwild • +60 energy an hour by itself • faster in your house bed • 🧪 Stamina Tonic (shop, 3 a day)',
+  '📖 คำอธิบายสกิลครบทุกตัว — ดูในหน้าต่างตัวละคร หรือกดค้างปุ่มสกิล': '📖 Every skill explained — see the Character window, or hold a skill button',
   '🎰 ปุ่มตู้สุ่มอยู่แถบบนข้างกงล้อ — ตู้เดียว 2 แท็บ: 🪽 ปีก / 🐎 พาหนะ': '🎰 The slot machine button is on the top bar next to the wheel — one machine, two tabs: 🪽 Wings / 🐎 Mounts',
   '🎰 ตู้สุ่ม': '🎰 Slot machine', 'ตู้สุ่ม': 'Slot', 'พาหนะของฉัน': 'My mounts', '🐎 พาหนะของฉัน (ขี่ / ลง)': '🐎 My mounts (ride / get off)', 'หมาป่าเงาจันทร์': 'Moonshadow Wolf', 'หมีศึกเกราะเหล็ก': 'Iron War Bear', 'กวางวิญญาณพงไพร': 'Forest Spirit Stag', 'เสือดำทมิฬ': 'Shadow Panther', 'มังกรทองเหินฟ้า': 'Skyborne Golden Dragon',
   // PvP

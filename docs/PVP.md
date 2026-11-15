@@ -1,6 +1,6 @@
 # ⚔ Team Battlefield (director 15 Nov — replaced the open PvP map before it ever went live)
 Rules: `src/systems/br.ts` · room: `Room.brGet/brTeamMsg/brTick/brOut/brFinish` in `server/worker.ts` · screen: `src/world/brView.ts` · tests: `tests/br.test.ts`, `tests/brRoom.test.ts`.
-- Lv40+, rounds only in PVP_HOURS (13-14, 20-22 Bangkok), one every 20 min: 3 min lobby → 15 min fight → 2 min results. Room per round: `m400-<roundId>`. Enter only in the lobby (server `enterMap`), fee 5,000 once per round (`brPaid`).
+- Lv20+ (40 until 15 Nov late), rounds only in PVP_HOURS (13-14, 20-22 Bangkok), one every 20 min: 3 min lobby → 15 min fight → 2 min results. Room per round: `m400-<roundId>`. Enter only in the lobby (server `enterMap`), fee 5,000 once per round (`brPaid`).
 - Lobby: make / join / leave a team of ≤4 (`tcreate/tjoin/tleave`); no team = solo. Fight start locks the roster; < 2 teams → called off, fee back (`/brrefund`).
 - Hits only between living heroes of different teams during the fight (room checks; damage = `pvpDamage`). Fallen = out (watch or go home), nothing lost. Disconnected / left > 30 s = out.
 - Safe zone `brZone` shrinks every 3 min (holds 2, shrinks 1); outside: 5% max HP/s, dealt by the room.
