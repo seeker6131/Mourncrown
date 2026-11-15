@@ -8,7 +8,7 @@
   a gate keeps it; a fall to a player drops it (`loseWarBag`, Player `/pvpdie`) on the ground for anyone (Room `pdrop` →
   `ppick` → Player `/pvpgain`, which puts it in the taker's own war bag). Worn / brought gear, VIP, diamonds, wings, mounts never drop.
 - No return scroll, no mounts, no wing / cloud / VIP speed on the battlefield.
-- Hero-vs-hero damage is the ROOM's (`Room.pvpMsg`, `pvpDamage`): class factor, defence soak (mages pierce 40%), ranged
-  falloff past 110 px, melee take 15% less, a hit at most 12% of the target's HP (skills 18%) — no one-shots. Range and
+- Hero-vs-hero damage is the ROOM's (`Room.pvpMsg`, `pvpDamage`): a share of the target's HP — 1/12 at equal combat power
+  (≈10-15 hits), x sqrt(power ratio), at least 6 hits, at most 30; class factor, ranged falloff past 110 px, melee take 15% less. Range and
   attack speed checked; the room keeps its own HP count (never above what the game reports).
 - Not done yet: red names / bounties for killers, the treasure chest, weekly ranking.

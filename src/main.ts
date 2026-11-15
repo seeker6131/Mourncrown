@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { catchRefLink } from './systems/refer';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { TopDownScene } from './scenes/TopDownScene';
@@ -6,6 +7,7 @@ import { TdUIScene } from './scenes/TdUIScene';
 import { installDebug } from './core/debug';
 import { TEST_HOOKS } from './core/testHooks';
 import { tr, lang } from './core/i18n';
+catchRefLink();   // (🤝 opened through a friend's invite link)
 
 // Language: every text object goes through tr() (English by default, Thai when chosen)
 {

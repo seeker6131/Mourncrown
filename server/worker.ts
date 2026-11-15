@@ -497,7 +497,7 @@ const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
-  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; paT?: number; dead?: number }
+  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; paT?: number; dead?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
@@ -1170,7 +1170,7 @@ export class Player {
     if (u.pathname === '/gid') return new Response(JSON.stringify({ gid: (this.st as { guildId?: string } | null)?.guildId ?? null, lv: Number(this.st?.level) || 1 }));
     // ⚔ PvP (src/systems/pvp.ts): the map room asks for the hero's fighting numbers, takes the war bag of a fallen hero,
     // and hands loot picked up from the battlefield ground to whoever reached it
-    if (u.pathname === '/pvpstat') { const st = this.st as unknown as GameState | null; if (!st) return new Response('{}'); const d = derive(st); return new Response(JSON.stringify({ atk: d.atk, matk: d.matk, def: d.def, hp: d.maxHp, crit: d.crit, iv: d.attackInterval, cls: (st as { cls?: string }).cls ?? 'novice', lv: st.level })); }
+    if (u.pathname === '/pvpstat') { const st = this.st as unknown as GameState | null; if (!st) return new Response('{}'); const d = derive(st); return new Response(JSON.stringify({ pw: d.power, atk: d.atk, matk: d.matk, def: d.def, hp: d.maxHp, crit: d.crit, iv: d.attackInterval, cls: (st as { cls?: string }).cls ?? 'novice', lv: st.level })); }
     if (u.pathname === '/pvpdie' && this.st) {
       const b = this.snap(), out = loseWarBag(this.st as unknown as GameState);
       this.dirty = true; await this.persist();

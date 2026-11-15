@@ -1,5 +1,6 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
+import { REF_KEY, REF_NEW_DIA } from '../systems/refer';
 import { MOUNTS } from '../data/mounts';
 import { WING_BY_ID } from '../data/wings';
 import { openLinkGoogle } from '../net/linkGoogle';
@@ -14,7 +15,7 @@ import { mailWaiting } from '../systems/mail';
 import { activeElixir } from '../systems/alchemy';
 import { toggleFullscreen } from '../core/fullscreen';
 import { lang } from '../core/i18n';
-import { act } from '../net/client';
+import { act, callServer, isOnline, refused } from '../net/client';
 import { resCap } from '../systems/economy';
 import { tutActive, loginInfo } from '../systems/progress';
 import { Minimap, type MapInfo } from '../ui/minimap';
@@ -388,7 +389,17 @@ export class TdUIScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
     this.refresh();
     this.buildSkills();
-    this.time.delayedCall(60, hideWait);   // the game is on screen: drop the 'please wait' overlay
+    this.time.delayedCall(60, hideWait);
+    this.time.delayedCall(6000, () => {   // 🤝 came through a friend's link: the server takes the code once (it checks the rules)
+      let code = ''; try { code = localStorage.getItem(REF_KEY) ?? ''; } catch { /* storage blocked */ }
+      if (!code || !isOnline()) return;
+      void callServer('refUse', { code }).then(r => {
+        const why = refused(r) ? (r as { refused: string }).refused : '';
+        if (why === 'nostate') return;   // (no hero yet: try next time)
+        try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ }
+        if (!why) bus.emit(EV.TOAST, `🤝 เข้าเกมด้วยลิงก์ของ ${(r as { name?: string }).name || 'เพื่อน'}! เล่นถึง Lv10 รับ 💎${REF_NEW_DIA}`, '#9fffb0');
+      });
+    });   // the game is on screen: drop the 'please wait' overlay
     if (this.reopen) { const r = this.reopen; this.reopen = null; this.panels.open(r as 'uiopt'); }
 
     const st = S();

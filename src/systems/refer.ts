@@ -10,3 +10,10 @@ export const REF_MAX = 20;
 export const REF_DAYS = 3;
 /** the code a player shares: the start of the account id */
 export const refCode = (id: string) => id.slice(0, 8).toUpperCase();
+/** the link a player shares (director: a link, not a code to type) */
+export const refLink = (code: string) => `https://seeker6131.github.io/Mourncrown/?ref=${code}`;
+export const REF_KEY = 'mcRef';
+/** (boot) a ?ref= in the address is remembered on this device until the server takes it */
+export function catchRefLink() {
+  try { const r = new URLSearchParams(location.search).get('ref'); if (r && /^[0-9a-fA-F]{8}$/.test(r)) localStorage.setItem(REF_KEY, r.toUpperCase()); } catch { /* storage blocked */ }
+}

@@ -1,5 +1,5 @@
 import { tdQuest, rewardText } from '../systems/tdQuests';
-import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT } from '../systems/refer';
+import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, refLink } from '../systems/refer';
 import { PVP, isPvp } from '../world/stages';
 import { pvpOpen, PVP_HOURS } from '../systems/pvp';
 import { WINGS, WING_BY_ID, WING_SPEED, TIER_NAME, TIER_COL } from '../data/wings';
@@ -1819,10 +1819,12 @@ export class Panels implements GuildHost {
     if (!this.refData || Date.now() - this.refAsk > 15000) { this.refAsk = Date.now(); callServer('refInfo', {}).then(r => { if (r && !refused(r)) { this.refData = r as typeof this.refData; if (this.cur === 'refer') this.rebuild(); } }); }
     const d = this.refData; if (!d) { c.add(k.text(x + W / 2, y + H / 2, 'กำลังโหลด...', 10, '#ffe7a0').setOrigin(0.5)); return; }
     const L = x + 16, done = d.friends.filter(f => f.lv30).length;
-    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(L - 6, y + 30, W - 20, 70, 6);
-    c.add(k.text(L, y + 36, 'รหัสเชิญของฉัน', 9, '#c8b898'));
-    c.add(k.text(L, y + 50, d.code, 18, '#ffd84a'));
-    c.add(k.button(L + 130, y + 52, 110, 22, '📋 คัดลอกรหัส', () => { try { void navigator.clipboard?.writeText(d.code); } catch { /* ignore */ } sfx.click(); bus.emit(EV.TOAST, 'คัดลอกรหัสแล้ว — ส่งให้เพื่อนได้เลย', '#9fffb0'); }, { size: 8.5, color: 0x2a4a5a }));
+    g.fillStyle(0x0a0705, 0.6).fillRoundedRect(L - 6, y + 30, W - 20, 72, 6);
+    const link = refLink(d.code);
+    c.add(k.text(L, y + 36, 'ลิงก์ชวนเพื่อนของฉัน (เพื่อนกดลิงก์แล้วเริ่มเล่น = นับให้อัตโนมัติ)', 8, '#c8b898', { wordWrap: { width: 230 } }));
+    c.add(k.text(L, y + 58, link.replace('https://', ''), 7, '#ffd84a', { wordWrap: { width: 236 } }));
+    c.add(k.button(L, y + 74, 116, 22, '📋 คัดลอกลิงก์', () => { try { void navigator.clipboard?.writeText(link); } catch { /* ignore */ } sfx.click(); bus.emit(EV.TOAST, 'คัดลอกลิงก์แล้ว — ส่งให้เพื่อนได้เลย', '#9fffb0'); }, { size: 8.5, color: 0x2a4a5a }));
+    c.add(k.button(L + 120, y + 74, 116, 22, '📤 แชร์', () => { sfx.click(); const nv = navigator as Navigator & { share?: (d: { title: string; text: string; url: string }) => Promise<void> }; if (nv.share) void nv.share({ title: 'Mourncrown', text: tr('มาเล่น Mourncrown ด้วยกัน! กดลิงก์นี้รับเพชรฟรี'), url: link }).catch(() => undefined); else { try { void navigator.clipboard?.writeText(link); } catch { /* ignore */ } bus.emit(EV.TOAST, 'คัดลอกลิงก์แล้ว — ส่งให้เพื่อนได้เลย', '#9fffb0'); } }, { size: 8.5, color: 0x1f4a5a }));
     c.add(k.text(L + 250, y + 36, `🎁 เพื่อนใส่รหัสคุณ แล้วเล่นถึง Lv10 → เพื่อนได้ 💎${REF_NEW_DIA}\n🎁 เพื่อนถึง Lv30 → คุณได้ 💎${REF_INVITER_DIA} ต่อคน\n🪽 เพื่อนถึง Lv30 ครบ ${REF_WING_AT} คน → ปีกพายุอสนี (Limited)`, 8, '#e8dcc0', { lineSpacing: 3, wordWrap: { width: W - 270 } }));
     c.add(k.text(L, y + 108, `เพื่อนที่เชิญ (${d.friends.length}) • ถึง Lv30 แล้ว ${done}/${REF_WING_AT} 🪽`, 9, '#ffe7a0'));
     d.friends.slice(0, 8).forEach((f, i) => c.add(k.text(L + (i % 2) * (W / 2 - 10), y + 126 + Math.floor(i / 2) * 15, `${f.name ?? '(ยังไม่ตั้งชื่อ)'} — ${f.lv30 ? '✅ Lv30' : f.lv10 ? '⏳ Lv10+' : '⏳ ยังไม่ถึง Lv10'}`, 8, f.lv30 ? '#9fffb0' : '#c8b898')));
@@ -1830,7 +1832,7 @@ export class Panels implements GuildHost {
     // a new player: type a friend's code (first days, before Lv10)
     const by = y + H - 46;
     if (d.used) c.add(k.text(L, by + 6, '✔ คุณใส่รหัสเพื่อนแล้ว', 9, '#9fffb0'));
-    else if (d.canUse) c.add(k.button(L, by, 220, 26, '✍ ใส่รหัสเพื่อนที่ชวนมา', () => {
+    else if (d.canUse) c.add(k.button(L, by, 220, 26, '✍ ใส่รหัส (ถ้าไม่ได้มาจากลิงก์)', () => {
       const code = (window.prompt(tr('ใส่รหัสเชิญของเพื่อน (8 ตัว)')) ?? '').trim(); if (!code) return;
       callServer('refUse', { code }).then(r => {
         if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, ({ code: 'รหัสไม่ถูกต้อง', used: 'ใส่รหัสไปแล้ว', late: 'ใส่รหัสได้เฉพาะผู้เล่นใหม่ (3 วันแรก ก่อน Lv10)', same: 'ใช้รหัสของบัญชีในเครื่อง/เครือข่ายเดียวกันไม่ได้' } as Record<string, string>)[(r as { refused: string }).refused] ?? 'ใช้รหัสไม่ได้', '#ff8a6a'); return; }

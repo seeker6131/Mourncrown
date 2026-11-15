@@ -24,15 +24,14 @@ describe('⚔ PvP battlefield (director 15 Nov)', () => {
     expect(s.inventory.length).toBe(keep); expect(s.gold).toBe(20000 - PVP_FEE);
     expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: open + 60000 }))).toBe('out');
   });
-  it('no one-shots: a hit is at most 12% of the target (skills 18%), whatever the gear', () => {
-    const big = { atk: 99999, matk: 99999, cls: 'sword', lv: 100 }, tgt = { def: 10, hp: 5000, cls: 'archer', lv: 60 };
-    expect(pvpDamage(big, tgt, { skill: false, dist: 30, crit: true })).toBe(600);
-    expect(pvpDamage(big, tgt, { skill: true, dist: 30, crit: true })).toBe(900);
+  it('long fights: equal power ≈ 12 hits (10-15), better gear fewer, never under 6 or one-shot', () => {
+    const t = { pw: 3000, hp: 6000, cls: 'archer' }, hits = (pw: number, cls = 'sword', crit = false) => Math.ceil(t.hp / pvpDamage({ pw, cls }, t, { skill: false, dist: 30, crit }));
+    expect(hits(3000)).toBeGreaterThanOrEqual(10); expect(hits(3000)).toBeLessThanOrEqual(15);
+    expect(hits(12000)).toBeLessThan(hits(3000)); expect(hits(1e9, 'sword', true)).toBe(6);
   });
-  it('the classes stay close: same gear power, sword vs mage vs archer within ~25% per hit', () => {
-    const t = { def: 200, hp: 50000, cls: 'cleric', lv: 60 };
-    const hit = (cls: string) => pvpDamage({ atk: 1500, matk: 1500, cls, lv: 60 }, t, { skill: false, dist: 90, crit: false });
-    const v = ['sword', 'archer', 'mage'].map(hit), lo = Math.min(...v), hi = Math.max(...v);
+  it('the classes stay close at equal power (within ~25% per hit)', () => {
+    const t = { pw: 3000, hp: 6000, cls: 'cleric' };
+    const v = ['sword', 'archer', 'mage'].map(cls => pvpDamage({ pw: 3000, cls }, t, { skill: false, dist: 90, crit: false })), lo = Math.min(...v), hi = Math.max(...v);
     expect(hi / lo).toBeLessThan(1.25);
   });
 });

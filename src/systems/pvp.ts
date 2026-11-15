@@ -7,8 +7,6 @@ export const PVP_REQ = 40;
 export const PVP_FEE = 5000;
 /** open hours (Bangkok, [from, to)) */
 export const PVP_HOURS: [number, number][] = [[13, 14], [20, 22]];
-/** a hero hits another hero this share of a monster hit */
-export const PVP_MULT = 0.35;
 /** after a fall: back in after this long */
 export const PVP_OUT_MS = 3 * 60000;
 /** just arrived: nobody can hurt you for this long */
@@ -47,18 +45,19 @@ export function loseWarBag(s: GameState, now = Date.now()): WarBag {
   return out;
 }
 
-/** ⚔ one hit of hero A on hero B (director 15 Nov: sword, archer and mage must stand a fair chance against each other):
- *  - every class's own attack stat (mages: MATK) at PVP_MULT, with its own class factor;
- *  - defence softens a hit by def / (def + 300 + 8 x level) — mages see through 40% of it (they hit slower, from afar);
- *  - archers / mages lose 20% beyond 110 px (melee must be worth closing in), and melee heroes take 15% less (frontline);
- *  - no one-shots, whatever the gear: a hit is at most 12% of the target's HP (a skill 18%) — Legend gear wins fights,
- *    it does not end them in one blow. */
-export const PVP_CLASS: Record<string, number> = { sword: 1.0, cleric: 0.85, archer: 0.9, mage: 0.95, novice: 0.8 };
-export function pvpDamage(a: { atk: number; matk: number; cls: string; lv: number }, b: { def: number; hp: number; cls: string; lv: number }, o: { skill: boolean; dist: number; crit: boolean }) {
-  const mage = a.cls === 'mage', ranged = mage || a.cls === 'archer', melee = b.cls === 'sword' || b.cls === 'cleric';
-  const def = b.def * (mage ? 0.6 : 1), soak = def / (def + 300 + 8 * b.lv);
-  let d = (mage ? a.matk : a.atk) * PVP_MULT * (PVP_CLASS[a.cls] ?? 0.8) * (o.skill ? 1.6 : 1) * (o.crit ? 1.5 : 1) * (1 - soak);
+/** ⚔ one hit of hero A on hero B (director 15 Nov: long fights — about 10-15 hits between equals, fewer with better gear;
+ *  sword, archer and mage must stand a fair chance against each other):
+ *  - the hit is a share of the TARGET's HP: 1/12 between heroes of equal combat power, scaled by (A's power / B's power)^0.5
+ *    — twice the power ≈ 8-9 hits, half ≈ 17; never fewer than 6 hits (no one-shots), never more than 30;
+ *  - class factor; mages see through 40% of defence (a little more vs heavy armour), hit a bit slower, from afar;
+ *  - archers / mages lose 20% beyond 110 px (melee must be worth closing in), melee heroes take 15% less (frontline);
+ *  - a skill x1.4, a critical x1.3. */
+export const PVP_CLASS: Record<string, number> = { sword: 1.1, cleric: 0.95, archer: 1.0, mage: 1.05, novice: 0.8 };
+export const PVP_HITS = 12, PVP_MIN_HITS = 6, PVP_MAX_HITS = 30;
+export function pvpDamage(a: { pw: number; cls: string }, b: { pw: number; hp: number; cls: string }, o: { skill: boolean; dist: number; crit: boolean }) {
+  const ranged = a.cls === 'mage' || a.cls === 'archer', melee = b.cls === 'sword' || b.cls === 'cleric';
+  let d = b.hp / PVP_HITS * Math.sqrt(Math.max(1, a.pw) / Math.max(1, b.pw)) * (PVP_CLASS[a.cls] ?? 0.8) * (o.skill ? 1.4 : 1) * (o.crit ? 1.3 : 1);
   if (ranged && o.dist > 110) d *= 0.8;
   if (melee) d *= 0.85;
-  return Math.max(1, Math.round(Math.min(d, b.hp * (o.skill ? 0.18 : 0.12))));
+  return Math.max(1, Math.round(Math.max(b.hp / PVP_MAX_HITS, Math.min(d, b.hp / PVP_MIN_HITS))));
 }
