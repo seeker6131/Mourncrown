@@ -541,11 +541,23 @@ export class Combat {
         if (!m.alive) continue;
         if (ranged) { if (magic) this.magicBolt(h.x, h.y - 20, m, wfx ?? (formKey === 'hr9' ? 0xff3a5a : formKey === 'hr8' ? 0xc08aff : 0x6ad8ff), pl); else this.arrow(h.x, h.y - 18, m, pl, wfx ?? undefined); }
         const r = calcDamage(magic ? d.matk : d.atk, m.def, 1, d.crit);
-        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) this.hitFx(m, formKey, r.crit, magic, ranged, wfx); this.hurtMon(m, r.dmg, r.crit, magic, pl); });
+        this.s.time.delayedCall(ranged ? 170 : 0, () => { if (m.alive) { this.hitFx(m, formKey, r.crit, magic, ranged, wfx); this.leech(r.dmg, d.leech, d.maxHp); } this.hurtMon(m, r.dmg, r.crit, magic, pl); });
       }
     });
   }
 
+  /** 🩸 life steal (gear "ดูดเลือด %", director 15 Nov: normal attacks only — skills never): heals that share of the damage
+   *  dealt, at most 5% of max HP a second (a hit on a crowd cannot make the hero unkillable); off in the village raid
+   *  (no healing there). It never worked before: the stat was shown but nothing used it. */
+  leechT = 0; leechPool = 0;
+  leech(dmg: number, pct: number, maxHp: number) {
+    if (pct <= 0 || raidFlag.on || this.s.dead) return;
+    const s = S(), now = this.s.time.now;
+    if (now - this.leechT > 1000) { this.leechT = now; this.leechPool = maxHp * 0.05; }
+    const heal = Math.min(Math.round(dmg * pct), Math.floor(this.leechPool), maxHp - s.hp); if (heal <= 0) return;
+    this.leechPool -= heal; s.hp += heal;
+    this.float(this.s.hero.x + 8, this.s.hero.y - 34, `+${heal}`, '#7aff8a', 8);
+  }
   /** PixelLab hit effect on the monster, by the hero's class line (tools/gen_vfx2.py) */
   hitFx(m: Mon, form: string, crit: boolean, magic: boolean, ranged: boolean, wfx: number | null = null) {
     const n = +form.replace(/\D/g, '') || 0;

@@ -497,7 +497,7 @@ const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
-  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; paT?: number; dead?: number }
+  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
@@ -737,7 +737,9 @@ export class Room {
     const dist = Math.hypot(tp.x - meP.x, tp.y - meP.y); if (dist > (ranged || skill ? 180 : 64)) return;
     me.paT = now;
     const dmg = pvpDamage(a, b, { skill, dist, crit: Math.random() < Math.min(0.5, a.crit) });
-    const cur = Math.min(tg.php ?? b.hp, b.hp * Math.max(1, tp.hp) / 100) - dmg;   // (the server's count, never above what the game says)
+    // (the server's count, never above what the game says; it climbs back by regen / potions / life steal at most 4% of max HP a second)
+    const back = tg.php === undefined ? b.hp : Math.min(b.hp, tg.php + (now - (tg.phT ?? now)) / 1000 * b.hp * 0.04);
+    const cur = Math.min(back, b.hp * Math.max(1, tp.hp) / 100) - dmg; tg.phT = now;
     tg.php = Math.max(0, cur); (tw.w as WSX).serializeAttachment(tg);
     this.send({ t: 'php', id: tg.id, by: me.id, dmg, hp: Math.max(0, Math.round(100 * cur / b.hp)) });
     if (cur > 0) return;
