@@ -208,7 +208,7 @@ const EN: Record<string, string> = {
   'กำลังเปิด': 'is opening',
   'กล่องสมบัติ': 'Treasure chest',
   'มังกรทองคำ': 'Golden Dragon',
-  '📦 กล่องสมบัติซ่อนอยู่ในสมรภูมิ! ออกตามหา ยืนเปิด 5 วินาที (โดนตีจะหยุด) — ลุ้นของ Legend / SL / Limited': '📦 Treasure chests hidden on the battlefield! Find one, stand by it 5 s to open (a hit stops you) — Legend / SL / Limited prizes inside',
+  '📦 กล่องสมบัติซ่อนอยู่ในสมรภูมิ! ออกตามหา ยืนเปิด 5 วินาที (โดนตีจะหยุด) — ลุ้นของ Legend / SL และ 🐉 มังกรทองคำ Limited': '📦 Treasure chests hidden on the battlefield! Find one, stand by it 5 s to open (a hit stops you) — Legend / SL gear and the 🐉 Limited Golden Dragon inside',
   '🎰 ปุ่มตู้สุ่มอยู่แถบบนข้างกงล้อ — ตู้เดียว 2 แท็บ: 🪽 ปีก / 🐎 พาหนะ': '🎰 The slot machine button is on the top bar next to the wheel — one machine, two tabs: 🪽 Wings / 🐎 Mounts',
   '🎰 ตู้สุ่ม': '🎰 Slot machine', 'ตู้สุ่ม': 'Slot', 'พาหนะของฉัน': 'My mounts', '🐎 พาหนะของฉัน (ขี่ / ลง)': '🐎 My mounts (ride / get off)', 'หมาป่าเงาจันทร์': 'Moonshadow Wolf', 'หมีศึกเกราะเหล็ก': 'Iron War Bear', 'กวางวิญญาณพงไพร': 'Forest Spirit Stag', 'เสือดำทมิฬ': 'Shadow Panther', 'มังกรทองเหินฟ้า': 'Skyborne Golden Dragon',
   // PvP

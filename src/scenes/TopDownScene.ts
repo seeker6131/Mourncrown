@@ -44,7 +44,7 @@ import { showWait, hideWait } from '../core/wait';
 import { stageFood, isHungry, heroHungry, supplyMinutes, SUPPLY_MINS } from '../systems/supplies';
 import { invSize } from '../core/state';
 import { activeWing } from '../systems/wings';
-import { WING_SPEED, WING_LIFT, WING_BY_ID } from '../data/wings';
+import { WING_SPEED, WING_LIFT } from '../data/wings';
 import { WingView, liftSprite } from '../world/wingView';
 import { potOf, pickPotion, POT_CD, autoOf, potCount } from '../systems/potions';
 import { farmGoal, farmLeft, farmDone, FARM_KEYS, FARM_NAMES, type FarmGoal } from '../systems/farm';
@@ -2126,7 +2126,7 @@ export class TopDownScene extends Phaser.Scene {
     if (e.t === 'pcstop') { c.tx.setText(tr('📦 กล่องสมบัติ')); if (e.by === me) { c.start = 0; c.sent = false; bus.emit(EV.TOAST, '⛔ โดนตี! การเปิดกล่องหยุด', '#ff8a6a'); } return; }
     // gone: opened (by someone) or nobody came
     const pr = e.prize, mine = e.by === me;
-    const what = !pr ? '' : pr.kind === 'ltd' ? (pr.wing ? `🪽 ${WING_BY_ID[pr.wing]?.name ?? 'ปีก'} (Limited)` : pr.mount ? '🐉 มังกรทองคำ (Limited)' : `⭐ ${pr.stars ?? 0}`) : pr.kind === 'gear' && pr.id ? `${RARITY_NAMES[pr.rar ?? 0]} ${itemDef(pr.id).name}` : pr.kind === 'gold' ? `💰${(pr.gold ?? 0).toLocaleString()}` : '';
+    const what = !pr ? '' : pr.kind === 'ltd' ? (pr.mount ? '🐉 มังกรทองคำ (Limited)' : `⭐ ${pr.stars ?? 0}`) : pr.kind === 'gear' && pr.id ? `${RARITY_NAMES[pr.rar ?? 0]} ${itemDef(pr.id).name}` : pr.kind === 'gold' ? `💰${(pr.gold ?? 0).toLocaleString()}` : '';
     if (mine && what) { bus.emit(EV.TOAST, `📦 เปิดได้ ${what}!${pr?.kind !== 'ltd' ? ' (อยู่ในกระเป๋าสงคราม — ออกจากสมรภูมิให้รอดนะ)' : ''}`, '#ffd84a'); this.combat.vfx.star(c.x, c.y - 20, 0xffd84a, 2); this.cameras.main.flash(200, 255, 220, 120); }
     else if (e.name && what && (pr?.kind === 'ltd' || (pr?.rar ?? 0) >= 4)) bus.emit(EV.TOAST, `🎉 ${e.name} เปิดกล่องได้ ${what}!`, '#ffb04a');
     this.chestGone();

@@ -16,4 +16,4 @@
 ## 📦 Treasure chests (15 Nov)
 - One at a time, every 4-7 min (first 1-2 min after the room wakes), away from the heroes; goes after 3 min unopened.
 - Stand within 44 px for 5 s; a hit from a hero stops it (room: `pcopen`/`pcdone`/`pcstop`/`pcgone`, Player `/pvpchest`).
-- Prize (rates never shown; `src/systems/pvpChest.ts`): gold 3-8k ~66%, Super Rare ~24%, Legend ~8%, SL ~1.5%, Limited wing / golden dragon ~0.3%. Gold and gear go into the war bag; a Limited prize is kept at once.
+- Prize (rates never shown; `src/systems/pvpChest.ts`): Legend ~55%, SL ~8%, gold 5-10k ~37%, Limited golden dragon ~0.2% (owned → ⭐80). Hidden: everyone in the map is told one exists, seen within 300 px; needs 2+ heroes in the map. Gold and gear go into the war bag; the dragon is kept at once.
