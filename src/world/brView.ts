@@ -58,7 +58,7 @@ export class BrView {
     const mine = this.myTeam(), key = JSON.stringify([this.teams, mine]); if (key === this.lastKey && this.box) return; this.lastKey = key;
     if (!this.box) {
       this.box = document.createElement('div'); this.box.id = 'mc-brteams';
-      this.box.style.cssText = 'position:fixed;left:8px;top:30%;z-index:40;width:min(250px,46vw);max-height:46vh;overflow:auto;padding:8px 10px;background:rgba(26,14,8,.9);border:2px solid #ff9a6a;border-radius:10px;color:#f3e6c4;font:13px system-ui,sans-serif';
+      this.box.style.cssText = 'position:fixed;left:56px;top:28%;z-index:40;width:min(240px,42vw);max-height:46vh;overflow:auto;padding:8px 10px;background:rgba(26,14,8,.9);border:2px solid #ff9a6a;border-radius:10px;color:#f3e6c4;font:13px system-ui,sans-serif';
       document.body.append(this.box);
     }
     const btn = (label: string, act: string, tid = '') => `<button data-a="${act}" data-t="${tid}" style="margin:2px 0;padding:4px 10px;font:700 12px system-ui;color:#fff3d0;background:#5a2a1a;border:1px solid #ffb08a;border-radius:8px">${label}</button>`;

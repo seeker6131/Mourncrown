@@ -568,9 +568,12 @@ export class TdUIScene extends Phaser.Scene {
     };
     this.time.addEvent({ delay: 500, loop: true, callback: tick }); tick();
     // director: the bar covered other windows' tabs — hidden while any window is open (checked every frame)
-    this.raidBarHide = () => { if (!t.active) return; const open = this.panels.isOpen || !!document.getElementById('mc-town'); bg.setVisible(!open); t.setVisible(!open); if (open && z.input) z.input.enabled = false; else if (z.input && t.text) z.input.enabled = true; };
+    this.raidBarHide = () => { if (!t.active) return; const open = this.covered(); bg.setVisible(!open); t.setVisible(!open); if (open && z.input) z.input.enabled = false; else if (z.input && t.text) z.input.enabled = true; };
   }
   raidBarHide?: () => void;
+  /** a window is open (a game window or a page-style one): the bars / clocks / boxes on the map step aside */
+  covered() { return this.panels.isOpen || ['mc-town', 'mc-char', 'mc-qty', 'mc-report', 'mc-name', 'mc-news', 'mc-update', 'mc-link'].some(id => document.getElementById(id)); }
+  energyHide?: (open: boolean) => void;
   // ⚔ the team battlefield on the top bar (director 15 Nov): a clear countdown, tap to go in while a lobby is open
   pvpTx?: Phaser.GameObjects.Text; pvpIm?: Phaser.GameObjects.Image;
   pvpCount() {
@@ -595,7 +598,7 @@ export class TdUIScene extends Phaser.Scene {
     const g = this.add.graphics().setDepth(9090), t = k.text(this.VW / 2 - 60, y + h + 1, '', 7, '#fff3d0', { stroke: '#1a0806', strokeThickness: 2 }).setOrigin(0.5, 0).setDepth(9091);
     const tick = () => {
       if (!t.active) return;
-      const td = this.td as unknown as { wild: boolean }, on = !!td.wild && !this.panels.isOpen;
+      const td = this.td as unknown as { wild: boolean }, on = !!td.wild && !this.covered();
       g.clear(); t.setVisible(on); if (!on) return;
       const left = energyLeft(S()), full = Math.max(0, left - GATHER_TAIL), tail = Math.min(left, GATHER_TAIL), W0 = w * GATHER_TAIL / (GATHER_FULL + GATHER_TAIL);
       g.fillStyle(0x1a0806, 0.85).fillRoundedRect(x - 2, y - 2, w + 4, h + 4, 4);
@@ -604,6 +607,7 @@ export class TdUIScene extends Phaser.Scene {
       g.lineStyle(1, 0xffe7a0, 0.6).strokeRect(x + W0, y, 0.5, h);
       t.setText(left <= 0 ? `⚡ ${tr('หมดแรง — พักที่เตียงบ้าน / ยาฟื้นแรง / รอฟื้นเอง')}` : `⚡ ${tr('แรงเก็บของ')} ${left}/${GATHER_FULL + GATHER_TAIL}${full <= 0 ? ' • ' + tr('เหนื่อย: ได้ของ 25%') : ''}`).setColor(left <= 0 ? '#ff8a6a' : full <= 0 ? '#ffc07a' : '#fff3d0');
     };
+    this.energyHide = open => { if (!t.active) return; if (open) { g.setVisible(false); t.setVisible(false); } else { g.setVisible(true); } };   // (every frame: never on top of a window)
     this.time.addEvent({ delay: 500, loop: true, callback: tick }); tick();
   }
   /** 📢 show the admin's announcement: under the map title, gold on dark, a soft pulse; 30 s, or tap it away */
@@ -623,7 +627,7 @@ export class TdUIScene extends Phaser.Scene {
   update(time: number) {
     if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : n.item.startsWith('mount_') && n.item !== 'mount_dragon' ? `🐎 ${MOUNTS[n.item.slice(6) as keyof typeof MOUNTS]?.name ?? 'สัตว์ขี่'} จากตู้สุ่ม` : n.item.startsWith('wing_') ? `🪽 ${WING_BY_ID[n.item.slice(5)]?.name ?? 'ปีก'} จากตู้สุ่มปีก` : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
     this.minimap?.update(time); this.drawBuffs(time); this.raidBarHide?.();
-    { const open = this.panels.isOpen; for (const id of ['mc-brteams', 'mc-brclock']) { const el = document.getElementById(id); if (el) el.style.visibility = open ? 'hidden' : 'visible'; } }   // (⚔ the battlefield's boxes never cover a window)
+    { const open = this.covered(); for (const id of ['mc-brteams', 'mc-brclock']) { const el = document.getElementById(id); if (el) el.style.visibility = open ? 'hidden' : 'visible'; } this.energyHide?.(open); }   // (⚔ the battlefield's boxes never cover a window)
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;
     this.root.setVisible(!sel).setAlpha(uiOpt(S()).alpha);
