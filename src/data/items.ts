@@ -24,6 +24,7 @@ export interface ItemDef {
   /** equipment base tier 1..5 (drop level band) */
   tier?: number;
   heal?: number; // consumable HP
+  /** + this % of max HP / MP on top (director 15 Nov: potions must matter at every level) */ healPct?: number; manaPct?: number;
   mana?: number; // consumable MP
   /** visual tier for hero sprite (weapon/armor look) */
   look?: number;
@@ -107,8 +108,8 @@ export const ITEMS: Record<string, ItemDef> = {
   phoenix_feather: { id: 'phoenix_feather', name: 'ขนนกฟีนิกซ์', type: 'accessory', icon: 'gem4', desc: 'ขนนกอมตะที่ยังอุ่นอยู่เสมอ', price: 9000, rarity: 4 },
   eye_of_dawn: { id: 'eye_of_dawn', name: 'ดวงตาอรุณ', type: 'accessory', icon: 'gem5', desc: 'อัญมณีที่มองเห็นทุกสิ่ง หายากที่สุดในโลก', price: 40000, rarity: 5 },
   // Consumables
-  hp_potion: { id: 'hp_potion', name: 'ยาฟื้นพลัง', type: 'consumable', icon: 'potion_hp', desc: 'ฟื้นฟู HP 120', price: 25, rarity: 0, heal: 120, stack: true },
-  hp_potion_l: { id: 'hp_potion_l', name: 'ยาฟื้นพลังใหญ่', type: 'consumable', icon: 'potion_hp_l', desc: 'ฟื้นฟู HP 400', price: 90, rarity: 1, heal: 400, stack: true },
+  hp_potion: { id: 'hp_potion', name: 'ยาฟื้นพลัง', type: 'consumable', icon: 'potion_hp', desc: 'ฟื้นฟู HP 120 + 8% ของ HP สูงสุด', price: 25, rarity: 0, heal: 120, healPct: 8, stack: true },
+  hp_potion_l: { id: 'hp_potion_l', name: 'ยาฟื้นพลังใหญ่', type: 'consumable', icon: 'potion_hp_l', desc: 'ฟื้นฟู HP 400 + 20% ของ HP สูงสุด', price: 90, rarity: 1, heal: 400, healPct: 20, stack: true },
   scroll_return: { id: 'scroll_return', name: 'ม้วนกลับหมู่บ้าน', type: 'consumable', icon: 'scroll_return', desc: 'วาร์ปกลับหมู่บ้านทันทีจากทุกแผนที่', price: 60, rarity: 0, recall: true, stack: true },
   ration: { id: 'ration', name: 'ถุงเสบียง', type: 'consumable', icon: 'ration', desc: 'เติมอาหารเข้าคลังหมู่บ้าน +20 (แพงกว่าล่าเอง)', price: 90, rarity: 0, food: 20, stack: true },
   tonic_atk: { id: 'tonic_atk', name: 'ยาเพิ่มพลัง', type: 'consumable', icon: 'tonic_atk', desc: 'ATK +10% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'atk', pct: 10, mins: 30 }, stack: true },
@@ -136,7 +137,7 @@ export const ITEMS: Record<string, ItemDef> = {
   elix_magma: { id: 'elix_magma', name: 'ยาเทพเพลิงลาวา', type: 'consumable', icon: 'elix_magma', desc: 'ATK/MATK +35% ความเร็วโจมตี +35% นาน 10 นาที', price: 1600, rarity: 3, elixir: { atk: 35, aspd: 35, mins: 10 }, stack: true },
   elix_frosttear: { id: 'elix_frosttear', name: 'ยาเทพเหมันต์', type: 'consumable', icon: 'elix_frosttear', desc: 'DEF +70% HP +40% นาน 10 นาที', price: 2000, rarity: 3, elixir: { def: 70, hp: 40, mins: 10 }, stack: true },
   elix_god: { id: 'elix_god', name: 'ยาสุดยอดมงกุฎกลวง', type: 'consumable', icon: 'elix_god', desc: 'ทุกค่าพลัง +40% คริ +20% ตีเร็ว +25% EXP +100% นาน 15 นาที', price: 6000, rarity: 4, elixir: { atk: 40, def: 40, hp: 40, crit: 20, aspd: 25, exp: 100, mins: 15 }, stack: true },
-  mp_potion: { id: 'mp_potion', name: 'ยามานา', type: 'consumable', icon: 'potion_mp', desc: 'ฟื้นฟู MP 60', price: 30, rarity: 0, mana: 60, stack: true },
+  mp_potion: { id: 'mp_potion', name: 'ยามานา', type: 'consumable', icon: 'potion_mp', desc: 'ฟื้นฟู MP 60 + 10% ของ MP สูงสุด', price: 30, rarity: 0, mana: 60, manaPct: 10, stack: true },
   // Materials
   slime_gel: { id: 'slime_gel', name: 'เจลสไลม์', type: 'material', icon: 'gel', desc: 'เจลเหนียวหนืด ขายได้', price: 8, rarity: 0, stack: true },
   spore_cap: { id: 'spore_cap', name: 'หมวกเห็ดสปอร์', type: 'material', icon: 'spore', desc: 'วัตถุดิบเควสต์และยา', price: 12, rarity: 0, stack: true },

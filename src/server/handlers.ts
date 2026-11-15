@@ -4,7 +4,7 @@
 // Today this module runs inside the game (net/client.ts calls it directly); when the server exists it runs there
 // unchanged (no Phaser, pure rules) with the player's state loaded from the database, and the client copy is deleted.
 // Rules here: never trust numbers from the client — only ids; check everything; random rolls happen here.
-import { PVP, isPvp, PVP_LAND } from '../world/stages';
+import { PVP, isPvp, PVP_LAND, dungeonHpK } from '../world/stages';
 import { PVP_REQ, PVP_FEE, PVP_GOLD, PVP_MON_HP, pvpOpen, pvpOutLeft, clearWarBag, warBag } from '../systems/pvp';
 import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
@@ -199,7 +199,7 @@ export const handlers = {
     else if (isRaid(n)) { if (base.animal || !RAID_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
     else if (isPvp(n)) { if (base.animal || !PVP_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
-    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1) * (isPvp(n) ? PVP_MON_HP : 1), dps = dpsOf(s);
+    const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1) * (isPvp(n) ? PVP_MON_HP : 1) * (isDungeon(n) && !a.boss ? dungeonHpK(st.level) : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
     const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
     if (!c.admin && mem.dmg < part) return no('dps');

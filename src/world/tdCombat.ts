@@ -1,12 +1,12 @@
 import { raidAtk, raidFlag } from '../systems/townRaid';
-import { isPvp, stageOf } from './stages';
+import { isPvp, stageOf, dungeonHpK } from './stages';
 import { PVP_MON_HP, PVP_MON_ATK } from '../systems/pvp';
 import { fx2, hasFx2 } from './fx2';
 // Monsters, combat, loot and stage flow for the top-down world.
 import { pxShadow } from './pxShadow';
 import Phaser from 'phaser';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, PACK_N, PACK_R, WANDER } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, packN, PACK_R, WANDER } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
 import { lootSkip, lootDis } from '../systems/lootOpt';
@@ -274,6 +274,7 @@ export class Combat {
     const reg0 = mir ? (act('mirror', { sid: mir.sid, key: m.key, boss, elite: mir.elite }), mir) : forced ? { sid: forced.sid, elite: false } : act('spawn', { key: m.key, boss, animal: !!base.animal }, online ? r => { if (r.elite) this.makeGolden(r.sid); } : undefined);
     const reg = { sid: reg0.sid, elite: online ? false : reg0.elite };   // online: the server says later whether it is golden   // the server names the spawn and decides golden monsters
     if (reg.elite) st.hp *= 5;
+    if (this.dungeon && !boss) st.hp = Math.round(st.hp * dungeonHpK(this.stage!.level));   // (timed waves: less of the gear HP)
     if (isPvp(this.stage?.n ?? 0)) { st.hp = Math.round(st.hp * PVP_MON_HP); st.atk = Math.round(st.atk * PVP_MON_ATK); }   // (⚔ battlefield: tough, soft-hitting)
     if (forced) { st.hp *= forced.hpMult; st.atk = Math.round(st.atk * 2.2); st.exp *= 20; }
     const sc = this.s;
@@ -602,7 +603,7 @@ export class Combat {
     if (!m.packed) {
       m.packed = true;
       this.mons.filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.bounty && now - o.hitT > 1600 && Math.hypot(o.x - m.x, o.y - m.y) < PACK_R)
-        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, PACK_N)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, packN(this.stage?.level ?? 99))
         .forEach((o, i) => this.s.time.delayedCall(120 + i * 140, () => { if (o.alive) { o.hitT = this.s.time.now; o.packed = true; } }));
     }
     if (!far || now - (m.leapT ?? 0) < 2500 || this.dungeon) return;

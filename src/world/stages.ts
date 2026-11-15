@@ -73,6 +73,12 @@ export const lateGame = (L: number) => Math.max(0, Math.min(1, (L - 64) / 20));
 export const MON_ATK_UP = 1.05;
 /** director 15 Nov: ordinary farming pays closer to roaming-boss hunting */
 export const NORMAL_EXP = 1.3;
+/** director 15 Nov: "a monster of your own level must not fall in one hit". The live saves (15 Nov, 120 heroes) hit
+ *  ~1.8x the reference hero under Lv10, ~2.9x at Lv10-19, ~3.5x at Lv20-29 and ~4x from Lv30 (rarer gear + upgrades), so
+ *  ordinary monsters get this much more HP → a typical hero needs ~3 hits again (the starter floor stays below). */
+export const gearHp = (L: number) => Math.min(3.8, 1 + 0.11 * Math.max(0, L - 1));
+/** dungeon waves are timed: their monsters take only part of the gear HP (about 2x the old HP, not ~4x) */
+export const dungeonHpK = (L: number) => Math.min(1, 2 / gearHp(L));
 export function scaleStats(base: { level: number; hp: number; atk: number; def: number; exp: number; gold: [number, number]; attackCooldown?: number }, level: number, boss: boolean) {
   const L = level, refAtk = 10 + 5 * L, refHp = 150 + 43 * L, refDef = 1.7 * L;
   const kf = Math.min(1.6, Math.max(0.6, base.hp / (60 * Math.pow(Math.max(1, base.level), 1.35))));
@@ -82,7 +88,8 @@ export function scaleStats(base: { level: number; hp: number; atk: number; def: 
   // director: a brand-new hero (first form, starter sword: ATK ≈ 18.5 + 2.5L) needs 3-4 hits per monster, never 1-2 —
   // a floor on normal monsters' HP (only binds at low levels, where the real hero out-hits the reference)
   const newHit = (18.5 + 2.5 * L) * 100 / (100 + def * 3);
-  const hp = Math.round(boss ? heroHit * 120 : Math.max(heroHit * 3 * kf, newHit * 3.5));
+  const late = 1 + 3 * lateGame(L), gk = Math.max(gearHp(L), late * 1.6) / late;   // (real gear, see gearHp; from Lv65 the late-game step below takes over)
+  const hp = Math.round(boss ? heroHit * 120 : Math.max(heroHit * 3 * kf * gk, newHit * 3.5));
   const cd = (base.attackCooldown ?? 1400) / 1000;
   const want = refHp * cd / (boss ? 28 : 55) * ka;
   const atk = Math.round(want * (100 + refDef * 3) / 100);

@@ -82,8 +82,8 @@ export function useItem(s: GameState, uid: number, now = Date.now()): { heal: nu
   if (inc && !d.heal && !d.mana && buffFull(s, inc, now)) return { heal: 0, mana: 0, buff: d.name, full: true };
   const same = !!inc && sameBuff(s, inc, now), cap = buffCap(s, now);
   const der = derive(s);
-  const heal = Math.min(d.heal ?? 0, der.maxHp - s.hp);
-  const mana = Math.min(d.mana ?? 0, der.maxMp - s.mp);
+  const heal = Math.min((d.heal ?? 0) + Math.round(der.maxHp * (d.healPct ?? 0) / 100), der.maxHp - s.hp);
+  const mana = Math.min((d.mana ?? 0) + Math.round(der.maxMp * (d.manaPct ?? 0) / 100), der.maxMp - s.mp);
   s.hp += heal; s.mp += mana;
   if (d.food) s.res.food += d.food;
   let left: number | undefined;

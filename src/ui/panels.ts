@@ -2194,7 +2194,7 @@ function statLines(def: ItemDef, it?: InvItem): string[] {
   if (def.crit) out.push(`คริ +${def.crit}%`);
   if (def.aspd) out.push(`ความเร็วโจมตี +${def.aspd}%`);
   if (def.mf) out.push(`🍀 โชค +${def.mf}`);
-  if (def.heal) out.push(`ฟื้น HP ${def.heal}`);
+  if (def.heal) out.push(`ฟื้น HP ${def.heal}${def.healPct ? ` +${def.healPct}%` : ''}`);
   if (def.mana) out.push(`ฟื้น MP ${def.mana}`);
   return out;
 }

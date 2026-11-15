@@ -28,6 +28,8 @@ export const SEEK_SPEED = 0.55, SEEK_GIVEUP = 220;
 
 /** director 15 Nov: hit one and the PACK_N nearest (within PACK_R px) rush in with it — 5-6 at once */
 export const PACK_N = 5, PACK_R = 190;
+/** how many come along on a map of this level — new heroes are spared the full pack (a 6-pack killed most Lv5 starters) */
+export const packN = (lv: number) => lv < 10 ? 2 : lv < 20 ? 3 : PACK_N;
 /** how far (px) an ordinary monster strolls from where it appeared (was 110 — packs drifted apart) */
 export const WANDER = 70;
 /** share of new monsters that appear next to a living one (a pack of up to CLUSTER.max), not alone somewhere */

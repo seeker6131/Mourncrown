@@ -3,9 +3,9 @@
 // Same behaviour as the old single-player code (world/tdCombat.ts): peaceful until hit, a charge then a chase after the
 // one who hit them last, home again when that player gets away; bosses add a ground blast and a charge; game animals
 // bolt and now and then kick back. The map's walls come from the players' games (Grid, checked by the room).
-import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, type Stage, type StageMon } from '../world/stages';
+import { STAGES, WILD, WILD_GAME, LANDS, wildStage, scaleStats, gearHp, type Stage, type StageMon } from '../world/stages';
 import { MONSTERS } from '../data/monsters';
-import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, PACK_N, PACK_R, WANDER, CLUSTER } from '../systems/spawnRate';
+import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, packN, PACK_R, WANDER, CLUSTER } from '../systems/spawnRate';
 import { RAID_LAND, isRaid } from '../world/stages';
 import { RAID_SECS, RAID_BLD, RAID_GATES, raidTotal, raidHp, raidBldHp, RAID_WAVES, RAID_WAVE_SIZE, RAID_WAVE_GAP, RAID_BLD_SHARE, RAID_ALIVE_MAX, raidSpeed, RAID_GROUP, RAID_GROUP_GAP } from '../systems/townRaid';
 import type { TownBld } from '../systems/town';
@@ -17,7 +17,7 @@ export interface SMon {
   sid: number; mob: StageMon; boss: boolean; elite: boolean; animal: boolean; hp: number; max: number; dmg: Record<string, number>; alive: boolean;
   x: number; y: number; hx: number; hy: number; dir: number; mv: boolean; atT: number; last: number; hitT: number; tgt?: string;
   wanderT: number; idle: boolean; fleeT: number; spT: number; chT: number; chargeEnd: number; cvx: number; cvy: number; join: number; /** seconds it has tried to move and not got anywhere */ stuck: number;
-  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; /** gave up a chase: does not notice heroes again until then */ calmT?: number; /** walking over slowly to this hero (noticed, not hit yet) */ seek?: string; lv?: number; until?: number;
+  /** a roaming boss (wb): its level and when it leaves */ wb?: boolean; /** gave up a chase: does not notice heroes again until then */ calmT?: number; /** walking over slowly to this hero (noticed, not hit yet) */ seek?: string; lv?: number; until?: number; /** (roaming boss) next time it drifts toward the crowd */ driftT?: number;
   /** (village raid) what it goes for: a building or the heroes; its wave */ role?: 'bld' | 'hero'; wave?: number;
 }
 /** ⚔ the village raid as the room runs it */
@@ -41,13 +41,15 @@ export const BOSS_RESPAWN = 300000;
 // (15 Nov balance check: real players hit 3-5x the reference hero, so a roaming boss fell in ~25 s and paid as much EXP as
 //  ~480 kills — hp 1.5 → 2.5 makes the hunt a real fight; its rewards per kill stay the same)
 export const WB = { first: [180000, 360000], gap: [480000, 840000], life: 480000, idle: 180000, near: 420, hp: 2.5, perPlayer: 0.7, atk: 1.3, maxPlayers: 8 } as const;   // (idle: nobody hit it for 3 min = it leaves; near: a player this close wakes the room)
+/** strong gear from Lv20 up made the roaming boss a 15-30 s fight: part of the gear HP (see gearHp) — solo stays a close fight */
+export const wbGear = (lv: number) => Math.max(1, gearHp(lv) / 2.5);
 export const WB_KEYS = LANDS.map(l => l.boss.key);
 /** roaming boss level and HP for these players on this map */
 export function wbStats(stageLv: number, lvs: number[], mob: StageMon) {
   const sorted = [...lvs].sort((a, b) => a - b), med = sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : stageLv;
   const lv = Math.max(stageLv, Math.min(100, stageLv + 10, med)), n = Math.max(1, Math.min(WB.maxPlayers, lvs.length));
   const st = scaleStats(MONSTERS[mob.kind], lv, true);
-  return { lv, hp: Math.round(st.hp * WB.hp * (1 + WB.perPlayer * (n - 1))), atk: Math.round(st.atk * WB.atk) };
+  return { lv, hp: Math.round(st.hp * WB.hp * wbGear(lv) * (1 + WB.perPlayer * (n - 1))), atk: Math.round(st.atk * WB.atk) };
 }
 
 /** the room's map number from its name: m12 / m12-3 → 12, w / w-2 → the Deepwild, anything else 0 */
@@ -119,7 +121,7 @@ export class MapSim {
     // director 15 Nov: hit one and its pack (the 5 nearest close by) rushes the player at once
     if (fresh && !m.animal && !m.boss && !m.wb) {
       [...this.mons.values()].filter(o => o !== m && o.alive && !o.animal && !o.boss && !o.wb && !o.hitT && Math.hypot(o.x - m.x, o.y - m.y) < PACK_R)
-        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, PACK_N)
+        .sort((p, q) => Math.hypot(p.x - m.x, p.y - m.y) - Math.hypot(q.x - m.x, q.y - m.y)).slice(0, packN(this.stage?.level ?? 99))
         .forEach((o, i) => { const at = now + 100 + i * 90; this.later.push({ at, f: () => { if (o.alive && !o.hitT) { o.hitT = at; o.tgt = by; if (o.seek) { if (this.seekers.get(o.seek) === o.sid) this.seekers.delete(o.seek); o.seek = undefined; } } } }); });
     }
     if (m.seek) { if (this.seekers.get(m.seek) === m.sid) this.seekers.delete(m.seek); m.seek = undefined; }   // (hit: the old rush, no more slow walk)
@@ -165,15 +167,39 @@ export class MapSim {
     if (this.wild || !this.stage || !players.length) return;
     if (!this.wbAt) { this.wbAt = now + this.between(WB.first); return; }
     const cur = [...this.mons.values()].find(m => m.wb);
+    // director 15 Nov: the roaming boss drifts toward where most players are (its home moves ~100 px every 15 s, it walks there)
+    if (cur && !cur.hitT && now > (cur.driftT ?? 0)) {
+      cur.driftT = now + 15000; const c = this.crowd(players);
+      if (c) { const dx = c.x - cur.hx, dy = c.y - cur.hy, dd = Math.hypot(dx, dy);
+        if (dd > 260) { const k = Math.min(100, dd - 220) / dd, nx = cur.hx + dx * k, ny = cur.hy + dy * k; if (this.free(nx, ny)) { cur.hx = nx; cur.hy = ny; } } }
+    }
     if (cur) { if (!cur.hitT && (now > (cur.until ?? 0) || now - cur.join > WB.idle)) { this.mons.delete(cur.sid); this.ev.wb.push({ k: 'leave', sid: cur.sid, key: cur.mob.key, name: cur.mob.name, x: Math.round(cur.x), y: Math.round(cur.y) }); this.wbAt = now + this.between(WB.gap); } return; }
     if (!this.warned && now >= this.wbAt - 60000) { this.warned = true; this.ev.wb.push({ k: 'warn', sid: 0, key: '', name: '', x: 0, y: 0 }); }   // a minute's warning
     if (now < this.wbAt) return;
     this.warned = false;
-    const mob = LANDS[Math.floor(this.rnd() * LANDS.length)].boss, w = wbStats(this.stage.level, players.map(p => p.lv), mob), at = this.spot(players);
+    const mob = LANDS[Math.floor(this.rnd() * LANDS.length)].boss, w = wbStats(this.stage.level, players.map(p => p.lv), mob), at = this.nearCrowd(players) ?? this.spot(players);
     const m: SMon = { sid: this.sid++, mob, boss: true, elite: false, animal: false, hp: w.hp, max: w.hp, dmg: {}, alive: true, x: at.x, y: at.y, hx: at.x, hy: at.y, dir: 0, mv: false,
       atT: -1e9, last: -1e9, hitT: 0, wanderT: 0, idle: false, fleeT: 0, spT: -1e9, chT: -1e9, chargeEnd: 0, cvx: 0, cvy: 0, join: now, stuck: 0, wb: true, lv: w.lv, until: now + WB.life };
     this.mons.set(m.sid, m);
     this.ev.wb.push({ k: 'spawn', sid: m.sid, key: mob.key, name: mob.name, x: Math.round(at.x), y: Math.round(at.y) });
+  }
+  /** the middle of the biggest group of living players on the map (null: nobody) */
+  private crowd(players: SimPlayer[]) {
+    const live = players.filter(p => p.hp > 0); if (!live.length) return null;
+    let best = live[0], bn = 0;
+    for (const p of live) { const n = live.filter(q => Math.hypot(q.x - p.x, q.y - p.y) < 450).length; if (n > bn) { bn = n; best = p; } }
+    const g = live.filter(q => Math.hypot(q.x - best.x, q.y - best.y) < 450);
+    return { x: g.reduce((a, q) => a + q.x, 0) / g.length, y: g.reduce((a, q) => a + q.y, 0) / g.length, n: g.length };
+  }
+  /** a free spot 280-420 px from the crowd (close enough to be seen coming, not on top of anybody) */
+  private nearCrowd(players: SimPlayer[]) {
+    const c = this.crowd(players); if (!c) return null; const g = this.grid.gate;
+    for (let i = 0; i < 40; i++) {
+      const a = this.rnd() * Math.PI * 2, d = 280 + this.rnd() * 140, x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d * 0.8;
+      if (x < 40 || y < 40 || x > this.W - 40 || y > this.H - 40 || !this.free(x, y) || this.hidden(x, y) || Math.hypot(x - g.x, y - g.y) < 260 || players.some(p => Math.hypot(x - p.x, y - p.y) < 220)) continue;
+      return { x, y };
+    }
+    return null;
   }
   private step(m: SMon, x: number, y: number) {
     let moved = false;

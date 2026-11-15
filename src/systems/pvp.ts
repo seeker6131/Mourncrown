@@ -14,7 +14,7 @@ export const PVP_SHIELD_MS = 10000;
 /** monsters here: gold x2 */
 export const PVP_GOLD = 2;
 /** monsters here are tough but hit softly (director: heroes carry lots of Legend gear — long fights, not deadly ones) */
-export const PVP_MON_HP = 2.5, PVP_MON_ATK = 0.6;
+export const PVP_MON_HP = 1.3, PVP_MON_ATK = 0.6;
 
 const bkk = (now: number) => { const d = new Date(now + 7 * 3600000); return d.getUTCHours() + d.getUTCMinutes() / 60; };
 export const pvpOpen = (now = Date.now()) => { const h = bkk(now); return PVP_HOURS.some(([a, b]) => h >= a && h < b); };

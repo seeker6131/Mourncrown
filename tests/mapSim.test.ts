@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { packN } from '../src/systems/spawnRate';
 import { MapSim, gridOk, mapOfRoom, WB, WB_KEYS, wbStats, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { STAGES, WILD } from '../src/world/stages';
 
@@ -166,7 +167,7 @@ describe('roaming boss costs little server time: leaves when ignored, the room s
 
 describe('packs (director 15 Nov)', () => {
   it('hit one and up to 5 nearby rush the player; far ones stay calm', () => {
-    const s = new MapSim('m1', grid(), rnd); for (let t = 0; t < 30; t++) s.run(T0 + t * 200, [me(100, 700)]);
+    const s = new MapSim('m12', grid(), rnd); for (let t = 0; t < 30; t++) s.run(T0 + t * 200, [me(100, 700)]);
     const all = [...s.mons.values()].filter(m => !m.boss); all.forEach(m => { m.x = m.hx = 1800; m.y = m.hy = 1300; m.hitT = 0; });
     const ms = all.slice(0, 8);
     ms.forEach((m, i) => { m.x = m.hx = 700 + (i % 4) * 30; m.y = m.hy = 600 + Math.floor(i / 4) * 30; m.hitT = 0; });
@@ -176,6 +177,12 @@ describe('packs (director 15 Nov)', () => {
     for (let t = 1; t < 10; t++) s.run(T0 + 7000 + t * 100, [p]);
     const angry = ms.filter(m => m.hitT > 0);
     expect(angry.length).toBe(6); expect(far.hitT).toBe(0);
+  });
+  it('new heroes meet smaller packs', () => { expect(packN(5)).toBe(2); expect(packN(15)).toBe(3); expect(packN(40)).toBe(5); });
+  it('the roaming boss comes to where the players are', () => {
+    const s = new MapSim('m12', grid(), rnd); const ps = [me(300, 400), { ...me(350, 420), id: 'B' }, { ...me(320, 380), id: 'C' }];
+    s.wbAt = T0 + 1; for (let t = 0; t < 5; t++) s.run(T0 + t * 200, ps);
+    const b = s.boss(); expect(b).toBeTruthy(); expect(Math.hypot(b!.x - 323, b!.y - 400)).toBeLessThan(480);
   });
   it('new monsters mostly appear in packs, next to a living one', () => {
     const s = new MapSim('m3', grid(), rnd);
