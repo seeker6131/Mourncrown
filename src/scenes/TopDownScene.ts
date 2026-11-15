@@ -1145,6 +1145,7 @@ export class TopDownScene extends Phaser.Scene {
     }
     const boss = this.clearings.find(c => c.boss) ?? null;
     this.combat.spawnMap(this.stageN, spot, boss ? { x: boss.x, y: boss.y } : null);
+    if (isPvp(this.stageN) && brRound()?.phase !== 'fight') this.combat.setHold(true);   // (⚔ the lobby: nothing to farm while waiting — director 15 Nov)
   }
 
   /** 🌀 director: in every corner of a monster map / the Deepwild, a gate home and a gate to the map list (change map
@@ -2115,9 +2116,9 @@ export class TopDownScene extends Phaser.Scene {
   brEvent(e: Extract<RoomEvent, { t: 'bteams' | 'bstart' | 'bend' }>, link: RoomLink) {
     if (!isPvp(this.stageN)) return;
     if (!this.bv) { const id = Number((this.roomId() ?? '').split('-')[1]) || 0; this.bv = new BrView(this, id, () => link.me, (t, tid) => link.team(t, tid), MW, MH); }
-    if (e.t === 'bteams') { this.bv.setTeams(e.teams, e.started); if (e.done) this.bv.done = true; if (e.started && e.alive && !e.alive.includes(link.me)) this.bv.fallen(() => this.brHome()); return; }
-    if (e.t === 'bstart') { this.bv.setTeams(e.teams, true); bus.emit(EV.TOAST, '⚔ เริ่มแล้ว! ทีมสุดท้ายที่รอดชนะ • วงจะหดทุก 3 นาที — อยู่ในวง!', '#ff9a6a'); sfx.cast?.(); return; }
-    this.bv.onEnd(e, () => this.brHome());
+    if (e.t === 'bteams') { if (e.started && !e.done) this.combat.setHold(false); this.bv.setTeams(e.teams, e.started); if (e.done) this.bv.done = true; if (e.started && e.alive && !e.alive.includes(link.me)) this.bv.fallen(() => this.brHome()); return; }
+    if (e.t === 'bstart') { this.combat.setHold(false); this.bv.setTeams(e.teams, true); bus.emit(EV.TOAST, '⚔ เริ่มแล้ว! ทีมสุดท้ายที่รอดชนะ • วงจะหดทุก 3 นาที — อยู่ในวง!', '#ff9a6a'); sfx.cast?.(); return; }
+    this.combat.setHold(true); this.bv.onEnd(e, () => this.brHome());
   }
   /** back to the village, healed (the round is over for me) */
   brHome() { if (!this.sys.isActive()) return; const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); showWait(); this.time.delayedCall(30, () => this.scene.restart({ stage: 0 })); }

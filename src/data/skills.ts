@@ -85,3 +85,7 @@ export const SKILL_LIST: SkillDef[] = [
 export type SkillId = string;
 export const SKILL_BY_ID: Record<string, SkillDef> = Object.fromEntries(SKILL_LIST.map(s => [s.id, s]));
 export const SKILLS = SKILL_LIST;
+
+/** 📖 a skill explained for players (director 15 Nov: every skill of every hero): its type, what it does, MP, cooldown */
+export const SKILL_KIND_TH: Record<string, string> = { strike: '⚔ โจมตีข้างหน้า', spin: '🌀 โจมตีรอบตัว', dash: '💨 พุ่งชนเป็นแนว', leap: '💥 กระโดดฟาดวงกว้าง', shot: '🏹 ยิงระยะไกล', pierce: '➶ ยิงทะลุแนวตรง', rain: '☄ ถล่มหลายเป้า', nova: '✴ ระเบิดรอบตัว', buff: '⬆ เสริมพลังตัวเอง', heal: '✚ ฟื้นฟูเลือด', shield: '🛡 โล่ดูดซับดาเมจ' };
+export function skillInfo(sk: SkillDef) { return `${SKILL_KIND_TH[sk.kind] ?? ''} — ${sk.desc}`; }

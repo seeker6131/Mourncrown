@@ -99,6 +99,10 @@ export class Combat {
   baseCount = 0;
   pending: { m: Mon; at: number }[] = [];
   keepT = 0;
+  /** (⚔ team round lobby) no monsters until the fight starts — none come back while held */
+  hold = false;
+  /** hold: clear the map's ordinary monsters now and keep it empty; release: they fill back in */
+  setHold(on: boolean) { this.hold = on; if (on) for (const m of [...this.mons]) if (!m.boss) { if (m.alive) { m.alive = false; } this.dispose(m); } this.pending = []; }
   bossSpot: { x: number; y: number } | null = null;
   /** Farming map: lots of monsters spread over the map; every kill respawns after a while, the boss every 5 minutes. */
   spawnMap(n: number, pick: () => { x: number; y: number }, bossSpot: { x: number; y: number } | null) {
@@ -241,7 +245,7 @@ export class Combat {
   /** monsters keep up with the crowd: respawn on time, bring dead ones back early when the map runs low, add more
    *  when more players arrive, let extras go when they leave (never in a dungeon) */
   private keepUp(time: number) {
-    if (this.dungeon || !this.stage || !this.pickSpot || !this.ownMobs) return;
+    if (this.dungeon || !this.stage || !this.pickSpot || !this.ownMobs || this.hold) return;
     const wild = this.stage.n === WILD, target = monTarget(this.baseCount, this.solo ? 1 : this.pop);   // (own monsters: as many as for one player)
     const common = this.mons.filter(m => !m.boss && !m.bounty), alive = common.filter(m => m.alive).length;
     this.pending.sort((a, b) => a.at - b.at);

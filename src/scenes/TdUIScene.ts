@@ -1,3 +1,5 @@
+import { brRound, brNext } from '../systems/br';
+import { PVP } from '../world/stages';
 import { energyLeft, GATHER_FULL, GATHER_TAIL } from '../systems/economy';
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
@@ -28,7 +30,7 @@ import { bus, EV, S } from '../core/events';
 import { activeBuffs, clock } from '../systems/buffs';
 import { tr } from '../core/i18n';
 import { derive, expToNext, nextForm, activeTier, currentSkills } from '../systems/stats';
-import { SKILL_BY_ID } from '../data/skills';
+import { SKILL_BY_ID, skillInfo } from '../data/skills';
 import { tdQuest, rewardText } from '../systems/tdQuests';
 import { itemDef } from '../data/items';
 import { saveGame } from '../core/save';
@@ -120,8 +122,10 @@ export class TdUIScene extends Phaser.Scene {
       const cdText = this.kit.text(0, 0, '', 9, '#ffffff').setOrigin(0.5);
       const mp = this.kit.text(0, R - 2, String(sk.mp), 6.5, '#8fc8ff').setOrigin(0.5, 0);
       const z = this.add.zone(0, 0, R * 2 + 6, R * 2 + 6).setInteractive();
-      z.on('pointerdown', () => { c.setScale(0.92); this.td.castSkill(i); });
-      z.on('pointerup', () => c.setScale(1)); z.on('pointerout', () => c.setScale(1));
+      let holdT: Phaser.Time.TimerEvent | null = null;   // (📖 hold the button: what the skill does)
+      z.on('pointerdown', () => { c.setScale(0.92); this.td.castSkill(i); holdT = this.time.delayedCall(550, () => this.toast(`📖 ${tr(sk.name)}: ${tr(skillInfo(sk))} • MP ${sk.mp} • ${sk.cooldown / 1000}s`, '#ffe7a0')); });
+      const up = () => { c.setScale(1); holdT?.remove(); holdT = null; };
+      z.on('pointerup', up); z.on('pointerout', up);
       c.add([bg, icon, cd, cdText, mp, z]);
       this.root.add(c);
       this.skillBtns.push({ id, icon, cd, cdText, mp, c, x, y, r: R });
@@ -357,7 +361,7 @@ export class TdUIScene extends Phaser.Scene {
       for (const [x, y, dx, dy] of [[2, 2, 1, 1], [20, 2, -1, 1], [2, 20, 1, -1], [20, 20, -1, -1]]) g.lineBetween(x, y, x + 7 * dx, y).lineBetween(x, y, x, y + 7 * dy);
       g.generateTexture('ui_fs', 22, 22); g.destroy();
     }
-    const menu: [string, string, () => void][] = [['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_wheel', 'กงล้อ', () => this.panels.open(this.panels.lastWheel)], ['ui_slot_machine', 'ตู้สุ่ม', () => this.panels.open('wslot')], ['ui_shop', 'ร้านค้า', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    const menu: [string, string, () => void][] = [[this.textures.exists('icon_sword3') ? 'icon_sword3' : 'ui_fs', 'PvP', () => this.pvpTap()], ['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_wheel', 'กงล้อ', () => this.panels.open(this.panels.lastWheel)], ['ui_slot_machine', 'ตู้สุ่ม', () => this.panels.open('wslot')], ['ui_shop', 'ร้านค้า', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
       const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
       const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
@@ -368,6 +372,7 @@ export class TdUIScene extends Phaser.Scene {
       z.on('pointerout', () => im.setScale(20 / Math.max(im.width, im.height)));
       z.on('pointerup', () => { im.setScale(20 / Math.max(im.width, im.height)); cb(); });
       this.root.add([sl, im, t, z]);
+      if (label === 'PvP') { this.pvpTx = t; this.pvpIm = im; this.pvpCount(); this.time.addEvent({ delay: 1000, loop: true, callback: () => this.pvpCount() }); }
       if (ic === 'ui_mail') {   // letters waiting: a red count on the envelope
         this.mailDot = this.add.circle(x + 11, y - 10, 6, 0xd03020).setStrokeStyle(1, 0xffffff); this.mailTxt = k.text(x + 11, y - 15, '', 7, '#ffffff').setOrigin(0.5, 0);
         this.root.add([this.mailDot, this.mailTxt]);
@@ -565,6 +570,22 @@ export class TdUIScene extends Phaser.Scene {
     this.raidBarHide = () => { if (!t.active) return; const open = this.panels.isOpen || !!document.getElementById('mc-town'); bg.setVisible(!open); t.setVisible(!open); if (open && z.input) z.input.enabled = false; else if (z.input && t.text) z.input.enabled = true; };
   }
   raidBarHide?: () => void;
+  // ⚔ the team battlefield on the top bar (director 15 Nov): a clear countdown, tap to go in while a lobby is open
+  pvpTx?: Phaser.GameObjects.Text; pvpIm?: Phaser.GameObjects.Image;
+  pvpCount() {
+    const t = this.pvpTx; if (!t?.active) return;
+    const now = Date.now(), r = brRound(now), mm = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600); return h ? `${h}:${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    if (r?.phase === 'lobby') { t.setText(`${tr('🟢 เข้าได้')} ${mm(r.fightAt - now)}`).setColor(Math.floor(now / 500) % 2 ? '#ff6a5a' : '#ffe07a'); this.pvpIm?.setTint(Math.floor(now / 500) % 2 ? 0xffffff : 0xffb0a0); return; }
+    this.pvpIm?.clearTint();
+    if (r) { t.setText(`${tr('⚔ สู้อยู่')} ${mm(r.end - now)}`).setColor('#ffb08a'); return; }
+    t.setText(`PvP ${mm(brNext(now))}`).setColor('#ffe7a0');
+  }
+  pvpTap() {
+    const r = brRound(), td = this.td as unknown as { enterStage(n: number): void; stageN: number };
+    if (r?.phase === 'lobby') { if (td.stageN !== PVP) td.enterStage(PVP); return; }
+    sfx.error();
+    this.toast(r ? `⚔ ${tr('รอบนี้เริ่มสู้แล้ว — รอบหน้าเปิดรับในอีก')} ${Math.ceil(brNext() / 60000)} ${tr('นาที')}` : `⚔ ${tr('สมรภูมิทีมเปิด')} 13:00–14:00 ${tr('และ')} 20:00–22:00 (${tr('รอบละ 20 นาที เข้าได้ช่วง 3 นาทีแรก')}) • Lv40+`, '#ffb08a');
+  }
   /** ⚡ the daily gathering energy, as a bar in the Deepwild (player feedback 15 Nov: "it stopped by itself — tired?").
    *  Green = full yield left, orange = the tired part (a quarter of the yield); it comes back slowly by itself, faster
    *  in your own bed, or with a stamina tonic (systems/economy.ts). */
@@ -601,6 +622,7 @@ export class TdUIScene extends Phaser.Scene {
   update(time: number) {
     if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : n.item.startsWith('mount_') && n.item !== 'mount_dragon' ? `🐎 ${MOUNTS[n.item.slice(6) as keyof typeof MOUNTS]?.name ?? 'สัตว์ขี่'} จากตู้สุ่ม` : n.item.startsWith('wing_') ? `🪽 ${WING_BY_ID[n.item.slice(5)]?.name ?? 'ปีก'} จากตู้สุ่มปีก` : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
     this.minimap?.update(time); this.drawBuffs(time); this.raidBarHide?.();
+    { const open = this.panels.isOpen; for (const id of ['mc-brteams', 'mc-brclock']) { const el = document.getElementById(id); if (el) el.style.visibility = open ? 'hidden' : 'visible'; } }   // (⚔ the battlefield's boxes never cover a window)
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;
     this.root.setVisible(!sel).setAlpha(uiOpt(S()).alpha);

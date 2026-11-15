@@ -810,6 +810,7 @@ export class Room {
     b.alive = b.alive.filter(x => x !== id); if (by) b.kills[by.id] = (b.kills[by.id] ?? 0) + 1;
     const w = this.all().find(x => x.a.id === id); if (w) { w.a.dead = Date.now(); w.a.php = undefined; (w.w as WSX).serializeAttachment(w.a); }
     if (this.chest?.opener === id) this.chest.opener = undefined;
+    this.state.waitUntil?.(this.env.PLAYER.get(this.env.PLAYER.idFromName(id)).fetch(new Request('https://p/brout?id=' + id, { method: 'POST', body: JSON.stringify({ id: b.id }) })).catch(() => undefined));   // (out: no more farming here this round)
     this.send({ t: 'pkill', id, name: b.names[id] ?? '?', by: by?.id ?? '', kname: by?.name ?? '' });
     this.brSave(true);
   }
@@ -823,6 +824,7 @@ export class Room {
       if (!win && !mvp && !rolls) return;
       try { out[id] = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(id)).fetch(new Request('https://p/brreward?id=' + id, { method: 'POST', body: JSON.stringify({ win, mvp, rolls }) }))).json(); } catch { /* lost */ }
     }));
+    for (const id of b.roster ?? []) if (b.alive.includes(id)) this.state.waitUntil?.(this.env.PLAYER.get(this.env.PLAYER.idFromName(id)).fetch(new Request('https://p/brout?id=' + id, { method: 'POST', body: JSON.stringify({ id: b.id }) })).catch(() => undefined));
     this.send({ t: 'bend', win: res.win, winners: res.win ? (b.teams[res.win] ?? []).map(id => b.names[id] ?? '?') : [], mvp: res.mvp ? b.names[res.mvp] ?? '?' : '', mvpKills: res.mvp ? b.kills[res.mvp] ?? 0 : 0, rows: res.rows.map(r => ({ ...r, names: (b.teams[r.tid] ?? []).map(id => b.names[id] ?? '?') })) });
   }
   private async pvpMsg(ws: WebSocket, me: Who, m: Record<string, unknown>, now: number) {
@@ -1299,6 +1301,11 @@ export class Player {
       if (st.brPaid !== j.id) return new Response('{}');
       st.gold += PVP_FEE; st.brPaid = -j.id; this.dirty = true; await this.persist();
       this.send({ t: 'note', own: this.diff(b), text: `⚔ รอบนี้ทีมไม่ครบ ${BR_MIN_TEAMS} ทีม — ยกเลิก คืนค่าเข้า 💰${PVP_FEE.toLocaleString()}` });
+      return new Response('{}');
+    }
+    if (u.pathname === '/brout' && this.st) {   // ⚔ out of the round: the battlefield's monsters stop paying this hero
+      const j = JSON.parse(await req.text()) as { id: number }, st = this.st as unknown as GameState & { brPaid?: number };
+      if (st.brPaid === j.id) { st.brPaid = -j.id; this.dirty = true; await this.persist(); }
       return new Response('{}');
     }
     if (u.pathname === '/brreward' && this.st) {   // ⚔ the round's pay: winners / MVP gold + EXP, the team's chest rolls

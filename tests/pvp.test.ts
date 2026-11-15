@@ -17,6 +17,15 @@ describe('⚔ PvP battlefield (director 15 Nov)', () => {
     expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: lobby }))).toBeNull(); expect(s.gold).toBe(20000 - PVP_FEE);
     handlers.enterMap(s, { n: 0 }, { ...ctx, now: lobby + 1000 }); handlers.enterMap(s, { n: PVP }, { ...ctx, now: lobby + 2000 }); expect(s.gold).toBe(20000 - PVP_FEE);   // (back in the same lobby: no second fee)
   });
+  it('out of a round (fell / called off): no way back in that round; the next round is fine', () => {
+    const lobby = Date.UTC(2026, 10, 15, 13, 21);
+    useMem(newMem()); const s = startNewGame(); s.level = 45; s.gold = 20000;
+    expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: lobby }))).toBeNull();
+    const id = (s as { brPaid?: number }).brPaid!; (s as { brPaid?: number }).brPaid = -id;
+    handlers.enterMap(s, { n: 0 }, { ...ctx, now: lobby + 1000 });
+    expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: lobby + 2000 }))).toBe('out');
+    expect(refused(handlers.enterMap(s, { n: PVP }, { ...ctx, now: lobby + 20 * 60000 }))).toBeNull();
+  });
   it('long fights: equal power ≈ 12 hits (10-15), better gear fewer, never under 6 or one-shot', () => {
     const t = { pw: 3000, hp: 6000, cls: 'archer' }, hits = (pw: number, cls = 'sword', crit = false) => Math.ceil(t.hp / pvpDamage({ pw, cls }, t, { skill: false, dist: 30, crit }));
     expect(hits(3000)).toBeGreaterThanOrEqual(10); expect(hits(3000)).toBeLessThanOrEqual(15);

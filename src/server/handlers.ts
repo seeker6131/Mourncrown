@@ -108,8 +108,9 @@ export const handlers = {
     if (isPvp(a.n)) {   // ⚔ the battlefield: Lv40+, open hours, not right after a fall, an entry fee
       if (s.level < PVP_REQ) return no('level');
       // (⚔ team rounds — systems/br.ts: only in a round's lobby; the fee once per round, paid back if the round is called off)
-      const r = brRound(c.now); if ((!r || r.phase !== 'lobby') && !c.admin) return no('closed');
-      const sv = s as GameState & { brPaid?: number }, rid = r?.id ?? 0;
+      const r = brRound(c.now); if (!r || r.phase !== 'lobby') return no('closed');   // (the admin too — director: the rules for everyone)
+      const sv = s as GameState & { brPaid?: number }, rid = r.id;
+      if (sv.brPaid === -rid) return no('out');   // (fell / called off in this round: not again)
       if (sv.brPaid !== rid) { if (s.gold < PVP_FEE) return no('gold'); s.gold -= PVP_FEE; sv.brPaid = rid; }
       if (mem.map !== PVP) clearWarBag(s);
       mem.map = PVP; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; return { ok: true };
@@ -200,7 +201,12 @@ export const handlers = {
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); mem.dungeon?.sids?.add(a.sid); }   // (the wave counts even when this kill's pay is refused below: area skills drop a whole wave at once)
     else if (isRaid(n)) { if (base.animal || !RAID_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
-    else if (isPvp(n)) { if (base.animal || !PVP_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind'); }
+    else if (isPvp(n)) {
+      if (base.animal || !PVP_LAND.mobs.some(m => m.kind === a.kind && m.key === a.key) || a.boss) return no('kind');
+      // (⚔ team round: monsters pay only during the fight, and only to a hero still in it — not in the lobby, not after a
+      //  fall / a called-off round / the end: director 15 Nov, people left and came back to farm)
+      const r = brRound(c.now); if (!r || r.phase !== 'fight' || (s as GameState & { brPaid?: number }).brPaid !== r.id) return no('round');
+    }
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1) * (isPvp(n) ? PVP_MON_HP : 1) * (isDungeon(n) && !a.boss ? dungeonHpK(st.level) : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;

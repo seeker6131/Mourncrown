@@ -23,8 +23,20 @@ export class BrView {
   /** is this hero on my team? (no hitting teammates) */
   mate(id: string) { const t = this.myTeam(); return !!t && !!this.teams.find(q => q.tid === t)?.m.some(m => m.id === id); }
   setTeams(teams: BrTeam[], started?: boolean) { this.teams = teams; if (started) this.started = true; this.drawBox(); }
-  /** every frame: the zone ring, the lobby box */
+  clock?: HTMLDivElement; clockTx = '';
+  /** a big clock on top (director 15 Nov: the countdown must be clear) */
+  drawClock(now: number) {
+    const R = this.R, lobby = now < R.fightAt, sec = Math.max(0, Math.ceil(((lobby ? R.fightAt : R.fightEnd) - now) / 1000));
+    const txt = this.done ? '' : `${lobby ? tr('⚔ เริ่มสู้ใน') : '⏱'} ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    if (txt === this.clockTx) return; this.clockTx = txt;
+    if (!this.clock) { this.clock = document.createElement('div'); this.clock.id = 'mc-brclock'; document.body.append(this.clock); this.sc.events.once('shutdown', () => this.clock?.remove()); }
+    const hot = lobby ? sec <= 10 : sec <= 60;
+    this.clock.style.cssText = `position:fixed;left:50%;top:${lobby ? 64 : 58}px;transform:translateX(-50%);z-index:39;pointer-events:none;padding:${lobby ? '6px 16px' : '3px 12px'};font:800 ${lobby ? 26 : 18}px system-ui,sans-serif;color:${hot ? '#ff6a5a' : '#ffe07a'};background:rgba(26,8,6,.78);border:2px solid ${hot ? '#ff6a5a' : '#ffb04a'};border-radius:10px;text-shadow:0 2px 0 #000;display:${txt ? 'block' : 'none'}`;
+    this.clock.textContent = txt;
+  }
+  /** every frame: the zone ring, the lobby box, the clock */
   update(now: number) {
+    this.drawClock(now);
     this.zone.clear();
     if (this.started && !this.done && now >= this.R.fightAt) {
       const z = brZone(now - this.R.fightAt, this.W, this.H, this.id);

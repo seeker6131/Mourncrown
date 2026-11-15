@@ -34,7 +34,7 @@ import { SHOP_SHARD_DAILY, itemDef, RARITY_COLORS, RARITY_NAMES, SHOP_STOCK, upg
 import { clampVitals, isEquipped, sellPrice, countItem } from '../systems/inventory';
 import { QUESTS, QUEST_BY_ID } from '../data/quests';
 import { activeQuest, nextAvailable, refreshCollect } from '../systems/quests';
-import { SKILL_BY_ID } from '../data/skills';
+import { SKILL_BY_ID, skillInfo } from '../data/skills';
 import { CLASSES, FORM_LEVEL, formName, formCode, classSkills, ALL_FORMS, type ClassId } from '../data/classes';
 import { saveGame, loadGame, deleteSave } from '../core/save';
 import { MOUNTS, MOUNT_ORDER, type MountId } from '../data/mounts';
@@ -521,8 +521,10 @@ export class Panels implements GuildHost {
       const slv = s.skillLv[sk.id] ?? 1, max = slv >= SKILL_MAX, can = !max && s.skillPts >= 1;
       const pct = (lv: number) => Math.round(sk.power * (1 + 0.15 * (lv - 1)) * 100), st = sk.stat === 'matk' ? 'MATK' : 'ATK';
       c.add(k.text(rx + 38, sy, `${sk.name}  Lv ${slv}${max ? ' (MAX)' : `/${SKILL_MAX}`}`, 9, '#9ad8ff'));
-      c.add(k.text(rx + 38, sy + 13, `ตอนนี้: ${pct(slv)}% ${st}  •  MP ${sk.mp}  •  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7.5, '#d8ccb0', { wordWrap: { width: rw - 90 } }));
-      c.add(k.text(rx + 38, sy + 26, max ? '✔ อัปเต็มแล้ว' : `อัป Lv ${slv + 1}: ${pct(slv)}% → ${pct(slv + 1)}% ${st} (แรงขึ้น +${pct(slv + 1) - pct(slv)}%)`, 7.5, max ? '#ffd84a' : can ? '#9fffb0' : '#8a7a60', { wordWrap: { width: rw - 90 } }));
+      const info = k.text(rx + 38, sy + 11, skillInfo(sk), 7, '#ffe7a0', { wordWrap: { width: rw - 90 } }); c.add(info);   // (📖 what the skill does — director 15 Nov)
+      const ny = Math.max(sy + 22, info.y + info.height + 1);
+      c.add(k.text(rx + 38, ny, `ตอนนี้: ${sk.power ? pct(slv) + '% ' + st + '  •  ' : ''}MP ${sk.mp}  •  คูลดาวน์ ${sk.cooldown / 1000} วิ`, 7, '#d8ccb0', { wordWrap: { width: rw - 90 } }));
+      c.add(k.text(rx + 38, ny + 10, max ? '✔ อัปเต็มแล้ว' : `อัป Lv ${slv + 1}: ${pct(slv)}% → ${pct(slv + 1)}% ${st} (แรงขึ้น +${pct(slv + 1) - pct(slv)}%)`, 7.5, max ? '#ffd84a' : can ? '#9fffb0' : '#8a7a60', { wordWrap: { width: rw - 90 } }));
       c.add(k.button(x + W - 54, sy + 4, 34, 24, max ? 'MAX' : '+', () => {
         if (!can) { sfx.error(); bus.emit(EV.TOAST, max ? 'สกิลนี้อัปเต็มแล้ว' : 'แต้มสกิลไม่พอ — เลเวลอัปเพื่อรับแต้มเพิ่ม', '#ffb080'); return; }
         const before = s.skillPts;
