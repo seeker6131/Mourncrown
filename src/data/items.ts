@@ -24,6 +24,7 @@ export interface ItemDef {
   /** equipment base tier 1..5 (drop level band) */
   tier?: number;
   heal?: number; // consumable HP
+  /** ⚡ gives daily gathering / hunting energy back (systems/economy.ts) */ stamina?: boolean;
   /** + this % of max HP / MP on top (director 15 Nov: potions must matter at every level) */ healPct?: number; manaPct?: number;
   mana?: number; // consumable MP
   /** visual tier for hero sprite (weapon/armor look) */
@@ -114,6 +115,7 @@ export const ITEMS: Record<string, ItemDef> = {
   ration: { id: 'ration', name: 'ถุงเสบียง', type: 'consumable', icon: 'ration', desc: 'เติมอาหารเข้าคลังหมู่บ้าน +20 (แพงกว่าล่าเอง)', price: 90, rarity: 0, food: 20, stack: true },
   tonic_atk: { id: 'tonic_atk', name: 'ยาเพิ่มพลัง', type: 'consumable', icon: 'tonic_atk', desc: 'ATK +10% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'atk', pct: 10, mins: 30 }, stack: true },
   tonic_def: { id: 'tonic_def', name: 'ยาเกราะเหล็ก', type: 'consumable', icon: 'tonic_def', desc: 'DEF +15% นาน 30 นาที', price: 150, rarity: 1, buff: { stat: 'def', pct: 15, mins: 30 }, stack: true },
+  tonic_stamina: { id: 'tonic_stamina', name: 'ยาฟื้นแรง', type: 'consumable', icon: 'tonic_def', desc: 'ฟื้นแรงเก็บของ 300 ครั้ง + แรงล่าสัตว์ 100 ตัว • ใช้ได้วันละ 3 ขวด', price: 3000, rarity: 2, stamina: true, stack: true },
   tonic_exp: { id: 'tonic_exp', name: 'ยาปัญญา', type: 'consumable', icon: 'tonic_exp', desc: 'EXP +10% นาน 30 นาที', price: 250, rarity: 1, buff: { stat: 'exp', pct: 10, mins: 30 }, stack: true },
   // ---- ores (mining) — common ore per land + a rare gem; used by alchemy ----
   ore_iron: { id: 'ore_iron', name: 'แร่เหล็ก', type: 'material', icon: 'ore_iron', desc: 'แร่จากเหมืองเหล็กในป่าดงดิบ ใช้ปรุงยาเหล็กกล้า', price: 8, rarity: 0, stack: true },
@@ -166,7 +168,7 @@ export function itemDef(id: string): ItemDef {
 }
 
 /** the NPC shop sells supplies, not gear (gear comes from drops, the forge and the player market) */
-export const SHOP_STOCK = ['hp_potion', 'hp_potion_l', 'mp_potion', 'scroll_return', 'ration', 'tonic_atk', 'tonic_def', 'tonic_exp', 'mana_shard'];
+export const SHOP_STOCK = ['hp_potion', 'hp_potion_l', 'mp_potion', 'scroll_return', 'ration', 'tonic_atk', 'tonic_def', 'tonic_exp', 'tonic_stamina', 'mana_shard'];
 /** mana crystals the shop sells per day */
 export const SHOP_SHARD_DAILY = 5;
 

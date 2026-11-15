@@ -16,7 +16,7 @@ describe('no inflation', () => {
     for (let i = 0; i < 90000; i++) handlers.gather(s, { node: i % 400, kind: i % 2 ? 'wood' : 'stone', pit: -1 }, c());   // ~22 h of hits
     const got = s.res.wood + s.res.stone;
     console.log('gathered in a day (Lv30):', got);
-    expect(got).toBeLessThan(3000);
+    expect(got).toBeLessThan(3600);   // (15 Nov: energy comes back +60 an hour — while tired that is a quarter yield, so only ~+25% a day)
   });
   it('maxing every building takes weeks, not hours', () => {
     let wood = 0, stone = 0, gold = 0;
@@ -42,5 +42,21 @@ describe('no inflation', () => {
   it('resources stop at the warehouse cap', () => {
     const s = startNewGame(); s.res.wood = 999999; handlers.enterMap(s, { n: 0 }, { now: day0, rnd: Math.random });
     expect(s.res.wood).toBe(resCap(s));
+  });
+});
+
+import { energy, energyLeft, restoreEnergy, BED_REGEN } from '../src/systems/economy';
+import { useItem, addItem } from '../src/systems/inventory';
+import { describe as d2, it as it2, expect as ex2 } from 'vitest';
+d2('⚡ energy comes back (player feedback 15 Nov)', () => {
+  it2('by itself every hour, a stamina tonic 3 a day, the bed faster', () => {
+    const s = startNewGame(), t0 = Date.UTC(2026, 10, 16, 3);
+    energy(s, t0).gather = 1200; ex2(energyLeft(s, t0)).toBe(0);
+    ex2(energyLeft(s, t0 + 3600000)).toBe(60);
+    addItem(s, 'tonic_stamina', 5);
+    for (let i = 0; i < 3; i++) { const it = s.inventory.find(q => q.id === 'tonic_stamina')!; ex2((useItem(s, it.uid, t0 + 3600000) as { stamina?: number }).stamina).toBeGreaterThan(0); }
+    const it = s.inventory.find(q => q.id === 'tonic_stamina')!; ex2((useItem(s, it.uid, t0 + 3600000) as { tired?: string }).tired).toBe('day');
+    ex2(s.inventory.find(q => q.id === 'tonic_stamina')!.qty).toBe(2);
+    energy(s, t0 + 3600000).gather = 1200; restoreEnergy(s, 8 * BED_REGEN, 0, t0 + 3600000); ex2(energyLeft(s, t0 + 3600000)).toBe(960);
   });
 });

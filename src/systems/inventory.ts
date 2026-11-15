@@ -1,3 +1,4 @@
+import { energy, restoreEnergy, TONIC_DAY, TONIC_GATHER, TONIC_HUNT, GATHER_FULL, GATHER_TAIL } from './economy';
 // Inventory / Equipment / Upgrade — pure functions over GameState.
 import type { GameState, InvItem } from '../core/state';
 import { dismantleYield } from './lootOpt';
@@ -72,12 +73,19 @@ export function clampVitals(s: GameState) {
   s.mp = Math.min(s.mp, d.maxMp);
 }
 
-export function useItem(s: GameState, uid: number, now = Date.now()): { heal: number; mana: number; food?: number; buff?: string; recall?: boolean; left?: number; stacked?: boolean; full?: boolean } | null {
+export function useItem(s: GameState, uid: number, now = Date.now()): { heal: number; mana: number; food?: number; buff?: string; recall?: boolean; left?: number; stacked?: boolean; full?: boolean; tired?: 'day' | 'full'; stamina?: number } | null {
   const it = s.inventory.find(i => i.uid === uid);
   if (!it) return null;
   const d = itemDef(it.id);
   if (d.type !== 'consumable' || d.pick !== undefined) return null;   // (a selector chest opens with openPick)
   // ⏳ a buff: the same one adds its time (up to 1 h, VIP 3 h); already full → nothing is used up
+  if (d.stamina) {   // ⚡ the stamina tonic: a few a day, and only when tired
+    const en = energy(s, now);
+    if ((en.tonic ?? 0) >= TONIC_DAY) return { heal: 0, mana: 0, tired: 'day' };
+    if (en.gather < 1 && en.hunt < 1) return { heal: 0, mana: 0, tired: 'full' };
+    en.tonic = (en.tonic ?? 0) + 1; restoreEnergy(s, TONIC_GATHER, TONIC_HUNT, now); removeUid(s, uid, 1);
+    return { heal: 0, mana: 0, buff: d.name, stamina: Math.floor(GATHER_FULL + GATHER_TAIL - en.gather) };
+  }
   const inc: Incoming | null = d.buff ? { slot: 'buff', stat: d.buff.stat, pct: d.buff.pct } : d.elixir ? { slot: 'elixir', name: d.name } : null;
   if (inc && !d.heal && !d.mana && buffFull(s, inc, now)) return { heal: 0, mana: 0, buff: d.name, full: true };
   const same = !!inc && sameBuff(s, inc, now), cap = buffCap(s, now);

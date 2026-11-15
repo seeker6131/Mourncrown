@@ -2260,8 +2260,8 @@ export class TopDownScene extends Phaser.Scene {
     const gathered = (r: ReturnType<typeof act<'gather'>>) => {
       const s = S(), h = this.hero;
       if (!refused(r)) this.tutGathered = true;
-      if (refused(r) && r.refused === 'tired' && this.farm) this.stopFarm('⚡ วันนี้เหนื่อยแล้ว — หยุดฟาร์มออโต้');
-      if (refused(r) && r.refused === 'tired') { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 6000; bus.emit(EV.TOAST, '⚡ วันนี้เหนื่อยแล้ว เก็บของต่อไม่ไหว พรุ่งนี้มาใหม่ (ยังล่ามอน/ทำอย่างอื่นได้)', '#ffb080'); } return; }
+      if (refused(r) && r.refused === 'tired' && this.farm) this.stopFarm('⚡ หมดแรง — หยุดฟาร์มออโต้ (ฟื้นแรง: นอนเตียงบ้าน / ยาฟื้นแรงที่ร้านค้า / รอฟื้นเองชั่วโมงละ 60)');
+      if (refused(r) && r.refused === 'tired') { if (this.time.now > this.gatherTipT) { this.gatherTipT = this.time.now + 6000; bus.emit(EV.TOAST, '⚡ หมดแรงเก็บของ — ฟื้นแรงได้: นอนเตียงในบ้าน • ยาฟื้นแรง (ร้านค้า) • รอฟื้นเองชั่วโมงละ 60 • รีเซ็ตเที่ยงคืน', '#ffb080'); } return; }
       if (refused(r)) { if (r.refused === 'level') bus.emit(EV.TOAST, `ต้องเลเวล ${n.vein?.req} ถึงจะขุดแร่ที่นี่ได้`, '#ff8a6a'); return; }
       fx2(this, n.kind === 'wood' ? 'fx_chop' : 'fx_mine', n.x + (h.x < n.x ? -8 : 8), n.y - 14, 99952, 0.9);
       if (r.amt) this.combat.float(n.x, n.y - 30, `${n.kind === 'wood' ? '🪵' : '🪨'}+${r.amt}`, '#ffd8a0', 10);

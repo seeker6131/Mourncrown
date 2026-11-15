@@ -1,3 +1,4 @@
+import { energyLeft, GATHER_FULL, GATHER_TAIL } from '../systems/economy';
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
 import { REF_KEY, REF_NEW_DIA } from '../systems/refer';
@@ -237,7 +238,7 @@ export class TdUIScene extends Phaser.Scene {
       const onAnn = (m: { id: number; text: string; until: number }) => { let seen = 0; try { seen = Number(localStorage.getItem('mcAnn')) || 0; } catch { /* storage blocked */ }
         if (m.id <= seen || m.until < Date.now()) return; try { localStorage.setItem('mcAnn', String(m.id)); } catch { /* storage blocked */ } this.megaphone(m.text); };
       bus.on('net:ann', onAnn); this.events.once('shutdown', () => bus.off('net:ann', onAnn));
-      this.raidBar(); this.guestWarn();
+      this.raidBar(); this.guestWarn(); this.energyBar();
       show(); if (Date.now() - onlineNow.at > 180000) ask();
       this.time.addEvent({ delay: 60000, loop: true, callback: () => { if (Date.now() - onlineNow.at > 180000) ask(); } }); }
     // 🧪 active buffs under the minimap (players: which buff is on and how long is left) — systems/buffs.ts
@@ -564,6 +565,25 @@ export class TdUIScene extends Phaser.Scene {
     this.raidBarHide = () => { if (!t.active) return; const open = this.panels.isOpen || !!document.getElementById('mc-town'); bg.setVisible(!open); t.setVisible(!open); if (open && z.input) z.input.enabled = false; else if (z.input && t.text) z.input.enabled = true; };
   }
   raidBarHide?: () => void;
+  /** ⚡ the daily gathering energy, as a bar in the Deepwild (player feedback 15 Nov: "it stopped by itself — tired?").
+   *  Green = full yield left, orange = the tired part (a quarter of the yield); it comes back slowly by itself, faster
+   *  in your own bed, or with a stamina tonic (systems/economy.ts). */
+  energyBar() {
+    const k = this.kit, w = 150, h = 8, x = this.VW / 2 - w / 2 - 60, y = 34;   // (left of the top-bar buttons)
+    const g = this.add.graphics().setDepth(9090), t = k.text(this.VW / 2 - 60, y + h + 1, '', 7, '#fff3d0', { stroke: '#1a0806', strokeThickness: 2 }).setOrigin(0.5, 0).setDepth(9091);
+    const tick = () => {
+      if (!t.active) return;
+      const td = this.td as unknown as { wild: boolean }, on = !!td.wild && !this.panels.isOpen;
+      g.clear(); t.setVisible(on); if (!on) return;
+      const left = energyLeft(S()), full = Math.max(0, left - GATHER_TAIL), tail = Math.min(left, GATHER_TAIL), W0 = w * GATHER_TAIL / (GATHER_FULL + GATHER_TAIL);
+      g.fillStyle(0x1a0806, 0.85).fillRoundedRect(x - 2, y - 2, w + 4, h + 4, 4);
+      g.fillStyle(0xff9a3a, 1).fillRect(x, y, W0 * tail / GATHER_TAIL, h);
+      g.fillStyle(0x6ad86a, 1).fillRect(x + W0, y, (w - W0) * full / GATHER_FULL, h);
+      g.lineStyle(1, 0xffe7a0, 0.6).strokeRect(x + W0, y, 0.5, h);
+      t.setText(left <= 0 ? `⚡ ${tr('หมดแรง — พักที่เตียงบ้าน / ยาฟื้นแรง / รอฟื้นเอง')}` : `⚡ ${tr('แรงเก็บของ')} ${left}/${GATHER_FULL + GATHER_TAIL}${full <= 0 ? ' • ' + tr('เหนื่อย: ได้ของ 25%') : ''}`).setColor(left <= 0 ? '#ff8a6a' : full <= 0 ? '#ffc07a' : '#fff3d0');
+    };
+    this.time.addEvent({ delay: 500, loop: true, callback: tick }); tick();
+  }
   /** 📢 show the admin's announcement: under the map title, gold on dark, a soft pulse; 30 s, or tap it away */
   megaphone(text: string) {
     const k = this.kit, w = Math.min(this.VW * 0.56, 420), x = this.VW / 2, y = 62;   // (below the top-bar buttons)

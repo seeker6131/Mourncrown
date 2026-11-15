@@ -397,6 +397,8 @@ export class Panels implements GuildHost {
         this.buffAsk = '';
         if (it.id === 'scroll_return' && isPvp(((this.ui as unknown as { td?: { stageN?: number } }).td?.stageN) ?? 0)) { sfx.error(); bus.emit(EV.TOAST, '⚔ ในสมรภูมิใช้ม้วนกลับบ้านไม่ได้ — เดินไปที่ประตูทางออก', '#ff8a6a'); return; }   // (the war bag must be walked out)
         const r = act('useItem', { uid: it.uid }); if (!r) return;
+        if (r.tired) { sfx.error(); bus.emit(EV.TOAST, r.tired === 'day' ? '🧪 ยาฟื้นแรงใช้ได้วันละ 3 ขวด — พรุ่งนี้ใช้ใหม่ได้' : '⚡ แรงยังเต็มอยู่ — เก็บไว้ใช้ตอนเหนื่อย', '#ffd84a'); return; }
+        if (r.stamina !== undefined) { sfx.potion(); bus.emit(EV.TOAST, `⚡ ฟื้นแรงแล้ว! แรงเก็บของ ${r.stamina}/1200`, '#9fffb0'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); return; }
         if (r.full) { sfx.error(); bus.emit(EV.TOAST, `⏳ ${r.buff} สะสมเวลาเต็มแล้ว (สูงสุด ${vipActive(s) ? '3 ชม. • VIP' : '1 ชม. • VIP ได้ 3 ชม.'})`, '#ffd84a'); return; }
         sfx.potion();
         bus.emit(EV.TOAST, r.recall ? 'วาร์ปกลับหมู่บ้าน...' : r.buff && r.stacked && r.left ? `⏳ ${r.buff} ต่อเวลา → เหลือ ${clock(r.left)}` : r.buff ? `${r.buff} ทำงานแล้ว` : r.food ? `อาหารในคลัง +${r.food}` : `ฟื้นฟู ${r.heal ? 'HP +' + r.heal : 'MP +' + r.mana}`, '#9fffb0');

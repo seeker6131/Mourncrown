@@ -1,3 +1,4 @@
+import { restoreEnergy, BED_REGEN } from './economy';
 // Guild village & guild war — pure rules (server side; see docs/GUILD_WAR.md).
 // Every player starts in the starter (NPC) village. At GUILD_UNLOCK_LV they found a guild or join one and move to the
 // guild village: no NPC villagers, only the essential buildings (owned by the guild, starting at Lv1), a house plot for
@@ -391,7 +392,9 @@ export function sleep(s: GameState, now = Date.now()): R | { ok: true } {
 export function wake(s: GameState, now = Date.now()): { rest: number; gained: number } {
   const h = homeOf(s); if (!h.sleptAt) return { rest: h.rest, gained: 0 };
   const gained = Math.floor((now - h.sleptAt) / 3600000 * REST_PER_HOUR);
+  const hours = (now - h.sleptAt) / 3600000;
   h.rest = Math.min(restCap(houseLv(s, now)), h.rest + gained); h.sleptAt = 0;
+  restoreEnergy(s, Math.floor(hours * BED_REGEN), Math.floor(hours * BED_REGEN / 3), now);   // (⚡ a night in your own bed: energy back faster)
   return { rest: h.rest, gained };
 }
 export function trophyPut(s: GameState, uid: number): R | { ok: true } {
