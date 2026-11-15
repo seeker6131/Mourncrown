@@ -469,7 +469,7 @@ export class TopDownScene extends Phaser.Scene {
         if (e.t === 'rs') { this.rv?.onState(e); return; }
         if (e.t === 'rend') { this.rv?.onEnd(e, link.me, () => this.raidBack()); return; }
         if (e.t === 'php' || e.t === 'pkill' || e.t === 'pdrop' || e.t === 'pgone') { this.pvpEvent(e, link.me); return; }
-        if (e.t === 'pchest' || e.t === 'pcopen' || e.t === 'pcstop' || e.t === 'pcgone') { this.chestEvent(e, link.me); return; }
+        if (e.t === 'pchint' || e.t === 'pchest' || e.t === 'pcopen' || e.t === 'pcstop' || e.t === 'pcgone') { this.chestEvent(e, link.me); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
       });
       this.link = link; this.peers = new OtherPlayers(this, link);
@@ -2107,8 +2107,9 @@ export class TopDownScene extends Phaser.Scene {
   }
   // ---------------------------------------------------------------- 📦 battlefield treasure chest (systems/pvpChest.ts; the room rolls)
   pChest: { id: number; x: number; y: number; im: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; tx: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Graphics; start: number; sent: boolean } | null = null;
-  chestEvent(e: Extract<RoomEvent, { t: 'pchest' | 'pcopen' | 'pcstop' | 'pcgone' }>, me: string) {
+  chestEvent(e: Extract<RoomEvent, { t: 'pchint' | 'pchest' | 'pcopen' | 'pcstop' | 'pcgone' }>, me: string) {
     const c = this.pChest;
+    if (e.t === 'pchint') { bus.emit(EV.TOAST, '📦 สมรภูมินี้มีกล่องสมบัติซ่อนอยู่! ออกตามหา — ระวังโดนแย่งไป', '#ffd84a'); return; }
     if (e.t === 'pchest') {
       if (c?.id === e.id) return; this.chestGone();
       const key = this.textures.exists('o_fu_chest') ? 'o_fu_chest' : 'icon_gold';
@@ -2117,7 +2118,7 @@ export class TopDownScene extends Phaser.Scene {
       const im = this.add.image(e.x, e.y, key).setOrigin(0.5, 0.8).setDepth(e.y).setScale(key === 'icon_gold' ? 0.6 : 0.75);
       const tx = this.add.text(e.x, e.y - 46, tr('📦 กล่องสมบัติ'), { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 2, resolution: 6 }).setOrigin(0.5).setDepth(99990);
       this.pChest = { id: e.id, x: e.x, y: e.y, im, glow, tx, bar: this.add.graphics().setDepth(99991), start: 0, sent: false };
-      bus.emit(EV.TOAST, '📦 กล่องสมบัติปรากฏในสมรภูมิ! ยืนเปิด 5 วินาที — โดนตีจะหยุด', '#ffd84a'); sfx.chest?.();
+      bus.emit(EV.TOAST, '📦 เจอกล่องสมบัติ! ยืนเปิด 5 วินาที — โดนตีจะหยุด', '#ffd84a'); sfx.chest?.();
       return;
     }
     if (!c || c.id !== e.id) return;

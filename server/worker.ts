@@ -1,7 +1,7 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
 import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, REF_WING, REF_MAX, REF_DAYS, refCode } from '../src/systems/refer';
 import { loseWarBag, warBag, PVP_SHIELD_MS, pvpDamage } from '../src/systems/pvp';
-import { openChest, CHEST_GAP, CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH } from '../src/systems/pvpChest';
+import { openChest, CHEST_GAP, CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH, CHEST_SIGHT, CHEST_MIN_PLAYERS } from '../src/systems/pvpChest';
 import { isPvp } from '../src/world/stages';
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
@@ -498,7 +498,7 @@ const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
-  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number; /** 📦 the chest this game was told about */ pcs?: number }
+  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number; /** 📦 the chest this game was shown / hinted about */ pcs?: number; pch?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
@@ -728,12 +728,15 @@ export class Room {
     if (!this.chestAt) this.chestAt = now + 60000 + Math.random() * 60000;   // (the first one a minute or two after the room wakes)
     const c = this.chest;
     if (c && now > c.until && !c.opener) { this.send({ t: 'pcgone', id: c.id }); this.chest = null; this.chestAt = gap(); }
-    if (!this.chest && now > this.chestAt) {
+    if (!this.chest && now > this.chestAt && this.players().length >= CHEST_MIN_PLAYERS) {   // (a near-empty battlefield gets none: no free farming)
       const ps = this.players(); let at: { x: number; y: number } | null = this.sim ? this.sim.spot(ps) : null;
       if (!at && ps.length) { const q = ps[Math.floor(Math.random() * ps.length)], a = Math.random() * Math.PI * 2; at = { x: Math.max(60, q.x + Math.cos(a) * 400), y: Math.max(60, q.y + Math.sin(a) * 300) }; }
-      if (at) { this.chest = { id: this.chestN++, x: Math.round(at.x), y: Math.round(at.y), until: now + CHEST_LIFE }; this.send({ t: 'pchest', ...this.chest }); me.pcs = this.chest.id; (ws as WSX).serializeAttachment(me); }
+      if (at) this.chest = { id: this.chestN++, x: Math.round(at.x), y: Math.round(at.y), until: now + CHEST_LIFE };
     }
-    if (this.chest && me.pcs !== this.chest.id) { me.pcs = this.chest.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'pchest', id: this.chest.id, x: this.chest.x, y: this.chest.y, until: this.chest.until })); } catch { /* closing */ } }
+    // director: the chest is hidden somewhere — everyone is only told it exists; a hero sees it when close by
+    const c2 = this.chest, mp = me.p as { x: number; y: number } | undefined; if (!c2 || !mp) return;
+    if (me.pch !== c2.id) { me.pch = c2.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'pchint', id: c2.id })); } catch { /* closing */ } }
+    if (me.pcs !== c2.id && Math.hypot(c2.x - mp.x, c2.y - mp.y) < CHEST_SIGHT) { me.pcs = c2.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'pchest', id: c2.id, x: c2.x, y: c2.y, until: c2.until })); } catch { /* closing */ } }
   }
   private async pvpMsg(ws: WebSocket, me: Who, m: Record<string, unknown>, now: number) {
     const all = this.all(), meP = me.p as { x: number; y: number; hp: number } | undefined; if (!meP || (me.dead && now - me.dead < 4000)) return;

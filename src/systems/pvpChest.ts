@@ -1,4 +1,5 @@
-// 📦 Battlefield treasure chests (director 15 Nov): now and then a chest appears somewhere on the PvP map. Stand by it
+// 📦 Battlefield treasure chests (director 15 Nov): now and then a chest is hidden somewhere on the PvP map (everyone
+// there is told one exists; you see it only when close — go and find it). Stand by it
 // for a few seconds without being hit to open it — any hero who strikes you stops it. Inside: mostly gold or a Super Rare
 // piece, sometimes Legend, rarely SL, very rarely a Limited wing or the golden dragon. The rates are never shown.
 // Gold and gear go into the war bag (lost if you fall before you leave); a Limited wing / mount is yours at once.
@@ -16,6 +17,10 @@ export const CHEST_GAP: [number, number] = [4 * 60000, 7 * 60000];
 export const CHEST_LIFE = 3 * 60000;
 /** standing still by it this long opens it (a hit from a hero stops it) */
 export const CHEST_OPEN_MS = 5000;
+/** hidden: a hero sees the chest only this close (px) — everyone in the map is told one is somewhere (director) */
+export const CHEST_SIGHT = 300;
+/** no chest while fewer heroes than this are on the battlefield (a near-empty map is no free treasure hunt) */
+export const CHEST_MIN_PLAYERS = 2;
 /** how close (px) you must stand */
 export const CHEST_REACH = 44;
 
