@@ -13,8 +13,8 @@ import { DEFENSES, defStat, GUILD_BLD, type DefenseId, type GuildBld } from '../
 export const WAR_SECS = 240;
 /** share of a village an even, untouched squad wrecks over the whole war (with losses on the way it ends near half) */
 const PUSH = 0.6;
-export interface WarBld { id: string; kind: 'hall' | 'building' | 'defense'; name: string; hp: number; max: number }
-export interface WarSide { blds: WarBld[]; troops: number; troops0: number; atk: number; def: number }
+export interface WarBld { id: string; kind: 'hall' | 'building' | 'defense' | 'house'; name: string; hp: number; max: number }
+export interface WarSide { blds: WarBld[]; troops: number; troops0: number; atk: number; def: number; /** the defence at the start (the attackers' guard pressure wears it down to half) */ def0?: number }
 export interface War {
   rival: Rival; start: number; end: number; last: number; ours: WarSide; theirs: WarSide;
   hero: { dmg: number; kills: number }; feed: { t: number; text: string; us: boolean }[];
@@ -26,7 +26,19 @@ const no = (why: string): R => ({ refused: why });
 export const pctLeft = (side: WarSide) => { const m = side.blds.reduce((a, b) => a + b.max, 0); return m ? side.blds.reduce((a, b) => a + Math.max(0, b.hp), 0) / m : 1; };
 const total = (side: WarSide) => side.blds.reduce((a, b) => a + b.max, 0);
 /** what gets hit first: defenses (the weakest first), then buildings, the hall last */
-const nextTarget = (side: WarSide) => side.blds.filter(b => b.hp > 0).sort((a, b) => (a.kind === 'defense' ? 0 : a.kind === 'hall' ? 2 : 1) - (b.kind === 'defense' ? 0 : b.kind === 'hall' ? 2 : 1) || a.hp - b.hp)[0];
+const ORDER = { defense: 0, house: 1, building: 1, hall: 2 } as const;
+const nextTarget = (side: WarSide) => side.blds.filter(b => b.hp > 0).sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.hp - b.hp)[0];
+/** the war's front: what the squad is spread over now (the outer defenses / houses / buildings first, the hall last) */
+const front = (side: WarSide, n: number) => side.blds.filter(b => b.hp > 0).sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.hp - b.hp).slice(0, n);
+
+/** 🧱 how tough each thing is in a war (director 15 Nov: by its size — fences break fast, a house slower, a big building
+ *  slower still, the hall the slowest) */
+export function warHp(kind: WarBld['kind'], type: string, level: number) {
+  if (kind === 'defense') { const d = DEFENSES[type as DefenseId], hp = defStat(d, level).hp; return Math.round(hp * (type === 'spikes' || type === 'palisade' ? 0.35 : 0.8)); }
+  if (kind === 'house') return 900 + 500 * level;
+  if (kind === 'hall') return 4000 + 2500 * level;
+  return 1800 + 900 * level;
+}
 
 function rivalDefense(r: Rival) {
   let p = r.hall * 100 + r.guards * 160 * (1 + 0.15 * (r.barracks - 1));
@@ -42,17 +54,19 @@ export function startWar(s: GameState, id: string, now = Date.now(), force?: Riv
   const c = force ? { rival: force } : canRaid(s, id, now); if ('refused' in c) return c;
   const rv = c.rival;
   const ours: WarSide = { blds: [], troops: 0, troops0: 0, atk: 0, def: 0 };
-  for (const b of g.buildings) { if (isRuin(b)) continue; const max = bldHp(b.type, b.level); ours.blds.push({ id: 'b:' + b.type, kind: b.type === 'hall' ? 'hall' : 'building', name: `${GUILD_BLD[b.type].icon} ${GUILD_BLD[b.type].name}`, hp: max * (1 - (b.dmg ?? 0)), max }); }
-  for (const q of g.defenses) { const d = DEFENSES[q.type]; ours.blds.push({ id: 'd:' + q.slot, kind: 'defense', name: d.name, hp: q.hp, max: defStat(d, q.level).hp }); }
-  const theirs: WarSide = { blds: rivalStructs(rv).map(q => ({ id: q.id, kind: q.kind, name: q.kind === 'defense' ? DEFENSES[q.type as DefenseId].name : `${GUILD_BLD[q.type as GuildBld].icon} ${GUILD_BLD[q.type as GuildBld].name}`, hp: q.hp, max: q.hp })), troops: 0, troops0: 0, atk: 0, def: 0 };
+  for (const b of g.buildings) { if (isRuin(b)) continue; const max = warHp(b.type === 'hall' ? 'hall' : 'building', b.type, b.level); ours.blds.push({ id: 'b:' + b.type, kind: b.type === 'hall' ? 'hall' : 'building', name: `${GUILD_BLD[b.type].icon} ${GUILD_BLD[b.type].name}`, hp: max * (1 - (b.dmg ?? 0)), max }); }
+  for (const q of g.defenses) { const d = DEFENSES[q.type], max = warHp('defense', q.type, q.level); ours.blds.push({ id: 'd:' + q.slot, kind: 'defense', name: d.name, hp: Math.min(max, q.hp * max / defStat(d, q.level).hp), max }); }
+  for (const m of g.members) if (m.houseLv > 0 && (m.houseDmg ?? 0) < 1) { const max = warHp('house', '', m.houseLv); ours.blds.push({ id: 'h:' + m.house, kind: 'house', name: `🏠 บ้าน ${m.name}`, hp: max * (1 - (m.houseDmg ?? 0)), max }); }
+  const theirs: WarSide = { blds: rivalStructs(rv).map(q => ({ id: q.id, kind: q.kind, name: q.kind === 'defense' ? DEFENSES[q.type as DefenseId].name : `${GUILD_BLD[q.type as GuildBld].icon} ${GUILD_BLD[q.type as GuildBld].name}`, hp: warHp(q.kind, q.type, q.level), max: warHp(q.kind, q.type, q.level) })), troops: 0, troops0: 0, atk: 0, def: 0 };
+  rv.houses.forEach((lv, i) => { if (lv > 0) { const max = warHp('house', '', lv); theirs.blds.push({ id: 'h:' + i, kind: 'house', name: '🏠 บ้านสมาชิก', hp: max, max }); } });
   // squads: our members + hired guards; theirs from their hall, guards and houses (bot guild)
   ours.troops = ours.troops0 = 10;   // squads are counted in tenths: their strength is in atk / def
   ours.atk = hallLv(s, now) * 120 + guardsTotal(g) * 160 * (1 + 0.15 * (Math.max(1, barracksLv(s, now)) - 1)) + g.members.reduce((a, m) => a + m.lv * 3, 0);
-  ours.def = defensePower(s);
+  ours.def = ours.def0 = defensePower(s);
   const homes = rv.houses.filter(h => h > 0).length;
   theirs.troops = theirs.troops0 = 10;
   theirs.atk = rv.hall * 120 + rv.guards * 160 + homes * 90;
-  theirs.def = rivalDefense(rv);
+  theirs.def = theirs.def0 = rivalDefense(rv);
   g.raids.used++;   // a war is one of the day's raids
   g.war = { rival: rv, start: now, end: now + WAR_SECS * 1000, last: now, ours, theirs, hero: { dmg: 0, kills: 0 }, feed: [] };
   guildLog(g, 'raid', `⚔ ${meOf(s)!.name} ประกาศสงครามกับ ${rv.name}`, now);
@@ -63,12 +77,17 @@ export function startWar(s: GameState, id: string, now = Date.now(), force?: Riv
 function push(a: WarSide, b: WarSide, dt: number, feed: War['feed'], now: number, us: boolean) {
   if (a.troops <= 0) return;
   const ratio = Math.max(0.75, Math.min(1.3, Math.sqrt(a.atk / Math.max(1, b.def))));   // stronger squads hit harder, but no war is decided before it starts
-  let dmg = (a.troops / a.troops0) * ratio * (total(b) * PUSH / WAR_SECS) * dt;
-  while (dmg > 0) {
-    const t = nextTarget(b); if (!t) break;
-    const d = Math.min(dmg, t.hp); t.hp -= d; dmg -= d;
-    if (t.hp <= 0) { t.hp = 0; feed.unshift({ t: now, us, text: us ? `🔥 กองทัพเราทำลาย ${t.name} ของศัตรู!` : `💥 ศัตรูทำลาย ${t.name} ของเรา!` }); }
+  const base = (a.troops / a.troops0) * ratio * (total(b) * PUSH / WAR_SECS) * dt;
+  // (director 15 Nov) the squad spreads out: ~70% of the effort on what stands at the front (up to 4 things at once — fences
+  // and houses fall first, the hall last), ~25% on the defenders (their guard power wears down to half), ~5% on heroes
+  let dmg = base * 0.7 / 0.75;   // (the structures' share, scaled so a war takes about as long as before)
+  for (let round = 0; dmg > 0.01 && round < 6; round++) {
+    const fr = front(b, 4); if (!fr.length) break;
+    const each = dmg / fr.length; dmg = 0;
+    for (const t of fr) { const d = Math.min(each, t.hp); t.hp -= d; dmg += each - d; if (t.hp <= 0) { t.hp = 0; feed.unshift({ t: now, us, text: us ? `🔥 กองทัพเราทำลาย ${t.name} ของศัตรู!` : `💥 ศัตรูทำลาย ${t.name} ของเรา!` }); } }
   }
+  if (b.def0) b.def = Math.max(b.def0 * 0.5, b.def - b.def0 * 0.25 * (a.troops / a.troops0) * ratio * dt / WAR_SECS);
+  void nextTarget;
   // the defenders (towers, guards) kill attackers; standing defenses matter
   const defLeft = b.blds.filter(q => q.kind === 'defense').length ? b.blds.filter(q => q.kind === 'defense' && q.hp > 0).length / b.blds.filter(q => q.kind === 'defense').length : 0.5;
   a.troops = Math.max(0, a.troops - dt * Math.max(0.35, b.def * (0.5 + defLeft) / (b.def + a.atk)) * a.troops0 / (WAR_SECS * 1.1));   // every squad wears down
@@ -118,10 +137,11 @@ function settle(s: GameState, now: number, quit = false) {
   const r = raidResult(s, w.rival, w.theirs.blds.filter(b => b.hp <= 0).map(b => b.id), now); g.raids.used--;   // the war already counted its raid
   // what they wrecked at home: fire damage + losses (raid rules), our defenses keep the HP they have left
   const wreck: Wreck = { b: {} };
+  for (const b of w.ours.blds) if (b.id.startsWith('h:')) { const lost = 1 - b.hp / b.max; if (lost > 0.04) (wreck.homes ??= {})[Number(b.id.slice(2))] = b.hp <= 0 ? 1 : lost; }
   for (const b of w.ours.blds) if (b.id.startsWith('b:')) { const t = b.id.slice(2) as GuildBld, gb = g.buildings.find(q => q.type === t)!, lost = Math.max(0, 1 - b.hp / b.max - (gb.dmg ?? 0)); if (lost > 0.04) wreck.b![t] = b.hp <= 0 ? 1 : lost; }
   const stars = starsOf(w.ours);
   raidOutcome(s, stars, w.rival.name, now, wreck);
-  for (const b of w.ours.blds) if (b.id.startsWith('d:')) { const q = g.defenses.find(x => 'd:' + x.slot === b.id); if (q) q.hp = Math.max(1, Math.round(b.hp)); }
+  for (const b of w.ours.blds) if (b.id.startsWith('d:')) { const q = g.defenses.find(x => 'd:' + x.slot === b.id); if (q) q.hp = Math.max(1, Math.round(defStat(DEFENSES[q.type], q.level).hp * b.hp / b.max)); }   // (war HP is by size: back to the defense's own scale)
   seasonAdd(s, win ? 40 : 10, now);
   if (win) meOf(s)!.pts += 60;
   const got = [`${win ? '🏆 ชนะสงคราม!' : quit ? '🏳 ถอยทัพ (นับว่าแพ้)' : '🏳 แพ้สงคราม'} หมู่บ้านเราเหลือ ${Math.round(ours * 100)}% • ${w.rival.name} เหลือ ${Math.round(theirs * 100)}%`,

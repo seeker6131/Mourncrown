@@ -1901,6 +1901,7 @@ export class TopDownScene extends Phaser.Scene {
     const s = S(), id = currentSkills(s)[i]; if (!id) return;
     const r = beginCast(s, id, this.time.now, this.skillReady);
     if (typeof r === 'string') { if (r === 'mp') bus.emit(EV.TOAST, 'MP ไม่พอ', '#8fc8ff'); return; }
+    if (this.warSide || isPvp(this.stageN)) this.skillReady[id] = this.time.now + r.cooldown * 1.5;   // (⚔ guild war / battlefield: skills come back slower, the fights last — director 15 Nov)
     castQ.n = Math.min(50, castQ.n + 1);
     { const sk = SKILL_BY_ID[id]; if (sk && sk.kind !== 'heal' && sk.kind !== 'shield' && sk.kind !== 'buff') this.pvpStrike('sk'); }   // (⚔ battlefield: an attack skill can strike a hero)
     if (hasAnim(this.F.key, this.swing)) {

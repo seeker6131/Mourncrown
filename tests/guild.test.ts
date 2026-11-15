@@ -107,13 +107,16 @@ describe('guild village', () => {
 describe('hired guards', () => {
   it('officers hire guards with the treasury up to the barracks limit; guards eat treasury food', () => {
     const { s, g } = village(); rich(g); const gold = g.treasury.gold;
-    for (let i = 0; i < guardCap(1); i++) expect('n' in hireGuard(s, 'spear', T0)).toBe(true);
+    // (15 Nov: 4 per barracks level, 20 at the top — half spearmen, half archers)
+    for (let i = 0; i < guardCap(1) / 2; i++) { expect('n' in hireGuard(s, 'spear', T0)).toBe(true); expect('n' in hireGuard(s, 'archer', T0)).toBe(true); }
     expect(hireGuard(s, 'archer', T0)).toEqual({ refused: 'full' });
-    expect(g.treasury.gold).toBe(gold - guardCap(1) * GUARDS.spear.hire.gold!);
+    expect(g.treasury.gold).toBe(gold - guardCap(1) / 2 * (GUARDS.spear.hire.gold! + GUARDS.archer.hire.gold!));
+    dismissGuard(s, 'archer'); expect(hireGuard(s, 'spear', T0)).toEqual({ refused: 'full' });   // (a kind takes at most half)
+    hireGuard(s, 'archer', T0);
     const p = defensePower(s);
     const f = g.treasury.food; feedGuards(s, 2); expect(g.treasury.food).toBeLessThan(f);
     g.treasury.food = 0; feedGuards(s, 1); expect(g.hungry).toBe(true); expect(defensePower(s)).toBeLessThan(p);
-    expect(dismissGuard(s, 'spear')).toEqual({ n: guardCap(1) - 1 });
+    expect(dismissGuard(s, 'spear')).toEqual({ n: guardCap(1) / 2 - 1 });
     meOf(s)!.role = 'member'; expect(hireGuard(s, 'spear', T0)).toEqual({ refused: 'role' });
   });
   it('time passing: simulated members donate, sim leaders upgrade, production builds up', () => {

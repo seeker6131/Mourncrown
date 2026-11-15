@@ -17,15 +17,15 @@ import { fx2 } from './fx2';
 import { pxShadow } from './pxShadow';
 import { burnFx, fireKey, type GuildTown } from './guildTown';
 import { makeRuin, charTint } from './ruin';
-import type { War } from '../systems/war';
+import { warHp, type War } from '../systems/war';
 
 export interface DefHost extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; dead: boolean; canStand(x: number, y: number): boolean;
   combat: { float(x: number, y: number, t: string, col: string, size: number): void; vfx: { bolt(x: number, y: number, tx: number, ty: number, col: number, size?: number, speed?: number, hit?: () => void, arrow?: boolean): void; dust(x: number, y: number, n: number, r: number): void } };
 }
-interface Unit { side: 'atk' | 'def'; key: string; name: string; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Graphics; tag: Phaser.GameObjects.Text;
+interface Unit { role?: 'b' | 'u' | 'h'; tb?: Bld; tu?: Unit; side: 'atk' | 'def'; key: string; name: string; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Graphics; tag: Phaser.GameObjects.Text;
   x: number; y: number; hp: number; max: number; atk: number; range: number; rate: number; speed: number; last: number; dir: number; alive: boolean; busy: boolean; ranged: boolean; magic: boolean }
-interface Bld { dmg0?: number; orig?: string; fx?: Phaser.GameObjects.GameObject[]; fk?: string; id: string; name: string; kind: 'hall' | 'building' | 'defense' | 'house'; x: number; y: number; rx: number; hp: number; max: number; alive: boolean; img?: Phaser.GameObjects.Image; shoot?: { dmg: number; range: number; rate: number; next: number; aoe?: number; spikes?: boolean } }
+interface Bld { n?: number; dmg0?: number; orig?: string; fx?: Phaser.GameObjects.GameObject[]; fk?: string; id: string; name: string; kind: 'hall' | 'building' | 'defense' | 'house'; x: number; y: number; rx: number; hp: number; max: number; alive: boolean; img?: Phaser.GameObjects.Image; shoot?: { dmg: number; range: number; rate: number; next: number; aoe?: number; spikes?: boolean } }
 
 const RANGED = new Set(['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9', 'np10']);
 const MAGIC = new Set(['hr7', 'hr8', 'hr9']);
@@ -50,18 +50,22 @@ export class DefenseBattle {
         if (b.hp <= 0 && b.alive) { b.alive = false; if (!quiet) { fx2(this.sc, 'fx_collapse', b.x, b.y + 4, b.y + 5, b.kind === 'defense' ? 0.8 : 1.5); this.sc.combat.vfx.dust(b.x, b.y, 14, b.rx); bus.emit(EV.TOAST, `💥 ${this.enemy} ทำลาย ${b.name}!`, '#ff9a7a'); } }
       }
     }
-    const want = Math.min(10, Math.ceil(w.theirs.troops)), alive = this.units.filter(u => u.side === 'atk' && u.alive).length;
+    const want = Math.min(20, Math.ceil(20 * w.theirs.troops / Math.max(1, w.theirs.troops0))), alive = this.units.filter(u => u.side === 'atk' && u.alive).length;
     const now = this.sc.time.now;
     if (alive < want && now > this.raider.spawnT) {
-      this.raider.spawnT = now + 1500;
+      this.raider.spawnT = now + 1200;
       const gates = [{ x: L.NORTH_GATE.x, y: 70 }, { x: L.WEST_EXIT.x + 40, y: L.WEST_EXIT.y }, { x: L.SOUTH_GATE.x, y: L.SOUTH_GATE.y - 30 }];
-      for (let i = 0; i < Math.min(2, want - alive); i++) {
-        const gt = gates[Math.floor(Math.random() * gates.length)], k = this.raider.forms[Math.floor(Math.random() * this.raider.forms.length)];
-        this.add('atk', k, `⚔ ${this.enemy}`, gt.x + (Math.random() - 0.5) * 40, gt.y + Math.random() * 20, this.raider.hp, this.raider.atk, 70);
+      for (let i = 0; i < Math.min(3, want - alive); i++) {
+        // (director 15 Nov) half hired soldiers (spear / bow, thick but soft-hitting), half the enemy's heroes
+        const n = this.spawned++, merc = n % 2 === 0, gt = gates[n % gates.length];
+        const k = merc ? GUARDS[(n / 2) % 2 < 1 ? 'spear' : 'archer'].key : this.raider.forms[Math.floor(Math.random() * this.raider.forms.length)];
+        this.add('atk', k, merc ? `⚔ ทหารรับจ้าง ${this.enemy}` : `⚔ ${this.enemy}`, gt.x + (Math.random() - 0.5) * 40, gt.y + Math.random() * 20, this.raider.hp * (merc ? 1.6 : 1), this.raider.atk * (merc ? 0.6 : 1), 70);
+        const u = this.units[this.units.length - 1]; if (u) u.role = n % 20 < 14 ? 'b' : n % 20 < 19 ? 'u' : 'h';   // 70% buildings / houses, 25% defenders, 5% heroes
         fx2(this.sc, 'fx_boss_spawn', gt.x, gt.y + 6, gt.y, 0.9);
       }
     }
   }
+  spawned = 0;
 
   start() {
     const sc = this.sc, s = S(), g = guildOf(s); if (!g) return;
@@ -72,11 +76,16 @@ export class DefenseBattle {
       const b = g.buildings.find(q => q.type === t)!, P = L.PLOTS[L.PLOT_OF[t]], img = this.town.views.get('b:' + t)?.objs[0] as Phaser.GameObjects.Image | undefined;
       if (isRuin(b)) continue;   // already a ruin: nothing left to burn
       if (this.war && !this.war.ours.blds.some(q => q.id === 'b:' + t)) continue;
-      const max = bldHp(t, b.level), d0 = b.dmg ?? 0;
+      const max = this.war ? warHp(t === 'hall' ? 'hall' : 'building', t, b.level) : bldHp(t, b.level), d0 = b.dmg ?? 0;
       this.blds.push({ id: 'b:' + t, name: `${GUILD_BLD[t as GuildBld].icon} ${GUILD_BLD[t as GuildBld].name}`, kind: t === 'hall' ? 'hall' : 'building', x: P.x, y: P.y, rx: t === 'hall' ? 84 : 70, hp: max * (1 - d0), max, alive: true, img: img?.setTint ? img : undefined, dmg0: d0, fk: fireKey(d0) });
     }
     { // our own house burns too (it is not counted for the enemy's stars)
       const me = meOf(s), m = me && g.members.find(q => q.id === g.me);
+      if (this.war) for (const q of g.members) {   // (war) every member's house can burn — tougher than a fence, softer than a building
+        if (q.houseLv <= 0 || (q.houseDmg ?? 0) >= 1 || !this.war.ours.blds.some(x => x.id === 'h:' + q.house)) continue;
+        const P = L.PLOTS[L.housePlot(q.house)], img = this.town.views.get('h:' + q.house)?.objs.find(o => (o as Phaser.GameObjects.Image).setTint) as Phaser.GameObjects.Image | undefined, max = warHp('house', '', q.houseLv), d0 = q.houseDmg ?? 0;
+        this.blds.push({ id: 'h:' + q.house, name: `🏠 บ้าน ${q.name}`, kind: 'house', x: P.x, y: P.y, rx: 44, hp: max * (1 - d0), max, alive: true, img, dmg0: d0, fk: fireKey(d0) });
+      }
       if (!this.war && m && m.houseLv > 0 && !(m.houseDmg && m.houseDmg >= 1)) {
         const P = L.PLOTS[L.housePlot(m.house)], img = this.town.views.get('h:' + m.house)?.objs.find(o => (o as Phaser.GameObjects.Image).setTint) as Phaser.GameObjects.Image | undefined, max = 500 + 300 * m.houseLv, d0 = m.houseDmg ?? 0;
         this.blds.push({ id: 'house', name: '🏠 บ้านของคุณ', kind: 'house', x: P.x, y: P.y, rx: 44, hp: max * (1 - d0), max, alive: true, img, dmg0: d0, fk: fireKey(d0) });
@@ -84,14 +93,15 @@ export class DefenseBattle {
     }
     for (const q of g.defenses) {
       const D = DEFENSES[q.type], st = defStat(D, q.level), P = L.SLOTS[q.slot], img = this.town.views.get('d:' + q.slot)?.objs[0] as Phaser.GameObjects.Image | undefined;
-      this.blds.push({ id: 'd:' + q.slot, name: D.name, kind: 'defense', x: P.x, y: P.y, rx: 24, hp: q.hp, max: st.hp, alive: true, img: img?.setTint ? img : undefined, shoot: st.dmg ? { dmg: st.dmg, range: st.range, rate: st.rate || 1200, next: 0, aoe: D.aoe, spikes: q.type === 'spikes' } : undefined });
+      const wm = this.war ? warHp('defense', q.type, q.level) : st.hp;
+      this.blds.push({ id: 'd:' + q.slot, name: D.name, kind: 'defense', x: P.x, y: P.y, rx: 24, hp: q.hp * wm / st.hp, max: wm, alive: true, img: img?.setTint ? img : undefined, shoot: st.dmg ? { dmg: st.dmg, range: st.range, rate: st.rate || 1200, next: 0, aoe: D.aoe, spikes: q.type === 'spikes' } : undefined });
     }
     // the raiders: rival players (bots) of every class, as strong as our village
     const forms = ['hr1', 'hr5', 'hr10', 'hr7', 'hr2', 'hr11', 'hr4', 'hr8', 'hr3', 'hr6'].filter(k => CH[k]);
     const gates = [{ x: L.NORTH_GATE.x, y: 70 }, { x: L.WEST_EXIT.x + 40, y: L.WEST_EXIT.y }, { x: L.SOUTH_GATE.x, y: L.SOUTH_GATE.y - 30 }];
     // three waves through the three gates, ~12 s apart, so the fight lasts and the player matters
     const n = Math.min(15, 6 + hl * 2), per = Math.ceil(n / 3);
-    this.raider = { hp: heroHit * 6, atk: d.maxHp / 20, forms, spawnT: 0 };
+    this.raider = { hp: heroHit * (this.war ? 10 : 6), atk: d.maxHp / (this.war ? 34 : 20), forms, spawnT: 0 };   // (war: thick, steady, not hard hitting — director)
     this.waves = this.war ? 0 : 3;
     if (!this.war) for (let w = 0; w < 3; w++) sc.time.delayedCall(w * 12000, () => {
       if (this.over) return;
@@ -109,7 +119,8 @@ export class DefenseBattle {
     let gi = 0;
     for (const t of ['spear', 'archer'] as const) for (let i = 0; i < g.guards[t]; i++) {
       const w = walkers.filter(q => q.key === GUARDS[t].key)[i], gs = GUARDS[t];
-      this.add('def', gs.key, gs.name, w?.sp.x ?? L.PLAZA.x + gi * 12, w?.sp.y ?? L.PLAZA.y + 60, Math.max(gs.hp * k, heroHit * 4) * (g.hungry ? 0.5 : 1), Math.max(gs.atk * k * 3, heroHit * 0.6) * (g.hungry ? 0.5 : 1), 98); gi++;
+      const wk = this.war ? [1.5, 0.6] : [1, 1];   // (war: hired soldiers are thick but soft-hitting — director)
+      this.add('def', gs.key, gs.name, w?.sp.x ?? L.PLAZA.x + (gi % 10) * 12, w?.sp.y ?? L.PLAZA.y + 60 + Math.floor(gi / 10) * 14, Math.max(gs.hp * k, heroHit * 4) * wk[0] * (g.hungry ? 0.5 : 1), Math.max(gs.atk * k * 3, heroHit * 0.6) * wk[1] * (g.hungry ? 0.5 : 1), 98); gi++;
     }
     for (const m of g.members) {
       if (!m.sim) continue;
@@ -206,7 +217,22 @@ export class DefenseBattle {
       // pick a target: raiders hit the nearest defender / the hero when close, otherwise the nearest building;
       // defenders go for the nearest raider anywhere
       let tx = 0, ty = 0, hit: (() => void) | null = null, reach = u.range;
-      if (u.side === 'atk') {
+      if (this.war && u.side === 'atk' && u.role) {   // (war) each raider keeps to its job: a building / house / fence (the least crowded), a defender, or our hero
+        const foes = this.units.filter(q => q.side === 'def' && q.alive);
+        if (u.role === 'h' && heroUp) { tx = h.x; ty = h.y; hit = () => this.hitHero(u.atk); }
+        else if (u.role === 'u' && foes.length) { if (!u.tu?.alive) u.tu = foes.sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y))[0]; const f = u.tu!; tx = f.x; ty = f.y; hit = () => this.hurt(f, u.atk); }
+        else {
+          if (!u.tb?.alive) { if (u.tb) u.tb.n = Math.max(0, (u.tb.n ?? 1) - 1); u.tb = this.blds.filter(q => q.alive).sort((a, c) => (a.n ?? 0) - (c.n ?? 0) || Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(c.x - u.x, c.y - u.y))[0]; if (u.tb) u.tb.n = (u.tb.n ?? 0) + 1; }
+          const b = u.tb; if (!b) continue;
+          tx = b.x + Math.max(-b.rx * 0.6, Math.min(b.rx * 0.6, u.x - b.x)); ty = b.y + 18; reach = u.ranged ? u.range : 26; hit = () => this.hurtBld(b, 0);
+        }
+      } else if (this.war && u.side === 'def') {   // (war) our defenders run out at once and spread over the raiders — more where more raiders are
+        if (!u.tu?.alive) {
+          const load = new Map<Unit, number>(); for (const q of this.units) if (q.side === 'def' && q.alive && q.tu?.alive) load.set(q.tu, (load.get(q.tu) ?? 0) + 1);
+          u.tu = this.units.filter(q => q.side === 'atk' && q.alive).sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) + 140 * (load.get(a) ?? 0) - Math.hypot(b.x - u.x, b.y - u.y) - 140 * (load.get(b) ?? 0))[0];
+        }
+        const f = u.tu; if (!f) continue; tx = f.x; ty = f.y; hit = () => this.hurt(f, u.atk);
+      } else if (u.side === 'atk') {
         const foes = this.units.filter(q => q.side === 'def' && q.alive), near = foes.sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y))[0];
         const dh = heroUp ? Math.hypot(h.x - u.x, h.y - u.y) : 1e9, dn = near ? Math.hypot(near.x - u.x, near.y - u.y) : 1e9;
         if (Math.min(dh, dn) < 90) { if (dh < dn) { tx = h.x; ty = h.y; hit = () => this.hitHero(u.atk); } else { tx = near!.x; ty = near!.y; const n2 = near!; hit = () => this.hurt(n2, u.atk); } }

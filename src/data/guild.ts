@@ -128,6 +128,9 @@ export const GUARDS: Record<GuardType, { name: string; key: string; hire: Cost; 
   spear: { name: 'ทหารหอก', key: 'np8', hire: { gold: 800, food: 300 }, hp: 900, atk: 34, range: 30, rate: 1300 },
   archer: { name: 'นักธนูเฝ้าเมือง', key: 'np10', hire: { gold: 1000, wood: 200, food: 300 }, hp: 600, atk: 26, range: 150, rate: 1500 },
 };
-export const guardCap = (barracksLv: number) => Math.min(10, barracksLv * 2);
+/** hired guards (director 15 Nov: 20 at the top — half spearmen, half archers) */
+export const guardCap = (barracksLv: number) => Math.min(20, barracksLv * 4);
+/** each kind takes half of the places */
+export const guardTypeCap = (barracksLv: number) => Math.ceil(guardCap(barracksLv) / 2);
 /** food each guard eats per hour from the treasury (the guild kitchen cuts it) */
 export const GUARD_FOOD_H = 3;

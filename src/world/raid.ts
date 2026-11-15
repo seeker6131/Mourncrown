@@ -10,7 +10,7 @@ import type { SkillDef } from '../data/skills';
 import { saveGame } from '../core/save';
 import { sfx } from '../audio/sfx';
 import { guildOf, type Rival, type RivalStruct } from '../systems/guild';
-import type { War } from '../systems/war';
+import { warHp, type War } from '../systems/war';
 import { DEFENSES, defStat, GUARDS, GUILD_BLD, type DefenseId, type GuardType, type GuildBld } from '../data/guild';
 import * as L from './villageLayout';
 import { CH, playAnim, setIdle, hitMs, formKeyOf } from './chars';
@@ -22,7 +22,7 @@ import { flagPole } from './flag';
 import { flagFor } from '../data/flag';
 
 export interface RaidStart { rival: Rival; structs: RivalStruct[]; secs: number; /** guild war view: the server runs the fight (systems/war.ts) */ war?: boolean }
-interface Ally { key: string; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; x: number; y: number; dir: number; busy: boolean; last: number; ranged: boolean; gone?: boolean }
+interface Ally { role: 'b' | 'g'; tgt?: Target | Guard; key: string; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; x: number; y: number; dir: number; busy: boolean; last: number; ranged: boolean; gone?: boolean }
 /** what the battle needs from the top-down scene */
 export interface RaidHost extends Phaser.Scene {
   hero: Phaser.GameObjects.Sprite; dead: boolean;
@@ -30,7 +30,7 @@ export interface RaidHost extends Phaser.Scene {
   canStand(x: number, y: number): boolean;
   combat: { float(x: number, y: number, t: string, col: string, size: number): void; vfx: { bolt(x: number, y: number, tx: number, ty: number, col: number, size?: number, speed?: number, hit?: () => void, arrow?: boolean): void; impact(x: number, y: number, col: number, big?: boolean): void; dust(x: number, y: number, n: number, r: number): void } };
 }
-interface Target { fk?: string; fx?: Phaser.GameObjects.GameObject[]; id: string; name: string; kind: 'hall' | 'building' | 'defense'; x: number; y: number; rx: number; ry: number; hp: number; max: number; alive: boolean; img: Phaser.GameObjects.Image | null; bar: Phaser.GameObjects.Graphics; def?: { id: DefenseId; dmg: number; range: number; rate: number; aoe?: number; slow?: number; spawn?: number; buff?: number; shot?: string; next: number; spawned?: boolean } }
+interface Target { fk?: string; /** allies aiming at it now (they spread out) */ n?: number; fx?: Phaser.GameObjects.GameObject[]; id: string; name: string; kind: 'hall' | 'building' | 'defense' | 'house'; x: number; y: number; rx: number; ry: number; hp: number; max: number; alive: boolean; img: Phaser.GameObjects.Image | null; bar: Phaser.GameObjects.Graphics; def?: { id: DefenseId; dmg: number; range: number; rate: number; aoe?: number; slow?: number; spawn?: number; buff?: number; shot?: string; next: number; spawned?: boolean } }
 interface Guard { type: GuardType; sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; bar: Phaser.GameObjects.Graphics; x: number; y: number; hp: number; max: number; atk: number; range: number; rate: number; last: number; dir: number; alive: boolean; post: { x: number; y: number }; busy: boolean }
 
 const ART: Record<GuildBld, string> = { hall: 'townhall', barracks: 'tower', forge: 'forge', kitchen: 'kitchen', tavern: 'tavern', market: 'market', warehouse: 'warehouse', lumber: 'lumber', quarry: 'quarry', barn: 'barn' };
@@ -54,35 +54,58 @@ export class RaidBattle {
       const b = w.theirs.blds.find(q => q.id === t.id); if (!b) continue;
       if (b.hp < t.hp - 0.5) { t.hp = b.hp; this.burn(t); if (t.hp <= 0 && t.alive) this.fall(t, quiet); }
     }
-    const want = Math.min(8, Math.ceil(w.ours.troops * 0.8)), have = this.allies.filter(a => !a.gone);
+    const want = Math.min(16, Math.ceil(16 * w.ours.troops / Math.max(1, w.ours.troops0))), have = this.allies.filter(a => !a.gone);
     for (let i = have.length; i < want; i++) this.addAlly(i);
     for (let i = want; i < have.length; i++) { const a = have[i]; a.gone = true; this.sc.tweens.add({ targets: [a.sp, a.tag], alpha: 0, angle: 70, duration: 500, onComplete: () => { a.sp.destroy(); a.tag.destroy(); a.sh.destroy(); } }); }
   }
+  /** our squad on the field: guild members first (up to 6), then hired soldiers — half spearmen, half archers (director 15 Nov) */
   private addAlly(i: number) {
     const g = guildOf(S()); if (!g) return;
-    const m = g.members[i % g.members.length], key = formKeyOf(m.cls, m.t ?? (m.lv >= 80 ? 3 : m.lv >= 40 ? 2 : m.lv >= 10 ? 1 : 0), m.lk); if (!CH[key]) return;   // (t: the form the member wears)
-    const x = L.SOUTH_GATE.x + ((i * 29) % 90) - 45, y = L.SOUTH_GATE.y - 20 - ((i * 17) % 40);
+    const n = this.allies.length, mems = g.members.slice(0, 6);
+    let key: string, name: string;
+    if (n < mems.length) { const m = mems[n]; key = formKeyOf(m.cls, m.t ?? (m.lv >= 80 ? 3 : m.lv >= 40 ? 2 : m.lv >= 10 ? 1 : 0), m.lk); name = `🛡 ${m.name}`; }   // (t: the form the member wears)
+    else { const sp = (n - mems.length) % 2 === 0; key = GUARDS[sp ? 'spear' : 'archer'].key; name = `⚔ ${GUARDS[sp ? 'spear' : 'archer'].name}`; }
+    if (!CH[key]) return;
+    const gates = [L.SOUTH_GATE, { x: L.WEST_EXIT.x + 40, y: L.WEST_EXIT.y }, { x: L.NORTH_GATE.x, y: 90 }], gt = gates[n % gates.length];
+    const x = gt.x + ((i * 29) % 70) - 35, y = gt.y - 20 - ((i * 17) % 40);
     const sp = this.sc.add.sprite(x, y, `c_${key}_idle`).setDepth(y); setIdle(sp, key, 4);
-    const tag = this.sc.add.text(x, y - 40, `🛡 ${m.name}`, { fontFamily: 'sans-serif', fontSize: '6px', color: '#9fffb0', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990);
-    this.allies.push({ key, sp, sh: pxShadow(this.sc, x, y, 22, 8, 0.45), tag, x, y, dir: 4, busy: false, last: 0, ranged: RANGED.has(key) });
+    const tag = this.sc.add.text(x, y - 40, name, { fontFamily: 'sans-serif', fontSize: '6px', color: '#9fffb0', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990);
+    // 70% go for the buildings / houses / fences, 25% for the defenders, 5% for heroes (none on this side: the buildings)
+    const role: Ally['role'] = n % 20 >= 14 && n % 20 < 19 ? 'g' : 'b';
+    this.allies.push({ role, key, sp, sh: pxShadow(this.sc, x, y, 22, 8, 0.45), tag, x, y, dir: 4, busy: false, last: 0, ranged: RANGED.has(key) || key === GUARDS.archer.key });
+  }
+  /** the thing an ally goes for: its own (alive) one, else the standing target the fewest allies are on (they spread out) */
+  private pick(a: Ally): Target | Guard | null {
+    const cur = a.tgt; if (cur && cur.alive) return cur;
+    if (cur && 'n' in cur) cur.n = Math.max(0, (cur.n ?? 1) - 1);
+    if (a.role === 'g') { const g = this.guards.filter(q => q.alive).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))[0]; if (g) { a.tgt = g; return g; } }
+    const t = this.targets.filter(q => q.alive).sort((p, q) => (p.n ?? 0) - (q.n ?? 0) || this.dist(p, a.x, a.y) - this.dist(q, a.x, a.y))[0];
+    if (t) { t.n = (t.n ?? 0) + 1; a.tgt = t; return t; }
+    a.tgt = undefined; return null;
   }
   /** our squad: each member walks to the nearest standing building and swings at it (the damage itself is the server's) */
   private allyStep(time: number, dt: number) {
     for (const a of this.allies) {
       if (a.gone) continue;
-      const t = this.targets.filter(q => q.alive).sort((p, q) => this.dist(p, a.x, a.y) - this.dist(q, a.x, a.y))[0];
-      if (!t) { if (!a.busy) setIdle(a.sp, a.key, a.dir); continue; }
-      const reach = a.ranged ? 110 : 22, d = this.dist(t, a.x, a.y), tx = t.x + Math.max(-t.rx * 0.6, Math.min(t.rx * 0.6, a.x - t.x)), ty = t.y + 14;
+      const tg = this.pick(a);
+      if (!tg) { if (!a.busy) setIdle(a.sp, a.key, a.dir); continue; }
+      const isG = !('id' in tg), t = tg as Target, gd = tg as Guard;
+      const reach = a.ranged ? 110 : 22, d = isG ? Math.hypot(gd.x - a.x, gd.y - a.y) : this.dist(t, a.x, a.y);
+      const tx = isG ? gd.x : t.x + Math.max(-t.rx * 0.6, Math.min(t.rx * 0.6, a.x - t.x)), ty = isG ? gd.y : t.y + 14;
       if (!a.busy && d > reach) {
-        const ax = tx - a.x, ay = ty - a.y, ad = Math.max(1, Math.hypot(ax, ay)), sp = 74 * dt / 1000;
+        const ax = tx - a.x, ay = ty - a.y, sp = (a.role === 'g' ? 84 : 74) * dt / 1000;
         for (const da of [0, 0.5, -0.5, 1, -1, 1.6, -1.6]) { const an = Math.atan2(ay, ax) + da, nx = a.x + Math.cos(an) * sp, ny = a.y + Math.sin(an) * sp; if (this.sc.canStand(nx, ny)) { a.x = nx; a.y = ny; break; } }
-        a.dir = dirOf(ax, ay); playAnim(a.sp, a.key, 'walk', a.dir); void ad;
-      } else if (!a.busy && time - a.last > 1100 + Math.random() * 500) {
+        a.dir = dirOf(ax, ay); playAnim(a.sp, a.key, 'walk', a.dir);
+      } else if (!a.busy && time - a.last > 1300 + Math.random() * 600) {   // (steady, not hard hitting — director)
         a.last = time; a.busy = true; a.dir = dirOf(tx - a.x, ty - a.y); playAnim(a.sp, a.key, 'attack', a.dir, false);
         this.sc.time.delayedCall(hitMs(a.key, 'attack', 260), () => {
-          if (this.over || !t.alive) return;
-          const hit = () => { if (t.img?.active) { t.img.setTintFill(0xffd8b0); this.sc.time.delayedCall(50, () => t.img?.active && t.img.setTint(charTint(t.fk === 'ruin' ? 0 : Math.max(0, 1 - t.hp / t.max)))); } fx2(this.sc, a.ranged ? 'fx_hit_arrow' : 'fx_hit_sword', tx, t.y - 24, 99950, 0.6); };
-          if (a.ranged) this.sc.combat.vfx.bolt(a.x, a.y - 18, tx, t.y - 24, 0xffe8a0, 0.8, 700, hit, true); else hit();
+          if (this.over || !tg.alive) return;
+          const hit = () => {
+            if (isG) { fx2(this.sc, a.ranged ? 'fx_hit_arrow' : 'fx_hit_sword', gd.x, gd.y - 18, 99952, 0.7); this.hurtGuard(gd, gd.max / 14); return; }
+            if (t.img) { t.img.setTintFill(0xffd8b0); this.sc.time.delayedCall(50, () => t.img?.active && t.img.setTint(charTint(t.fk === 'ruin' ? 0 : Math.max(0, 1 - t.hp / t.max)))); }
+            fx2(this.sc, a.ranged ? 'fx_hit_arrow' : 'fx_hit_sword', tx, t.y - 24, 99952, 0.7);
+          };
+          if (a.ranged) this.sc.combat.vfx.bolt(a.x, a.y - 18, tx, ty - 24, 0xffe8a0, 0.8, 700, hit, true); else hit();
         });
         this.sc.time.delayedCall(700, () => { a.busy = false; });
       } else if (!a.busy && d <= reach) setIdle(a.sp, a.key, a.dir);
@@ -112,8 +135,9 @@ export class RaidBattle {
         this.add(st, `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${st.level}`, P.x, P.y, t === 'hall' ? 84 : 70, 46, img);
       }
     }
-    // the members' houses are scenery (houses are never raided)
-    r.houses.forEach((lv, i) => { if (lv > 0) { const P = L.PLOTS[L.housePlot(i)]; sc.obj(`house_${artLv(lv)}`, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE); } });
+    // the members' houses: scenery in a raid; in a war they can burn (director 15 Nov) — tougher than a fence, softer than a building
+    r.houses.forEach((lv, i) => { if (lv > 0) { const P = L.PLOTS[L.housePlot(i)], img = sc.obj(`house_${artLv(lv)}`, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE); if (this.data.war) { const hp = warHp('house', '', lv); this.add({ id: 'h:' + i, kind: 'house', type: 'house', level: lv, hp } as unknown as RivalStruct, '🏠 บ้านสมาชิก', P.x, P.y, 40, 30, img); } } });
+    if (this.data.war) for (const t of this.targets) if (t.kind !== 'house') { const st = this.data.structs.find(q => q.id === t.id); if (st) t.hp = t.max = warHp(t.kind, st.type, st.level); }   // (war HP is by size)
     // guards: spearmen and archers at the hall, the plaza and the gates
     const posts = [L.PLOTS[L.HALL_PLOT], { x: L.PLAZA.x - 60, y: L.PLAZA.y + 70 }, { x: L.NORTH_GATE.x, y: 140 }, L.PLOTS[L.PLOT_OF.warehouse], L.PLOTS[L.PLOT_OF.barracks], L.PLOTS[L.PLOT_OF.market]];
     const k = 1 + 0.15 * (r.barracks - 1);
@@ -252,7 +276,9 @@ export class RaidBattle {
     // guards: run at the hero when close, strike when in reach, go back to their post when the hero leaves
     for (const g of this.guards) {
       if (!g.alive) continue;
-      const dx = h.x - g.x, dy = h.y - g.y, dist = Math.hypot(dx, dy), key = GUARDS[g.type].key;
+      const key = GUARDS[g.type].key;
+      if (this.data.war) { this.guardWar(g, key, time, dt); continue; }
+      const dx = h.x - g.x, dy = h.y - g.y, dist = Math.hypot(dx, dy);
       const chase = !this.sc.dead && time > this.heroDownUntil && dist < 230, want = chase ? (dist > g.range ? { x: h.x, y: h.y } : null) : (Math.hypot(g.post.x - g.x, g.post.y - g.y) > 6 ? g.post : null);
       if (want && !g.busy) {
         const ax = want.x - g.x, ay = want.y - g.y, ad = Math.hypot(ax, ay), sp = (chase ? 82 : 50) * dt / 1000;
@@ -276,6 +302,39 @@ export class RaidBattle {
     }
   }
 
+  /** (war) a defender runs out at once to the attackers: to where they are, spread out (more where more attackers are),
+   *  mostly at the soldiers, now and then at a hero */
+  private gTgt = new Map<Guard, Ally | 'hero'>();
+  private guardWar(g: Guard, key: string, time: number, dt: number) {
+    const h = this.sc.hero, heroUp = !this.sc.dead && time > this.heroDownUntil;
+    let tg = this.gTgt.get(g); if (tg && tg !== 'hero' && tg.gone) tg = undefined; if (tg === 'hero' && !heroUp) tg = undefined;
+    if (!tg) {
+      const load = new Map<Ally | 'hero', number>(); for (const v of this.gTgt.values()) load.set(v, (load.get(v) ?? 0) + 1);
+      const cands: (Ally | 'hero')[] = this.allies.filter(a => !a.gone); if (heroUp && Math.random() < 0.25) cands.push('hero');
+      tg = cands.sort((p, q) => { const P = p === 'hero' ? h : p, Q = q === 'hero' ? h : q; return Math.hypot(P.x - g.x, P.y - g.y) + 140 * (load.get(p) ?? 0) - Math.hypot(Q.x - g.x, Q.y - g.y) - 140 * (load.get(q) ?? 0); })[0];
+      if (tg) this.gTgt.set(g, tg);
+    }
+    const T = tg === 'hero' ? h : tg;
+    if (T) {
+      const dx = T.x - g.x, dy = T.y - g.y, dist = Math.hypot(dx, dy);
+      if (dist > g.range && !g.busy) {
+        const sp = 86 * dt / 1000, nx = g.x + dx / dist * sp, ny = g.y + dy / dist * sp;
+        if (this.sc.canStand(nx, g.y)) g.x = nx; if (this.sc.canStand(g.x, ny)) g.y = ny;
+        g.dir = dirOf(dx, dy); playAnim(g.sp, key, 'walk', g.dir);
+      } else if (!g.busy && time - g.last > g.rate * 1.2) {
+        g.last = time; g.busy = true; g.dir = dirOf(dx, dy); playAnim(g.sp, key, 'attack', g.dir, false);
+        const boost = this.boost(g.x, g.y);
+        this.sc.time.delayedCall(hitMs(key, 'attack', 300), () => {
+          if (!g.alive || this.over) return;
+          const land = () => { if (tg === 'hero') { if (Math.hypot(h.x - g.x, h.y - g.y) < g.range + 40) this.hurtHero(g.atk * boost, h.x, h.y - 14); } else if (tg && !tg.gone) { tg.sp.setTintFill(0xff9a8a); const a2 = tg; this.sc.time.delayedCall(60, () => { if (a2.sp.active) a2.sp.clearTint(); }); } };
+          if (g.type === 'archer') this.sc.combat.vfx.bolt(g.x, g.y - 18, T.x, T.y - 14, 0xffe8a0, 1, 700, land, true); else land();
+        });
+        this.sc.time.delayedCall(900, () => { g.busy = false; });
+      } else if (!g.busy) setIdle(g.sp, key, g.dir);
+    } else if (!g.busy) setIdle(g.sp, key, g.dir);
+    g.sp.setPosition(g.x, g.y).setDepth(g.y); g.sh.setPosition(g.x, g.y);
+    if (g.hp < g.max) g.bar.clear().fillStyle(0x1a0a08, 0.9).fillRect(g.x - 12, g.y - 52, 24, 4).fillStyle(0xd83a2a, 1).fillRect(g.x - 11, g.y - 51, 22 * g.hp / g.max, 2);
+  }
   /** the end: ask the server for the result, show it, go home */
   finish(why: 'time' | 'all' | 'dead' | 'leave') {
     if (this.data.war) { if (why === 'leave') bus.emit('td:warSwap'); return; }   // a war ends on the server's clock

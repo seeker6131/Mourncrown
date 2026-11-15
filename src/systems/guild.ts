@@ -13,7 +13,7 @@ import { grantMount } from './mounts';
 import {
   GUILD_UNLOCK_LV, GUILD_MAX, DEPUTY_MAX, HOUSE_SLOTS, treasuryCap, vaultShare, RAID_TAKE, RAID_GAIN, RAID_STORED, SHIELD_H, RAIDS_PER_DAY,
   REST_PER_HOUR, restCap, stashSlots, trophySlots, defSlots, CONTRIB, itemContrib, DEFENSES, DEF_ORDER, defStat, GUILD_SHOP, GOAL_POOL,
-  SIM_NAMES, RIVAL_NAMES, GUILD_COST_MULT, GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, GUARDS, guardCap, GUARD_FOOD_H,
+  SIM_NAMES, RIVAL_NAMES, GUILD_COST_MULT, GUILD_BLD, GUILD_BLD_ORDER, gbRate, gbStoreCap, GUARDS, guardCap, guardTypeCap, GUARD_FOOD_H,
   type DefenseId, type GoalKind, type GuildBld, type GuardType,
 } from '../data/guild';
 import { itemDef } from '../data/items';
@@ -300,11 +300,12 @@ export function houseRepair(s: GameState): R | { ok: true } {
 }
 /** what burned in a raid on our village: share of each building's toughness lost (0..1), and our own house */
 export interface RaidHit { target: string; name: string; stars: number; destroyed: string[]; gain: Record<'gold' | 'wood' | 'stone' | 'food', number> }
-export interface Wreck { b?: Partial<Record<GuildBld, number>>; house?: number }
+export interface Wreck { b?: Partial<Record<GuildBld, number>>; house?: number; /** (war) members' houses by house plot: the share wrecked */ homes?: Record<number, number> }
 function applyWreck(s: GameState, w: Wreck) {
   const g = guildOf(s)!, me = meOf(s)!;
   for (const b of g.buildings) { const x = w.b?.[b.type]; if (x && x > 0) b.dmg = Math.min(1, Math.round(((b.dmg ?? 0) + x) * 100) / 100); }
   if (w.house && me.houseLv > 0) me.houseDmg = Math.min(1, Math.round(((me.houseDmg ?? 0) + w.house) * 100) / 100);
+  for (const [i, x] of Object.entries(w.homes ?? {})) { const m = g.members.find(q => q.house === Number(i)); if (m && m.houseLv > 0 && x > 0) m.houseDmg = Math.min(1, Math.round(((m.houseDmg ?? 0) + x) * 100) / 100); }
 }
 /** a raid nobody watched (offline): fire where the enemy got through — more stars, more burning */
 function simWreck(stars: number, rnd: () => number): Wreck {
@@ -364,6 +365,7 @@ export function hireGuard(s: GameState, type: GuardType, now = Date.now()): R | 
   if (!isOfficer(s)) return no('role');
   if (!GUARDS[type]) return no('type');
   if (guardsTotal(g) >= guardCap(barracksLv(s, now))) return no('full');
+  if (g.guards[type] >= guardTypeCap(barracksLv(s, now))) return no('full');   // (half spearmen, half archers — director)
   if (!tPay(g, GUARDS[type].hire)) return no('treasury');
   g.guards[type]++; log(g, 'guard', `${meOf(s)!.name} จ้าง${GUARDS[type].name}`, now);
   return { n: g.guards[type] };
@@ -603,6 +605,11 @@ export function raidedBy(s: GameState, hit: RaidHit, now = Date.now()) {
     if (res && b.stored) { const n = Math.floor(b.stored * RAID_STORED); b.stored -= n; lost[res] += n; }
   }
   for (const q of g.defenses) if (gone.has('d:' + q.slot)) q.hp = 1;
+  // (war) members' houses burnt down: the member repairs it with their own wood / stone; each one also costs the treasury a
+  // little (director 15 Nov: what is destroyed must cost something)
+  let homes = 0;
+  for (const m of g.members) if (gone.has('h:' + m.house) && m.houseLv > 0) { m.houseDmg = 1; homes++; }
+  if (homes) for (const k of RES) { const n = Math.floor(g.treasury[k] * 0.02 * homes); g.treasury[k] -= n; lost[k] += n; }
   if (!stars) {
     seasonAdd(s, 8, now); g.shieldUntil = Math.max(g.shieldUntil, now + 4 * 3600000);
     log(g, 'defend', `🛡 ${name} บุกแต่ป้องกันได้!`, now); g.unread.push(`🛡 กิลด์ ${name} บุกหมู่บ้าน แต่ป้อมและทหารป้องกันไว้ได้!`);
