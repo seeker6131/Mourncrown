@@ -548,7 +548,10 @@ export class TdUIScene extends Phaser.Scene {
       if (on) { const ww = Math.max(w, t.width + 20); bg.fillStyle(0x1a0806, 0.85).fillRoundedRect(x - ww / 2, y, ww, h, 6).lineStyle(1.5, col, 0.95).strokeRoundedRect(x - ww / 2, y, ww, h, 6); }
     };
     this.time.addEvent({ delay: 500, loop: true, callback: tick }); tick();
+    // director: the bar covered other windows' tabs — hidden while any window is open (checked every frame)
+    this.raidBarHide = () => { if (!t.active) return; const open = this.panels.isOpen || !!document.getElementById('mc-town'); bg.setVisible(!open); t.setVisible(!open); if (open && z.input) z.input.enabled = false; else if (z.input && t.text) z.input.enabled = true; };
   }
+  raidBarHide?: () => void;
   /** 📢 show the admin's announcement: under the map title, gold on dark, a soft pulse; 30 s, or tap it away */
   megaphone(text: string) {
     const k = this.kit, w = Math.min(this.VW * 0.56, 420), x = this.VW / 2, y = 62;   // (below the top-bar buttons)
@@ -565,7 +568,7 @@ export class TdUIScene extends Phaser.Scene {
   }
   update(time: number) {
     if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : n.item.startsWith('wing_') ? `🪽 ${WING_BY_ID[n.item.slice(5)]?.name ?? 'ปีก'} จากตู้สุ่มปีก` : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
-    this.minimap?.update(time); this.drawBuffs(time);
+    this.minimap?.update(time); this.drawBuffs(time); this.raidBarHide?.();
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;
     this.root.setVisible(!sel).setAlpha(uiOpt(S()).alpha);
