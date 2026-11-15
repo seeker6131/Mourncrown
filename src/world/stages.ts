@@ -47,7 +47,14 @@ export const isRaid = (n: number) => n === RAID;
 const RAID_MOBS: StageMon[] = (() => { const seen = new Set<string>(), out: StageMon[] = []; for (const L of LANDS) for (const m of L.mobs) if (!seen.has(m.key)) { seen.add(m.key); out.push(m); } return out; })();
 export const RAID_LAND: Land = { id: 'forest', name: 'หมู่บ้านกลาง', ground: 'forest', mobs: RAID_MOBS, boss: LANDS[0].boss };
 export const raidStage = (level: number): Stage => ({ n: RAID, land: RAID_LAND, level: Math.max(1, Math.min(100, level)), req: 1, count: 0, boss: false, minRar: 0, mf: 0 });
-export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : isRaid(n) ? raidStage(level) : STAGES[n - 1];
+/** ⚔ the PvP battlefield (director 15 Nov, docs/PVP.md): Lv40+, open at set hours, an entry fee; heroes fight each other.
+ *  Monsters of the later lands at the hero's level drop better; dying to a player drops only what was farmed here. */
+export const PVP = 400;
+export const isPvp = (n: number) => n === PVP;
+export const PVP_LAND: Land = { id: 'war', name: 'สมรภูมิเลือด', ground: 'lava', boss: LANDS[2].boss,
+  mobs: [LANDS[1].mobs[1], LANDS[1].mobs[2], LANDS[2].mobs[0], LANDS[2].mobs[1], LANDS[3].mobs[0]] };
+export const pvpStage = (level: number): Stage => ({ n: PVP, land: PVP_LAND, level: Math.max(40, Math.min(100, level)), req: 40, count: 34, boss: false, minRar: 2, mf: 60 });
+export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : isRaid(n) ? raidStage(level) : isPvp(n) ? pvpStage(level) : STAGES[n - 1];
 /** mine pits of the Deepwild: each pit has its own ore, rare gem and the level needed to dig there */
 export const PITS = [
   { ore: 'ore_iron', gem: 'gem_emerald', req: 1, name: 'เหมืองเหล็ก' },
