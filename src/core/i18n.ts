@@ -193,6 +193,12 @@ const EN: Record<string, string> = {
   '15 พ.ย. (เที่ยง)': '15 Nov (noon)',
   // news 19 + mounts slot
   '🐎 ใหม่! สัตว์ขี่ 5 ตัวในตู้สุ่ม (แท็บ 🐎 พาหนะ): หมาป่า / หมีศึก (Legend เร็ว +40%) • กวางวิญญาณ / เสือดำ (SL +45%) • มังกรทองเหินฟ้า บินได้! (Limited +50%)': '🐎 New! 5 mounts in the slot machine (🐎 Mounts tab): wolf / war bear (Legend +40%) • spirit stag / panther (SL +45%) • the flying golden dragon (Limited +50%)',
+  '⚔ ใหม่! สมรภูมิเลือด PvP — Lv40+ เปิด 13:00-14:00 และ 20:00-22:00 ค่าเข้า 5,000G • ฆ่ากันชิงของที่ฟาร์มในแมพนั้น (ของที่ใส่อยู่ไม่หาย) • แผนที่ → ⚔ สมรภูมิ PvP': '⚔ New! The Blood Battlefield PvP — Lv40+, open 13:00-14:00 and 20:00-22:00, entry 5,000G • fall and the loot you farmed there goes to your killer (worn gear is safe) • Map → ⚔ PvP Battlefield',
+  '🤝 เชิญเพื่อนด้วยลิงก์ — เมนู → 🤝 เชิญเพื่อน • เพื่อนถึง Lv10 ได้ 💎30 • เพื่อนถึง Lv30 คุณได้ 💎50 • ชวนครบ 3 คนรับปีก Limited!': '🤝 Invite friends with a link — Menu → 🤝 Invite • friend reaches Lv10: they get 💎30 • Lv30: you get 💎50 • 3 friends: Limited wings!',
+  '👹 มอนอยู่เป็นฝูง ตีตัวเดียวทั้งฝูงพุ่งใส่ (แมพมือใหม่ฝูงเล็กกว่า) • มอนในแมพเยอะขึ้น ไม่ต้องเดินหานาน': '👹 Monsters live in packs — hit one and the pack rushes you (smaller packs on beginner maps) • more monsters per map, less walking',
+  '💪 มอนถึกขึ้น ไม่ตายในทีเดียวแล้ว — ของดี ตีบวก เห็นผลชัด • EXP มอนธรรมดา +30%': '💪 Monsters are tougher — no more one-hit kills; good gear and upgrades show • normal monster EXP +30%',
+  '🧪 ยาฟื้นพลังแรงขึ้น: ยาเล็ก +8% ยาใหญ่ +20% ของ HP สูงสุด • ยามานา +10% ของ MP สูงสุด • สกิลใช้มานาเพิ่มขึ้นเล็กน้อย': '🧪 Potions are stronger: small +8%, large +20% of max HP • mana potion +10% of max MP • skills cost a little more MP',
+  '👑 บอสเร่ร่อนแกร่งขึ้น และจะเดินมาหาจุดที่คนเยอะ — รวมทีมล่ากัน!': '👑 Roaming bosses are tougher and head to where the players are — hunt them together!',
   '🎰 ปุ่มตู้สุ่มอยู่แถบบนข้างกงล้อ — ตู้เดียว 2 แท็บ: 🪽 ปีก / 🐎 พาหนะ': '🎰 The slot machine button is on the top bar next to the wheel — one machine, two tabs: 🪽 Wings / 🐎 Mounts',
   '🎰 ตู้สุ่ม': '🎰 Slot machine', 'ตู้สุ่ม': 'Slot', 'พาหนะของฉัน': 'My mounts', '🐎 พาหนะของฉัน (ขี่ / ลง)': '🐎 My mounts (ride / get off)', 'หมาป่าเงาจันทร์': 'Moonshadow Wolf', 'หมีศึกเกราะเหล็ก': 'Iron War Bear', 'กวางวิญญาณพงไพร': 'Forest Spirit Stag', 'เสือดำทมิฬ': 'Shadow Panther', 'มังกรทองเหินฟ้า': 'Skyborne Golden Dragon',
   // PvP
