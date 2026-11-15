@@ -1,7 +1,8 @@
 import { tdQuest, rewardText } from '../systems/tdQuests';
 import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, refLink } from '../systems/refer';
 import { PVP, isPvp } from '../world/stages';
-import { pvpOpen, PVP_HOURS } from '../systems/pvp';
+import { PVP_HOURS } from '../systems/pvp';
+import { brRound, brNext } from '../systems/br';
 import { WINGS, WING_BY_ID, WING_SPEED, TIER_NAME, TIER_COL } from '../data/wings';
 import { activeWing, ownsWing, setWing, wingsOf, WSLOT_OPEN, WSLOT_LTD, WSLOT_PRICE, WSLOT_PRICE10, SLOT_GOLD, SLOT_ELIXIR, SLOT_MOUNTS, type WPrize, type MPrize } from '../systems/wings';
 import { ensureAllWings } from '../world/wingView';
@@ -1571,7 +1572,7 @@ export class Panels implements GuildHost {
     // top row: the Deepwild and the daily dungeon on the left, the five lands as pills on the right
     const ty = y + 28;
     c.add(k.button(x + 12, ty, 92, 20, '🌿 ป่าดงดิบ', () => go(WILD), { size: 8.5, color: 0x1f5a2a }));
-    c.add(k.button(x + 216, ty, 96, 20, pvpOpen() ? '⚔ สมรภูมิ PvP' : `⚔ PvP ${PVP_HOURS.map(([a]) => a + ':00').join('/')}`, () => go(PVP), { size: 8.5, color: pvpOpen() ? 0x8a1a1a : 0x3a2a2a }));   // (⚔ the battlefield: Lv40+, open hours, entry fee — systems/pvp.ts)
+    { const br = brRound(), lob = br?.phase === 'lobby'; c.add(k.button(x + 216, ty, 96, 20, lob ? '⚔ สมรภูมิทีม' : br ? `⚔ รอบหน้า ${Math.ceil(brNext() / 60000)} น.` : `⚔ PvP ${PVP_HOURS.map(([a]) => a + ':00').join('/')}`, () => go(PVP), { size: 8.5, color: lob ? 0x8a1a1a : 0x3a2a2a })); }   // (⚔ the battlefield: Lv40+, open hours, entry fee — systems/pvp.ts)
     { const di = act('dungeonInfo', {}); c.add(k.button(x + 108, ty, 104, 20, `⚔ ดันเจี้ยน ${di.max - di.used}/${di.max}`, () => this.open('dungeon'), { size: 8.5, color: 0x6a2a10 })); }
     const pw = 22, px0 = x + W - 14 - LANDS.length * (pw + 5);
     LANDS.forEach((_, i) => {

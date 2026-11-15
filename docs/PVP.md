@@ -1,3 +1,15 @@
+# ⚔ Team Battlefield (director 15 Nov — replaced the open PvP map before it ever went live)
+Rules: `src/systems/br.ts` · room: `Room.brGet/brTeamMsg/brTick/brOut/brFinish` in `server/worker.ts` · screen: `src/world/brView.ts` · tests: `tests/br.test.ts`, `tests/brRoom.test.ts`.
+- Lv40+, rounds only in PVP_HOURS (13-14, 20-22 Bangkok), one every 20 min: 3 min lobby → 15 min fight → 2 min results. Room per round: `m400-<roundId>`. Enter only in the lobby (server `enterMap`), fee 5,000 once per round (`brPaid`).
+- Lobby: make / join / leave a team of ≤4 (`tcreate/tjoin/tleave`); no team = solo. Fight start locks the roster; < 2 teams → called off, fee back (`/brrefund`).
+- Hits only between living heroes of different teams during the fight (room checks; damage = `pvpDamage`). Fallen = out (watch or go home), nothing lost. Disconnected / left > 30 s = out.
+- Safe zone `brZone` shrinks every 3 min (holds 2, shrinks 1); outside: 5% max HP/s, dealt by the room.
+- Ends when ≤1 team has anyone alive, or at 15 min: most alive, then kills. Winners: 15,000 gold + 12% of a level's EXP each; MVP (kills, then damage): +10,000 + 8% (`/brreward`).
+- 3 hidden chests a round (1, 5, 9 min): all told, seen within 300 px, 5 s unhurt to open; the team earns one roll per member per chest, paid only if the team has someone alive at the end (`brRoll`: Legend ~30%, SL ~3%, golden dragon ~0.1%, else gold — never shown).
+
+---
+(older notes below: the open battlefield design — war bag / drops on death are no longer used)
+
 # ⚔ PvP battlefield (สมรภูมิเลือด) — director 15 Nov 2026
 
 - Map `PVP = 400` (`src/world/stages.ts`: `PVP_LAND`, `pvpStage`) — lava ground + war props `pp_war_*` (PixelLab, `tools/gen_props2.py`).

@@ -5,7 +5,8 @@
 // unchanged (no Phaser, pure rules) with the player's state loaded from the database, and the client copy is deleted.
 // Rules here: never trust numbers from the client — only ids; check everything; random rolls happen here.
 import { PVP, isPvp, PVP_LAND, dungeonHpK } from '../world/stages';
-import { PVP_REQ, PVP_FEE, PVP_GOLD, PVP_MON_HP, pvpOpen, pvpOutLeft, clearWarBag, warBag } from '../systems/pvp';
+import { PVP_REQ, PVP_FEE, PVP_GOLD, PVP_MON_HP, clearWarBag, warBag } from '../systems/pvp';
+import { brRound } from '../systems/br';
 import type { GameState } from '../core/state';
 import { DEV_TOOLS, WILD_ROOM_CAP, MAP_ROOM_CAP } from './config';
 import { fillRooms, pickRoom } from '../systems/rooms';
@@ -106,9 +107,11 @@ export const handlers = {
     if (a.n === WILD) { mem.map = WILD; mem.nodes.clear(); return { ok: true }; }
     if (isPvp(a.n)) {   // ⚔ the battlefield: Lv40+, open hours, not right after a fall, an entry fee
       if (s.level < PVP_REQ) return no('level');
-      if (!pvpOpen(c.now) && !c.admin) return no('closed');
-      if (pvpOutLeft(s, c.now)) return no('out');
-      if (mem.map !== PVP) { if (s.gold < PVP_FEE) return no('gold'); s.gold -= PVP_FEE; clearWarBag(s); }
+      // (⚔ team rounds — systems/br.ts: only in a round's lobby; the fee once per round, paid back if the round is called off)
+      const r = brRound(c.now); if ((!r || r.phase !== 'lobby') && !c.admin) return no('closed');
+      const sv = s as GameState & { brPaid?: number }, rid = r?.id ?? 0;
+      if (sv.brPaid !== rid) { if (s.gold < PVP_FEE) return no('gold'); s.gold -= PVP_FEE; sv.brPaid = rid; }
+      if (mem.map !== PVP) clearWarBag(s);
       mem.map = PVP; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; return { ok: true };
     }
     if (isRaid(a.n)) { mem.map = RAID; mem.dmg = dpsOf(s) * 5; mem.dmgT = c.now; return { ok: true }; }   // ⚔ the village raid (the room runs it; anyone may come)

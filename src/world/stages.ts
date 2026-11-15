@@ -53,7 +53,7 @@ export const PVP = 400;
 export const isPvp = (n: number) => n === PVP;
 export const PVP_LAND: Land = { id: 'war', name: 'สมรภูมิเลือด', ground: 'lava', boss: LANDS[2].boss,
   mobs: [LANDS[1].mobs[1], LANDS[1].mobs[2], LANDS[2].mobs[0], LANDS[2].mobs[1], LANDS[3].mobs[0]] };
-export const pvpStage = (level: number): Stage => ({ n: PVP, land: PVP_LAND, level: Math.max(40, Math.min(100, level)), req: 40, count: 40, boss: false, minRar: 2, mf: 60 });
+export const pvpStage = (level: number): Stage => ({ n: PVP, land: PVP_LAND, level: Math.max(40, Math.min(100, level)), req: 40, count: 60, boss: false, minRar: 2, mf: 60 });   // (the team battlefield is a big map)
 export const stageOf = (n: number, level: number): Stage => n === WILD ? wildStage(level) : isDungeon(n) ? dungeonStage(n - DUNGEON, level) : isRaid(n) ? raidStage(level) : isPvp(n) ? pvpStage(level) : STAGES[n - 1];
 /** mine pits of the Deepwild: each pit has its own ore, rare gem and the level needed to dig there */
 export const PITS = [

@@ -1,7 +1,9 @@
 // Mourncrown game server — Cloudflare Worker + D1 + Durable Objects (free plan). Deployed by tools/deploy_server.py.
 import { REF_NEW_DIA, REF_INVITER_DIA, REF_WING_AT, REF_WING, REF_MAX, REF_DAYS, refCode } from '../src/systems/refer';
 import { loseWarBag, warBag, PVP_SHIELD_MS, pvpDamage } from '../src/systems/pvp';
-import { openChest, CHEST_GAP, CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH, CHEST_SIGHT, CHEST_MIN_PLAYERS } from '../src/systems/pvpChest';
+import { CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH, CHEST_SIGHT } from '../src/systems/pvpChest';
+import { brRoundById, brZone, brResult, brPay, brRoll, BR_CHESTS, BR_DC_MS, BR_MIN_TEAMS, BR_TEAM_MAX, BR_ZONE_DMG, type BrPrize } from '../src/systems/br';
+import { PVP_FEE } from '../src/systems/pvp';
 import { isPvp } from '../src/world/stages';
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
@@ -498,7 +500,7 @@ const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
 interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
-  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number; /** 📦 the chest this game was shown / hinted about */ pcs?: number; pch?: number }
+  /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number; /** 📦 the chest this game was shown / hinted about */ pcs?: number; pch?: number; /** ⚔ the round this game was sent the teams of */ brSeen?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
 export class Room {
@@ -720,71 +722,143 @@ export class Room {
     }
     return me.pv;
   }
-  // 📦 battlefield treasure chests (src/systems/pvpChest.ts): one at a time, away from the heroes; stand by it unhurt to open
+  // 📦 battlefield treasure chests (src/systems/pvpChest.ts): 3 a round (BR_CHESTS), hidden — everyone is told one is
+  // somewhere, a hero sees it only close by; the team that opens it earns a prize roll for every member (paid at the end)
   private chest: { id: number; x: number; y: number; until: number; opener?: string; start?: number } | null = null;
-  private chestAt = 0; private chestN = 1;
+  private chestN = 1;
   private pvpChestTick(ws: WebSocket, me: Who, now: number) {
-    const gap = () => now + CHEST_GAP[0] + Math.random() * (CHEST_GAP[1] - CHEST_GAP[0]);
-    if (!this.chestAt) this.chestAt = now + 60000 + Math.random() * 60000;   // (the first one a minute or two after the room wakes)
+    const b = this.br; if (!b || !b.roster || b.done) return;
+    const R = brRoundById(b.id), into = now - R.fightAt;
     const c = this.chest;
-    if (c && now > c.until && !c.opener) { this.send({ t: 'pcgone', id: c.id }); this.chest = null; this.chestAt = gap(); }
-    if (!this.chest && now > this.chestAt && this.players().length >= CHEST_MIN_PLAYERS) {   // (a near-empty battlefield gets none: no free farming)
+    if (c && now > c.until && !c.opener) { this.send({ t: 'pcgone', id: c.id }); this.chest = null; }
+    if (!this.chest && b.chests < BR_CHESTS.length && into >= BR_CHESTS[b.chests]) {
+      b.chests++; this.brSave(true);
       const ps = this.players(); let at: { x: number; y: number } | null = this.sim ? this.sim.spot(ps) : null;
       if (!at && ps.length) { const q = ps[Math.floor(Math.random() * ps.length)], a = Math.random() * Math.PI * 2; at = { x: Math.max(60, q.x + Math.cos(a) * 400), y: Math.max(60, q.y + Math.sin(a) * 300) }; }
-      if (at) this.chest = { id: this.chestN++, x: Math.round(at.x), y: Math.round(at.y), until: now + CHEST_LIFE };
+      if (at) this.chest = { id: this.chestN++ + b.id * 10, x: Math.round(at.x), y: Math.round(at.y), until: now + CHEST_LIFE };
     }
-    // director: the chest is hidden somewhere — everyone is only told it exists; a hero sees it when close by
     const c2 = this.chest, mp = me.p as { x: number; y: number } | undefined; if (!c2 || !mp) return;
     if (me.pch !== c2.id) { me.pch = c2.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'pchint', id: c2.id })); } catch { /* closing */ } }
     if (me.pcs !== c2.id && Math.hypot(c2.x - mp.x, c2.y - mp.y) < CHEST_SIGHT) { me.pcs = c2.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'pchest', id: c2.id, x: c2.x, y: c2.y, until: c2.until })); } catch { /* closing */ } }
   }
+  // ---------------------------------------------------------------- ⚔ team round, last team standing (src/systems/br.ts)
+  // Kept in storage too (a room that sleeps / restarts mid-round keeps its teams, the alive list and the score).
+  br: { id: number; teams: Record<string, string[]>; names: Record<string, string>; roster: string[] | null; alive: string[]; kills: Record<string, number>; dmg: Record<string, number>; chest: Record<string, number>; dc: Record<string, number>; chests: number; done: boolean; zT: number } | null = null;
+  brLoaded = false; brSaveT = 0; brTimer: ReturnType<typeof setInterval> | null = null;
+  private async brGet(room: string) {
+    const id = Number(room.split('-')[1]) || 0;
+    if (!this.brLoaded) { this.brLoaded = true; const v = await this.store.get('br').catch(() => null) as typeof this.br; if (v && v.id === id) this.br = v; }
+    if (!this.br || this.br.id !== id) this.br = { id, teams: {}, names: {}, roster: null, alive: [], kills: {}, dmg: {}, chest: {}, dc: {}, chests: 0, done: false, zT: 0 };
+    if (!this.brTimer) this.brTimer = setInterval(() => { if (!this.state.getWebSockets().length) { if (this.brTimer) clearInterval(this.brTimer); this.brTimer = null; return; } this.brTick(Date.now()); }, 1000);
+    return this.br;
+  }
+  private brSave(force = false) { const now = Date.now(); if (!force && now - this.brSaveT < 2000) return; this.brSaveT = now; this.store.put('br', this.br).catch(() => undefined); }
+  private teamOf(pid: string) { const b = this.br; if (!b) return null; for (const [tid, m] of Object.entries(b.teams)) if (m.includes(pid)) return tid; return null; }
+  private brTeamsOut() { const b = this.br!; return Object.entries(b.teams).map(([tid, m]) => ({ tid, m: m.map(id => ({ id, name: b.names[id] ?? '?', alive: !b.roster || b.alive.includes(id) })) })); }
+  private brSendTeams() { this.send({ t: 'bteams', teams: this.brTeamsOut() }); }
+  /** lobby: make a team / join one (up to BR_TEAM_MAX) / leave it */
+  private brTeamMsg(me: Who, m: Record<string, unknown>, now: number) {
+    const b = this.br; if (!b || b.roster || now >= brRoundById(b.id).fightAt) return;
+    b.names[me.id] = me.name;
+    const leave = () => { const tid = this.teamOf(me.id); if (!tid) return; b.teams[tid] = b.teams[tid].filter(x => x !== me.id); if (!b.teams[tid].length) delete b.teams[tid]; };
+    if (m.t === 'tcreate') { leave(); b.teams['t' + me.id.slice(0, 8)] = [me.id]; }
+    else if (m.t === 'tjoin') { const tid = String(m.tid ?? ''), tm = b.teams[tid]; if (!tm || tm.length >= BR_TEAM_MAX || tm.includes(me.id)) return; leave(); tm.push(me.id); }
+    else if (m.t === 'tleave') leave();
+    this.brSave(true); this.brSendTeams();
+  }
+  /** once a second: lock the teams when the fight starts, the safe zone, heroes who dropped off, the end */
+  private async brTick(now: number) {
+    const b = this.br; if (!b || b.done) return;
+    const R = brRoundById(b.id); if (now < R.fightAt) return;
+    const here = this.all().filter(x => x.a.p);
+    if (!b.roster) {   // the fight starts: whoever is here plays; a hero without a team plays alone
+      const ids = [...new Set(here.map(x => x.a.id))];
+      for (const x of here) b.names[x.a.id] = x.a.name;
+      for (const tid of Object.keys(b.teams)) { b.teams[tid] = b.teams[tid].filter(id => ids.includes(id)); if (!b.teams[tid].length) delete b.teams[tid]; }
+      for (const id of ids) if (!this.teamOf(id)) b.teams['s' + id.slice(0, 8)] = [id];
+      b.roster = ids; b.alive = [...ids];
+      if (Object.keys(b.teams).length < BR_MIN_TEAMS) {   // not enough teams: called off, the fee back
+        b.done = true; this.brSave(true); this.send({ t: 'bend', cancelled: true });
+        for (const id of ids) this.state.waitUntil?.(this.env.PLAYER.get(this.env.PLAYER.idFromName(id)).fetch(new Request('https://p/brrefund?id=' + id, { method: 'POST', body: JSON.stringify({ id: b.id }) })).catch(() => undefined));
+        return;
+      }
+      this.brSave(true); this.send({ t: 'bstart', id: b.id, fightAt: R.fightAt, fightEnd: R.fightEnd, teams: this.brTeamsOut() });
+    }
+    // heroes who dropped off / left the map: out after BR_DC_MS
+    const on = new Set(here.map(x => x.a.id));
+    for (const id of [...b.alive]) { if (on.has(id)) { delete b.dc[id]; continue; } b.dc[id] ??= now; if (now - b.dc[id] > BR_DC_MS) this.brOut(id, null); }
+    // the safe zone: outside it, HP goes every second (the room keeps the count, as for hits)
+    if (this.sim && now - b.zT >= 1000) {
+      b.zT = now; const z = brZone(now - R.fightAt, this.sim.W, this.sim.H, b.id);
+      for (const x of here) {
+        if (!b.alive.includes(x.a.id)) continue;
+        const p = x.a.p as { x: number; y: number; hp: number }; if (Math.hypot(p.x - z.x, p.y - z.y) <= z.r) continue;
+        const st = await this.pvStat(x.w, x.a, now); if (!st) continue;
+        const back = x.a.php === undefined ? st.hp : Math.min(st.hp, x.a.php + (now - (x.a.phT ?? now)) / 1000 * st.hp * 0.04);
+        const cur = Math.min(back, st.hp * Math.max(1, p.hp) / 100) - st.hp * BR_ZONE_DMG; x.a.phT = now; x.a.php = Math.max(0, cur); (x.w as WSX).serializeAttachment(x.a);
+        this.send({ t: 'php', id: x.a.id, by: '', dmg: Math.round(st.hp * BR_ZONE_DMG), hp: Math.max(0, Math.round(100 * cur / st.hp)), zone: 1 });
+        if (cur <= 0) this.brOut(x.a.id, null);
+      }
+    }
+    const teamsAlive = Object.values(b.teams).filter(m => m.some(id => b.alive.includes(id))).length;
+    if (teamsAlive <= 1 || now >= R.fightEnd) await this.brFinish();
+    else this.brSave();
+  }
+  /** a hero is out of the round (fell to a hero / to the zone / dropped off) */
+  private brOut(id: string, by: Who | null) {
+    const b = this.br; if (!b || !b.alive.includes(id)) return;
+    b.alive = b.alive.filter(x => x !== id); if (by) b.kills[by.id] = (b.kills[by.id] ?? 0) + 1;
+    const w = this.all().find(x => x.a.id === id); if (w) { w.a.dead = Date.now(); w.a.php = undefined; (w.w as WSX).serializeAttachment(w.a); }
+    if (this.chest?.opener === id) this.chest.opener = undefined;
+    this.send({ t: 'pkill', id, name: b.names[id] ?? '?', by: by?.id ?? '', kname: by?.name ?? '' });
+    this.brSave(true);
+  }
+  /** the round is over: the winners, the MVP, the chest rolls of teams with someone alive */
+  private async brFinish() {
+    const b = this.br; if (!b || b.done) return; b.done = true; this.brSave(true);
+    const res = brResult(b.teams, new Set(b.alive), b.kills, b.dmg), out: Record<string, unknown> = {};
+    await Promise.allSettled((b.roster ?? []).map(async id => {
+      const tid = this.teamOf(id), win = !!tid && tid === res.win, mvp = id === res.mvp;
+      const rolls = tid && b.teams[tid].some(x => b.alive.includes(x)) ? Math.min(BR_CHESTS.length, b.chest[tid] ?? 0) : 0;
+      if (!win && !mvp && !rolls) return;
+      try { out[id] = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(id)).fetch(new Request('https://p/brreward?id=' + id, { method: 'POST', body: JSON.stringify({ win, mvp, rolls }) }))).json(); } catch { /* lost */ }
+    }));
+    this.send({ t: 'bend', win: res.win, winners: res.win ? (b.teams[res.win] ?? []).map(id => b.names[id] ?? '?') : [], mvp: res.mvp ? b.names[res.mvp] ?? '?' : '', mvpKills: res.mvp ? b.kills[res.mvp] ?? 0 : 0, rows: res.rows.map(r => ({ ...r, names: (b.teams[r.tid] ?? []).map(id => b.names[id] ?? '?') })) });
+  }
   private async pvpMsg(ws: WebSocket, me: Who, m: Record<string, unknown>, now: number) {
     const all = this.all(), meP = me.p as { x: number; y: number; hp: number } | undefined; if (!meP || (me.dead && now - me.dead < 4000)) return;
+    const b = this.br, inRound = !!b && !!b.roster && !b.done && b.alive.includes(me.id);
     if (m.t === 'pcopen' || m.t === 'pcdone') {
-      const c = this.chest; if (!c || Number(m.id) !== c.id || Math.hypot(c.x - meP.x, c.y - meP.y) > CHEST_REACH + 12) return;
+      const c = this.chest; if (!inRound || !c || Number(m.id) !== c.id || Math.hypot(c.x - meP.x, c.y - meP.y) > CHEST_REACH + 12) return;
       if (m.t === 'pcopen') {
         if (c.opener && c.opener !== me.id && now - (c.start ?? 0) < CHEST_OPEN_MS + 3000) return;   // (somebody else is at it)
         c.opener = me.id; c.start = now; this.send({ t: 'pcopen', id: c.id, by: me.id, name: me.name }); return;
       }
       if (c.opener !== me.id || now - (c.start ?? now) < CHEST_OPEN_MS - 400) return;
-      this.chest = null; this.chestAt = now + CHEST_GAP[0] + Math.random() * (CHEST_GAP[1] - CHEST_GAP[0]);
-      let prize: Record<string, unknown> = {};
-      try { prize = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/pvpchest?id=' + me.id, { method: 'POST' }))).json() as Record<string, unknown>; } catch { /* lost */ }
-      this.send({ t: 'pcgone', id: c.id, by: me.id, name: me.name, prize });
+      const tid = this.teamOf(me.id); if (!tid) return;
+      this.chest = null; b!.chest[tid] = (b!.chest[tid] ?? 0) + 1; this.brSave(true);
+      this.send({ t: 'pcgone', id: c.id, by: me.id, name: me.name, team: tid });
       return;
     }
-    if (m.t === 'ppick') {   // walk onto loot: the first to reach it takes it
-      const did = Number(m.did), d = this.pdrops.get(did); if (!d || d.until < now) { this.pdrops.delete(did); return; }
-      if (Math.hypot(d.x - meP.x, d.y - meP.y) > 48) return;
-      this.pdrops.delete(did); this.send({ t: 'pgone', did });
-      try { await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/pvpgain?id=' + me.id, { method: 'POST', body: JSON.stringify({ gold: d.gold, item: d.item }) })); } catch { /* lost */ }
-      return;
-    }
+    if (m.t === 'ppick') return;   // (team rounds: nothing is dropped on the ground)
     const tgtId = String(m.to ?? ''), tw = all.find(x => x.a.id === tgtId); if (!tw || tgtId === me.id) return;
     const tg = tw.a, tp = tg.p as { x: number; y: number; hp: number } | undefined; if (!tp || (tg.dead && now - tg.dead < 6000)) return;
+    if (!inRound || !b!.alive.includes(tgtId) || this.teamOf(tgtId) === this.teamOf(me.id)) return;   // (⚔ only in the fight, both still in, never a teammate)
     if (now - (tg.join ?? 0) < PVP_SHIELD_MS || now - (me.join ?? 0) < PVP_SHIELD_MS) return;   // (just arrived: shielded — and the arriving hero cannot strike yet)
-    const a = await this.pvStat(ws, me, now), b = await this.pvStat(tw.w, tg, now); if (!a || !b) return;
+    const a = await this.pvStat(ws, me, now), bb = await this.pvStat(tw.w, tg, now); if (!a || !bb) return;
     const skill = m.k === 'sk', ranged = a.cls === 'archer' || a.cls === 'mage';
     if (now - (me.paT ?? 0) < Math.max(450, a.iv * 0.8) * (skill ? 0.5 : 1)) return;   // (as fast as the hero really swings)
     const dist = Math.hypot(tp.x - meP.x, tp.y - meP.y); if (dist > (ranged || skill ? 180 : 64)) return;
     me.paT = now;
-    const dmg = pvpDamage(a, b, { skill, dist, crit: Math.random() < Math.min(0.5, a.crit) });
+    const dmg = pvpDamage(a, bb, { skill, dist, crit: Math.random() < Math.min(0.5, a.crit) }); b!.dmg[me.id] = (b!.dmg[me.id] ?? 0) + dmg;
     // (the server's count, never above what the game says; it climbs back by regen / potions / life steal at most 4% of max HP a second)
-    const back = tg.php === undefined ? b.hp : Math.min(b.hp, tg.php + (now - (tg.phT ?? now)) / 1000 * b.hp * 0.04);
-    const cur = Math.min(back, b.hp * Math.max(1, tp.hp) / 100) - dmg; tg.phT = now;
+    const back = tg.php === undefined ? bb.hp : Math.min(bb.hp, tg.php + (now - (tg.phT ?? now)) / 1000 * bb.hp * 0.04);
+    const cur = Math.min(back, bb.hp * Math.max(1, tp.hp) / 100) - dmg; tg.phT = now;
     tg.php = Math.max(0, cur); (tw.w as WSX).serializeAttachment(tg);
     if (this.chest?.opener === tg.id) { this.chest.opener = undefined; this.send({ t: 'pcstop', id: this.chest.id, by: tg.id }); }   // (📦 a hit stops the opening)
-    this.send({ t: 'php', id: tg.id, by: me.id, dmg, hp: Math.max(0, Math.round(100 * cur / b.hp)) });
+    this.send({ t: 'php', id: tg.id, by: me.id, dmg, hp: Math.max(0, Math.round(100 * cur / bb.hp)) });
     if (cur > 0) return;
-    tg.dead = now; tg.php = undefined; (tw.w as WSX).serializeAttachment(tg);
-    this.send({ t: 'pkill', id: tg.id, name: tg.name, by: me.id, kname: me.name });
-    try {
-      const out = await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(tg.id)).fetch(new Request('https://p/pvpdie?id=' + tg.id, { method: 'POST' }))).json() as { gold: number; items: { id: string; qty: number; gear?: Record<string, unknown> }[] };
-      const drops: { did: number; x: number; y: number; id?: string; qty?: number; gold?: number; rar?: number }[] = [], spot = (i: number) => ({ x: tp.x + Math.cos(i * 1.9) * (14 + i * 3), y: tp.y + Math.sin(i * 1.9) * (10 + i * 2) });
-      if (out.gold > 0) { const did = this.pdid++, p = spot(0); this.pdrops.set(did, { ...p, gold: out.gold, until: now + 120000 }); drops.push({ did, ...p, gold: out.gold }); }
-      out.items.slice(0, 40).forEach((it, i) => { const did = this.pdid++, p = spot(i + 1); this.pdrops.set(did, { ...p, item: it, until: now + 120000 }); drops.push({ did, ...p, id: it.id, qty: it.qty, rar: Number((it.gear as { rar?: number } | undefined)?.rar ?? -1) }); });
-      if (drops.length) this.send({ t: 'pdrop', a: drops });
-    } catch { /* the bag could not be taken */ }
+    this.brOut(tg.id, me);   // (out of the round — nothing farmed is lost)
   }
   /** to everyone in this room */
   private send(o: unknown) { const t = JSON.stringify(o); for (const w of this.state.getWebSockets()) { try { w.send(t); } catch { /* closing */ } } }
@@ -802,7 +876,11 @@ export class Room {
       const num = (v: unknown, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
       const p = { x: num(m.x, 0, 4000), y: num(m.y, 0, 4000), d: num(m.d, 0, 7), f: String(m.f ?? 'hero').slice(0, 8), mv: m.mv ? 1 : 0, hp: num(m.hp, 0, 100), a: num(m.a, 0, 4), r: String(m.r ?? '').slice(0, 8), lv: num(m.lv, 1, 999), pe: m.pe ? 1 : 0, nc: m.nc ? 1 : 0, sk: m.sk ? 1 : 0, wu: num(m.wu, 0, 2), wg: String(m.wg ?? '').replace(/[^a-z_]/g, '').slice(0, 12), ...(m.ts !== undefined ? { ts: num(m.ts, 0, 4e9) } : {}) };   // (ts: the sender's clock, for smooth movement)
       me.p = p; (ws as WSX).serializeAttachment(me);
-      if (isPvp(mapOfRoom(room))) this.pvpChestTick(ws, me, now);
+      if (isPvp(mapOfRoom(room))) {
+        const b = await this.brGet(room); b.names[me.id] = me.name;
+        if (me.brSeen !== b.id) { me.brSeen = b.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'bteams', teams: this.brTeamsOut(), started: !!b.roster, done: b.done, alive: b.alive })); } catch { /* closing */ } }
+        this.pvpChestTick(ws, me, now);
+      }
       this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
       // a sleeping room wakes only for a reason: a boss is due (a missed alarm) or someone came near the standing boss
       // (not on every position — that kept the room awake all the time)
@@ -823,6 +901,8 @@ export class Room {
       const e = this.grids.get(hk) ?? { g, ids: new Set<string>() }; e.ids.add(me.id); this.grids.set(hk, e);
       if (!this.sim && !this.wbKeep) this.wbKeep = Number(await this.store.get('wbAt').catch(() => 0)) || 0;
       this.choose(room);
+    } else if ((m.t === 'tcreate' || m.t === 'tjoin' || m.t === 'tleave') && isPvp(mapOfRoom(room))) {
+      await this.brGet(room); this.brTeamMsg(me, m, now);
     } else if ((m.t === 'pa' || m.t === 'ppick' || m.t === 'pcopen' || m.t === 'pcdone') && isPvp(mapOfRoom(room))) {   // ⚔ PvP: I hit a hero / I pick up battlefield loot
       await this.pvpMsg(ws, me, m, now);
     } else if (m.t === 'dmg' && this.sim) {   // I hit a monster: the room takes the HP off (no more than this hero could deal)
@@ -866,6 +946,7 @@ export class Room {
     const me = (ws as WSX).deserializeAttachment() as Who; if (me) this.others(ws, JSON.stringify({ t: 'bye', id: me.id }));
     try { ws.close(); } catch { /* already */ }
     if (me) { for (const v of this.grids.values()) v.ids.delete(me.id); if (mapOfRoom(me.room ?? '')) this.choose(me.room ?? ''); }
+    if (me && this.br && !this.br.roster && isPvp(mapOfRoom(me.room ?? '')) && !this.state.getWebSockets().some(w => w !== ws && ((w as WSX).deserializeAttachment() as Who)?.id === me.id)) this.brTeamMsg(me, { t: 'tleave' }, Date.now());   // (left in the lobby: off the team)
   }
   async webSocketError(ws: WebSocket) { await this.webSocketClose(ws); }
 }
@@ -1045,7 +1126,7 @@ export class Player {
     if (name === 'guildCreate') {
       if (st.guild) return { r: { refused: 'member' }, own: {} };
       if (!cleanName(String(a.name ?? '').replace(/\s+/g, '_'))) return { r: { refused: 'name' }, own: {} };   // (the player-name filter)
-      const out = this.run('guildCreate', a); const g = st.guild; if (!g || (out.r as { refused?: string })?.refused) return out;
+      const out = this.run('guildCreate', a); const g = st.guild as unknown as { id: string; name: string; members: { id: string }[] } | undefined; if (!g || (out.r as { refused?: string })?.refused) return out;
       for (const mm of g.members) if (mm.id === 'me') mm.id = this.id;
       try { await DB.prepare('INSERT INTO guilds (id, name, name_key, leader, members, hall, at) VALUES (?, ?, ?, ?, 1, 1, ?)').bind(g.id, g.name, g.name.toLowerCase(), String(st.name ?? ''), now).run(); }
       catch { delete st.guild; return { r: { refused: 'taken' }, own: this.diff(b) }; }   // (another guild has that name)
@@ -1213,10 +1294,21 @@ export class Player {
       this.send({ t: 'note', own: this.diff(b), text: out.gold || out.items.length ? '💀 ล้มในสมรภูมิ — ของที่ได้จากสมรภูมิรอบนี้ตกอยู่ที่พื้น' : '💀 ล้มในสมรภูมิ' });
       return new Response(JSON.stringify(out));
     }
-    if (u.pathname === '/pvpchest' && this.st) {   // 📦 opened a battlefield chest: the roll happens here
-      const b = this.snap(), pr = openChest(this.st as unknown as GameState, Math.random);
-      this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
-      return new Response(JSON.stringify(pr));
+    if (u.pathname === '/brrefund' && this.st) {   // ⚔ the round was called off (too few teams): the entry fee back, once
+      const j = JSON.parse(await req.text()) as { id: number }, st = this.st as unknown as GameState & { brPaid?: number }, b = this.snap();
+      if (st.brPaid !== j.id) return new Response('{}');
+      st.gold += PVP_FEE; st.brPaid = -j.id; this.dirty = true; await this.persist();
+      this.send({ t: 'note', own: this.diff(b), text: `⚔ รอบนี้ทีมไม่ครบ ${BR_MIN_TEAMS} ทีม — ยกเลิก คืนค่าเข้า 💰${PVP_FEE.toLocaleString()}` });
+      return new Response('{}');
+    }
+    if (u.pathname === '/brreward' && this.st) {   // ⚔ the round's pay: winners / MVP gold + EXP, the team's chest rolls
+      const j = JSON.parse(await req.text()) as { win: boolean; mvp: boolean; rolls: number }, st = this.st as unknown as GameState, b = this.snap();
+      const pay = brPay(st, { win: !!j.win, mvp: !!j.mvp }), prizes: BrPrize[] = [];
+      for (let i = 0; i < Math.max(0, Math.min(BR_CHESTS.length, Number(j.rolls) || 0)); i++) prizes.push(brRoll(st, Math.random));
+      this.dirty = true; await this.persist();
+      const txt = [j.win ? '🏆 ทีมคุณชนะ!' : '', j.mvp ? '⭐ MVP!' : '', pay.gold ? `💰${pay.gold.toLocaleString()} +${pay.exp.toLocaleString()} EXP` : '', prizes.length ? `📦 สุ่มจากกล่อง ${prizes.length} ครั้ง` : ''].filter(Boolean).join(' • ');
+      this.send({ t: 'note', own: this.diff(b), text: txt });
+      return new Response(JSON.stringify({ ...pay, prizes }));
     }
     if (u.pathname === '/pvpgain' && this.st) {
       const g = JSON.parse(await req.text()) as { gold?: number; item?: { id: string; qty: number; gear?: Record<string, unknown> } }, st = this.st as unknown as GameState, b = this.snap(), bag = warBag(st);

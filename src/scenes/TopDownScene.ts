@@ -7,6 +7,8 @@ import { Combat, MONSTER_PFX } from '../world/tdCombat';
 import { STAGES, WILD, PITS, DUNGEON, isDungeon, stageOf, DUNGEON_SECS, DUNGEON_WAVES, RAID, isRaid, raidStage, dungeonLand, PVP, isPvp } from '../world/stages';
 import { CLUSTER } from '../systems/spawnRate';
 import { CHEST_OPEN_MS, CHEST_REACH } from '../systems/pvpChest';
+import { brRound, brNext } from '../systems/br';
+import { BrView } from '../world/brView';
 import { PVP_REQ, PVP_FEE, PVP_HOURS, pvpOpen, pvpOutLeft } from '../systems/pvp';
 import { isAdmin } from '../net/cloud';
 import type { RoomEvent } from '../net/room';
@@ -338,7 +340,7 @@ export class TopDownScene extends Phaser.Scene {
   roomId(): string | null {
     if (this.dungeon || this.raid || this.defense || this.raidMode || this.warSide || this.inside >= 0) return null;
     if (this.wild) return 'w';
-    if (isPvp(this.stageN)) return 'm' + PVP + 'b' + Math.max(0, Math.min(2, Math.floor((S().level - 40) / 20)));   // (⚔ by level band: 40-59, 60-79, 80+)
+    if (isPvp(this.stageN)) return 'm' + PVP + '-' + (brRound()?.id ?? 0);   // (⚔ one room per team round — systems/br.ts)
     if (this.stageN) return 'm' + this.stageN;
     if (this.gv) { const g = guildOf(S()) as { id?: string } | null; return g?.id ? ('g-' + String(g.id).toLowerCase().replace(/[^a-z0-9]/g, '')).slice(0, 32) : 'gv'; }
     return 'v';
@@ -368,7 +370,7 @@ export class TopDownScene extends Phaser.Scene {
   resumePos: { x: number; y: number } | null = null; resumeFarm = false;
   init(data: { stage?: number; room?: number; guild?: boolean; inside?: number; at?: number; raid?: boolean; war?: 'home' | 'enemy'; pos?: { x: number; y: number }; farm?: boolean }) {
     this.resumePos = data?.pos && data.pos.x >= 0 ? data.pos : null; this.resumeFarm = !!data?.farm;
-    this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild ? 1792 : this.stageN ? 1408 : 1024;
+    this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild || isPvp(this.stageN) ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild || isPvp(this.stageN) ? 1792 : this.stageN ? 1408 : 1024;   // (⚔ the team battlefield is big: chests take finding)
     const st0 = runtime.state;
     this.gv = !this.stageN && (data?.guild ?? !!(st0 && guildOf(st0)));
     this.inside = this.gv ? data?.inside ?? -1 : -1; this.arriveAt = data?.at ?? -1;
@@ -387,7 +389,7 @@ export class TopDownScene extends Phaser.Scene {
 
   create() {
     unpackAtlas(this, 'obj', 'o_');   // map objects back under their own keys before anything is placed
-    this.pChest = null; this.pvpLoot = new Map();   // (the scene instance survives a restart: its battlefield objects are gone)
+    this.pChest = null; this.pvpLoot = new Map(); this.bv = undefined;   // (the scene instance survives a restart: its battlefield objects are gone)
     if (!runtime.state) runtime.state = loadGame() ?? startNewGame();
     applyGfx(this.game, uiOpt(S()));   // (FPS cap + low graphics from the settings)
     if (TEST_HOOKS) (window as unknown as { __tdS: typeof S }).__tdS = S;   // tests only (localhost)
@@ -468,6 +470,7 @@ export class TopDownScene extends Phaser.Scene {
         if (e.t === 'ms' || e.t === 'mhp' || e.t === 'mdead' || e.t === 'matk' || e.t === 'mfx' || e.t === 'wb') { if (shared) this.combat.netEvent(e); return; }
         if (e.t === 'rs') { this.rv?.onState(e); return; }
         if (e.t === 'rend') { this.rv?.onEnd(e, link.me, () => this.raidBack()); return; }
+        if (e.t === 'bteams' || e.t === 'bstart' || e.t === 'bend') { this.brEvent(e, link); return; }
         if (e.t === 'php' || e.t === 'pkill' || e.t === 'pdrop' || e.t === 'pgone') { this.pvpEvent(e, link.me); return; }
         if (e.t === 'pchint' || e.t === 'pchest' || e.t === 'pcopen' || e.t === 'pcstop' || e.t === 'pcgone') { this.chestEvent(e, link.me); return; }
         this.peers?.event(e, t => this.heroSay(t)); if (e.t === 'c') bus.emit('td:chat', e);
@@ -1202,10 +1205,11 @@ export class TopDownScene extends Phaser.Scene {
       saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: RAID })); return;
     }
     if (isPvp(n)) {   // ⚔ the PvP battlefield (systems/pvp.ts): Lv40+, open hours, an entry fee — checked again by the server
-      const why = s.level < PVP_REQ ? `ต้องเลเวล ${PVP_REQ} ขึ้นไป` : !pvpOpen() && !isAdmin() ? `สมรภูมิเปิด ${PVP_HOURS.map(([a, b]) => `${a}:00–${b}:00`).join(' และ ')} น.` : pvpOutLeft(s) ? `เพิ่งล้มในสมรภูมิ — เข้าได้อีกใน ${Math.ceil(pvpOutLeft(s) / 60000)} นาที` : s.gold < PVP_FEE ? `ค่าเข้า 💰${PVP_FEE.toLocaleString()} — ทองไม่พอ` : '';
+      const br = brRound(), paid = (s as { brPaid?: number }).brPaid === br?.id, nx = brNext();
+      const why = s.level < PVP_REQ ? `ต้องเลเวล ${PVP_REQ} ขึ้นไป` : (!br || br.phase !== 'lobby') && !isAdmin() ? (br ? `รอบนี้เริ่มสู้แล้ว — รอบหน้าเปิดรับในอีก ${Math.ceil(nx / 60000)} นาที` : `สมรภูมิทีมเปิด ${PVP_HOURS.map(([a, b]) => `${a}:00–${b}:00`).join(' และ ')} น. (รอบละ 20 นาที เข้าได้ช่วง 3 นาทีแรก)`) : !paid && s.gold < PVP_FEE ? `ค่าเข้า 💰${PVP_FEE.toLocaleString()} — ทองไม่พอ` : '';
       if (why) { sfx.error(); bus.emit(EV.TOAST, `⚔ ${why}`, '#ff8a6a'); return; }
       if (s.outfit === 'gather') s.outfit = 'hunt';
-      bus.emit(EV.TOAST, `⚔ เข้าสมรภูมิ (ค่าเข้า 💰${PVP_FEE.toLocaleString()}) — ระวัง! ผู้เล่นตีกันได้ ของที่ได้ในนี้ตกเมื่อถูกฆ่า`, '#ff9a6a');
+      bus.emit(EV.TOAST, `⚔ เข้าสมรภูมิทีม (ค่าเข้า 💰${PVP_FEE.toLocaleString()}) — ตั้งทีมก่อนเริ่ม • ทีมสุดท้ายที่รอดชนะ`, '#ff9a6a');
       saveGame(s); this.portalCool = this.time.now + 99999; this.cameras.main.fadeOut(250); this.time.delayedCall(260, () => showWait()); this.time.delayedCall(300, () => this.scene.restart({ stage: PVP })); return;
     }
     if (isDungeon(n)) {   // daily dungeon: free, the server counts the runs
@@ -1521,7 +1525,7 @@ export class TopDownScene extends Phaser.Scene {
     if (this.rv) return this.rv.title(Date.now());
     if (this.gv && WC.war && !WC.war.over) return warLine(WC.war) + (this.warSide === 'enemy' ? ' • 👁 หมู่บ้านศัตรู' : this.warSide === 'home' ? ' • 👁 หมู่บ้านเรา' : ' • กด ⚔ ดูสงคราม'); if (this.wild) return `🌿 ป่าดงดิบ • 👥 ${testBots.n ? this.online : (this.link?.others.size ?? 0) + 1}/100 • ⚡ แรง ${energyLeft(S())}`;   // (real players here — director: no bots)
     if (this.dungeon) { const left = Math.max(0, Math.ceil((this.dEnd - this.time.now) / 1000)); return this.dDone ? '⚔ ดันเจี้ยน • ผ่านแล้ว! ออกทางประตู' : `⚔ ดันเจี้ยน ${this.st.land.name} • คลื่น ${Math.min(this.dWave, DUNGEON_WAVES.length + 1)}/${DUNGEON_WAVES.length + 1} • ⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
-    if (isPvp(this.stageN)) return `⚔ สมรภูมิเลือด (PvP) • มอน Lv${this.st.level}`;
+    if (isPvp(this.stageN)) return this.bv ? this.bv.title(Date.now()) : `⚔ สมรภูมิทีม • มอน Lv${this.st.level}`;
     const st = this.stageN ? STAGES[this.stageN - 1] : null; if (st) return `แผนที่ ${st.n} ${st.land.name} (มอน Lv${st.level})`;
     if (this.raid) return this.raid.title();
     if (this.defense && !this.defense.over) return this.defense.title();
@@ -2076,7 +2080,7 @@ export class TopDownScene extends Phaser.Scene {
     const h = this.hero, ranged = ['hr4', 'hr5', 'hr6', 'hr7', 'hr8', 'hr9'].includes(this.F.key) || k === 'sk', reach = ranged ? 170 : 58;
     let best: { id: string; d: number } | null = null;
     for (const o of this.link.others.values()) {
-      const d = Math.hypot(o.x - h.x, o.y - h.y); if (d > reach || o.hp <= 0) continue;
+      const d = Math.hypot(o.x - h.x, o.y - h.y); if (d > reach || o.hp <= 0 || this.bv?.mate(o.id)) continue;
       if (!ranged) { const a = Math.atan2(o.y - h.y, o.x - h.x), f = Math.PI / 2 - this.dir * Math.PI / 4; if (Math.cos(a - f) < 0.2 && d > 22) continue; }   // (melee: in front)
       if (!best || d < best.d) best = { id: o.id, d };
     }
@@ -2092,7 +2096,8 @@ export class TopDownScene extends Phaser.Scene {
       return;
     }
     if (e.t === 'pkill') {
-      bus.emit(EV.TOAST, e.id === me ? `💀 คุณถูก ${e.kname} ล้มในสมรภูมิ` : e.by === me ? `⚔ คุณล้ม ${e.name}!` : `⚔ ${e.kname} ล้ม ${e.name}`, e.id === me ? '#ff6a5a' : '#ffd84a');
+      this.bv?.fell(e.id);
+      bus.emit(EV.TOAST, e.id === me ? (e.kname ? `💀 คุณถูก ${e.kname} ล้ม` : '💀 คุณตกรอบ') : e.by === me ? `⚔ คุณล้ม ${e.name}!` : e.kname ? `⚔ ${e.kname} ล้ม ${e.name}` : `💀 ${e.name} ตกรอบ`, e.id === me ? '#ff6a5a' : '#ffd84a');
       if (e.id === me) { s.hp = 0; this.heroDie(); }
       return;
     }
@@ -2105,8 +2110,19 @@ export class TopDownScene extends Phaser.Scene {
       this.pvpLoot.set(d.did, { x: d.x, y: d.y, im, tx });
     }
   }
+  // ---------------------------------------------------------------- ⚔ team round (systems/br.ts, world/brView.ts; the room decides)
+  bv?: BrView; brZoneT = 0;
+  brEvent(e: Extract<RoomEvent, { t: 'bteams' | 'bstart' | 'bend' }>, link: RoomLink) {
+    if (!isPvp(this.stageN)) return;
+    if (!this.bv) { const id = Number((this.roomId() ?? '').split('-')[1]) || 0; this.bv = new BrView(this, id, () => link.me, (t, tid) => link.team(t, tid), MW, MH); }
+    if (e.t === 'bteams') { this.bv.setTeams(e.teams, e.started); if (e.done) this.bv.done = true; if (e.started && e.alive && !e.alive.includes(link.me)) this.bv.fallen(() => this.brHome()); return; }
+    if (e.t === 'bstart') { this.bv.setTeams(e.teams, true); bus.emit(EV.TOAST, '⚔ เริ่มแล้ว! ทีมสุดท้ายที่รอดชนะ • วงจะหดทุก 3 นาที — อยู่ในวง!', '#ff9a6a'); sfx.cast?.(); return; }
+    this.bv.onEnd(e, () => this.brHome());
+  }
+  /** back to the village, healed (the round is over for me) */
+  brHome() { if (!this.sys.isActive()) return; const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); showWait(); this.time.delayedCall(30, () => this.scene.restart({ stage: 0 })); }
   // ---------------------------------------------------------------- 📦 battlefield treasure chest (systems/pvpChest.ts; the room rolls)
-  pChest: { id: number; x: number; y: number; im: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; tx: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Graphics; start: number; sent: boolean } | null = null;
+  pChest: { id: number; x: number; y: number; im: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; fx: Phaser.GameObjects.GameObject[]; tx: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Graphics; start: number; sent: boolean } | null = null;
   chestEvent(e: Extract<RoomEvent, { t: 'pchint' | 'pchest' | 'pcopen' | 'pcstop' | 'pcgone' }>, me: string) {
     const c = this.pChest;
     if (e.t === 'pchint') { bus.emit(EV.TOAST, '📦 สมรภูมินี้มีกล่องสมบัติซ่อนอยู่! ออกตามหา — ระวังโดนแย่งไป', '#ffd84a'); return; }
@@ -2117,7 +2133,14 @@ export class TopDownScene extends Phaser.Scene {
       this.tweens.add({ targets: glow, alpha: { from: 0.45, to: 0.95 }, scale: { from: 0.9, to: 1.25 }, duration: 700, yoyo: true, repeat: -1 });
       const im = this.add.image(e.x, e.y, key).setOrigin(0.5, 0.8).setDepth(e.y).setScale(key === 'icon_gold' ? 0.6 : 0.75);
       const tx = this.add.text(e.x, e.y - 46, tr('📦 กล่องสมบัติ'), { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 2, resolution: 6 }).setOrigin(0.5).setDepth(99990);
-      this.pChest = { id: e.id, x: e.x, y: e.y, im, glow, tx, bar: this.add.graphics().setDepth(99991), start: 0, sent: false };
+      // ✨ the aura (director): a golden light pillar, a ring of light on the ground, sparks rising
+      const fx: Phaser.GameObjects.GameObject[] = [];
+      const pil = fx2(this, 'fx_drop_legend', e.x, e.y + 2, e.y - 2, 0.85); if (pil) fx.push(pil);
+      const ring = this.add.ellipse(e.x, e.y + 1, 46, 18).setStrokeStyle(2, 0xffe07a, 0.9).setFillStyle(0xffd84a, 0.12).setDepth(e.y - 3); fx.push(ring);
+      this.tweens.add({ targets: ring, scale: { from: 0.8, to: 1.25 }, alpha: { from: 1, to: 0.35 }, duration: 900, yoyo: true, repeat: -1 });
+      if (this.textures.exists('fx_dot')) fx.push(this.add.particles(e.x, e.y - 6, 'fx_dot', { speedY: { min: -40, max: -16 }, speedX: { min: -10, max: 10 }, lifespan: 1200, alpha: { start: 1, end: 0 }, scale: { start: 0.5, end: 0.1 }, tint: [0xffe07a, 0xffffff, 0xffb040], frequency: 70, blendMode: Phaser.BlendModes.ADD, emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(-16, -6, 32, 10) } as never }).setDepth(e.y + 1));
+      im.preFX?.addGlow(0xffd84a, 3, 0, false, 0.1, 8);
+      this.pChest = { id: e.id, x: e.x, y: e.y, im, glow, fx, tx, bar: this.add.graphics().setDepth(99991), start: 0, sent: false };
       bus.emit(EV.TOAST, '📦 เจอกล่องสมบัติ! ยืนเปิด 5 วินาที — โดนตีจะหยุด', '#ffd84a'); sfx.chest?.();
       return;
     }
@@ -2125,13 +2148,19 @@ export class TopDownScene extends Phaser.Scene {
     if (e.t === 'pcopen') { if (e.by !== me) { c.tx.setText(tr(`📦 ${e.name} กำลังเปิด!`)); c.start = 0; c.sent = false; } return; }
     if (e.t === 'pcstop') { c.tx.setText(tr('📦 กล่องสมบัติ')); if (e.by === me) { c.start = 0; c.sent = false; bus.emit(EV.TOAST, '⛔ โดนตี! การเปิดกล่องหยุด', '#ff8a6a'); } return; }
     // gone: opened (by someone) or nobody came
+    if (e.team !== undefined) {   // (⚔ team round: the chest is the team's — a prize roll each, paid if the team still has someone alive at the end)
+      const ours = this.bv?.myTeam() === e.team;
+      bus.emit(EV.TOAST, ours ? '📦 ทีมคุณได้กล่อง! ทุกคนในทีมได้สิทธิ์สุ่ม — ต้องมีคนรอดถึงจบรอบ' : `📦 ทีมของ ${e.name} แย่งกล่องไปแล้ว!`, ours ? '#9fffb0' : '#ffb04a');
+      if (ours) { this.combat.vfx.star(c.x, c.y - 20, 0xffd84a, 2); this.cameras.main.flash(200, 255, 220, 120); }
+      this.chestGone(); return;
+    }
     const pr = e.prize, mine = e.by === me;
     const what = !pr ? '' : pr.kind === 'ltd' ? (pr.mount ? '🐉 มังกรทองคำ (Limited)' : `⭐ ${pr.stars ?? 0}`) : pr.kind === 'gear' && pr.id ? `${RARITY_NAMES[pr.rar ?? 0]} ${itemDef(pr.id).name}` : pr.kind === 'gold' ? `💰${(pr.gold ?? 0).toLocaleString()}` : '';
     if (mine && what) { bus.emit(EV.TOAST, `📦 เปิดได้ ${what}!${pr?.kind !== 'ltd' ? ' (อยู่ในกระเป๋าสงคราม — ออกจากสมรภูมิให้รอดนะ)' : ''}`, '#ffd84a'); this.combat.vfx.star(c.x, c.y - 20, 0xffd84a, 2); this.cameras.main.flash(200, 255, 220, 120); }
     else if (e.name && what && (pr?.kind === 'ltd' || (pr?.rar ?? 0) >= 4)) bus.emit(EV.TOAST, `🎉 ${e.name} เปิดกล่องได้ ${what}!`, '#ffb04a');
     this.chestGone();
   }
-  chestGone() { const c = this.pChest; if (!c) return; c.im.destroy(); c.glow.destroy(); c.tx.destroy(); c.bar.destroy(); this.pChest = null; }
+  chestGone() { const c = this.pChest; if (!c) return; c.fx.forEach(o => o.destroy()); c.im.destroy(); c.glow.destroy(); c.tx.destroy(); c.bar.destroy(); this.pChest = null; }
   /** stand by the chest: start opening, fill the bar, report when held long enough (moving away stops it) */
   chestTick(time: number) {
     const c = this.pChest; if (!c || !this.link) return;
@@ -2154,6 +2183,7 @@ export class TopDownScene extends Phaser.Scene {
     this.dead = true; this.attacking = false;
     const h = this.hero;
     this.deathFx(h, 0xbfe8ff, () => {
+      if (this.bv && this.bv.started && !this.bv.done) { bus.emit(EV.TOAST, '💀 คุณตกรอบ — ดูทีมสู้ต่อ หรือกด 🏠 กลับบ้าน (ของที่ฟาร์มได้ไม่หาย)', '#ffb08a'); this.bv.fallen(() => this.brHome()); return; }   // (⚔ team round: out — watch your team)
       if (this.rv?.started && !this.rv.done) { bus.emit(EV.TOAST, '💀 คุณล้มแล้ว — ดูเพื่อนป้องกันต่อ หรือกด 🏠 กลับบ้าน (กลับมาช่วยรอบนี้ไม่ได้แล้ว • ไม่เสียของ)', '#ffb08a'); this.rv.fallen(() => this.raidBack()); return; }   // (⚔ the raid: watch until the end)
       if (this.stageN) { this.time.delayedCall(1200, () => { const s0 = S(); s0.hp = derive(s0).maxHp; saveGame(s0); showWait(); this.time.delayedCall(30, () => this.scene.restart({ stage: 0 })); }); return; }
       this.time.delayedCall(900, () => {
@@ -2426,6 +2456,7 @@ export class TopDownScene extends Phaser.Scene {
       this.wingView?.update(h.x, h.y, this.wingLift, headH(this, this.F.key) * h.scaleY, this.dir, this.heroMoving, time, h.visible && !this.dead);
     }
     if (this.pChest) this.chestTick(time);
+    if (this.bv) { const now = Date.now(); this.bv.update(now); if (!this.dead && time > this.brZoneT && this.bv.outside(this.hero.x, this.hero.y, now)) { this.brZoneT = time + 3000; bus.emit(EV.TOAST, '⚠ คุณอยู่นอกวง! เลือดลดทุกวินาที — กลับเข้าวงสีแดง', '#ff6a5a'); } }
     if (this.pvpLoot.size && time > this.pvpPickT && !this.dead) { this.pvpPickT = time + 250; for (const [did, l] of this.pvpLoot) if (Math.hypot(l.x - h.x, l.y - h.y) < 30) this.link?.ppick(did); }
     this.updateAura();
     this.updatePet(time);
