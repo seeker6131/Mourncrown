@@ -68,6 +68,7 @@ export class Riding {
   /** follow the hero: direction, gait, the seat of this direction, layering by depth */
   update(x: number, y: number, dir: number, moving: boolean, form: string, heroScale: number, time: number) {
     const def = MOUNTS[this.id], m = this.info, s = def.scale;
+    if (def.fly) moving = true;   // (a flyer flaps all the time)
     if (dir !== this.dir || moving !== this.moving) {
       this.dir = dir; this.moving = moving;
       if (moving && this.sc.anims.exists(`m_${this.key}_walk_${dir}`)) this.back.play(`m_${this.key}_walk_${dir}`, true);
@@ -107,12 +108,13 @@ export class Riding {
     // gait: the rider rises and falls with the steps
     const bob = moving ? -Math.abs(Math.sin(time / 95)) * 1.6 : Math.sin(time / 600) * 0.5;
     const wx = x + (sx - m.fs / 2) * s, wy = y + (sy - m.foot) * s;
-    this.back.setPosition(x, y).setDepth(y - 0.3);
-    this.front.setPosition(x, y).setDepth(y + 0.3);
-    for (const f of this.fronts) f.setPosition(x, y).setDepth(y + 0.3);
-    this.rider.setPosition(Math.round(wx), Math.round(wy + (pose ? 1 : 3) * heroScale + bob)).setScale(heroScale).setDepth(y);
-    this.sh.setPosition(x, y);
-    this.embers?.setPosition(wx, wy - 6).setDepth(y + 0.4);
+    const lift = def.fly ? def.fly + Math.sin(time / 180) * 2 : 0, ly = y - lift;   // (flying: everything rises, the shadow stays down)
+    this.back.setPosition(x, ly).setDepth(y - 0.3);
+    this.front.setPosition(x, ly).setDepth(y + 0.3);
+    for (const f of this.fronts) f.setPosition(x, ly).setDepth(y + 0.3);
+    this.rider.setPosition(Math.round(wx), Math.round(wy - lift + (pose ? 1 : 3) * heroScale + (def.fly ? 0 : bob))).setScale(heroScale).setDepth(y);
+    this.sh.setPosition(x, y).setScale(def.fly ? 0.8 : 1);
+    this.embers?.setPosition(wx, wy - 6 - lift).setDepth(y + 0.4);
   }
   /** world y of the rider's head (for the HP bar) */
   headY() { return this.rider.y - this.riderTop * this.rider.scaleY - 4; }

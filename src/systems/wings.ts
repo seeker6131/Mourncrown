@@ -62,3 +62,29 @@ export function spinWings(s: GameState, n: number, rnd: () => number, ltd = WSLO
   }
   return { prizes, cost };
 }
+
+// ---------------------------------------------------------------- 🐎 mounts in the same machine (director 15 Nov: one machine,
+// a tab for wings and a tab for mounts). Legend wolf / bear, SL stag / panther, Limited golden dragon (kept through OBT).
+import { grantMount, hasMount } from './mounts';
+import type { MountId } from '../data/mounts';
+export const SLOT_MOUNTS: { id: MountId; tier: WingTier }[] = [{ id: 'wolf', tier: 'L' }, { id: 'bear', tier: 'L' }, { id: 'stag', tier: 'SL' }, { id: 'panther', tier: 'SL' }, { id: 'gdragon', tier: 'X' }];
+export interface MPrize { mount?: MountId; item?: { id: string; qty: number }; gold?: number; stars?: number }
+/** spin the mount side 1 or 10 times (server); the same price, the same no-salt prizes */
+export function spinMounts(s: GameState, n: number, rnd: () => number): 'diamonds' | 'bag' | 'n' | { prizes: MPrize[]; cost: number } {
+  if (n !== 1 && n !== 10) return 'n';
+  const p = s as WS, cost = n === 10 ? WSLOT_PRICE10 : WSLOT_PRICE;
+  if ((p.diamonds ?? 0) < cost) return 'diamonds';
+  if (s.inventory.length + 2 > invSize(s)) return 'bag';
+  p.diamonds = (p.diamonds ?? 0) - cost;
+  const prizes: MPrize[] = [];
+  for (let i = 0; i < n; i++) {
+    let r = rnd() * 10000, got: (typeof SLOT_MOUNTS)[number] | null = null;
+    for (const m of SLOT_MOUNTS) { r -= WEIGHT[m.tier] * 2; if (r < 0) { got = m; break; } }   // (5 mounts against 13 wings: each a little likelier)
+    if (got) {
+      if (hasMount(s, got.id)) { const st = DUP_STARS[got.tier]; p.stars = (p.stars ?? 0) + st; prizes.push({ mount: got.id, stars: st }); }
+      else { grantMount(s, got.id); prizes.push({ mount: got.id }); }
+    } else if (rnd() * 10000 < ELIXIR_W) { addItem(s, SLOT_ELIXIR, 1); prizes.push({ item: { id: SLOT_ELIXIR, qty: 1 } }); }
+    else { s.gold += SLOT_GOLD; prizes.push({ gold: SLOT_GOLD }); }
+  }
+  return { prizes, cost };
+}

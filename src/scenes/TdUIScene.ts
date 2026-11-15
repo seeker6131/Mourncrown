@@ -1,5 +1,6 @@
 // HUD + menus for the top-down game. Runs on top of TopDownScene and reuses the shared Panels
 // (bag, character, shop, blacksmith, building plots, class choice, menu).
+import { MOUNTS } from '../data/mounts';
 import { WING_BY_ID } from '../data/wings';
 import { openLinkGoogle } from '../net/linkGoogle';
 import { RAID } from '../world/stages';
@@ -354,7 +355,7 @@ export class TdUIScene extends Phaser.Scene {
       for (const [x, y, dx, dy] of [[2, 2, 1, 1], [20, 2, -1, 1], [2, 20, 1, -1], [20, 20, -1, -1]]) g.lineBetween(x, y, x + 7 * dx, y).lineBetween(x, y, x, y + 7 * dy);
       g.generateTexture('ui_fs', 22, 22); g.destroy();
     }
-    const menu: [string, string, () => void][] = [['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_wheel', 'กงล้อ', () => this.panels.open(this.panels.lastWheel)], ['ui_shop', 'ร้านค้า', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
+    const menu: [string, string, () => void][] = [['ui_fs', 'เต็มจอ', () => this.toggleFullscreen()], ['ui_mail', 'จดหมาย', () => this.panels.open('mail')], ['ui_wheel', 'กงล้อ', () => this.panels.open(this.panels.lastWheel)], ['ui_slot_machine', 'ตู้สุ่ม', () => this.panels.open('wslot')], ['ui_shop', 'ร้านค้า', () => this.panels.open('premium')], ['ui_res0', 'ตลาด', () => this.panels.open('market')], ['icon_armor0', 'ชุด', () => this.panels.open('wardrobe')], ['ui_hud0', 'กระเป๋า', () => this.panels.open('bag')], ['ui_hud1', 'ตัวละคร', () => this.panels.open('stats')], ['ui_hud3', 'เมนู', () => this.panels.open('menu')]];
     menu.forEach(([ic, label, cb], i) => {
       const x = this.VW - 22 - (menu.length - 1 - i) * 36, y = 20;
       const sl = this.add.image(x, y, 'ui_slot0'); sl.setScale(30 / sl.width);
@@ -567,7 +568,7 @@ export class TdUIScene extends Phaser.Scene {
     sfx.click(); this.time.delayedCall(30000, done);
   }
   update(time: number) {
-    if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : n.item.startsWith('wing_') ? `🪽 ${WING_BY_ID[n.item.slice(5)]?.name ?? 'ปีก'} จากตู้สุ่มปีก` : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
+    if (this.news && time > this.newsT) { this.newsT = time + 2000; for (const n of act('news', { since: this.news.since })) { this.news.since = Math.max(this.news.since, n.t); this.news.push(`📢 ประกาศทั้งเซิร์ฟ: ${n.name} ได้รับ ${n.item === 'mount_dragon' ? '🐉 มังกรเพลิงนิรันดร์ จากกงล้อเพชร' : n.item === 'pet_cloud' ? '⛈ เมฆพายุ จากกงล้อเพชร' : n.item.startsWith('mount_') && n.item !== 'mount_dragon' ? `🐎 ${MOUNTS[n.item.slice(6) as keyof typeof MOUNTS]?.name ?? 'สัตว์ขี่'} จากตู้สุ่ม` : n.item.startsWith('wing_') ? `🪽 ${WING_BY_ID[n.item.slice(5)]?.name ?? 'ปีก'} จากตู้สุ่มปีก` : `[${RN[n.rar]}] ${idef(n.item).name}`}!!`); } }
     this.minimap?.update(time); this.drawBuffs(time); this.raidBarHide?.();
     if (time - this.refreshT > 300) { this.refreshT = time; this.refresh(); }
     const sel = !!(this.td as unknown as { selectUi: unknown }).selectUi;

@@ -30,7 +30,7 @@ import { addItem, sellUid, sellJunk, tryUpgrade, dismantle, equip, unequipUid, u
 import { dismantleYield, disMatch } from '../systems/lootOpt';
 import { spinWheel, openPick, WHEEL_OPEN } from '../systems/wheel';
 import { spinDiamond, starTrade, DWHEEL_OPEN } from '../systems/diamondWheel';
-import { spinWings, WSLOT_OPEN } from '../systems/wings';
+import { spinWings, spinMounts, WSLOT_OPEN } from '../systems/wings';
 import { itemDef, SHOP_STOCK, SHOP_SHARD_DAILY } from '../data/items';
 import { build, upgrade, collect, craft, cook, tick as settleTick } from '../systems/settlement';
 import {
@@ -445,6 +445,12 @@ export const handlers = {
     if (!WSLOT_OPEN && !c.admin) return no('closed');
     const r = spinWings(s, Math.floor(Number(a.n) || 0), c.rnd); if (typeof r === 'string') return no(r);
     for (const p of r.prizes) if (p.wing && !p.stars) { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: 'wing_' + p.wing, rar: 5 }); if (news.length > 50) news.shift(); }
+    return r;
+  },
+  mountSlot(s: GameState, a: { n: number }, c: Ctx) {
+    if (!WSLOT_OPEN && !c.admin) return no('closed');
+    const r = spinMounts(s, Math.floor(Number(a.n) || 0), c.rnd); if (typeof r === 'string') return no(r);
+    for (const p of r.prizes) if (p.mount && !p.stars) { news.push({ t: c.now, name: s.name || 'ผู้เล่น', item: 'mount_' + p.mount, rar: 5 }); if (news.length > 50) news.shift(); }
     return r;
   },
   starTrade(s: GameState, a: { what: 'dragon' | 'cloud' }, c: Ctx) { if (!DWHEEL_OPEN && !c.admin) return no('closed'); const r = starTrade(s, a.what === 'cloud' ? 'cloud' : 'dragon'); return r === true ? { ok: true } : no(r); },
