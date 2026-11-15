@@ -54,3 +54,24 @@ describe('skill casts reach the server with the kills (the "use skills 10 times"
     handlers.kill(t, { ...killArgs(40), c: 5 }, ctx); expect(t.tdCasts ?? 0).toBe(0);   // (a refused kill counts nothing)
   });
 });
+
+describe('bounty lord pays even after a restart or the 20-minute mark (player report 14 Nov: killed it, got nothing)', () => {
+  const setup = async () => {
+    const { bountyOf } = await import('../src/systems/bounty');
+    useMem(newMem()); const s = startNewGame(); s.level = 30; const b = bountyOf(s, ctx.now);
+    handlers.enterMap(s, { n: b.n }, ctx); const r = handlers.bountySpawn(s, { n: b.n }, ctx) as { sid: number };
+    const args = { sid: r.sid, kind: b.mob.kind, key: b.mob.key, name: b.name, size: b.mob.size, boss: false, share: 1, n: b.n };
+    return { s, b, args };
+  };
+  const paid = (r: unknown) => !!(r as { bounty?: unknown }).bounty;
+  it('the server restarted mid-fight: still the bounty, once', async () => {
+    const { s, args } = await setup(); useMem(newMem());
+    const c2 = { ...ctx, admin: true, now: ctx.now + 60000 };
+    const r = handlers.kill(s, args, c2); expect(refused(r)).toBeNull(); expect(paid(r)).toBe(true);
+    expect(paid(handlers.kill(s, args, c2))).toBe(false);
+  });
+  it('the fight ran past the slot end: still paid', async () => {
+    const { s, args } = await setup(); const c2 = { ...ctx, admin: true, now: ctx.now + 20 * 60000 };
+    const r = handlers.kill(s, args, c2); expect(paid(r)).toBe(true);
+  });
+});

@@ -15,7 +15,7 @@ import { fodderList, fuseBonus } from '../systems/fusion';
 import { townBroken, plotTown } from '../systems/town';
 import { raidFlag } from '../systems/townRaid';
 import { DRAGON_BOUNTY, type MountId } from '../data/mounts';
-import { bountyOf, markBounty, BOUNTY_HP } from '../systems/bounty';
+import { bountyOf, markBounty, BOUNTY_HP, BOUNTY_SLOT } from '../systems/bounty';
 import { MONSTERS, type MonsterKind } from '../data/monsters';
 import { STAGES, WILD, PITS, stageOf, scaleStats, LANDS, DUNGEON, isDungeon, dungeonLand, DUNGEON_NEED, DUNGEON_SECS, RAID, isRaid, RAID_LAND } from '../world/stages';
 import { pickBase, makeGear, rollRarity, isGear } from '../systems/loot';
@@ -128,6 +128,7 @@ export const handlers = {
     const b = bountyOf(s, c.now); if (b.killed || b.n !== a.n || mem.map !== a.n) return no('none');
     for (const v of mem.spawns.values()) if (v.bounty === b.slot) return no('alive');
     const sid = mem.sid++; mem.spawns.set(sid, { key: b.mob.key, elite: false, boss: false, bounty: b.slot, srv: true });
+    (s as { bountySid?: { slot: number; sid: number; key: string } }).bountySid = { slot: b.slot, sid, key: b.mob.key };   // (kept in the save: the server's memory is wiped by a restart / sleep — a player lost a bounty that way)
     return { sid, mob: b.mob, name: b.name, hp: BOUNTY_HP };
   },
   /** (test crowd) another player took this monster: the spawn is gone, nobody here is paid */
@@ -176,7 +177,11 @@ export const handlers = {
     // a monster spawned before this memory began (forgotten in a restart) counts as a plain one, once — never golden or a
     // boss; numbers from after the restart must have been registered (an invented / replayed kill is refused)
     const old = !mem.spawns.has(a.sid) && !a.boss && !isDungeon(n) && a.sid > 0 && (!mem.sidLow || a.sid < mem.sidLow) && !mem.forgot.has(a.sid);
-    const sp = mem.spawns.get(a.sid) ?? (old ? { key: a.key, elite: false, boss: false } as { key: string; elite: boolean; boss: boolean; bounty?: number } : undefined);
+    // the bounty lord registered before a restart: the save remembers it (player report 14 Nov: killed it, got nothing)
+    const bs = (s as { bountySid?: { slot: number; sid: number; key: string } }).bountySid;
+    const savedBounty = !mem.spawns.has(a.sid) && bs && bs.sid === a.sid && bs.key === a.key && !a.boss && Math.floor(c.now / BOUNTY_SLOT) - bs.slot <= 1 && (s as { bounty?: { slot: number } }).bounty?.slot !== bs.slot
+      ? { key: a.key, elite: false, boss: false, bounty: bs.slot } : undefined;
+    const sp = mem.spawns.get(a.sid) ?? savedBounty ?? (old ? { key: a.key, elite: false, boss: false } as { key: string; elite: boolean; boss: boolean; bounty?: number } : undefined);
     if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
@@ -192,12 +197,13 @@ export const handlers = {
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };
-    const bounty = sp.bounty !== undefined && bountyOf(s, c.now).slot === sp.bounty;
+    // (the slot of the spawn, not of now: a fight that runs past the 20-minute mark still pays — once per slot)
+    const bounty = sp.bounty !== undefined && Math.floor(c.now / BOUNTY_SLOT) - sp.bounty <= 1 && (s as { bounty?: { slot: number } }).bounty?.slot !== sp.bounty;
     const r = applyKill(s, n, { key: a.key, kind: a.kind, name: a.name, size: a.size }, a.boss || bounty, a.boss && !isDungeon(n), c.rnd, sp.elite, give);
     // the first time you beat a map's boss: +1 skill point (once per map)
     if (a.boss && n !== WILD && !isDungeon(n)) { const bf = ((s as { bossFirst?: number[] }).bossFirst ??= []); if (!bf.includes(n)) { bf.push(n); bonusSkillPt(s); (r as { skillPt?: number }).skillPt = 1; } }
     if (bounty) {
-      const b = bountyOf(s, c.now); s.gold += b.gold; give('ancient_core', 1); markBounty(s, b.slot);
+      const b = bountyOf(s, sp.bounty! * BOUNTY_SLOT + 1); s.gold += b.gold; give('ancient_core', 1); markBounty(s, sp.bounty!); delete (s as { bountySid?: unknown }).bountySid;
       const dragon = !hasMount(s, 'dragon') && c.rnd() < DRAGON_BOUNTY && grantMount(s, 'dragon');   // the limited dragon: very rare, never shown as a rate
       (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty = { gold: b.gold, name: b.name, dragon };
     }
