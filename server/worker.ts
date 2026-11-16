@@ -346,7 +346,8 @@ export default {
             flags: await all('SELECT at, what, detail FROM flags WHERE id = ? ORDER BY at DESC LIMIT 50', id),
             econ: await all("SELECT src, SUM(g_in) AS g_in, SUM(g_out) AS g_out, SUM(d_in) AS d_in, SUM(d_out) AS d_out, SUM(wood) AS wood, SUM(stone) AS stone, SUM(food) AS food, SUM(n) AS n FROM econ WHERE id = ? AND day >= ? GROUP BY src ORDER BY SUM(g_in) + SUM(g_out) DESC", id, new Date(now + 7 * 3600000 - 6 * 86400000).toISOString().slice(0, 10)),
             reports: await all('SELECT r.at, r.room, r.text, b.name AS by_name FROM reports r LEFT JOIN accounts b ON b.id = r.by_id WHERE r.target = ? ORDER BY r.at DESC LIMIT 50', id),
-            market: await all('SELECT id, item, price, status, until, at FROM market WHERE seller = ? ORDER BY at DESC LIMIT 30', id) });
+            market: await all('SELECT id, item, price, status, until, at FROM market WHERE seller = ? ORDER BY at DESC LIMIT 30', id),
+            refs: await all('SELECT r.invitee, r.at, r.lv10, r.lv30, a.name FROM referrals r LEFT JOIN accounts a ON a.id = r.invitee WHERE r.inviter = ? ORDER BY r.at', id) });
         }
         if (path === '/admin/guilds') return json(req, { rows: await all('SELECT g.id, g.name, g.members, g.hall, g.score, g.week, g.shield, g.at, a.name AS leader_name FROM guilds g LEFT JOIN accounts a ON a.id = g.leader ORDER BY g.score DESC, g.members DESC LIMIT 200') });
         if (path === '/admin/market') return json(req, { rows: await all("SELECT id, seller_name, item, type, rar, price, until, status, buyer, at FROM market ORDER BY at DESC LIMIT 200") });
@@ -461,6 +462,16 @@ export default {
           else if (b.what === 'unban') await DB.prepare('UPDATE accounts SET banned = 0 WHERE id = ?').bind(id).run();
           else if (b.what === 'mute') await DB.prepare('UPDATE accounts SET muted_until = ? WHERE id = ?').bind(now + Math.max(1, Math.min(720, Number(b.hours) || 24)) * 3600000, id).run();
           else if (b.what === 'unmute') await DB.prepare('UPDATE accounts SET muted_until = 0 WHERE id = ?').bind(id).run();
+          else if (b.what === 'refadd') {   // 🤝 count a friend for this inviter by hand (the director checked them: e.g. students sharing one dorm's internet)
+            const fr = await one<{ id: string }>('SELECT id FROM accounts WHERE id = ? OR name = ? LIMIT 1', String((b as { friend?: string }).friend ?? ''), String((b as { friend?: string }).friend ?? ''));
+            if (!fr || fr.id === id) return json(req, { error: 'ไม่พบเพื่อนคนนี้' }, 400);
+            const had = await one<{ inviter: string }>('SELECT inviter FROM referrals WHERE invitee = ?', fr.id);
+            if (had) return json(req, { error: had.inviter === id ? 'นับให้แล้ว' : 'เพื่อนคนนี้ถูกนับให้คนอื่นแล้ว' }, 400);
+            await DB.prepare('INSERT INTO referrals (invitee, inviter, at) VALUES (?, ?, ?)').bind(fr.id, id, now).run();
+          }
+          else if (b.what === 'refwing') {   // 🪽 the invite reward wing, given by hand
+            await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/grantwing?id=' + id, { method: 'POST', body: JSON.stringify({ wing: REF_WING }) }));
+          }
           else return json(req, { error: 'what' }, 400);
           await flag(env, id, 'admin:' + b.what, `by ${me.id}`);
           return json(req, { ok: true });
@@ -1363,6 +1374,12 @@ export class Player {
       }
       this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
       return new Response(JSON.stringify({ ok: true }));
+    }
+    if (u.pathname === '/grantwing' && this.st) {   // (the back office) a wing given by hand — the invite reward for a checked case
+      const j = JSON.parse(await req.text()) as { wing: string }, st = this.st as unknown as GameState & { wings?: string[] }, b = this.snap();
+      if (!(st.wings ?? []).includes(j.wing)) (st.wings ??= []).push(j.wing);
+      this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '🪽 ได้รับปีกพายุอสนี (Limited) — รางวัลชวนเพื่อนครบ! ใส่ได้ที่ กระเป๋า → ⛈ ผู้ติดตาม' });
+      return new Response('{}');
     }
     if (u.pathname === '/refpay' && this.st) {   // 🤝 a friend I invited reached Lv30: diamonds (and the Limited wing at REF_WING_AT friends)
       const j = JSON.parse(await req.text()) as { name: string; n: number }, st = this.st as unknown as GameState & { diamonds?: number; wings?: string[] }, b = this.snap();
