@@ -1501,7 +1501,15 @@ export class TopDownScene extends Phaser.Scene {
     const dots: { x: number; y: number; kind: 'mon' | 'boss' | 'animal' | 'player' }[] = [];
     if (this.stageN) for (const m of this.combat.mons) if (m.alive) dots.push({ x: m.x, y: m.y, kind: m.boss ? 'boss' : m.animal ? 'animal' : 'mon' });
     for (const c of this.crowd?.list ?? []) dots.push({ x: c.x, y: c.y, kind: 'player' });
-    return { key: this.inside >= 0 ? `room${this.inside}` : this.gv ? 'guild' : String(this.stageN), w: MW, h: MH, hero: { x: this.hero.x, y: this.hero.y, dir: this.dir }, exits, marks, dots };
+    // names of the buildings and NPCs (director 16 Nov: tiny on the small map, readable when it is opened)
+    const names: { x: number; y: number; label: string; npc: boolean }[] = [];
+    if (this.inside < 0) for (const o of this.children.list) {
+      if (!(o instanceof Phaser.GameObjects.Text)) continue;
+      const lb = o.getData('mm') as string | null; if (!lb || !o.visible || o.alpha < 0.05) continue;
+      const at = o.getData('mmAt') as [number, number] | undefined, npc = !!o.getData('npc');
+      names.push({ x: at ? at[0] : o.x, y: at ? at[1] : o.y + 4, label: lb, npc });
+    }
+    return { key: this.inside >= 0 ? `room${this.inside}` : this.gv ? 'guild' : String(this.stageN), w: MW, h: MH, hero: { x: this.hero.x, y: this.hero.y, dir: this.dir }, exits, marks, dots, names };
   }
   /** in the Deepwild the gathering outfit is the empty-handed villager 'hg' (axe / pickaxe / spear only when working) */
   get F() { const s = S(); const t = activeTier(s); if (this.wild && s.outfit === 'gather' && CH.hg && s.look !== 'f') return { key: 'hg', name: formName(s.cls, 0) }; return { key: formKeyOf(s.cls, t, s.look), name: formName(s.cls, t) }; }
@@ -1965,6 +1973,7 @@ export class TopDownScene extends Phaser.Scene {
       }
       const b = buildingAt(S(), i)!;
       const t = txt(P.y - (m ? m.foot - m.top : 120) - 2, `${type === 'home' ? '🏠 ' : ''}${BUILDINGS[type as BuildingId].name} Lv${b.level}`, type === 'home' ? '#9fffb0' : '#ffe7a0');
+      t.setData('mm', type === 'home' ? '🏠 บ้านคุณ' : BUILDINGS[type as BuildingId].name).setData('mmAt', [P.x, P.y]);   // (the minimap's names)
       if (lvl === 'site') t.setData('timer', true);
     }
     this.plotViews[i] = { key, objs };

@@ -178,7 +178,7 @@ export class GuildTown {
         const sc0 = t === 'hall' ? 1.1 : 1, im = fk === 'ruin' ? sc.ruin(art, P.x, P.y, 0.82, 50, true, sc0) : sc.obj(art, P.x, P.y, 0.82, 50, true, sc0);
         const top = im ? im.y - im.displayHeight * im.originY : P.y - 120;
         const fire = fk === 'ruin' ? ' 💀 ซาก (ต้องซ่อม)' : fk ? ' 🔥' : '';
-        const lb = this.label(P.x, (fk === 'ruin' ? P.y - 70 : top - 2), `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${b.level}${busy ? ' 🔨' : ''}${fire}`, fk === 'ruin' ? '#ff9a7a' : t === 'hall' ? '#ffd84a' : '#ffe7a0');
+        const lb = this.label(P.x, (fk === 'ruin' ? P.y - 70 : top - 2), `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name} Lv${b.level}${busy ? ' 🔨' : ''}${fire}`, fk === 'ruin' ? '#ff9a7a' : t === 'hall' ? '#ffd84a' : '#ffe7a0').setData('mm', `${GUILD_BLD[t].icon} ${GUILD_BLD[t].name}`).setData('mmAt', [P.x, P.y]);   // (the minimap's names)
         if (busy) lb.setData('timer', t);
         if (sc.hero && sc.isBlocked(sc.hero.x, sc.hero.y)) sc.hero.setPosition(L.doorOf(L.PLOT_OF[t]).x, L.doorOf(L.PLOT_OF[t]).y + 20);
         return im ? [im, lb, ...(fk ? burnFx(sc, im, b.dmg ?? 0) : [])] : [lb];
@@ -200,7 +200,7 @@ export class GuildTown {
           const art = busy ? 'site_0' : `house_${artLv(lv)}`;
           const im = hk === 'ruin' ? sc.ruin(art, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE) : sc.obj(art, P.x, P.y, 0.82, 22, true, L.HOUSE_SCALE); if (im) out.push(im);
           const top = im ? im.y - im.displayHeight * im.originY : P.y - 90;
-          out.push(this.label(P.x, hk === 'ruin' ? P.y - 50 : top, `${mine ? '🏠 ' : ''}${m.name} Lv${lv}${busy ? ' 🔨' : ''}${hk === 'ruin' ? ' 💀' : hk ? ' 🔥' : ''}`, hk ? '#ff9a7a' : mine ? '#9fffb0' : '#ffe7a0', 6.5));
+          out.push(this.label(P.x, hk === 'ruin' ? P.y - 50 : top, `${mine ? '🏠 ' : ''}${m.name} Lv${lv}${busy ? ' 🔨' : ''}${hk === 'ruin' ? ' 💀' : hk ? ' 🔥' : ''}`, hk ? '#ff9a7a' : mine ? '#9fffb0' : '#ffe7a0', 6.5).setData('mm', mine ? '🏠 บ้านคุณ' : null).setData('mmAt', [P.x, P.y]));
           if (im && hk) out.push(...burnFx(sc, im, m.houseDmg ?? 0));
         }
         return out;
@@ -231,7 +231,7 @@ export class GuildTown {
     const key = `${g.guards.spear}:${g.guards.archer}:${!!g.hungry}:${g.members.map(m => m.id + m.house).join(',')}`; if (key === this.guardKey) return;
     this.guardKey = key;
     if (this.guards) for (const n of this.guards.npcs) { n.sp.destroy(); n.shadow.destroy(); n.tag.destroy(); }
-    const v = this.guards = new Village(this.sc as never, L.VW, L.VH);
+    const v = this.guards = new Village(this.sc as never, L.VW, L.VH); v.noMap = true;
     const go = (x: number, y: number): Step => ({ kind: 'go', to: { x, y } });
     const watch = (ms: number, face: number): Step => ({ kind: 'work', ms, face });
     const ring = [[L.NORTH_GATE.x, L.RING.y0 + 12], [L.RING.x1 - 30, L.RING.y0 + 40], [L.RING.x1 - 12, 700], [L.RING.x1 - 40, L.RING.y1 - 20], [L.SOUTH_GATE.x, L.RING.y1 - 10], [L.RING.x0 + 30, L.RING.y1 - 40], [L.RING.x0 + 12, 640], [L.RING.x0 + 40, L.RING.y0 + 30]];

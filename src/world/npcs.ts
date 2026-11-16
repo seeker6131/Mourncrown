@@ -16,6 +16,8 @@ const dirOf = (dx: number, dy: number) => (Math.round((Math.PI / 2 - Math.atan2(
 
 export class Village {
   npcs: Npc[] = [];
+  /** guards and the like: not named on the minimap (too many) */
+  noMap = false;
   constructor(public s: NpcHost, public W: number, public H: number) {}
 
   /** A* on an 8px grid over the scene's collision map */
@@ -64,6 +66,7 @@ export class Village {
     const fw = (CH[key]?.idleFs ?? 48) * 0.5;
     const shadow = pxShadow(sc, home.x, home.y, fw, fw * 0.34, 1).setAlpha(a0 * 0.5);
     const tag = sc.add.text(home.x, home.y, name, { fontFamily: 'sans-serif', fontSize: '6px', color: '#e8e0c8', stroke: '#0b0f0c', strokeThickness: 2, resolution: 8 }).setOrigin(0.5, 1).setDepth(99990).setAlpha(a0 * 0.85);
+    if (key.startsWith('np') && !this.noMap) tag.setData('mm', name).setData('npc', true);   // (the minimap's names — not the animals)
     this.npcs.push({ key, name, sp, shadow, tag, plan, i: -1, path: [], until: sc.time.now + Math.random() * 3000, dir: 0, speed, home, back: home, hidden: !visible, anim: anim ?? (hasAnim(key, 'chop') ? 'chop' : hasAnim(key, 'mine') ? 'mine' : hasAnim(key, 'attack') ? 'attack' : 'walk') });
   }
 
