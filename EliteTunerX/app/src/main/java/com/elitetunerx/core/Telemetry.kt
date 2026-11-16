@@ -64,6 +64,7 @@ data class Snapshot(
 
 object Telemetry {
     val snapshot = MutableStateFlow<Snapshot?>(null)
+    private var gpuEma: Double? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
@@ -247,6 +248,19 @@ object Telemetry {
         GpuInfo.get()
         var lastAdbTry = SystemClock.elapsedRealtime()
 
+        // Slow lane: foreground app, its layer, resolution/API/RAM. Runs beside the 250 ms loop.
+        val slow = scope.launch {
+            while (isActive) {
+                val t = SystemClock.elapsedRealtime()
+                if (Shell.ready) {
+                    runCatching { FpsMeter.slow() }
+                    runCatching { GameProbe.heavy(ctx, FpsMeter.currentLayer) }
+                }
+                delay((1000 - (SystemClock.elapsedRealtime() - t)).coerceAtLeast(100))
+            }
+        }
+        try {
+
         while (currentCoroutineContext().isActive) {
             val t0 = SystemClock.elapsedRealtime()
             if (!Shell.ready && AdbLink.everPaired(ctx) && t0 - lastAdbTry > 15000) {
@@ -295,6 +309,7 @@ object Telemetry {
             val spent = SystemClock.elapsedRealtime() - t0
             delay((250 - spent).coerceAtLeast(30))
         }
+        } finally { slow.cancel() }
     }
 
     private fun sample(
@@ -348,7 +363,11 @@ object Telemetry {
                 val n = raw?.trim()?.split(Regex("\\s+"))?.mapNotNull { it.toDoubleOrNull() }
                 if (n != null && n.size >= 2) (if (n[1] > 0) n[0] / n[1] * 100.0 else 0.0) else null
             } else Sysfs.firstNumber(raw)
-            Reading.of(value?.coerceIn(0.0, 100.0), "%.0f", "%", srcOf(p, path, p.gpuBusyLabel + " " + path.substringAfterLast('/')))
+            // kgsl/most drivers report load "since the last read", and vendor daemons read it too, so one
+            // sample swings 0↔100. A ~1 s exponential average of the samples is the real mean load.
+            val v = value?.coerceIn(0.0, 100.0)
+            if (v != null) gpuEma = gpuEma?.let { it * 0.6 + v * 0.4 } ?: v
+            Reading.of(if (v == null) null else gpuEma, "%.0f", "%", srcOf(p, path, p.gpuBusyLabel + " " + path.substringAfterLast('/')) + " • avg 1s")
         } ?: (if (p.gpuWork) GpuWork.sample()?.let { Reading.of(it, "%.0f", "%", "Android GPU work periods (all apps)") } else null)
         ?: Reading.na(if (priv) "GPU load node blocked by this firmware" else "ต้องเชื่อม ADB ในตัว")
         val gpuFreq = p.gpuFreqPath?.let { path ->
@@ -417,7 +436,7 @@ object Telemetry {
             fps = fps, frameTime = ft, newFrameTimes = frames,
             gpuBusy = gpuBusy, gpuFreq = gpuFreq, gpuTemp = gpuTemp, gpuModel = p.gpuModel,
             gpuName = GpuInfo.shortName(), backend = Shell.backend(),
-            game = runCatching { GameProbe.poll(ctx, fpsRes?.pkg ?: (if (priv) FpsMeter.focusedPackage() else null), fpsRes?.layer, priv) }.getOrNull(),
+            game = runCatching { GameProbe.poll(ctx, fpsRes?.pkg, fpsRes?.layer, priv) }.getOrNull(),
             cpuUsage = cpuUsage, clusters = clusters, cpuTemp = cpuTemp, skinTemp = skinTemp,
             batteryTemp = batteryTemp, power = power, charging = charging,
             ramUsedGb = (mi.totalMem - mi.availMem).coerceAtLeast(0) / gb, ramTotalGb = mi.totalMem / gb,

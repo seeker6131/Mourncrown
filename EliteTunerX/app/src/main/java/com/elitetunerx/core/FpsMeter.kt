@@ -21,12 +21,12 @@ object FpsMeter {
     const val SRC_FLIP = "SurfaceFlinger page-flip counter (whole display)"
     const val SRC_STATS = "SurfaceFlinger TimeStats (per app)"
 
-    private var pkg: String? = null
-    private var layer: String? = null
+    @Volatile private var pkg: String? = null
+    @Volatile private var layer: String? = null
     private var lastTs = 0L
     private var lastFocusCheck = 0L
     private var lastLayerPick = 0L
-    private var emptyPolls = 0
+    @Volatile private var emptyPolls = 0
     private var flipCount = -1L
     private var flipAt = 0L
 
@@ -38,16 +38,20 @@ object FpsMeter {
     val currentLayer: String? get() = layer
     /** Changes every time the foreground app changes, so callers can drop old frames. */
     @Volatile var changeId = 0
-    private var noLatency = false
+    @Volatile private var noLatency = false
 
-    @Synchronized
-    fun poll(): Result {
+    /**
+     * Slow lane (≈1×/s, its own coroutine): which app is on screen, which layer is its.
+     * Kept out of [poll] so heavy dumpsys calls never delay the FPS readings.
+     */
+    fun slow() {
         val now = SystemClock.elapsedRealtime()
-        if (pkg == null || now - lastFocusCheck > 1000) {
+        if (pkg == null || now - lastFocusCheck > 900) {
             lastFocusCheck = now
             val p = focusedPackage()
             if (p != null && p != pkg) {
-                pkg = p; layer = null; lastTs = 0; tsLast = null; noLatency = false
+                layer = null; noLatency = false; pkg = p
+                resetPending = true
                 changeId++
             }
         }
@@ -56,12 +60,20 @@ object FpsMeter {
             lastLayerPick = now
             emptyPolls = 0
             val l = pickLayer(p)
-            if (l != layer) {
-                layer = l; lastTs = 0
-            }
-            // No layer of this app answers --latency: stop retrying every poll, use TimeStats.
+            if (l != layer) { layer = l; resetPending = true }
+            // No layer of this app answers --latency: stop retrying, use TimeStats.
             if (l == null) noLatency = true
         }
+    }
+
+    @Volatile private var resetPending = false
+
+    /** Fast lane (every 250 ms): new frames of the current app. */
+    @Synchronized
+    fun poll(): Result {
+        val now = SystemClock.elapsedRealtime()
+        if (resetPending) { resetPending = false; lastTs = 0; tsLast = null }
+        val p = pkg
         val l = layer
         if (l != null) {
             val ts = latency(l)

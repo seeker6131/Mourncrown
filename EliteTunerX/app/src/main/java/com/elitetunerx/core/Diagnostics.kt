@@ -59,6 +59,8 @@ object Diagnostics {
         val gpu = Shell.exec(arrayOf("dumpsys", "gpu"), 4000).out
         val gi = gpu.indexOf("appPackageName = $pkg")
         section(sb, "gpustats", if (gi >= 0) gpu.substring(gi, minOf(gpu.length, gi + 900)) else "(no entry)")
+        section(sb, "gpuwork", Shell.exec(arrayOf("dumpsys", "gpu", "--gpuwork"), 4000).out.take(3000))
+        section(sb, "kgsl x5", Shell.sh("for i in 1 2 3 4 5; do cat /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/class/kgsl/kgsl-3d0/gpubusy /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq 2>&1 | tr '\\n' ' '; echo; sleep 0.2; done; ls /sys/class/kgsl/kgsl-3d0/ /sys/class/devfreq/ 2>&1 | head -c 3000", 6000).out)
         section(sb, "processes", Shell.sh("ps -A -o PID,NAME | grep '$pkg'", 3000).out)
         section(sb, "gpu nodes", Shell.sh(
             "for f in /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/class/kgsl/kgsl-3d0/gpubusy /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/gpu/gpu_busy; do echo \"\$f: \$(cat \$f 2>&1 | head -c 80)\"; done", 3000

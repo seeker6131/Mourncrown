@@ -32,18 +32,18 @@ data class GameInfo(
  * Works for any game on any vendor — nothing is injected into the game.
  */
 object GameProbe {
-    private var pkg: String? = null
-    private var label = ""
-    private var res: IntArray? = null
+    @Volatile private var pkg: String? = null
+    @Volatile private var label = ""
+    @Volatile private var res: IntArray? = null
     private var resAt = 0L
-    private var api: String? = null
+    @Volatile private var api: String? = null
     private var apiAt = 0L
-    private var ram: Double? = null
+    @Volatile private var ram: Double? = null
     private var ramAt = 0L
-    private var pids: List<Int> = emptyList()
+    @Volatile private var pids: List<Int> = emptyList()
     private var pidAt = 0L
     private var prevCpu: LongArray? = null
-    private var cpu: Double? = null
+    @Volatile private var cpu: Double? = null
 
     /** Last app on screen that was not Elite Tuner X itself (for reports opened from the app). */
     @Volatile var lastGame: String? = null
@@ -51,7 +51,17 @@ object GameProbe {
     @Synchronized
     fun reset() { pkg = null }
 
-    @Synchronized
+    /** Slow lane (own coroutine): resolution, API, RAM, process list — heavy dumpsys calls. */
+    fun heavy(ctx: Context, layer: String?) {
+        val p = pkg ?: return
+        val now = SystemClock.elapsedRealtime()
+        if (now - resAt > (if (res == null) 1500 else 4000)) { resAt = now; val r = runCatching { resolution(p, layer) }.getOrNull(); if (p == pkg && r != null) res = r }
+        if (now - apiAt > (if (api == null) 4000 else 30000)) { apiAt = now; val a = runCatching { graphicsApi(p) }.getOrNull(); if (p == pkg && a != null) api = a }
+        if (now - ramAt > 5000) { ramAt = now; val m = runCatching { pss(p) }.getOrNull(); if (p == pkg) ram = m }
+        if (pids.isEmpty() || now - pidAt > 10000) { pidAt = now; val ids = runCatching { pidsOf(p) }.getOrDefault(emptyList()); if (p == pkg) pids = ids }
+    }
+
+    /** Fast lane: game CPU share + current values. */
     fun poll(ctx: Context, fg: String?, layer: String?, priv: Boolean): GameInfo? {
         val p = fg ?: return null
         if (p != ctx.packageName) lastGame = p
@@ -66,13 +76,7 @@ object GameProbe {
         }
         val display = ctx.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
         val hz = display?.refreshRate?.toDouble()
-        if (priv) {
-            if (now - resAt > (if (res == null) 1500 else 4000)) { resAt = now; res = runCatching { resolution(p, layer) }.getOrNull() ?: res }
-            if (now - apiAt > (if (api == null) 4000 else 30000)) { apiAt = now; api = runCatching { graphicsApi(p) }.getOrNull() ?: api }
-            if (now - ramAt > 5000) { ramAt = now; ram = runCatching { pss(p) }.getOrNull() }
-            if (pids.isEmpty() || now - pidAt > 10000) { pidAt = now; pids = runCatching { pidsOf(p) }.getOrDefault(emptyList()) }
-            cpu = runCatching { cpuShare() }.getOrNull() ?: cpu
-        }
+        if (priv) cpu = runCatching { cpuShare() }.getOrNull() ?: cpu
         val r = res
         return GameInfo(
             pkg = p, label = label,
