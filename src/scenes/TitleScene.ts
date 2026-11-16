@@ -13,7 +13,8 @@ import { formKeyOf } from '../world/chars';
 import { activeTier } from '../systems/stats';
 import { guildOf } from '../systems/guild';
 import { mountOn } from '../systems/mounts';
-import { cloud, googleLinked, accountName, relogin } from '../net/cloud';
+import { cloud, googleLinked, accountName, relogin, prevHeroes } from '../net/cloud';
+import { openEnterCode, openPrev } from '../net/devices';
 import { askName } from '../net/namePrompt';
 import { showGoogleButton } from '../net/googleBtn';
 import { takeResume, type Resume } from '../core/resume';
@@ -72,7 +73,7 @@ export class TitleScene extends Phaser.Scene {
     // a guest plays at once; a Google account keeps the hero on any device (it can be linked later in the menu — nothing is lost)
     const linked = googleLinked(), save = hasSave();
     let by = art ? 236 : 150, gy = -1;
-    if (!linked) { gy = by + 22; by += 44; k.text(cx, gy - 22, '🔑 เคยเล่นแล้ว / ย้ายเครื่อง? เข้าสู่ระบบ Google บัญชีเดิม = ได้ตัวละครเดิมคืน', 8.5, '#ffe7a0').setOrigin(0.5); }   // Google sign-in in the middle of the screen (Google draws it over the game) — a player changed phones, pressed guest and thought the hero was gone
+    if (!linked) { gy = by + 22; by += 44; k.text(cx, gy - 22, '🔑 เคยเล่นแล้ว / ย้ายเครื่อง? เข้า Google บัญชีเดิม หรือกด 📱 ใส่โค้ดย้ายเครื่อง (มุมซ้ายบน)', 8.5, '#ffe7a0').setOrigin(0.5); }   // Google sign-in in the middle of the screen (Google draws it over the game) — a player changed phones, pressed guest and thought the hero was gone
     if (save) {
       this.add.existing(k.button(cx - 80, by, 160, 30, linked ? '▶ เล่นต่อ' : '▶ เล่นต่อ (แขก)', () => start(false), { size: 12, color: 0x1f4a2a }));
       this.add.existing(k.button(cx - 55, by + 36, 110, 18, 'เริ่มเกมใหม่', () => start(true), { size: 9 }));
@@ -87,6 +88,7 @@ export class TitleScene extends Phaser.Scene {
       const off = showGoogleButton(r => {
         if (r === 'switched') { off(); this.scene.restart(); return; }   // the hero of that Google account is now on this device
         if (r === 'linked') { off(); note = '✔ เชื่อม Google แล้ว — เข้าเครื่องไหนก็เจอตัวละครเดิม'; if (!accountName()) askName(n => { note = `✔ ยินดีต้อนรับ ${n}!`; showCloud(); }); }
+        else if (r === 'cancel') note = 'ยกเลิกแล้ว — เล่นตัวละครบนเครื่องนี้ต่อ';
         else note = '✖ เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง';
         showCloud();
       }, { x: px, y: py, big: b.height > 600 });
@@ -96,6 +98,9 @@ export class TitleScene extends Phaser.Scene {
     // signed in with Google but no name yet (e.g. this device just loaded that account): name the hero now
     if (googleLinked() && !accountName()) askName(n => { note = `✔ ยินดีต้อนรับ ${n}!`; showCloud(); });
     // language switch (English by default on the first visit)
+    // 📱 another device: type the code from the device that has the hero (no Google needed) / back to a hero played here before
+    this.add.existing(k.button(10, 10, 132, 24, '📱 ใส่โค้ดย้ายเครื่อง', () => openEnterCode(() => location.reload()), { size: 9.5, color: 0x2a4a5a }));
+    if (prevHeroes().length) this.add.existing(k.button(10, 38, 132, 22, '↩ ตัวละครเดิมบนเครื่องนี้', () => openPrev(() => location.reload()), { size: 8.5, color: 0x3a3a5a }));
     this.add.existing(k.button(VW - 118, 10, 108, 24, lang() === 'en' ? '🌐 ภาษาไทย' : '🌐 English', () => { setLang(lang() === 'en' ? 'th' : 'en'); location.reload(); }, { size: 10, color: 0x2a4a5a }));
     this.cameras.main.fadeIn(400);
     this.prefetch();

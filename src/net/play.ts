@@ -1,7 +1,7 @@
 // The player's own game on the server (server/worker.ts Player): every action goes there; the server's answer brings
 // what changed in the valuable fields (level, gold, items, resources...), which replaces this device's copy.
 // Online: actions with dice (a kill's loot, gathering, upgrades, crafting) are decided ONLY there.
-import { SERVER, accountToken } from './cloud';
+import { SERVER, accountToken, freezeCloud } from './cloud';
 import { runtime, bus, EV } from '../core/events';
 import { setTownView, type TownView } from './townView';
 
@@ -9,7 +9,7 @@ type Out = { r: unknown; own: Record<string, unknown> };
 class PlayLink {
   /** the server is at its cap (director's money limit): 'full' = too many online now, 'day' = today's hours used up */
   full: { why: string; n: number; max: number; at: number } | null = null;
-  ws: WebSocket | null = null; ready = false; private q = 1; private wait = new Map<number, (o: Out) => void>(); private delay = 1000; private started = false;
+  ws: WebSocket | null = null; ready = false; kicked = false; private last: WebSocket | null = null; private q = 1; private wait = new Map<number, (o: Out) => void>(); private delay = 1000; private started = false;
   get online() { return this.ready && !!this.ws && this.ws.readyState === WebSocket.OPEN; }
   start() {
     if (this.started) return; this.started = true; this.open();
@@ -17,7 +17,7 @@ class PlayLink {
   }
   private open() {
     const t = accountToken(); if (!t || typeof WebSocket === 'undefined') { setTimeout(() => this.open(), 5000); return; }
-    const ws = new WebSocket(SERVER.replace(/^http/, 'ws') + '/play?t=' + encodeURIComponent(t)); this.ws = ws;
+    const ws = new WebSocket(SERVER.replace(/^http/, 'ws') + '/play?t=' + encodeURIComponent(t)); this.ws = ws; this.last = ws;
     ws.onmessage = e => {
       let m: { t: string; q?: number; has?: boolean } & Partial<Out> & { sid?: number }; try { m = JSON.parse(String(e.data)); } catch { return; }
       if (m.t === 'full') { const f = m as unknown as { why: string; n: number; max: number }; this.full = { why: f.why, n: f.n, max: f.max, at: Date.now() }; return; }
@@ -30,6 +30,7 @@ class PlayLink {
       if (m.t === 'note') { this.apply(m.own); const text = (m as { text?: string }).text; if (text) bus.emit(EV.TOAST, text, '#ffd84a'); }   // e.g. something sold on the market
     };
     ws.onclose = e => { if (this.ws === ws) { this.ws = null; this.ready = false; } for (const f of this.wait.values()) f({ r: { refused: 'offline' }, own: {} }); this.wait.clear(); if (e.code === 4002) { setTimeout(() => this.open(), 60000); return; }   // (the cap: try again in a minute)
+      if (e.code === 4000 && this.ws === null && this.last === ws) { this.kicked = true; freezeCloud(); bus.emit('net:kicked'); return; }   // another device opened this hero: stop here (no tug of war between the two)
       setTimeout(() => this.open(), this.delay); this.delay = Math.min(15000, this.delay * 2); };
   }
   private retry() { try { this.ws?.close(); } catch { /* gone */ } }

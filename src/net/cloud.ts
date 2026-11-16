@@ -94,7 +94,7 @@ export function cloudSaved() {
   if (!timer) timer = setTimeout(() => { timer = null; flush(); }, first ? 1500 : DELAY);
 }
 export async function flush(keepalive = false) {
-  if (!ok() || !dirty || busy) return;
+  if (!ok() || !dirty || busy || frozen) return;
   const a = acc(), raw = localStorage.getItem(SAVE_KEY); if (!a || !raw) return;
   busy = true; dirty = false; cloud.state = 'saving';
   try {
@@ -109,7 +109,7 @@ if (ok()) document.addEventListener('visibilitychange', () => { if (document.vis
 
 /** a Google sign-in credential from the button: link this device's hero to the Google account, or (that Google account
  *  already has a hero) sign this device in to it and take its save. 'switched' = the save on this device was replaced. */
-export async function googleLogin(credential: string): Promise<'linked' | 'switched' | 'fail'> {
+export async function googleLogin(credential: string): Promise<'linked' | 'switched' | 'cancel' | 'fail'> {
   if (!ok()) return 'fail';
   try {
     await flush();   // this device's latest progress reaches its own account first
@@ -117,13 +117,74 @@ export async function googleLogin(credential: string): Promise<'linked' | 'switc
     if (r.status !== 200) return 'fail';
     relogin = false;
     if (r.body.linked) { const a = acc()!; a.google = true; setAcc(a); return 'linked'; }
-    const n: Acc = { id: String(r.body.id), token: String(r.body.token), rev: 0, google: true }; setAcc(n);
-    const sv = await req('/save');
-    if (sv.status === 200 && sv.body.data) { localStorage.setItem(SAVE_KEY, JSON.stringify(sv.body.data)); n.rev = Number(sv.body.rev) || 0; setAcc(n); return 'switched'; }
-    dirty = true; flush();   // a new Google account: the hero on this device becomes its hero
+    const n: Acc = { id: String(r.body.id), token: String(r.body.token), rev: 0, google: true };
+    const sv = await req('/save', {}, n);
+    if (sv.status === 200 && sv.body.data) return await moveTo(n, sv.body.data, Number(sv.body.rev) || 0) ? 'switched' : 'cancel';
+    setAcc(n); dirty = true; flush();   // a new Google account: the hero on this device becomes its hero
     return 'linked';
   } catch { return 'fail'; }
 }
+
+// ---------- 📱 several devices (director 16 Nov: "like any game — play on many devices") ----------
+/** a hero, shortly (for the "switch hero?" box) */
+export interface HeroSum { name: string; level: number }
+function heroOf(data: unknown): HeroSum | null {
+  const d = data as { name?: unknown; level?: unknown } | null; if (!d || typeof d !== 'object') return null;
+  return { name: String(d.name ?? '?'), level: Number(d.level) || 1 };
+}
+export function localHero(): HeroSum | null { try { return heroOf(JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null')); } catch { return null; } }
+/** the UI asks the player before this device's hero is swapped for another (set by net/devices.ts) */
+let askSwitch: (here: HeroSum | null, there: HeroSum | null) => Promise<boolean> = async () => true;
+export function setAskSwitch(f: typeof askSwitch) { askSwitch = f; }
+/** heroes this device played before a switch: kept so the player can go back (a guest hero would be lost otherwise) */
+const PREV = 'mc_cloud_prev';
+interface Prev { acc: Acc; hero: HeroSum; at: number }
+export function prevHeroes(): Prev[] { try { const p = JSON.parse(localStorage.getItem(PREV) ?? '[]'); return Array.isArray(p) ? p : []; } catch { return []; } }
+function setPrev(p: Prev[]) { try { localStorage.setItem(PREV, JSON.stringify(p.slice(0, 4))); } catch { /* private mode */ } }
+/** switch this device to account `n` whose save is `data` — after asking; the hero here is kept in the list */
+async function moveTo(n: Acc, data: unknown, rev: number): Promise<boolean> {
+  const cur = acc(), here = localHero(), there = heroOf(data);
+  if (cur && cur.id === n.id) { n.rev = rev; n.google = n.google || cur.google; setAcc(n); localStorage.setItem(SAVE_KEY, JSON.stringify(data)); return true; }   // (the same hero: just this device's new key)
+  if (cur && here && !(await askSwitch(here, there))) { try { await req('/auth/logout', { method: 'POST' }, n); } catch { /* the unused key */ } return false; }
+  if (cur && here) { dirty = true; await flush(); setPrev([{ acc: acc() ?? cur, hero: here, at: Date.now() }, ...prevHeroes().filter(p => p.acc.id !== cur.id && p.acc.id !== n.id)]); }
+  else setPrev(prevHeroes().filter(p => p.acc.id !== n.id));
+  n.rev = rev; setAcc(n); dirty = false;
+  if (data) localStorage.setItem(SAVE_KEY, JSON.stringify(data)); else localStorage.removeItem(SAVE_KEY);
+  return true;
+}
+/** a short code to sign in on another device (10 minutes, once) */
+export async function makeCode(): Promise<string | null> {
+  if (!ok() || !acc()) return null;
+  try { await flush(); const r = await req('/auth/code', { method: 'POST' }); return r.status === 200 ? String(r.body.code) : null; } catch { return null; }
+}
+/** type the code from the other device: this device plays that hero */
+export async function useCode(code: string): Promise<'switched' | 'cancel' | 'code' | 'rate' | 'banned' | 'fail'> {
+  if (!ok()) return 'fail';
+  try {
+    const r = await req('/auth/code/use', { method: 'POST', body: JSON.stringify({ code }) }, null);
+    if (r.status === 404) return 'code'; if (r.status === 429) return 'rate'; if (r.status === 403) return 'banned'; if (r.status !== 200) return 'fail';
+    const n: Acc = { id: String(r.body.id), token: String(r.body.token), rev: 0 };
+    const me = await req('/me', {}, n); if (me.status === 200) { n.google = !!me.body.google; n.name = me.body.name ? String(me.body.name) : undefined; }
+    const sv = await req('/save', {}, n);
+    relogin = false;
+    return await moveTo(n, sv.status === 200 ? sv.body.data : null, sv.status === 200 ? Number(sv.body.rev) || 0 : 0) ? 'switched' : 'cancel';
+  } catch { return 'fail'; }
+}
+/** go back to a hero this device played before */
+export async function switchBack(i: number): Promise<'switched' | 'gone' | 'fail'> {
+  const p = prevHeroes()[i]; if (!p) return 'fail';
+  try {
+    const sv = await req('/save', {}, p.acc);
+    if (sv.status === 401) { setPrev(prevHeroes().filter((_, j) => j !== i)); return 'gone'; }
+    if (sv.status !== 200) return 'fail';
+    const prev = askSwitch; askSwitch = async () => true;   // (the player already chose)
+    try { await moveTo({ ...p.acc }, sv.body.data, Number(sv.body.rev) || 0); } finally { askSwitch = prev; }
+    return 'switched';
+  } catch { return 'fail'; }
+}
+/** another device opened this hero: this one stops sending (it would undo the other's progress) */
+let frozen = false;
+export function freezeCloud() { frozen = true; dirty = false; }
 
 /** sign out on this device (menu): the latest progress is sent first, then this device forgets the account and its
  *  local copy — the hero stays on the server with the Google account */

@@ -45,8 +45,9 @@ import { mountOn, hasMount } from '../systems/mounts';
 import { STAGES, LANDS, WILD, DUNGEON, DUNGEON_WAVES, DUNGEON_SECS, dungeonStage } from '../world/stages';
 import { RECIPES } from '../data/alchemy';
 import { act, actServer, callServer, isOnline, refused } from '../net/client';
-import { isAdmin, SERVER, accountToken, googleLinked, accountName, signOut, accountId } from '../net/cloud';
+import { isAdmin, SERVER, accountToken, googleLinked, accountName, signOut, accountId, prevHeroes } from '../net/cloud';
 import { openLinkGoogle } from '../net/linkGoogle';
+import { openShowCode, openEnterCode, openPrev } from '../net/devices';
 import { showWait } from '../core/wait';
 import { askName } from '../net/namePrompt';
 import { canBrew, activeElixir } from '../systems/alchemy';
@@ -1284,6 +1285,10 @@ export class Panels implements GuildHost {
         if (!accountName()) askName(n => bus.emit(EV.TOAST, `✔ ยินดีต้อนรับ ${n}!`, '#ffd84a'));
       });
     }, 0x1f4a6a);
+    // 📱 several devices (director 16 Nov): a code for the other device, a code from it, heroes played here before
+    if (accountToken()) b('📱 เล่นบนอีกเครื่อง (รับโค้ด)', () => { saveGame(s); this.close(); openShowCode(); }, 0x1f4a6a);
+    b('📱 ใส่โค้ดจากอีกเครื่อง', () => { saveGame(s); this.close(); openEnterCode(() => location.reload()); }, 0x2a4a5a);
+    if (prevHeroes().length) b('↩ ตัวละครเดิมบนเครื่องนี้', () => { saveGame(s); this.close(); openPrev(() => location.reload()); }, 0x3a3a5a);
     b('💾 บันทึกเกม', () => { const ok = saveGame(s); bus.emit(EV.TOAST, ok ? 'บันทึกเกมแล้ว' : 'บันทึกไม่สำเร็จ', ok ? '#9fffb0' : '#ff8a8a'); this.close(); }, 0x1f4a2a);
     b('📂 โหลดเกมล่าสุด', () => {
       const st = loadGame();

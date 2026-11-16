@@ -14,7 +14,7 @@ function gis(): Promise<GIS | null> {
 }
 /** show the button: at a point on the page (its centre, in CSS px), inside a box of a dialog, or bottom-left;
  *  returns a function that removes it */
-export function showGoogleButton(done: (r: 'linked' | 'switched' | 'fail') => void, place?: { x: number; y: number; big?: boolean } | HTMLElement): () => void {
+export function showGoogleButton(done: (r: 'linked' | 'switched' | 'cancel' | 'fail') => void, place?: { x: number; y: number; big?: boolean } | HTMLElement): () => void {
   const box = document.createElement('div');
   if (place instanceof HTMLElement) { box.style.cssText = 'display:flex;justify-content:center;min-height:44px'; place.append(box); }
   else { box.style.cssText = place ? `position:fixed;left:${place.x}px;top:${place.y}px;transform:translate(-50%,-50%);z-index:20;` : 'position:fixed;left:10px;bottom:10px;z-index:20;'; document.body.append(box); }

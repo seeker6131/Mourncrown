@@ -109,6 +109,8 @@ async function who(req: Request, env: Env) {
   if (a) await env.DB.prepare('UPDATE accounts SET seen = ? WHERE id = ?').bind(Date.now(), a.id).run();
   return a;
 }
+/** a device-move code lasts this long */
+const XFER_MS = 10 * 60000;
 async function newAccount(env: Env, ipHash: string, sub: string | null) {
   const id = rand(12), token = rand(32), now = Date.now();
   await env.DB.prepare('INSERT INTO accounts (id, token_hash, google_sub, ip_hash, created, seen) VALUES (?, ?, ?, ?, ?, ?)').bind(id, await sha(token), sub, ipHash, now, now).run();
@@ -168,6 +170,38 @@ export default {
         }
         const ipHash = await sha('mc:' + (req.headers.get('CF-Connecting-IP') ?? ''));
         return json(req, { ...(await newAccount(env, ipHash, sub)), switched: true });
+      }
+
+      // 📱 move to another device without Google (director 16 Nov): a signed-in device asks for a short code (10 minutes,
+      // once); the other device types it and is signed in to the same hero (both stay signed in — one plays at a time)
+      if (path === '/auth/code' && req.method === 'POST') {
+        const me = await who(req, env); if (!me) return json(req, { error: 'auth' }, 401);
+        const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let code = ''; const r = new Uint8Array(8); crypto.getRandomValues(r); for (const b of r) code += A[b % A.length];
+        const now = Date.now(), old = await env.DB.prepare('SELECT v FROM kv WHERE k = ?').bind('xferid:' + me.id).first<{ v: string }>();
+        if (old) await env.DB.prepare('DELETE FROM kv WHERE k = ?').bind('xfer:' + old.v).run();   // (one live code per hero)
+        await env.DB.prepare('INSERT OR REPLACE INTO kv (k, v, at) VALUES (?, ?, ?), (?, ?, ?)').bind('xfer:' + code, me.id, now, 'xferid:' + me.id, code, now).run();
+        return json(req, { code, ttl: XFER_MS });
+      }
+      if (path === '/auth/code/use' && req.method === 'POST') {
+        const body = await req.json().catch(() => ({})) as { code?: string };
+        const code = String(body.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const ipHash = await sha('mc:' + (req.headers.get('CF-Connecting-IP') ?? '')), now = Date.now(), tk = 'xfertry:' + ipHash;
+        const tries = await env.DB.prepare('SELECT v, at FROM kv WHERE k = ?').bind(tk).first<{ v: string; at: number }>();
+        const n = tries && now - tries.at < 600_000 ? Number(tries.v) || 0 : 0;
+        if (n >= 10) return json(req, { error: 'rate' }, 429);   // (10 wrong codes in 10 minutes: wait — no guessing)
+        const row = code.length === 8 ? await env.DB.prepare('SELECT v, at FROM kv WHERE k = ?').bind('xfer:' + code).first<{ v: string; at: number }>() : null;
+        if (!row || now - row.at > XFER_MS) {
+          await env.DB.prepare('INSERT OR REPLACE INTO kv (k, v, at) VALUES (?, ?, ?)').bind(tk, String(n + 1), n ? tries!.at : now).run();
+          return json(req, { error: 'code' }, 404);
+        }
+        const acc = await env.DB.prepare('SELECT id, banned FROM accounts WHERE id = ?').bind(row.v).first<{ id: string; banned: number }>();
+        if (!acc) return json(req, { error: 'code' }, 404);
+        if (acc.banned) return json(req, { error: 'banned' }, 403);
+        await env.DB.prepare('DELETE FROM kv WHERE k IN (?, ?)').bind('xfer:' + code, 'xferid:' + acc.id).run();   // (once)
+        const token = rand(32);
+        await env.DB.prepare('INSERT INTO sessions (token_hash, id, at) VALUES (?, ?, ?)').bind(await sha(token), acc.id, now).run();
+        await env.DB.prepare('DELETE FROM sessions WHERE id = ?1 AND token_hash NOT IN (SELECT token_hash FROM sessions WHERE id = ?1 ORDER BY at DESC LIMIT 5)').bind(acc.id).run();
+        return json(req, { id: acc.id, token, switched: true });
       }
 
       // sign out on this device: its key stops working (the hero stays with the account; the other devices stay signed in)

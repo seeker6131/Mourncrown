@@ -21,6 +21,7 @@ export function openLinkGoogle(done: (r: 'linked' | 'switched') => void) {
   const err = wrap.querySelector('.err') as HTMLElement;
   const off = showGoogleButton(r => {
     if (r === 'fail') { err.textContent = tr('เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง'); return; }
+    if (r === 'cancel') { err.textContent = tr('ยกเลิกแล้ว — เล่นตัวละครบนเครื่องนี้ต่อ'); return; }
     off(); wrap.remove(); done(r);
   }, wrap.querySelector('.slot') as HTMLElement);
   (wrap.querySelector('.close') as HTMLElement).onclick = () => { off(); wrap.remove(); };
