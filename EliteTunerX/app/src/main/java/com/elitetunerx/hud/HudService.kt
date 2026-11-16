@@ -270,6 +270,10 @@ class HudService : Service() {
             chip("ล้าง RAM", true) { act { QuickActions.clearRam(ctx) } },
             chip(if (Recorder.active.value == null) "● อัดเซสชัน" else "■ หยุดอัด") { act { QuickActions.record(ctx) }; closePanel() },
             chip("สลับแบบ HUD") { cycleStyle(); movePanel() },
+            chip("รายงานปัญหา") {
+                val pkg = QuickActions.currentGame()
+                act { val r = com.elitetunerx.core.Diagnostics.build(ctx, pkg); scope.launch { closePanel(); com.elitetunerx.core.Diagnostics.share(ctx, r) }; "✔ สร้างรายงานแล้ว" }
+            },
             chip("ปิด HUD") { stopSelf() }))
         panelStatus = TextView(this).apply {
             text = "แตะ HUD = เปิด/ปิดแผงนี้ • กดค้าง = เปลี่ยนแบบ • ลาก = ย้าย"

@@ -40,10 +40,13 @@ object GameProbe {
     private var apiAt = 0L
     private var ram: Double? = null
     private var ramAt = 0L
-    private var pid: Int? = null
+    private var pids: List<Int> = emptyList()
     private var pidAt = 0L
     private var prevCpu: LongArray? = null
     private var cpu: Double? = null
+
+    /** Last app on screen that was not Elite Tuner X itself (for reports opened from the app). */
+    @Volatile var lastGame: String? = null
 
     @Synchronized
     fun reset() { pkg = null }
@@ -51,9 +54,10 @@ object GameProbe {
     @Synchronized
     fun poll(ctx: Context, fg: String?, layer: String?, priv: Boolean): GameInfo? {
         val p = fg ?: return null
+        if (p != ctx.packageName) lastGame = p
         val now = SystemClock.elapsedRealtime()
         if (p != pkg) {
-            pkg = p; res = null; api = null; ram = null; pid = null; prevCpu = null; cpu = null
+            pkg = p; res = null; api = null; ram = null; pids = emptyList(); prevCpu = null; cpu = null
             resAt = 0; apiAt = 0; ramAt = 0; pidAt = 0
             label = runCatching {
                 val pm = ctx.packageManager
@@ -66,7 +70,7 @@ object GameProbe {
             if (now - resAt > (if (res == null) 1500 else 4000)) { resAt = now; res = runCatching { resolution(p, layer) }.getOrNull() ?: res }
             if (now - apiAt > (if (api == null) 4000 else 30000)) { apiAt = now; api = runCatching { graphicsApi(p) }.getOrNull() ?: api }
             if (now - ramAt > 5000) { ramAt = now; ram = runCatching { pss(p) }.getOrNull() }
-            if (pid == null || now - pidAt > 10000) { pidAt = now; pid = runCatching { pidOf(p) }.getOrNull() }
+            if (pids.isEmpty() || now - pidAt > 10000) { pidAt = now; pids = runCatching { pidsOf(p) }.getOrDefault(emptyList()) }
             cpu = runCatching { cpuShare() }.getOrNull() ?: cpu
         }
         val r = res
@@ -85,17 +89,27 @@ object GameProbe {
         val dump = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger"), 6000).out
         if (dump.isEmpty()) return null
         val lines = dump.lines()
-        // 1) HWC layer table: "<name>" line followed by "... | Disp Frame (LTRB) | Source Crop (LTRB) | ..."
+        // 1) HWC layer table. Column order differs between Android versions, so find the columns
+        //    from the header line ("Disp Frame (LTRB)" / "Source Crop (LTRB)").
         var best: IntArray? = null
         var bestScore = -1.0
+        var dispCol = 4; var cropCol = 5
         for (i in 0 until lines.size - 1) {
-            val name = lines[i].trim()
-            if (!name.contains(pkg) || name.contains("Bounds for") || name.startsWith("Background for")) continue
-            val row = lines[i + 1]
+            val l = lines[i]
+            if (l.contains("Source Crop") && l.contains("|")) {
+                val cols = l.split('|')
+                cols.indexOfFirst { it.contains("Disp Frame") }.takeIf { it >= 0 }?.let { dispCol = it }
+                cols.indexOfFirst { it.contains("Source Crop") }.takeIf { it >= 0 }?.let { cropCol = it }
+                continue
+            }
+            val name = l.trim()
+            if (!name.contains(pkg) || name.contains("Bounds for") || name.startsWith("Background for") || name.contains("|")) continue
+            // the data row is the next line that has the column separators
+            val row = (i + 1 until minOf(lines.size, i + 3)).map { lines[it] }.firstOrNull { it.count { c -> c == '|' } >= 4 } ?: continue
             val cols = row.split('|')
-            if (cols.size < 6) continue
-            val disp = numRe.findAll(cols[4]).map { it.value.toDouble() }.toList()
-            val crop = numRe.findAll(cols[5]).map { it.value.toDouble() }.toList()
+            if (cols.size <= maxOf(dispCol, cropCol)) continue
+            val disp = numRe.findAll(cols[dispCol]).map { it.value.toDouble() }.toList()
+            val crop = numRe.findAll(cols[cropCol]).map { it.value.toDouble() }.toList()
             if (disp.size < 4 || crop.size < 4) continue
             val rw = (crop[2] - crop[0]).toInt(); val rh = (crop[3] - crop[1]).toInt()
             val sw = (disp[2] - disp[0]).toInt(); val sh = (disp[3] - disp[1]).toInt()
@@ -107,7 +121,7 @@ object GameProbe {
         }
         if (best != null) return best
         // 2) Per-layer dump: "activeBuffer=[1920x1080:..."
-        val bufRe = Regex("activeBuffer=\\[\\s*(\\d+)\\s*x\\s*(\\d+)")
+        val bufRe = Regex("(?:activeBuffer=\\[|[bB]uffer(?:Size)?[=:]\\s*\\[?|w/h:)\\s*(\\d{2,5})\\s*x\\s*(\\d{2,5})")
         for (i in lines.indices) {
             val l = lines[i]
             if (!(l.contains("Layer") && l.contains(pkg))) continue
@@ -152,21 +166,32 @@ object GameProbe {
         return m.groupValues[1].toDouble() / 1024.0
     }
 
-    private fun pidOf(pkg: String): Int? =
-        Shell.exec(arrayOf("pidof", pkg), 3000).out.trim().split(Regex("\\s+")).firstOrNull()?.toIntOrNull()
+    /** All processes of the app ("pkg", "pkg:render", …) — many games render in a side process. */
+    private fun pidsOf(pkg: String): List<Int> =
+        Shell.sh("ps -A -o PID,NAME 2>/dev/null || ps", 4000).out.lineSequence()
+            .map { it.trim().split(Regex("\\s+")) }
+            .filter { it.size >= 2 && (it.last() == pkg || it.last().startsWith("$pkg:")) }
+            .mapNotNull { it.first().toIntOrNull() }.toList()
 
     private fun cpuShare(): Double? {
-        val id = pid ?: return null
-        val out = Shell.sh("cat /proc/$id/stat; head -n 1 /proc/stat", 3000).out.lines()
-        val stat = out.firstOrNull { it.startsWith("$id ") } ?: run { pid = null; return null }
-        val f = stat.substringAfterLast(')').trim().split(Regex("\\s+"))
-        // fields after ")" start at index 3 (state); utime=14, stime=15 → indices 11, 12
-        val proc = (f.getOrNull(11)?.toLongOrNull() ?: return null) + (f.getOrNull(12)?.toLongOrNull() ?: 0)
+        val ids = pids
+        if (ids.isEmpty()) return null
+        val out = Shell.sh(ids.joinToString("; ") { "cat /proc/$it/stat 2>/dev/null" } + "; head -n 1 /proc/stat", 3000).out.lines()
+        var proc = 0L
+        var seen = 0
+        for (l in out) {
+            if (l.startsWith("cpu ")) continue
+            val f = l.substringAfterLast(')', "").trim().split(Regex("\\s+"))
+            // fields after ")" start with state; utime/stime are fields 14/15 → indices 11/12
+            val u = f.getOrNull(11)?.toLongOrNull() ?: continue
+            proc += u + (f.getOrNull(12)?.toLongOrNull() ?: 0); seen++
+        }
+        if (seen == 0) { pids = emptyList(); return null }
         val total = out.firstOrNull { it.startsWith("cpu ") }?.trim()?.split(Regex("\\s+"))?.drop(1)
             ?.mapNotNull { it.toLongOrNull() }?.take(8)?.sum() ?: return null
         val prev = prevCpu
         prevCpu = longArrayOf(proc, total)
-        if (prev == null || total <= prev[1]) return null
+        if (prev == null || total <= prev[1] || proc < prev[0]) return null
         return ((proc - prev[0]).toDouble() / (total - prev[1]) * 100.0).coerceIn(0.0, 100.0)
     }
 }

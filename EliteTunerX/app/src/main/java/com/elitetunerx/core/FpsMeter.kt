@@ -19,6 +19,7 @@ object FpsMeter {
 
     const val SRC_LAYER = "SurfaceFlinger present timestamps"
     const val SRC_FLIP = "SurfaceFlinger page-flip counter (whole display)"
+    const val SRC_STATS = "SurfaceFlinger TimeStats (per app)"
 
     private var pkg: String? = null
     private var layer: String? = null
@@ -63,6 +64,12 @@ object FpsMeter {
                 if (ft.isEmpty()) emptyPolls++ else emptyPolls = 0
                 return Result(ft, null, p, l, SRC_LAYER)
             }
+        }
+        // Layer timestamps unavailable (renamed layers on new Android, ANGLE/SurfaceView quirks…):
+        // count frames per app with TimeStats instead — matched by package, not by layer name.
+        if (p != null) {
+            val st = timeStats(p, now)
+            if (st != null) return st
         }
         val f = pageFlips()
         var fps: Double? = null
@@ -138,6 +145,77 @@ object FpsMeter {
             }
         }
         return best ?: ranked.firstOrNull { it.contains("SurfaceView") }
+    }
+
+    // ------------------------------------------------------------------ TimeStats fallback
+    private var tsEnabled = false
+    private var tsAt = 0L
+    private var tsLast: Result? = null
+
+    /** Stops the global TimeStats collection we switched on (call when monitoring stops). */
+    fun stopTimeStats() {
+        if (tsEnabled) runCatching { Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--timestats", "-disable", "-clear"), 3000) }
+        tsEnabled = false
+    }
+
+    private fun timeStats(pkg: String, now: Long): Result? {
+        if (!tsEnabled) {
+            Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--timestats", "-enable", "-clear"), 3000)
+            tsEnabled = true; tsAt = now
+            return null
+        }
+        // TimeStats needs a window to count in; keep the previous result between dumps.
+        if (now - tsAt < 450) return tsLast?.copy(frameTimesMs = emptyList())
+        val out = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--timestats", "-dump", "-clear"), 3000).out
+        val elapsedS = (now - tsAt) / 1000.0
+        tsAt = now
+        val r = parseTimeStats(out, pkg, elapsedS)
+        tsLast = r
+        return r
+    }
+
+    /** Picks the busiest layer of [pkg] and rebuilds its frame times from the present-to-present histogram. */
+    fun parseTimeStats(out: String, pkg: String, elapsedS: Double): Result? {
+        if (out.isBlank()) return null
+        var bestFrames = -1
+        var bestHist: List<Double> = emptyList()
+        var bestName: String? = null
+        var name: String? = null
+        var pkgName: String? = null
+        var frames = 0
+        var inHist = false
+        val hist = ArrayList<Double>()
+        fun flush() {
+            val n = name
+            if (n != null && (pkgName == pkg || n.contains(pkg)) && frames > bestFrames) {
+                bestFrames = frames; bestName = n; bestHist = ArrayList(hist)
+            }
+        }
+        val kv = Regex("(\\d+)ms=(\\d+)")
+        for (raw in out.lineSequence()) {
+            val line = raw.trim()
+            when {
+                line.startsWith("layerName") -> {
+                    flush()
+                    name = line.substringAfter('=').trim(); pkgName = null; frames = 0; hist.clear(); inHist = false
+                }
+                line.startsWith("packageName") -> pkgName = line.substringAfter('=').trim()
+                line.startsWith("totalFrames") -> frames = line.substringAfter('=').trim().toIntOrNull() ?: 0
+                line.startsWith("present2present histogram") -> inHist = true
+                line.endsWith("histogram is as below:") -> inHist = false
+                inHist && kv.containsMatchIn(line) -> kv.findAll(line).forEach { m ->
+                    val ms = m.groupValues[1].toDouble(); val c = m.groupValues[2].toInt()
+                    repeat(minOf(c, 1000)) { hist.add(ms) }
+                }
+            }
+        }
+        flush()
+        if (bestName == null || bestFrames < 0) return null
+        // Frame times: from the histogram if present (1 ms buckets), else even spacing.
+        val ft = if (bestHist.isNotEmpty()) bestHist.shuffled(java.util.Random(bestFrames.toLong()))
+        else if (bestFrames > 0) List(bestFrames) { elapsedS * 1000.0 / bestFrames } else emptyList()
+        val fps = if (elapsedS > 0) bestFrames / elapsedS else null
+        return Result(ft, fps, pkg, bestName, SRC_STATS)
     }
 
     private fun pageFlips(): Long? {

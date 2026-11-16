@@ -262,8 +262,25 @@ private fun Esp32Page() {
 // ====================================================================== ABOUT
 @Composable
 private fun AboutPage() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
     ScreenColumn {
         BackRow("เกี่ยวกับแอป")
+        PanelCard(
+            "รายงานวิเคราะห์ (FPS / ความละเอียดไม่ขึ้น)",
+            help = "ถ้า FPS หรือความละเอียดขึ้น N/A บนเครื่องคุณ: เปิดเกมก่อน 10 วินาที แล้วกด \"รายงานปัญหา\" ในแผงจูนของ HUD (ดีที่สุด) หรือกดปุ่มนี้ — แอปจะรวบรวมสิ่งที่ระบบรายงานเกี่ยวกับเกมนั้นเท่านั้น (ไม่มีรายชื่อแอปอื่น ไม่มีข้อมูลส่วนตัว) คัดลอกไว้ให้และเปิดหน้าส่งต่อ ส่งให้ผู้พัฒนาเพื่อแก้ให้ตรงกับเครื่องคุณ"
+        ) {
+            Body("เกมล่าสุด: ${com.elitetunerx.core.GameProbe.lastGame ?: "ยังไม่มี — เปิดเกมก่อน"}", Color.White)
+            PrimaryButton(if (busy) "กำลังรวบรวม…" else "สร้างรายงาน", enabled = !busy) {
+                busy = true
+                scope.launch {
+                    val r = withContext(Dispatchers.IO) { com.elitetunerx.core.Diagnostics.build(ctx, com.elitetunerx.core.GameProbe.lastGame) }
+                    busy = false
+                    com.elitetunerx.core.Diagnostics.share(ctx, r)
+                }
+            }
+        }
         PanelCard("Elite Tuner X ${BuildConfig.VERSION_NAME}") {
             Body("เครื่องมือวัดผลและจูนเกมบน Android • รองรับทุกชิป (Snapdragon, Dimensity, Exynos, Tensor, Unisoc) และทุกสกิน (HyperOS, One UI, ColorOS, OxygenOS, Android ทั่วไป) Android 8 ขึ้นไป", Color.White)
             Body("ทุกค่าที่แสดงอ่านจากระบบจริง ถ้าวัดไม่ได้จะขึ้น N/A — ไม่สุ่ม ไม่เดา")

@@ -83,6 +83,7 @@ object Telemetry {
         users = (users - 1).coerceAtLeast(0)
         if (users == 0) {
             job?.cancel(); job = null
+            scope.launch { runCatching { FpsMeter.stopTimeStats() } }
         }
     }
 
@@ -310,8 +311,9 @@ object Telemetry {
             frames.isNotEmpty() -> {
                 val sum = frames.sum()
                 val f = frames.size / (sum / 1000.0)
-                fps = Reading.of(f, "%.1f", "", FpsMeter.SRC_LAYER)
-                ft = Reading.of(sum / frames.size, "%.2f", " ms", FpsMeter.SRC_LAYER)
+                val src = fpsRes?.source ?: FpsMeter.SRC_LAYER
+                fps = Reading.of(f, "%.1f", "", src)
+                ft = Reading.of(sum / frames.size, "%.2f", " ms", src)
             }
             fpsRes?.layer != null -> {
                 // Layer exists but presented no new frame: the app is genuinely showing 0 new frames.
