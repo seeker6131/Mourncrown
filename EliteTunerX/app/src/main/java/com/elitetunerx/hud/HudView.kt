@@ -59,12 +59,57 @@ class HudView(ctx: Context) : View(ctx) {
     private var fHead = 0
     private var lastSnapAt = 0L
 
+    // Frames arrive from the system in batches (every 250 ms). They are released into the graph
+    // at their own pace so the line scrolls continuously, ~30 redraws/s, never more than 0.3 s behind.
+    private val pending = ArrayDeque<Double>()
+    private var scrollAt = 0L
+    private var scrolling = false
+    private var carryMs = 0.0
+    private val scroller = object : Runnable {
+        override fun run() {
+            val now = android.os.SystemClock.uptimeMillis()
+            var budget = (now - scrollAt).toDouble() + carryMs
+            scrollAt = now
+            val out = ArrayList<Double>()
+            synchronized(pending) {
+                var backlog = pending.sum()
+                while (pending.isNotEmpty() && (pending.first() <= budget || backlog > 300.0)) {
+                    val f = pending.removeFirst()
+                    budget -= f; backlog -= f
+                    out.add(f)
+                }
+                carryMs = if (pending.isEmpty()) 0.0 else budget.coerceAtLeast(0.0)
+            }
+            if (out.isNotEmpty()) { pushFrames(out); invalidate() }
+            if (pending.isNotEmpty() && isAttachedToWindow) postDelayed(this, 33) else scrolling = false
+        }
+    }
+
+    private fun scheduleScroll() {
+        if (scrolling || cfg.style != STYLE_FULL || !cfg.graph) {
+            if (cfg.style != STYLE_FULL || !cfg.graph) synchronized(pending) { pending.clear() }
+            return
+        }
+        scrolling = true
+        scrollAt = android.os.SystemClock.uptimeMillis()
+        post(scroller)
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(scroller); scrolling = false
+        super.onDetachedFromWindow()
+    }
+
     fun pushFrames(ft: List<Double>) {
         ft.forEach { frames[fHead] = it.toFloat(); fHead = (fHead + 1) % frames.size; if (fCount < frames.size) fCount++ }
     }
 
     fun update(s: Snapshot?, rec: String?) {
-        if (s != null && s.timeMs != lastSnapAt) { lastSnapAt = s.timeMs; pushFrames(s.newFrameTimes) }
+        if (s != null && s.timeMs != lastSnapAt) {
+            lastSnapAt = s.timeMs
+            synchronized(pending) { pending.addAll(s.newFrameTimes) }
+            if (pending.isNotEmpty()) scheduleScroll()
+        }
         val needLayout = (snap == null) != (s == null) || snap?.game?.label != s?.game?.label
         snap = s; recording = rec
         if (needLayout) requestLayout()

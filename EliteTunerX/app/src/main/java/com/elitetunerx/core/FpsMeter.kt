@@ -36,25 +36,31 @@ object FpsMeter {
     }
 
     val currentLayer: String? get() = layer
+    /** Changes every time the foreground app changes, so callers can drop old frames. */
+    @Volatile var changeId = 0
+    private var noLatency = false
 
     @Synchronized
     fun poll(): Result {
         val now = SystemClock.elapsedRealtime()
-        if (pkg == null || now - lastFocusCheck > 1500) {
+        if (pkg == null || now - lastFocusCheck > 1000) {
             lastFocusCheck = now
             val p = focusedPackage()
             if (p != null && p != pkg) {
-                pkg = p; layer = null; lastTs = 0
+                pkg = p; layer = null; lastTs = 0; tsLast = null; noLatency = false
+                changeId++
             }
         }
         val p = pkg
-        if (p != null && (layer == null || emptyPolls >= 6 || now - lastLayerPick > 15000)) {
+        if (p != null && !noLatency && (layer == null || emptyPolls >= 6 || now - lastLayerPick > 15000)) {
             lastLayerPick = now
             emptyPolls = 0
             val l = pickLayer(p)
             if (l != layer) {
                 layer = l; lastTs = 0
             }
+            // No layer of this app answers --latency: stop retrying every poll, use TimeStats.
+            if (l == null) noLatency = true
         }
         val l = layer
         if (l != null) {
@@ -71,6 +77,9 @@ object FpsMeter {
             val st = timeStats(p, now)
             if (st != null) return st
         }
+        // Whole-display page flips only when we can't tell which app is on screen —
+        // otherwise they keep counting other layers after the game closes.
+        if (p != null) return Result(emptyList(), null, p, null, SRC_STATS)
         val f = pageFlips()
         var fps: Double? = null
         if (f != null) {
@@ -135,7 +144,11 @@ object FpsMeter {
         var best: String? = null
         var bestScore = -1L
         val nowNs = System.nanoTime()
-        for (c in ranked) {
+        // Some Android versions list "Name#id(BLAST Consumer)id" but track latency under a shorter name.
+        val variants = ranked.flatMap { n ->
+            listOf(n, n.substringBefore("(BLAST Consumer)").trim(), n.substringBefore('#').trim()).distinct()
+        }.distinct().take(16)
+        for (c in variants) {
             val ts = latency(c)
             if (ts.size < 2) continue
             val last = ts.last()
@@ -144,7 +157,7 @@ object FpsMeter {
                 bestScore = recent; best = c
             }
         }
-        return best ?: ranked.firstOrNull { it.contains("SurfaceView") }
+        return best
     }
 
     // ------------------------------------------------------------------ TimeStats fallback
@@ -165,7 +178,7 @@ object FpsMeter {
             return null
         }
         // TimeStats needs a window to count in; keep the previous result between dumps.
-        if (now - tsAt < 450) return tsLast?.copy(frameTimesMs = emptyList())
+        if (now - tsAt < 230) return tsLast?.copy(frameTimesMs = emptyList())
         val out = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--timestats", "-dump", "-clear"), 3000).out
         val elapsedS = (now - tsAt) / 1000.0
         tsAt = now

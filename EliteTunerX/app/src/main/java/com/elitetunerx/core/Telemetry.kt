@@ -235,6 +235,8 @@ object Telemetry {
         var lastFps: FpsMeter.Result? = null
         var flipFps: Double? = null
         var lastFrameAt = 0L
+        var lastChange = -1
+        val window = ArrayDeque<Double>()
         val am = ctx.getSystemService(ActivityManager::class.java)
         val pm = ctx.getSystemService(PowerManager::class.java)
         val bm = ctx.getSystemService(BatteryManager::class.java)
@@ -263,23 +265,31 @@ object Telemetry {
             if (priv) {
                 val r = runCatching { FpsMeter.poll() }.getOrNull()
                 if (r != null) {
+                    if (FpsMeter.changeId != lastChange) {
+                        // New app on screen: forget the previous app's frames immediately.
+                        lastChange = FpsMeter.changeId
+                        frames.clear(); window.clear(); lastFrameAt = t0
+                    }
                     lastFps = r
                     frames.addAll(r.frameTimesMs)
+                    window.addAll(r.frameTimesMs)
                     if (r.frameTimesMs.isNotEmpty()) lastFrameAt = t0
-                    if (r.displayFps != null) flipFps = r.displayFps
+                    // keep ~1.5 s of frames for the rolling FPS
+                    var sum = window.sum()
+                    while (window.size > 2 && sum - window.first() > 1000.0) sum -= window.removeFirst()
+                    flipFps = r.displayFps
                 }
             }
 
-            if (tick % 2 == 0) {
-                val snap = runCatching {
-                    sample(ctx, p, priv, st, frames.toList(), lastFps, flipFps, t0 - lastFrameAt, prevStat, am, pm, bm)
-                }.getOrNull()
-                frames.clear()
-                if (snap != null) {
-                    prevStat = snap.second
-                    snapshot.value = snap.first
-                    Recorder.onSnapshot(snap.first)
-                }
+            // A snapshot every tick (4×/s): FPS is the real frame count over the last second.
+            val snap = runCatching {
+                sample(ctx, p, priv, st, frames.toList(), window.toList(), lastFps, flipFps, t0 - lastFrameAt, prevStat, am, pm, bm)
+            }.getOrNull()
+            frames.clear()
+            if (snap != null) {
+                prevStat = snap.second
+                snapshot.value = snap.first
+                Recorder.onSnapshot(snap.first)
             }
             tick++
             val spent = SystemClock.elapsedRealtime() - t0
@@ -288,7 +298,7 @@ object Telemetry {
     }
 
     private fun sample(
-        ctx: Context, p: Probe, priv: Boolean, st: Shell.State, frames: List<Double>, fpsRes: FpsMeter.Result?,
+        ctx: Context, p: Probe, priv: Boolean, st: Shell.State, frames: List<Double>, window: List<Double>, fpsRes: FpsMeter.Result?,
         flipFps: Double?, sinceLastFrameMs: Long, prevStat: LongArray?,
         am: ActivityManager, pm: PowerManager, bm: BatteryManager,
     ): Pair<Snapshot, LongArray?> {
@@ -308,18 +318,18 @@ object Telemetry {
         val fps: Reading
         val ft: Reading
         when {
-            frames.isNotEmpty() -> {
-                val sum = frames.sum()
-                val f = frames.size / (sum / 1000.0)
+            window.isNotEmpty() && sinceLastFrameMs < 1000 -> {
+                val sum = window.sum()
+                val f = window.size / (sum / 1000.0)
                 val src = fpsRes?.source ?: FpsMeter.SRC_LAYER
                 fps = Reading.of(f, "%.1f", "", src)
-                ft = Reading.of(sum / frames.size, "%.2f", " ms", src)
+                ft = Reading.of(sum / window.size, "%.2f", " ms", src)
             }
-            fpsRes?.layer != null -> {
-                // Layer exists but presented no new frame: the app is genuinely showing 0 new frames.
-                val f = if (sinceLastFrameMs > 1500) 0.0 else null
-                fps = if (f == null) Reading.na(FpsMeter.SRC_LAYER) else Reading.of(f, "%.1f", "", FpsMeter.SRC_LAYER)
-                ft = Reading.na(FpsMeter.SRC_LAYER)
+            fpsRes?.pkg != null && priv -> {
+                // The app on screen presents no new frames (idle home screen, paused game): that is 0 FPS.
+                val f = if (sinceLastFrameMs > 1000) 0.0 else null
+                fps = if (f == null) Reading.na(FpsMeter.SRC_LAYER) else Reading.of(f, "%.0f", "", fpsRes.source)
+                ft = Reading.na(fpsRes.source)
             }
             flipFps != null && priv -> {
                 fps = Reading.of(flipFps, "%.1f", "", FpsMeter.SRC_FLIP)

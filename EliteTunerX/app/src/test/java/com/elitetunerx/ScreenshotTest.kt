@@ -61,6 +61,7 @@ class ScreenshotTest {
     private fun hud(style: Int) {
         val v = HudView(paparazzi.context)
         v.cfg = HudConfig(style = style)
+        v.pushFrames(sample().newFrameTimes)
         v.update(sample(), if (style == HudView.STYLE_FULL) "REC 01:12 • 4302 เฟรม" else null)
         val frame = FrameLayout(paparazzi.context).apply {
             setBackgroundColor(0xFF3A5A40.toInt())
