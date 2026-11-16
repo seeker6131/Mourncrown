@@ -127,7 +127,10 @@ object FpsMeter {
     }
 
     fun focusedPackage(): String? {
-        val r = Shell.sh("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -n 4", 4000)
+        // "displays" is a small section; the full window dump is much heavier for system_server.
+        var r = Shell.sh("dumpsys window displays | grep -E 'mCurrentFocus|mFocusedApp' | head -n 4", 4000)
+        if (!Regex("u\\d+ [A-Za-z]").containsMatchIn(r.out))
+            r = Shell.sh("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -n 4", 4000)
         return Regex("u\\d+ ([A-Za-z][\\w.]*)/").find(r.out)?.groupValues?.get(1)
     }
 

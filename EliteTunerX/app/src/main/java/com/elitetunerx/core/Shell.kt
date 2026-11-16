@@ -114,7 +114,8 @@ object Shell {
 
     fun sh(script: String, timeoutMs: Long = 8000, privileged: Boolean = true): ShellResult =
         if (privileged && backend() == Backend.ADB) {
-            val (code, out) = AdbLink.exec("sh -c ${quote(script)}", timeoutMs)
+            // The ADB link already runs a persistent sh: send the script as-is (no extra sh process).
+            val (code, out) = AdbLink.exec(script, timeoutMs)
             ShellResult(code, out, "")
         } else exec(arrayOf("sh", "-c", script), timeoutMs, privileged)
 

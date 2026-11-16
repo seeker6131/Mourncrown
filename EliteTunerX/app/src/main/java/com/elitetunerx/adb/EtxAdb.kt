@@ -167,20 +167,118 @@ object AdbLink {
     }
 
     fun disconnect() {
+        closeSessions()
         runCatching { EtxAdb.peek()?.disconnect() }
         state.value = AdbState.Off
     }
 
     private const val EXIT_MARK = "@@ETX_EXIT="
 
+    /**
+     * A long-lived `sh` on the device (ADB "exec:" service, no pty). Commands are written to its
+     * stdin and their output read until a unique end marker — no new adbd shell per command,
+     * which is what made readings arrive irregularly under game load.
+     */
+    private val timer = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "etx-adb-watchdog").apply { isDaemon = true } }
+
+    private class Session(adb: EtxAdb) {
+        private val stream: AdbStream = adb.openStream("exec:sh")
+        private val input = stream.openInputStream()
+        private val output = stream.openOutputStream()
+        private val buf = ByteArrayOutputStream()
+        private val chunk = ByteArray(32768)
+        private var seq = 0
+        @Volatile var dead = false
+
+        /** Caller must hold the session (single command at a time). */
+        fun run(cmdLine: String, timeoutMs: Long): Pair<Int, String>? {
+            if (dead) return null
+            val tag = "@@ETX_END_${++seq}_"
+            buf.reset()
+            // A blocked read cannot be interrupted, so a watchdog closes the stream on timeout.
+            val watchdog = timer.schedule({ dead = true; close() }, timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+            return try {
+                output.write("{ $cmdLine\n} 2>&1 </dev/null; __etx=\$?; echo; echo \"$tag\$__etx\"\n".toByteArray())
+                output.flush()
+                val tagBytes = tag.toByteArray()
+                var from = 0
+                while (true) {
+                    val n = input.read(chunk)
+                    if (n < 0) { dead = true; return null }
+                    buf.write(chunk, 0, n)
+                    val all = buf.toByteArray()
+                    val idx = indexOf(all, tagBytes, maxOf(0, from - tagBytes.size))
+                    from = all.size
+                    if (idx >= 0) {
+                        val nl = (idx + tagBytes.size until all.size).firstOrNull { all[it] == '\n'.code.toByte() }
+                        if (nl == null) continue
+                        val code = String(all, idx + tagBytes.size, nl - idx - tagBytes.size).trim().toIntOrNull() ?: -1
+                        var end = idx   // drop the blank line echoed before the tag
+                        if (end > 0 && all[end - 1] == '\n'.code.toByte()) end--
+                        return code to String(all, 0, end, Charsets.UTF_8)
+                    }
+                }
+                @Suppress("UNREACHABLE_CODE") null
+            } catch (t: Throwable) {
+                dead = true; close(); null
+            } finally {
+                watchdog.cancel(false)
+            }
+        }
+
+        fun close() { runCatching { stream.close() } }
+
+        private fun indexOf(h: ByteArray, n: ByteArray, from: Int): Int {
+            if (n.isEmpty() || h.size < n.size) return -1
+            outer@ for (i in from..h.size - n.size) {
+                for (j in n.indices) if (h[i + j] != n[j]) continue@outer
+                return i
+            }
+            return -1
+        }
+    }
+
+    // Small pool: the fast (FPS) lane and the slow lane each get their own shell, so a long
+    // dumpsys in one never queues the other.
+    private val idle = java.util.concurrent.ConcurrentLinkedQueue<Session>()
+    private val open = java.util.concurrent.atomic.AtomicInteger(0)
+
+    private fun take(adb: EtxAdb): Session? {
+        while (true) {
+            val s = idle.poll() ?: break
+            if (!s.dead) return s
+            open.decrementAndGet()
+        }
+        if (open.get() >= 4) return null
+        return runCatching { Session(adb) }.getOrNull()?.also { open.incrementAndGet() }
+    }
+
+    private fun give(s: Session) { if (s.dead) open.decrementAndGet() else idle.offer(s) }
+
+    fun closeSessions() {
+        while (true) { val s = idle.poll() ?: break; s.close() }
+        open.set(0)
+    }
+
     /** Runs a shell command line over ADB. Returns (exitCode, output). */
     fun exec(cmdLine: String, timeoutMs: Long): Pair<Int, String> {
         val adb = EtxAdb.peek() ?: return -1 to ""
-        if (!adb.isConnected) return -1 to ""
+        if (!adb.isConnected) { closeSessions(); return -1 to "" }
+        val s = take(adb)
+        if (s != null) {
+            val r = s.run(cmdLine, timeoutMs)
+            give(s)
+            if (r != null) return r
+        }
+        return execOneShot(adb, cmdLine, timeoutMs)
+    }
+
+    /** Fallback: one adbd shell per command (old behaviour). */
+    private fun execOneShot(adb: EtxAdb, cmdLine: String, timeoutMs: Long): Pair<Int, String> {
         val stream: AdbStream = try {
             adb.openStream("shell:$cmdLine 2>&1; echo \"$EXIT_MARK\$?\"")
         } catch (t: Throwable) {
-            if (adb.isConnected.not()) state.value = AdbState.Off
+            if (!adb.isConnected) state.value = AdbState.Off
             return -1 to (t.message ?: "")
         }
         val buf = ByteArrayOutputStream()

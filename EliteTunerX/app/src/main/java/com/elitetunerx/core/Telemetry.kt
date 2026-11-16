@@ -65,6 +65,12 @@ data class Snapshot(
 object Telemetry {
     val snapshot = MutableStateFlow<Snapshot?>(null)
     private var gpuEma: Double? = null
+    private val tickTimes = ArrayDeque<Long>()
+
+    /** How long the last fast-lane ticks took (for the report): "min/avg/max ms". */
+    fun tickStats(): String = synchronized(tickTimes) {
+        if (tickTimes.isEmpty()) "n/a" else "${tickTimes.min()}/${tickTimes.average().toInt()}/${tickTimes.max()} ms over ${tickTimes.size} ticks"
+    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
@@ -307,6 +313,7 @@ object Telemetry {
             }
             tick++
             val spent = SystemClock.elapsedRealtime() - t0
+            synchronized(tickTimes) { tickTimes.addLast(spent); if (tickTimes.size > 40) tickTimes.removeFirst() }
             delay((250 - spent).coerceAtLeast(30))
         }
         } finally { slow.cancel() }

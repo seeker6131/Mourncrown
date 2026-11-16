@@ -24,6 +24,8 @@ object Diagnostics {
         sb.append("Device: ${DeviceInfo.model} | ${DeviceInfo.chip} | ${g.renderer}\n")
         sb.append("OS: ${DeviceInfo.skin} | ${DeviceInfo.android} | build ${Build.DISPLAY}\n")
         sb.append("Backend: ${Shell.backend()} uid=${Shell.uid()}\n")
+        sb.append("Fast-lane tick: ${Telemetry.tickStats()}\n")
+        sb.append("FPS source: ${Telemetry.snapshot.value?.fps?.source}\n")
         if (!Shell.ready) { sb.append("\n(no privileged shell — connect built-in ADB first)\n"); return sb.toString() }
 
         val pkg = pkgHint ?: FpsMeter.focusedPackage()

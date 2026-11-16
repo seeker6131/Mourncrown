@@ -55,7 +55,7 @@ object GameProbe {
     fun heavy(ctx: Context, layer: String?) {
         val p = pkg ?: return
         val now = SystemClock.elapsedRealtime()
-        if (now - resAt > (if (res == null) 1500 else 4000)) { resAt = now; val r = runCatching { resolution(p, layer) }.getOrNull(); if (p == pkg && r != null) res = r }
+        if (now - resAt > (if (res == null) 2000 else 20000)) { resAt = now; val r = runCatching { resolution(p, layer) }.getOrNull(); if (p == pkg && r != null) res = r }
         if (now - apiAt > (if (api == null) 4000 else 30000)) { apiAt = now; val a = runCatching { graphicsApi(p) }.getOrNull(); if (p == pkg && a != null) api = a }
         if (now - ramAt > 5000) { ramAt = now; val m = runCatching { pss(p) }.getOrNull(); if (p == pkg) ram = m }
         if (pids.isEmpty() || now - pidAt > 10000) { pidAt = now; val ids = runCatching { pidsOf(p) }.getOrDefault(emptyList()); if (p == pkg) pids = ids }
