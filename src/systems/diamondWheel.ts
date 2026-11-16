@@ -30,7 +30,9 @@ type DS = GameState & { diamonds?: number; stars?: number; pets?: string[]; skin
 export interface DPrize { seg: number; key: DKey; text: string; stars?: number }
 const FXS = ['fx_gold', 'fx_void', 'fx_frost', 'fx_blood'];
 
-function roll(rnd: () => number) { let r = rnd() * DWHEEL_SEGS.reduce((t, q) => t + q.w, 0); for (let i = 0; i < DWHEEL_SEGS.length; i++) { r -= DWHEEL_SEGS[i].w; if (r < 0) return i; } return DWHEEL_SEGS.length - 1; }
+/** (director 16 Nov) in a 10-spin a segment comes at most SAME_MAX times (10 potions in a row looked rigged) */
+export const SAME_MAX = 3;
+function roll(rnd: () => number, skip: (i: number) => boolean = () => false) { const w: number[] = DWHEEL_SEGS.map((q, i) => skip(i) ? 0 : q.w); let r = rnd() * (w.reduce((t, q) => t + q, 0) || 1); for (let i = 0; i < DWHEEL_SEGS.length; i++) { r -= w[i]; if (r < 0 && w[i]) return i; } return DWHEEL_SEGS.length - 1; }
 /** a prize already owned turns into star coins (never a wasted spin) */
 const dup = (p: DS, seg: number, key: DKey, n: number, what: string): DPrize => { p.stars = (p.stars ?? 0) + n; return { seg, key, text: `${what} (มีแล้ว → ⭐ ${n})`, stars: n }; };
 function give(s: GameState, seg: number, rnd: () => number, now: number): DPrize {
@@ -54,7 +56,9 @@ export function spinDiamond(s: GameState, n: number, rnd: () => number, now = Da
   if ((p.diamonds ?? 0) < cost) return 'diamonds';
   if (s.inventory.length + 2 > invSize(s)) return 'bag';   // (potions / scrolls need a slot if not stacked yet)
   p.diamonds = (p.diamonds ?? 0) - cost; p.stars = (p.stars ?? 0) + n;
-  return { prizes: Array.from({ length: n }, () => give(s, roll(rnd), rnd, now)), cost, stars: p.stars };
+  const cnt = new Map<number, number>(), prizes: DPrize[] = [];
+  for (let k = 0; k < n; k++) { const i = roll(rnd, j => n > 1 && (cnt.get(j) ?? 0) >= SAME_MAX); cnt.set(i, (cnt.get(i) ?? 0) + 1); prizes.push(give(s, i, rnd, now)); }
+  return { prizes, cost, stars: p.stars };
 }
 /** 150 ⭐ → the dragon or the storm cloud */
 export function starTrade(s: GameState, what: 'dragon' | 'cloud'): 'stars' | 'owned' | true {

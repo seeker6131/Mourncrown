@@ -4,7 +4,7 @@ import { PVP, isPvp } from '../world/stages';
 import { PVP_HOURS } from '../systems/pvp';
 import { brRound, brNext } from '../systems/br';
 import { WINGS, WING_BY_ID, WING_SPEED, TIER_NAME, TIER_COL } from '../data/wings';
-import { activeWing, ownsWing, setWing, wingsOf, WSLOT_OPEN, WSLOT_LTD, WSLOT_PRICE, WSLOT_PRICE10, SLOT_SHARD, SLOT_SHARDS, SLOT_ELIXIR, SLOT_MOUNTS, type WPrize, type MPrize } from '../systems/wings';
+import { activeWing, ownsWing, setWing, wingsOf, WSLOT_OPEN, WSLOT_LTD, WSLOT_PRICE, WSLOT_PRICE10, SLOT_SHARD, SLOT_SHARDS, SLOT_ELIXIR, SLOT_MOUNTS, SLOT_FILL, GOOD_IDS, type WPrize, type MPrize } from '../systems/wings';
 import { ensureAllWings } from '../world/wingView';
 import { hasSkin, panelFrame, skillIconKey } from './skin';
 // Modal panels: Bag/Equipment, Stats/Skills, Quests, Menu, NPC dialog, Shop, Blacksmith.
@@ -1059,26 +1059,27 @@ export class Panels implements GuildHost {
     const wingsIn = WINGS.filter(w => w.tier !== 'X' || WSLOT_LTD).map(w => w.id);
     if (wingsIn.some(id => !ui.textures.exists('wing_' + id))) { c.add(k.text(x + W / 2, y + H / 2, 'กำลังโหลด...', 10, '#ffe7a0').setOrigin(0.5)); ensureAllWings(ui, WINGS.map(w => w.id), () => { if (this.cur === 'wslot') this.rebuild(); }); return; }
     // one window, one picture (director): what stops in front of the machine is what you get — wings, the god elixir or mana crystals
-    const syms = [...(mt ? SLOT_MOUNTS.map(m => 'm:' + m.id) : wingsIn), 'shard', 'elixir', 'shard', 'elixir'];
+    const syms = [...(mt ? SLOT_MOUNTS.map(m => 'm:' + m.id) : wingsIn), ...SLOT_FILL.map(f => 'i:' + f.id), 'i:' + SLOT_ELIXIR, 'i:pick_sr'];   // (16 Nov: many kinds of small prizes)
+    const isIt = (sym: string) => sym === 'shard' || sym === 'elixir' || sym.startsWith('i:'), itOf = (sym: string) => sym === 'shard' ? SLOT_SHARD : sym === 'elixir' ? SLOT_ELIXIR : sym.slice(2);
     const mh = H - 60, sc = mh / 118, mx = x + 14, my = y + 52;
     if (ui.textures.exists('ui_slot_machine')) c.add(ui.add.image(mx, my - 6 * sc, 'ui_slot_machine').setOrigin(0).setScale(sc));
     const cx0 = mx + 64.5 * sc, cy0 = my + 41.5 * sc, ww = 45 * sc * 1.04, wh = 31 * sc * 1.04, wx = cx0 - ww / 2, wy = cy0 - wh / 2;   // (the front-facing cabinet — director: 2D like the game)
     const scr = ui.add.graphics(); scr.fillStyle(0x1a0e24, 1).fillRoundedRect(wx - 4, wy - 4, ww + 8, wh + 8, 5).lineStyle(3, 0xd9a83a, 1).strokeRoundedRect(wx - 4, wy - 4, ww + 8, wh + 8, 5)
       .fillStyle(0x2a1838, 1).fillRect(wx, wy, ww, wh).fillStyle(0xffffff, 0.06).fillRect(wx, wy, ww, wh * 0.35); c.add(scr);
     const show = (im: Phaser.GameObjects.Image, sym: string) => {
-      const tex = sym === 'shard' ? 'icon_' + itemDef(SLOT_SHARD).icon : sym === 'elixir' ? 'icon_' + itemDef(SLOT_ELIXIR).icon : sym.startsWith('m:') ? mtex(sym.slice(2)) : 'wing_' + sym;
-      if (ui.textures.exists(tex)) { im.setTexture(tex, sym === 'shard' || sym === 'elixir' ? undefined : 0); if (sym.startsWith('m:')) im.setCrop(); }
-      const big = sym === 'shard' || sym === 'elixir' ? 0.62 : sym.startsWith('m:') ? 1.5 : 0.94;   // (a mount sits small in its big canvas) im.setScale(Math.min(ww * big / im.width, wh * big / im.height));
+      const tex = isIt(sym) ? 'icon_' + itemDef(itOf(sym)).icon : sym.startsWith('m:') ? mtex(sym.slice(2)) : 'wing_' + sym;
+      if (ui.textures.exists(tex)) { im.setTexture(tex, isIt(sym) ? undefined : 0); if (sym.startsWith('m:')) im.setCrop(); }
+      const big = isIt(sym) ? 0.62 : sym.startsWith('m:') ? 1.5 : 0.94;   // (a mount sits small in its big canvas) im.setScale(Math.min(ww * big / im.width, wh * big / im.height));
     };
     const pic = ui.add.image(cx0, cy0, 'icon_gold'); show(pic, this.slot.sym); c.add(pic);
-    const label = (sym: string) => sym.startsWith('m:') ? `🐎 ${MOUNTS[sym.slice(2) as MountId].name} [${TIER_NAME[SLOT_MOUNTS.find(m => m.id === sym.slice(2))!.tier]}]` : sym === 'shard' ? `💠 ${itemDef(SLOT_SHARD).name} x${SLOT_SHARDS}` : sym === 'elixir' ? `🧪 ${itemDef(SLOT_ELIXIR).name}` : `🪽 ${WING_BY_ID[sym].name} [${TIER_NAME[WING_BY_ID[sym].tier]}]`;
-    const symCol = (sym: string) => sym.startsWith('m:') ? TIER_COL[SLOT_MOUNTS.find(m => m.id === sym.slice(2))!.tier] : WING_BY_ID[sym] ? TIER_COL[WING_BY_ID[sym].tier] : sym === 'elixir' ? 0xffa53a : 0xffd84a;
+    const label = (sym: string) => sym.startsWith('m:') ? `🐎 ${MOUNTS[sym.slice(2) as MountId].name} [${TIER_NAME[SLOT_MOUNTS.find(m => m.id === sym.slice(2))!.tier]}]` : isIt(sym) ? `🎁 ${itemDef(itOf(sym)).name}` : `🪽 ${WING_BY_ID[sym].name} [${TIER_NAME[WING_BY_ID[sym].tier]}]`;
+    const symCol = (sym: string) => sym.startsWith('m:') ? TIER_COL[SLOT_MOUNTS.find(m => m.id === sym.slice(2))!.tier] : WING_BY_ID[sym] ? TIER_COL[WING_BY_ID[sym].tier] : isIt(sym) && GOOD_IDS.has(itOf(sym)) ? 0xffa53a : 0xffd84a;
     if (!this.slot.spinning && this.slot.lines.length) { scr.lineStyle(3, symCol(this.slot.sym), 1).strokeRoundedRect(wx - 7, wy - 7, ww + 14, wh + 14, 7); c.add(k.text(cx0, wy + wh + 10, label(this.slot.sym), 8, '#' + symCol(this.slot.sym).toString(16).padStart(6, '0')).setOrigin(0.5, 0)); }
     // the right side: price, what is inside, buttons, what came out
     const rx = mx + 128 * sc * 0.82, rwid = x + W - 14 - rx;
     c.add(k.text(rx, y + 58, `หมุนครั้งละ 💰 ${WSLOT_PRICE.toLocaleString()}  •  10 ครั้ง 💰 ${WSLOT_PRICE10.toLocaleString()}`, 9, '#ffe7a0'));
     c.add(k.text(rx, y + 74, `มี 💰 ${s.gold.toLocaleString()}  •  ${mt ? `พาหนะของฉัน ${SLOT_MOUNTS.filter(m => hasMount(s, m.id)).length}/${SLOT_MOUNTS.length}` : `ปีกของฉัน ${wingsOf(s).length}/${WINGS.length}`}`, 9, '#c8e8ff'));
-    c.add(k.text(rx, y + 90, mt ? `ในตู้: 🐎 หมาป่า / หมี (Legend +40%) • กวาง / เสือดำ (SL +45%) • มังกรทอง (Limited +50%) • 🧪 ${itemDef(SLOT_ELIXIR).name} • 💠 ${itemDef(SLOT_SHARD).name}` : `ในตู้: 🪽 ปีก Legend / SL${WSLOT_LTD ? ' / Limited' : ''} • 🧪 ${itemDef(SLOT_ELIXIR).name} • 💠 ${itemDef(SLOT_SHARD).name}\n🪽 ใส่แล้วตัวลอย วิ่งเร็วขึ้น: Legend +3% • SL +5% • Limited +10%`, 7.5, '#c8b898', { wordWrap: { width: rwid } }));
+    c.add(k.text(rx, y + 90, mt ? `ในตู้: 🐎 หมาป่า / หมี (Legend +40%) • กวาง / เสือดำ (SL +45%) • มังกรทอง (Limited +50%) • 🎁 หีบเลือกอุปกรณ์ • ยาเทพ • แก่นโบราณ • ยาบัพ • ยา • ผลึกมานา ฯลฯ • หมุน 10 ครั้ง ได้ของดีอย่างน้อย 1 ชิ้น` : `ในตู้: 🪽 ปีก Legend / SL${WSLOT_LTD ? ' / Limited' : ''} • 🎁 หีบเลือกอุปกรณ์ • ยาเทพ • แก่นโบราณ • ยาบัพ • ยา • ผลึกมานา ฯลฯ • หมุน 10 ครั้ง ได้ของดีอย่างน้อย 1 ชิ้น\n🪽 ใส่แล้วตัวลอย วิ่งเร็วขึ้น: Legend +3% • SL +5% • Limited +10%`, 7.5, '#c8b898', { wordWrap: { width: rwid } }));
     const spin = (n: number) => {
       if (this.slot.spinning) return;
       const cost = n === 10 ? WSLOT_PRICE10 : WSLOT_PRICE;
@@ -1090,13 +1091,13 @@ export class Panels implements GuildHost {
         const el = ui.time.now - t0, done = res || err, img = pic;
         if (!done || el < 1500) { if (img.active) { show(img, syms[Math.floor(Math.random() * syms.length)]); sfx.click(); } if (done) step = Math.min(260, step * 1.18); ui.time.delayedCall(step, tick); return; }
         this.slot.spinning = false;
-        if (err) { sfx.error(); bus.emit(EV.TOAST, err === 'gold' ? 'ทองไม่พอ' : err === 'bag' ? 'กระเป๋าเต็ม — เว้นช่องว่างอย่างน้อย 2 ช่อง' : err === 'closed' ? 'ตู้ยังไม่เปิด' : 'หมุนไม่สำเร็จ ลองใหม่', '#ff8a6a'); this.rebuild(); return; }
+        if (err) { sfx.error(); bus.emit(EV.TOAST, err === 'gold' ? 'ทองไม่พอ' : err === 'bag' ? 'กระเป๋าเต็ม — เว้นช่องว่าง 2 ช่อง (หมุน 10 ครั้ง: 8 ช่อง)' : err === 'closed' ? 'ตู้ยังไม่เปิด' : 'หมุนไม่สำเร็จ ลองใหม่', '#ff8a6a'); this.rebuild(); return; }
         const tierOf = (w: string) => w.startsWith('m:') ? SLOT_MOUNTS.find(m => m.id === w.slice(2))!.tier : WING_BY_ID[w].tier, nameOf = (w: string) => w.startsWith('m:') ? MOUNTS[w.slice(2) as MountId].name : WING_BY_ID[w].name, ico = (w: string) => w.startsWith('m:') ? '🐎' : '🪽';
-        const ps = res!.prizes, rank = (p: WPrize) => p.wing ? (p.stars ? 3 : 10) + 'L SL X'.split(' ').indexOf(tierOf(p.wing)) : p.item?.id === SLOT_ELIXIR ? 2 : 1;
+        const ps = res!.prizes, rank = (p: WPrize) => p.wing ? (p.stars ? 3 : 10) + 'L SL X'.split(' ').indexOf(tierOf(p.wing)) : p.item && GOOD_IDS.has(p.item.id) ? 2 : p.item?.id === 'pick_rare' ? 1.5 : 1;
         const best = [...ps].sort((a, b) => rank(b) - rank(a))[0];
-        this.slot.sym = best.wing ?? (best.item?.id === SLOT_ELIXIR ? 'elixir' : 'shard');
-        if (best.wing) sfx.levelUp(); else if (best.item?.id === SLOT_ELIXIR) sfx.chest(); else sfx.coin();
-        this.slot.lines = ps.map(p => p.wing ? (p.stars ? `${ico(p.wing)} ${nameOf(p.wing)} (มีแล้ว → ⭐ ${p.stars})` : `${ico(p.wing)} ${nameOf(p.wing)} [${TIER_NAME[tierOf(p.wing)]}]!`) : p.item ? `${p.item.id === SLOT_ELIXIR ? '🧪' : '💠'} ${itemDef(p.item.id).name}${p.item.qty > 1 ? ' x' + p.item.qty : ''}` : '');
+        this.slot.sym = best.wing ?? 'i:' + (best.item?.id ?? SLOT_SHARD);
+        if (best.wing) sfx.levelUp(); else if (best.item && GOOD_IDS.has(best.item.id)) sfx.chest(); else sfx.coin();
+        this.slot.lines = ps.map(p => p.wing ? (p.stars ? `${ico(p.wing)} ${nameOf(p.wing)} (มีแล้ว → ⭐ ${p.stars})` : `${ico(p.wing)} ${nameOf(p.wing)} [${TIER_NAME[tierOf(p.wing)]}]!`) : p.item ? `${GOOD_IDS.has(p.item.id) ? '✨' : '🎁'} ${itemDef(p.item.id).name}${p.item.qty > 1 ? ' x' + p.item.qty : ''}` : '');
         for (const p of ps) if (p.wing && !p.stars) bus.emit(EV.TOAST, `${ico(p.wing)} ได้ ${nameOf(p.wing)}! ${p.wing.startsWith('m:') ? 'ขี่ได้ที่ กระเป๋า → 🐎 พาหนะ' : 'ใส่ได้ที่ กระเป๋า → ⛈ ผู้ติดตาม'}`, '#ffd84a');
         saveGame(S()); bus.emit(EV.STATE_CHANGED); this.rebuild();
       };

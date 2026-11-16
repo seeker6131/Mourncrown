@@ -27,10 +27,21 @@ export const WHEEL_SEGS = [
 export type WheelKey = typeof WHEEL_SEGS[number]['key'];
 export interface WheelPrize { seg: number; id?: string; qty: number; rar?: number; set?: string; res?: 'wood' | 'stone' | 'food' }
 
-function roll(rnd: () => number) {
-  let r = rnd() * WHEEL_SEGS.reduce((t, q) => t + q.w, 0);
-  for (let i = 0; i < WHEEL_SEGS.length; i++) { r -= WHEEL_SEGS[i].w; if (r < 0) return i; }
+/** (director 16 Nov: "10 spins all the same looks rigged") in a 10-spin a segment comes at most SAME_MAX times */
+export const SAME_MAX = 3;
+function roll(rnd: () => number, skip: (i: number) => boolean = () => false) {
+  const ok: number[] = WHEEL_SEGS.map((q, i) => skip(i) ? 0 : q.w), tot = ok.reduce((t, w) => t + w, 0) || 1;
+  let r = rnd() * tot;
+  for (let i = 0; i < WHEEL_SEGS.length; i++) { r -= ok[i]; if (r < 0 && ok[i]) return i; }
   return WHEEL_SEGS.length - 1;
+}
+const GOOD_SEG = new Set<WheelKey>(['legend', 'sr', 'rare', 'core', 'elixir']);
+/** n spins: no segment more than SAME_MAX times; a 10-spin holds at least one chest / core / elixir */
+export function rollSpins(n: number, rnd: () => number) {
+  const segs: number[] = [], cnt = new Map<number, number>();
+  for (let k = 0; k < n; k++) { const i = roll(rnd, j => n > 1 && (cnt.get(j) ?? 0) >= SAME_MAX); segs.push(i); cnt.set(i, (cnt.get(i) ?? 0) + 1); }
+  if (n === 10 && !segs.some(i => GOOD_SEG.has(WHEEL_SEGS[i].key))) segs[segs.length - 1] = WHEEL_SEGS.findIndex(q => q.key === 'rare');
+  return segs;
 }
 function give(s: GameState, seg: number, rnd: () => number): WheelPrize {
   const k = WHEEL_SEGS[seg].key, pick = <T,>(l: readonly T[]) => l[Math.floor(rnd() * l.length)];
@@ -46,7 +57,7 @@ export function spinWheel(s: GameState, n: number, rnd: () => number): 'gold' | 
   const cost = WHEEL_PRICE * n;
   if (s.gold < cost) return 'gold';
   if (s.inventory.length + n > invSize(s)) return 'bag';   // (every spin may need a slot)
-  const segs = Array.from({ length: n }, () => roll(rnd));
+  const segs = rollSpins(n, rnd);
   s.gold -= cost;
   return { prizes: segs.map(i => give(s, i, rnd)), cost };
 }

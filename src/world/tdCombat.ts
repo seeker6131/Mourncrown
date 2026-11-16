@@ -1,3 +1,4 @@
+import { MOUNTS } from '../data/mounts';
 import { raidAtk, raidFlag } from '../systems/townRaid';
 import { isPvp, stageOf, dungeonHpK } from './stages';
 import { PVP_MON_HP, PVP_MON_ATK } from '../systems/pvp';
@@ -693,6 +694,10 @@ export class Combat {
     if (refused(r)) { this.float(m.x, m.y - 20, '⛔ เซิร์ฟไม่รับ', '#ff8a6a', 8); return; }
     const bty = (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty;
     if (bty?.dragon) { bus.emit(EV.TOAST, '🐉✦ ลิมิเต็ด! ได้ "มังกรเพลิงนิรันดร์" — สัตว์ขี่ในตำนาน! (เมนู → 🐎 สัตว์ขี่)', '#ff9a3a'); { const pil = fx2(this.s, 'fx_drop_sl', m.x, m.y, m.y + 2, 1.2); this.s.time.delayedCall(3000, () => pil?.destroy()); } this.s.cameras.main.flash(300, 255, 140, 40); }   // (player report 16 Nov: the pillar loops — it stayed on the ground for good, looking like loot nobody could pick up)
+    { const md = (r as { mount?: { mount: string; tier: string; stars?: number } }).mount;   // 🐎 a mount from a golden monster / the roaming boss
+      if (md) { const nm = MOUNTS[md.mount as keyof typeof MOUNTS]?.name ?? md.mount;
+        bus.emit(EV.TOAST, md.stars ? `🐎 ได้ ${nm} อีกตัว (มีแล้ว → ⭐ ${md.stars})` : `🐎✦ ได้สัตว์ขี่ ${md.tier === 'SL' ? 'SL' : 'Legend'}! "${nm}" (เมนู → 🐎 สัตว์ขี่)`, md.tier === 'SL' ? '#ff9cff' : '#ffb04a');
+        if (!md.stars) { const pil = fx2(this.s, md.tier === 'SL' ? 'fx_drop_sl' : 'fx_drop_legend', m.x, m.y, m.y + 2, 1.1); this.s.time.delayedCall(3000, () => pil?.destroy()); this.s.cameras.main.flash(250, 255, 200, 80); } } }
     if (bty) { bus.emit(EV.TOAST, `👑 ปราบ ${bty.name}! ได้ค่าหัว 💰${bty.gold} + แก่นโบราณ`, '#ffb04a'); fx2(this.s, 'fx_raid_victory', m.x, m.y - 30, 99995, 1.3); }
     if ((r as { skillPt?: number }).skillPt) bus.emit(EV.TOAST, '✨ ปราบบอสแผนที่นี้ครั้งแรก — ได้แต้มสกิล +1!', '#9fffb0');
     if (r.elite) { bus.emit(EV.TOAST, `✨ ปราบมอนทอง! ทอง x5 EXP x3`, '#ffd84a'); this.vfx.star(m.x, m.y - 20, 0xffd84a, 2); }

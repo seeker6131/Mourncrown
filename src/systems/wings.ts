@@ -21,6 +21,34 @@ const DUP_STARS: Record<WingTier, number> = { L: 15, SL: 40, X: 80 };
 export const SLOT_ELIXIR = 'elix_god', SLOT_SHARD = 'mana_shard', SLOT_SHARDS = 3;
 const ELIXIR_W = 500;   // per 10,000 spins (never shown)
 
+/** what is not a wing / mount (director 16 Nov: "10 spins = 10 mana shards looks rigged"): a mix of useful things, by weight
+ *  (never shown). In a 10-spin the same small prize comes at most SAME_MAX times, and a 10-spin with no wing / mount always
+ *  holds one better prize (a Super Rare selector chest, an ancient core or the god elixir). */
+export const SLOT_FILL: { id: string; qty: number; w: number }[] = [
+  { id: SLOT_SHARD, qty: SLOT_SHARDS, w: 34 }, { id: 'hp_potion_l', qty: 3, w: 18 }, { id: 'mp_potion', qty: 5, w: 12 }, { id: 'scroll_return', qty: 2, w: 12 },
+  { id: 'tonic_atk', qty: 1, w: 6 }, { id: 'tonic_def', qty: 1, w: 6 }, { id: 'tonic_exp', qty: 1, w: 6 }, { id: 'pick_rare', qty: 1, w: 4 }, { id: 'ancient_core', qty: 1, w: 2 },
+];
+export const SAME_MAX = 3;
+const GOOD: { id: string; w: number }[] = [{ id: 'pick_sr', w: 60 }, { id: 'ancient_core', w: 30 }, { id: SLOT_ELIXIR, w: 10 }];
+/** the better small prizes (the UI shows them first) */
+export const GOOD_IDS = new Set(['pick_sr', 'ancient_core', SLOT_ELIXIR]);
+const wpick = <T extends { w: number }>(l: T[], rnd: () => number) => { let r = rnd() * l.reduce((t, q) => t + q.w, 0); for (const q of l) { r -= q.w; if (r < 0) return q; } return l[l.length - 1]; };
+/** one small prize, avoiding any already given SAME_MAX times in this spin */
+function fill(s: GameState, rnd: () => number, seen: Map<string, number>): { id: string; qty: number } {
+  const ok = SLOT_FILL.filter(f => (seen.get(f.id) ?? 0) < SAME_MAX);
+  const f = rnd() * 10000 < ELIXIR_W ? { id: SLOT_ELIXIR, qty: 1 } : wpick(ok.length ? ok : SLOT_FILL, rnd);
+  seen.set(f.id, (seen.get(f.id) ?? 0) + 1); addItem(s, f.id, f.qty); return { id: f.id, qty: f.qty };
+}
+/** a 10-spin with no wing / mount: the last small prize becomes a better one */
+function better(s: GameState, rnd: () => number, list: { item?: { id: string; qty: number } }[]) {
+  const last = [...list].reverse().find(p => p.item); if (!last?.item) return;
+  const it = s.inventory.find(i => i.id === last.item!.id);
+  if (it) { it.qty -= last.item.qty; if (it.qty <= 0) s.inventory.splice(s.inventory.indexOf(it), 1); }   // (take the small one back)
+  const g = wpick(GOOD, rnd); addItem(s, g.id, 1); last.item = { id: g.id, qty: 1 };
+}
+/** the bag room a spin needs (a 10-spin can bring several new kinds) */
+const room = (n: number) => n === 10 ? 8 : 2;
+
 type WS = GameState & { wings?: string[]; wingOn?: string; petOn?: string; stars?: number };
 export const wingsOf = (s: GameState) => (s as WS).wings ?? [];
 export const ownsWing = (s: GameState, id: string) => wingsOf(s).includes(id);
@@ -47,20 +75,18 @@ export function spinWings(s: GameState, n: number, rnd: () => number, ltd = WSLO
   if (n !== 1 && n !== 10) return 'n';
   const p = s as WS, cost = n === 10 ? WSLOT_PRICE10 : WSLOT_PRICE;
   if (s.gold < cost) return 'gold';
-  if (s.inventory.length + 2 > invSize(s)) return 'bag';
+  if (s.inventory.length + room(n) > invSize(s)) return 'bag';
   s.gold -= cost;
-  const prizes: WPrize[] = [];
+  const prizes: WPrize[] = [], seen = new Map<string, number>();
   for (let i = 0; i < n; i++) {
     const id = roll(rnd, ltd);
     if (id) {
       const w = WING_BY_ID[id];
       if (ownsWing(s, id)) { const st = DUP_STARS[w.tier]; p.stars = (p.stars ?? 0) + st; prizes.push({ wing: id, stars: st, text: `${w.name} (มีแล้ว → ⭐ ${st})` }); }
       else { (p.wings ??= []).push(id); prizes.push({ wing: id, text: `🪽 ${w.name}!` }); }
-    } else {
-      if (rnd() * 10000 < ELIXIR_W) { addItem(s, SLOT_ELIXIR, 1); prizes.push({ item: { id: SLOT_ELIXIR, qty: 1 }, text: '' }); }
-      else { addItem(s, SLOT_SHARD, SLOT_SHARDS); prizes.push({ item: { id: SLOT_SHARD, qty: SLOT_SHARDS }, text: '' }); }
-    }
+    } else prizes.push({ item: fill(s, rnd, seen), text: '' });
   }
+  if (n === 10 && !prizes.some(p => p.wing)) better(s, rnd, prizes);
   return { prizes, cost };
 }
 
@@ -75,17 +101,17 @@ export function spinMounts(s: GameState, n: number, rnd: () => number): 'gold' |
   if (n !== 1 && n !== 10) return 'n';
   const p = s as WS, cost = n === 10 ? WSLOT_PRICE10 : WSLOT_PRICE;
   if (s.gold < cost) return 'gold';
-  if (s.inventory.length + 2 > invSize(s)) return 'bag';
+  if (s.inventory.length + room(n) > invSize(s)) return 'bag';
   s.gold -= cost;
-  const prizes: MPrize[] = [];
+  const prizes: MPrize[] = [], seen = new Map<string, number>();
   for (let i = 0; i < n; i++) {
     let r = rnd() * 10000, got: (typeof SLOT_MOUNTS)[number] | null = null;
     for (const m of SLOT_MOUNTS) { r -= WEIGHT[m.tier] * 1.5; if (r < 0) { got = m; break; } }   // (5 mounts against 13 wings: each a little likelier)
     if (got) {
       if (hasMount(s, got.id)) { const st = DUP_STARS[got.tier]; p.stars = (p.stars ?? 0) + st; prizes.push({ mount: got.id, stars: st }); }
       else { grantMount(s, got.id); prizes.push({ mount: got.id }); }
-    } else if (rnd() * 10000 < ELIXIR_W) { addItem(s, SLOT_ELIXIR, 1); prizes.push({ item: { id: SLOT_ELIXIR, qty: 1 } }); }
-    else { addItem(s, SLOT_SHARD, SLOT_SHARDS); prizes.push({ item: { id: SLOT_SHARD, qty: SLOT_SHARDS } }); }
+    } else prizes.push({ item: fill(s, rnd, seen) });
   }
+  if (n === 10 && !prizes.some(p => p.mount)) better(s, rnd, prizes);
   return { prizes, cost };
 }

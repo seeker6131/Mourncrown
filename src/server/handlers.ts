@@ -34,6 +34,7 @@ import { dismantleYield, disMatch } from '../systems/lootOpt';
 import { spinWheel, openPick, WHEEL_OPEN } from '../systems/wheel';
 import { spinDiamond, starTrade, DWHEEL_OPEN } from '../systems/diamondWheel';
 import { spinWings, spinMounts, WSLOT_OPEN } from '../systems/wings';
+import { rollMountDrop, GOLDEN_MOUNT, WB_MOUNT } from '../systems/mountDrop';
 import { itemDef, SHOP_STOCK, SHOP_SHARD_DAILY } from '../data/items';
 import { build, upgrade, collect, craft, cook, tick as settleTick } from '../systems/settlement';
 import {
@@ -181,10 +182,12 @@ export const handlers = {
       const b = pickBase(c.rnd, rar, s.cls, slot), g = makeGear(c.rnd, b.id), did = mem.did++;
       mem.drops.set(did, { id: b.id, qty: 1, gear: g, until: c.now + 120000 }); drops.push({ did, id: b.id, qty: 1, rar: g.rar ?? b.rarity }); gear.push({ id: b.id, rar: g.rar ?? b.rarity });
     }
+    // 🐎 a mount now and then (director 16 Nov: a fair rate) — the one who strikes it down, helpers by their share
+    const mount = rollMountDrop(s, c.rnd, WB_MOUNT, a.killer ? 1 : share);
     pstats(s).kills++;
     // the first roaming boss you help beat on each map: +1 skill point (took over from the land bosses)
     let skillPt = 0; { const bf = ((s as { bossFirst?: number[] }).bossFirst ??= []); if (!bf.includes(n)) { bf.push(n); bonusSkillPt(s); skillPt = 1; } }
-    return { skillPt, elite: false, gold, exp, levels, wood: 0, stone: 0, food: 0, mats: [] as { id: string; qty: number }[], gear, cleared: false, drops, restExp: 0, wb: { killer: !!a.killer, share } };
+    return { skillPt, elite: false, gold, exp, levels, wood: 0, stone: 0, food: 0, mats: [] as { id: string; qty: number }[], gear, cleared: false, drops, restExp: 0, wb: { killer: !!a.killer, share }, mount };
   },
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
   /** (shared map) a monster the room's host spawned: known here too, so its kill can be paid */
@@ -233,6 +236,8 @@ export const handlers = {
       const dragon = !hasMount(s, 'dragon') && c.rnd() < DRAGON_BOUNTY && grantMount(s, 'dragon');   // the limited dragon: very rare, never shown as a rate
       (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty = { gold: b.gold, name: b.name, dragon };
     }
+    // 🐎 a golden monster may carry a mount (director 16 Nov)
+    if (sp.elite && !isPvp(n)) { const md = rollMountDrop(s, c.rnd, GOLDEN_MOUNT); if (md) (r as { mount?: unknown }).mount = md; }
     if (isPvp(n) && r.gold) { const extra = r.gold * (PVP_GOLD - 1); s.gold += extra; r.gold += extra; warBag(s).gold += r.gold; }   // (⚔ gold x2 here — and it is at stake until you leave)
     if (isDungeon(n) && mem.dungeon) mem.dungeon.kills++;
     if (base.animal) {   // meat and hides follow the daily hunting energy
