@@ -290,7 +290,8 @@ class HudView(ctx: Context) : View(ctx) {
         // --- GPU
         if (cfg.gpu) {
             drawMeter(
-                c, pad, y, w - pad * 2, "GPU", s?.gpuName ?: "", s?.gpuBusy,
+                c, pad, y, w - pad * 2, "GPU",
+                listOfNotNull(s?.gpuName, game?.gpuPct?.let { "เกม ${f0(it)}%" }).joinToString(" · "), s?.gpuBusy,
                 listOfNotNull(s?.gpuFreq?.takeIf { it.ok }?.text, s?.gpuTemp?.takeIf { it.ok }?.let { "${f0(it.value)}°" }),
                 s?.gpuTemp?.value,
             )

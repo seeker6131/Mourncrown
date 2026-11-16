@@ -375,7 +375,10 @@ object Telemetry {
             val v = value?.coerceIn(0.0, 100.0)
             if (v != null) gpuEma = gpuEma?.let { it * 0.6 + v * 0.4 } ?: v
             Reading.of(if (v == null) null else gpuEma, "%.0f", "%", srcOf(p, path, p.gpuBusyLabel + " " + path.substringAfterLast('/')) + " • avg 1s")
-        } ?: (if (p.gpuWork) GpuWork.sample()?.let { Reading.of(it, "%.0f", "%", "Android GPU work periods (all apps)") } else null)
+        } ?: (if (p.gpuWork) GpuWork.sample()?.let { v ->
+            gpuEma = gpuEma?.let { it * 0.6 + v * 0.4 } ?: v
+            Reading.of(gpuEma, "%.0f", "%", "Android GPU work periods (ทุกแอป) • avg 1s")
+        } else null)
         ?: Reading.na(if (priv) "GPU load node blocked by this firmware" else "ต้องเชื่อม ADB ในตัว")
         val gpuFreq = p.gpuFreqPath?.let { path ->
             Reading.of(Sysfs.firstNumber(v[path])?.times(p.gpuFreqToMhz), "%.0f", " MHz", srcOf(p, path, "GPU clock " + path.substringAfterLast('/')))

@@ -19,6 +19,8 @@ data class GameInfo(
     val ramMb: Double?,
     /** Share of the whole CPU used by the game's main process (100% = every core busy). */
     val cpuPct: Double?,
+    /** GPU time used by this game (Android GPU work periods), % of the GPU. */
+    val gpuPct: Double? = null,
 ) {
     val resText: String get() = if (renderW != null && renderH != null) "${renderW}×${renderH}" else "N/A"
     val scalePct: Int? get() = if (renderW != null && screenW != null && screenW > 0) {
@@ -34,6 +36,8 @@ data class GameInfo(
 object GameProbe {
     @Volatile private var pkg: String? = null
     @Volatile private var label = ""
+    @Volatile private var uid = -1
+    private var gpuEma: Double? = null
     @Volatile private var res: IntArray? = null
     private var resAt = 0L
     @Volatile private var api: String? = null
@@ -50,6 +54,16 @@ object GameProbe {
 
     @Synchronized
     fun reset() { pkg = null }
+
+    /** The game's share of GPU time; 0 when it did no GPU work in the interval. Null without GPU-work data. */
+    private fun gameGpu(): Double? {
+        val shares = GpuWork.perUid
+        if (shares.isEmpty() || uid < 0) return null
+        val v = shares[uid] ?: 0.0
+        val e = gpuEma?.let { it * 0.6 + v * 0.4 } ?: v
+        gpuEma = e
+        return e
+    }
 
     /** Slow lane (own coroutine): resolution, API, RAM, process list — heavy dumpsys calls. */
     fun heavy(ctx: Context, layer: String?) {
@@ -69,6 +83,8 @@ object GameProbe {
         if (p != pkg) {
             pkg = p; res = null; api = null; ram = null; pids = emptyList(); prevCpu = null; cpu = null
             resAt = 0; apiAt = 0; ramAt = 0; pidAt = 0
+            gpuEma = null
+            uid = runCatching { ctx.packageManager.getApplicationInfo(p, 0).uid }.getOrDefault(-1)
             label = runCatching {
                 val pm = ctx.packageManager
                 pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString()
@@ -82,6 +98,7 @@ object GameProbe {
             pkg = p, label = label,
             renderW = r?.get(0), renderH = r?.get(1), screenW = r?.get(2)?.takeIf { it > 0 }, screenH = r?.get(3)?.takeIf { it > 0 },
             refreshHz = hz, api = api, ramMb = ram, cpuPct = cpu,
+            gpuPct = gameGpu(),
         )
     }
 

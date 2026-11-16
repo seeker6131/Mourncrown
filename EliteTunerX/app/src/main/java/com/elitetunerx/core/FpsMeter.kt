@@ -148,9 +148,24 @@ object FpsMeter {
         return out
     }
 
+    /**
+     * Android 16 lists layers as "RequestedLayerState{<name> parentId=… z=…}", but --latency only
+     * knows "<name>". Older versions print the bare name.
+     */
+    fun layerName(raw: String): String {
+        val t = raw.trim()
+        if (!t.startsWith("RequestedLayerState{")) return t
+        var inner = t.removePrefix("RequestedLayerState{").removeSuffix("}")
+        for (key in listOf(" parentId=", " z=", " layerStack=", " relativeParentId=")) {
+            val i = inner.indexOf(key)
+            if (i > 0) inner = inner.substring(0, i)
+        }
+        return inner.trim()
+    }
+
     private fun pickLayer(pkg: String): String? {
         val all = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--list"), 4000).out.lines()
-            .map { it.trim() }
+            .map { layerName(it) }
             .filter { it.contains(pkg) && !it.startsWith("Background for") && !it.contains("Bounds for") }
         if (all.isEmpty()) return null
         val ranked = all.sortedByDescending {

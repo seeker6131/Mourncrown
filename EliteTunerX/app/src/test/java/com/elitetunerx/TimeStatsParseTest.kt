@@ -38,3 +38,24 @@ post2present histogram is as below:
         assert(r.layer!!.startsWith("SurfaceView[com.game.demo"))
     }
 }
+
+class Android16ParseTest {
+    @Test fun unwrapsRequestedLayerState() {
+        assertEquals("com.foo/com.foo.Main#105071",
+            FpsMeter.layerName("RequestedLayerState{com.foo/com.foo.Main#105071 parentId=105070}"))
+        assertEquals("4a034 ActivityRecordInputSink com.foo/.Main#105059",
+            FpsMeter.layerName("RequestedLayerState{4a034 ActivityRecordInputSink com.foo/.Main#105059 parentId=105053 z=-2147483648}"))
+        assertEquals("SurfaceView[com.foo/com.foo.Main]#9(BLAST Consumer)9", FpsMeter.layerName("SurfaceView[com.foo/com.foo.Main]#9(BLAST Consumer)9"))
+    }
+
+    @Test fun gpuWorkRowsWithErrorPrefix() {
+        val m = com.elitetunerx.core.GpuWork.parse("""
+GPU work information.
+gpu_id uid total_active_duration_ns total_inactive_duration_ns
+[errors:2]1 1000 13679467123612 119429656732454
+1 10348 8087000299 356125452265
+""".trimIndent())!!
+        assertEquals(13679467123612L, m[1000])
+        assertEquals(8087000299L, m[10348])
+    }
+}

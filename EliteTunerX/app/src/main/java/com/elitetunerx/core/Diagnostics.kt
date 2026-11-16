@@ -28,16 +28,17 @@ object Diagnostics {
         sb.append("FPS source: ${Telemetry.snapshot.value?.fps?.source}\n")
         if (!Shell.ready) { sb.append("\n(no privileged shell — connect built-in ADB first)\n"); return sb.toString() }
 
-        val pkg = pkgHint ?: FpsMeter.focusedPackage()
+        // Opened from inside Elite Tuner X: report on the last game instead of ourselves.
+        val pkg = (pkgHint ?: FpsMeter.focusedPackage())?.takeIf { it != ctx.packageName } ?: GameProbe.lastGame ?: pkgHint
         sb.append("Game: $pkg\n")
         section(sb, "focus", Shell.sh("dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -n 4", 4000).out)
         if (pkg == null) return sb.toString()
 
         val list = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--list"), 4000).out.lines()
         section(sb, "--list (game lines, ${list.size} total)", list.filter { it.contains(pkg) }.joinToString("\n"))
-        list.filter { it.contains(pkg) }.take(6).forEach { name ->
-            val lat = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--latency", name.trim()), 3000).out.lines()
-            section(sb, "--latency '${name.trim()}' (${lat.size} lines)", lat.take(4).joinToString("\n") + "\n...\n" + lat.takeLast(3).joinToString("\n"))
+        list.filter { it.contains(pkg) }.map { FpsMeter.layerName(it) }.take(6).forEach { name ->
+            val lat = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger", "--latency", name), 3000).out.lines()
+            section(sb, "--latency '$name' (${lat.size} lines)", lat.take(4).joinToString("\n") + "\n...\n" + lat.takeLast(3).joinToString("\n"))
         }
         section(sb, "page flip 1013", Shell.exec(arrayOf("service", "call", "SurfaceFlinger", "1013"), 3000).text())
 
@@ -48,6 +49,7 @@ object Diagnostics {
         ts.take(12).forEach { tsOut.append(it).append('\n') }
         ts.forEachIndexed { i, l -> if (l.contains(pkg)) ts.subList(maxOf(0, i - 1), minOf(ts.size, i + 14)).forEach { tsOut.append(it).append('\n') } }
         section(sb, "timestats (${ts.size} lines)", tsOut.toString())
+        section(sb, "current layer", "${FpsMeter.currentLayer} • tick ${Telemetry.tickStats()}")
         section(sb, "fps parse", FpsMeter.parseTimeStats(ts.joinToString("\n"), pkg, 1.2)?.let { "layer=${it.layer} fps=${it.displayFps} frames=${it.frameTimesMs.size}" } ?: "null")
 
         val sf = Shell.exec(arrayOf("dumpsys", "SurfaceFlinger"), 8000).out.lines()
