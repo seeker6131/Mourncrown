@@ -1772,7 +1772,8 @@ export class TopDownScene extends Phaser.Scene {
     const cands: T[] = [];
     for (const n of this.nodes) {
       if (n.until > now || bad(n)) continue;
-      const want = n.kind === 'wood' ? left.wood > 0 : n.vein ? left.ore > 0 && s.level >= n.vein.req : left.stone > 0;
+      // (player report 16 Nov: "stone only" did nothing — in the Deepwild every rock is an ore vein, and a vein gives stone too)
+      const want = n.kind === 'wood' ? left.wood > 0 : n.vein ? (left.ore > 0 || (left.stone > 0 && !n.vein.rare && !n.vein.gold)) && s.level >= n.vein.req : left.stone > 0;
       if (want) cands.push({ x: n.x, y: n.y, reach: 26, obj: n });
     }
     if (left.food > 0) for (const m of this.combat.alive()) if (m.animal && !bad(m)) cands.push({ x: m.x, y: m.y, reach: 20 + m.m.size * 0.25, obj: m });
