@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ศึกชักเยอ LIVE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; }
+  #gear { position: fixed; right: 10px; top: 10px; color: #888; font: 22px system-ui; text-decoration: none; opacity: .25; }
+  #gear:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="cv" width="1080" height="1920"></canvas>
+<a id="gear" href="admin.html" target="_blank" title="ตั้งค่า">⚙</a>
+<script src="common.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
