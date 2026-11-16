@@ -51,7 +51,7 @@
       <button data-sim="g1">🌹 ของขวัญเล็ก</button>
       <button data-sim="g99">🎁 ของขวัญกลาง</button>
       <button data-sim="g1000">🦁 ของขวัญใหญ่</button>
-      <button data-sim="crowd">👥 คนดู 30 คนเล่นพร้อมกัน</button>
+      <button data-sim="crowd">👥 คนดู 30 คน (ส่งของขวัญด้วย)</button>
     </div>
   </div>
 
@@ -69,6 +69,8 @@
     <label>คำที่พิมพ์เข้าทีม 2<input name="t2Key"></label>
   </div>
   <div class="card"><h2>💪 แรงดึง</h2>
+    <label><span>เฉพาะคนส่งของขวัญถึงดึงได้<small>หัวใจ/คอมเมนต์ไม่ดึง • คนส่งของขวัญได้ตัวละครพร้อมรูปโปรไฟล์และชื่อ</small></span><input name="donorOnly" type="checkbox"></label>
+    <label><span>จำนวนตัวละครบนเชือกต่อทีม<small>คนส่งของขวัญมากสุดอยู่หน้า (1-5)</small></span><input name="showN" type="number" min="1" max="5"></label>
     <label><span>หัวใจ 1 ดวง ดึงได้<small>ค่าเดิม 0.05</small></span><input name="likePower" type="number" step="0.01" min="0"></label>
     <label><span>คอมเมนต์ 1 ครั้ง ดึงได้<small>0 = คอมเมนต์ไม่ดึง</small></span><input name="chatPower" type="number" step="0.1" min="0"></label>
     <label>ของขวัญ 1 เพชร ดึงได้<input name="diamondPower" type="number" step="0.1" min="0"></label>
@@ -139,7 +141,8 @@
   });
   let n = 0;
   const ev = (event, data) => liveChan.post({ t: 'ev', ev: { event, data } });
-  const user = () => { const id = 'ทดสอบ' + (++n % 40); return { uniqueId: id, nickname: id }; };
+  const pic = id => { const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d'); x.fillStyle = `hsl(${(id.length * 47 + n * 83) % 360},70%,55%)`; x.fillRect(0, 0, 96, 96); x.fillStyle = '#fff'; x.font = 'bold 54px system-ui'; x.textAlign = 'center'; x.fillText(id.slice(-2), 48, 66); return c.toDataURL(); };
+  const user = () => { const id = 'ทดสอบ' + (++n % 40); return { uniqueId: id, nickname: id, profilePictureUrl: pic(id) }; };
   const sim = {
     c1: () => ev('chat', { ...user(), comment: cfg.t1Key }),
     c2: () => ev('chat', { ...user(), comment: cfg.t2Key }),
@@ -150,6 +153,7 @@
     crowd: () => {
       for (let i = 0; i < 30; i++) ev('chat', { uniqueId: 'คนดู' + i, nickname: 'คนดู' + i, comment: i % 2 ? cfg.t2Key : cfg.t1Key });
       let k = 0; const it = setInterval(() => { const i = Math.floor(Math.random() * 30); ev('like', { uniqueId: 'คนดู' + i, nickname: 'คนดู' + i, likeCount: 10 }); if (++k > 80) clearInterval(it); }, 100);
+      let q = 0; const gi = setInterval(() => { const i = Math.floor(Math.random() * 30), id = 'คนดู' + i; ev('gift', { uniqueId: id, nickname: id, profilePictureUrl: pic(id), giftName: 'Rose', diamondCount: 1 + Math.floor(Math.random() * 10), repeatCount: 1, giftType: 0 }); if (++q > 25) clearInterval(gi); }, 200);
     },
   };
   document.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => sim[b.dataset.sim]());

@@ -3,9 +3,11 @@
 const LIVE_KEY = 'mclive-cfg-v1';
 const LIVE_DEFAULTS = {
   title: 'ศึกชักเยอ LIVE',
-  help: 'พิมพ์ 1 หรือ 2 เพื่อเข้าทีม • ❤️ กดหัวใจ = ดึง • 🎁 ของขวัญ = ดึงแรง!',
+  help: 'พิมพ์ 1 หรือ 2 เลือกทีม • 🎁 ส่งของขวัญ = ได้ลงไปดึงเชือก โชว์รูปและชื่อคุณ!',
   t1Name: 'ทีมแดง', t1Color: '#ff4d5e', t1Key: '1',
   t2Name: 'ทีมน้ำเงิน', t2Color: '#3d8bff', t2Key: '2',
+  donorOnly: true,       // only gift senders pull and get a puller with their picture + name on screen
+  showN: 4,              // how many donors per team stand on the rope (1-5)
   likePower: 0.05,       // pull per heart
   chatPower: 0.3,        // pull per comment from a team member (0 = off)
   diamondPower: 1,       // pull per diamond of a gift

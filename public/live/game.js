@@ -30,7 +30,7 @@
     if (m && (m.team === team || !cfg.allowSwitch)) return m;
     if (m) { m.team = team; say(`${name} ย้ายไป${teamName(team)}`, teamColor(team)); return m; }
     const n = { name, team, pts: 0 }; S.members.set(uid, n);
-    if (!quiet) say(`${name} เข้า${teamName(team)}`, teamColor(team));
+    if (!quiet && !cfg.donorOnly) say(`${name} เข้า${teamName(team)}`, teamColor(team));
     return n;
   }
   function who(uid, name) {
@@ -61,8 +61,9 @@
       const c = String(d.comment || '').trim().toLowerCase();
       if (c === String(cfg.t1Key).toLowerCase()) return void join(uid, name, 1);
       if (c === String(cfg.t2Key).toLowerCase()) return void join(uid, name, 2);
-      const m = S.members.get(uid); if (m && cfg.chatPower > 0) pull(m, cfg.chatPower);
+      const m = S.members.get(uid); if (m && cfg.chatPower > 0 && !cfg.donorOnly) pull(m, cfg.chatPower);
     } else if (ev.event === 'like') {
+      if (cfg.donorOnly) return;   // donors only: hearts don't pull
       const m = who(uid, name); if (!m) return;
       const n = Math.max(1, Math.min(500, +d.likeCount || 1)); pull(m, n * cfg.likePower);
       if (Math.random() < 0.3) spark(m.team === 1 ? 260 : 820, H * 0.42, '#ff7aa8', 8, '❤');
@@ -73,6 +74,7 @@
       if (+d.giftType === 1) { const was = streak.get(key) || 0; add = rc >= was ? rc - was : rc; streak.set(key, rc); if (d.repeatEnd) streak.delete(key); }
       if (add <= 0) return;
       const m = who(uid, name); if (!m) return;
+      if (d.profilePictureUrl && m.pic !== d.profilePictureUrl) { m.pic = d.profilePictureUrl; m.img = new Image(); m.img.referrerPolicy = 'no-referrer'; m.img.src = m.pic; }
       const gname = String(d.giftName || 'ของขวัญ'), per = gifts[gname.toLowerCase()] ?? (Math.max(1, +d.diamondCount || 1) * cfg.diamondPower);
       const dia = Math.max(1, +d.diamondCount || 1) * add;
       pull(m, Math.min(per * add, cfg.winAt * (cfg.giftCap || 1)));   // one gift can't end the round alone (giftCap)
@@ -80,7 +82,7 @@
       for (let i = 0; i < Math.min(60, 6 + dia); i++) spark(m.team === 1 ? 260 : 820, H * 0.42, teamColor(m.team), 12);
       if (dia >= cfg.bigGift) { S.banner = { txt: `${name}`, sub: `${gname} x${add} → ${teamName(m.team)} ดึงสุดแรง!`, c: teamColor(m.team), until: now() + 4000 }; S.shake = 20; snd('big'); } else snd('gift');
     } else if (ev.event === 'follow' || ev.event === 'share') {
-      const m = S.members.get(uid); if (m) { pull(m, 2); say(`${name} ${ev.event === 'follow' ? 'กดติดตาม' : 'แชร์ไลฟ์'} +2`, teamColor(m.team)); }
+      const m = S.members.get(uid); if (m && !cfg.donorOnly) { pull(m, 2); say(`${name} ${ev.event === 'follow' ? 'กดติดตาม' : 'แชร์ไลฟ์'} +2`, teamColor(m.team)); }
     }
   }
   function say(txt, c) { S.feed.unshift({ txt, c, at: now() }); S.feed.length = Math.min(S.feed.length, 7); }
@@ -132,15 +134,21 @@
   const F = (s, w = 700) => `${w} ${s}px Kanit, system-ui, sans-serif`;
   function text(t, x, y, s, c, al = 'center', w = 700) { g.font = F(s, w); g.textAlign = al; g.lineWidth = s / 6; g.strokeStyle = '#000'; g.strokeText(t, x, y); g.fillStyle = c; g.fillText(t, x, y); }
   function rr(x, y, w, h, r, c) { g.beginPath(); g.roundRect(x, y, w, h, r); g.fillStyle = c; g.fill(); }
-  function guy(x, y, c, lean, t) {
-    const k = Math.sin(t / 90 + x) * 4;
+  function guy(x, y, c, lean, t, m, top) {
+    const k = Math.sin(t / 90 + x) * 4, img = m && m.img && m.img.complete && m.img.naturalWidth ? m.img : null;
     g.save(); g.translate(x, y); g.rotate(lean);
     g.fillStyle = c; g.strokeStyle = '#111'; g.lineWidth = 6;
     g.beginPath(); g.arc(0, -150, 34, 0, 7); g.fill(); g.stroke();                // head
     rr(-26, -116, 52, 90, 18, c); g.strokeRect(-26, -116, 52, 90);               // body
     g.beginPath(); g.moveTo(-14, -26); g.lineTo(-30 + k, 40); g.moveTo(14, -26); g.lineTo(26 - k, 40); g.stroke();   // legs
-    g.fillStyle = '#111'; g.beginPath(); g.arc(-10, -154, 5, 0, 7); g.arc(12, -154, 5, 0, 7); g.fill();
+    if (img) {   // the donor's TikTok profile picture as the head
+      g.save(); g.beginPath(); g.arc(0, -150, 46, 0, 7); g.clip(); g.drawImage(img, -46, -196, 92, 92); g.restore();
+      g.strokeStyle = c; g.lineWidth = 7; g.beginPath(); g.arc(0, -150, 46, 0, 7); g.stroke();
+    } else if (m) { g.fillStyle = '#fff'; g.font = F(40); g.textAlign = 'center'; g.fillText(m.name.slice(0, 1).toUpperCase(), 0, -136); }
+    else { g.fillStyle = '#111'; g.beginPath(); g.arc(-10, -154, 5, 0, 7); g.arc(12, -154, 5, 0, 7); g.fill(); }
     g.restore();
+    if (top) { g.font = F(48); g.textAlign = 'center'; g.fillText('👑', x, y - 210); }
+    if (m) text(m.name.length > 9 ? m.name.slice(0, 8) + '…' : m.name, x, y + 84, 26, '#fff', 'center', 600);
   }
   function frame() {
     const t = now();
@@ -177,7 +185,18 @@
     g.strokeStyle = '#8a6236'; g.lineWidth = 4; for (let x = 70; x < W - 60; x += 26) { g.beginPath(); g.moveTo(x + off, ry - 49); g.lineTo(x + 14 + off, ry - 31); g.stroke(); }
     // the flag in the middle of the rope
     g.fillStyle = '#ffe07a'; g.beginPath(); g.moveTo(W / 2 + off, ry - 40); g.lineTo(W / 2 + off - 26, ry + 40); g.lineTo(W / 2 + off + 26, ry + 40); g.fill();
-    for (let i = 0; i < 3; i++) { guy(120 + i * 95 + off, ry + 60, cfg.t1Color, -0.25 + lean, t + i * 70); guy(W - 120 - i * 95 + off, ry + 60, cfg.t2Color, 0.25 + lean, t + i * 70); }
+    // the pullers on the rope = the team's donors (most first, with their picture and name); nobody yet: plain stand-ins
+    const N = Math.max(1, Math.min(5, cfg.showN || 4)), gap = Math.min(110, 400 / N);
+    [1, 2].forEach(tm => {
+      const ds = [...S.members.values()].filter(m => m.team === tm && m.pts > 0).sort((a, b) => b.pts - a.pts).slice(0, N);
+      const n = ds.length || 2;
+      for (let i = n - 1; i >= 0; i--) {
+        const x = (tm === 1 ? 120 + i * gap : W - 120 - i * gap) + off * 0.35;   // (pullers move less than the rope: the top donor stays on screen)
+        if (!ds.length) g.globalAlpha = 0.35;
+        guy(x, ry + 60, teamColor(tm), (tm === 1 ? -0.25 : 0.25) + lean, t + i * 70, ds[i], i === 0 && !!ds[i]);
+        g.globalAlpha = 1;
+      }
+    });
 
     // power bar
     const by = ry + 190; rr(60, by, W - 120, 44, 22, 'rgba(255,255,255,.12)');
