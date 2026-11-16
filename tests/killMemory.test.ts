@@ -64,6 +64,11 @@ describe('bounty lord pays even after a restart or the 20-minute mark (player re
     return { s, b, args };
   };
   const paid = (r: unknown) => !!(r as { bounty?: unknown }).bounty;
+  it('asking again for the lord (the game reloaded) hands back the same number; that kill pays the bounty', async () => {
+    const { s, b, args } = await setup();
+    const again = handlers.bountySpawn(s, { n: b.n }, ctx) as { sid: number }; expect(again.sid).toBe(args.sid);
+    expect(paid(handlers.kill(s, args, { ...ctx, admin: true, now: ctx.now + 30000 }))).toBe(true);
+  });
   it('the server restarted mid-fight: still the bounty, once', async () => {
     const { s, args } = await setup(); useMem(newMem());
     const c2 = { ...ctx, admin: true, now: ctx.now + 60000 };

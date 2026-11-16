@@ -2427,9 +2427,12 @@ export class TopDownScene extends Phaser.Scene {
       const sp = 108 * (this.riding ? rideSpeed(MOUNTS[this.riding.id].speed, this.riding.skin) : vipActive(S()) && !isPvp(this.stageN) ? VIP_WALK : 1) * (this.riding || isPvp(this.stageN) ? 1 : wg ? WING_SPEED[wg.tier] : activePet(S()) ? CLOUD_SPEED : 1) * dt / 1000;   // (⛈ storm cloud +5%)   // VIP walks x1.15 (mounts faster)   // director: a little faster (was 92); a mount faster still (dragon > horse)
       this.heroMoving = true;
       const nx = h.x + mx * sp, ny = h.y + my * sp;
-      const ok = (x: number, y: number) => this.canStand(x, y);
+      const ok = (x: number, y: number) => this.canStand(x, y), x0 = h.x, y0 = h.y;
       if (ok(nx, h.y)) h.x = nx;
       if (ok(h.x, ny)) h.y = ny;
+      if (h.x === x0 && h.y === y0) {   // (head-on into a rock / tree corner: slide round it — turn a little either way first)
+        for (const da of [0.6, -0.6, 1.2, -1.2]) { const a = Math.atan2(my, mx) + da * (S().auto ? (Math.floor(time / 1500) % 2 ? 1 : -1) : 1), px = h.x + Math.cos(a) * sp, py = h.y + Math.sin(a) * sp; if (ok(px, py)) { h.x = px; h.y = py; break; } }
+      }
       const ang = Math.atan2(my, mx);                       // 0 = east
       this.dir = (Math.round(((Math.PI / 2 - ang) / (Math.PI / 4))) % 8 + 8) % 8;   // 0 = south
       if (this.wingLift > 0) setIdle(h, this.F.key, this.dir); else playAnim(h, this.F.key, 'walk', this.dir);   // (🪽 flying: the legs stay still)

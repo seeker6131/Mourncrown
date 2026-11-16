@@ -44,8 +44,11 @@ export class PathGrid {
   }
   /** straight line between two points stays on walkable cells */
   clear(x0: number, y0: number, x1: number, y1: number) {
-    const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4);
-    for (let k = 1; k < n; k++) { const [i, j] = this.cell(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n); if (!this.ok(i, j)) return false; }
+    // (player report 16 Nov: AUTO stood stuck on rocks — a straight line through the cell centres clipped a rock's corner)
+    // the whole width of the hero must pass: the centre line and one on each side
+    const L = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(L / 4); if (!L) return true;
+    const ox = -(y1 - y0) / L * 5, oy = (x1 - x0) / L * 5;
+    for (const s of [0, 1, -1]) for (let k = 1; k < n; k++) { const [i, j] = this.cell(x0 + (x1 - x0) * k / n + ox * s, y0 + (y1 - y0) * k / n + oy * s); if (!this.ok(i, j)) return false; }
     return true;
   }
   /** waypoints (world px) from start to goal, or null when unreachable */

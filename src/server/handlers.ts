@@ -142,7 +142,8 @@ export const handlers = {
   /** on entering the bounty's map the server registers the lord (once per slot, while it is not dead) */
   bountySpawn(s: GameState, a: { n: number }, c: Ctx) {
     const b = bountyOf(s, c.now); if (b.killed || b.n !== a.n || mem.map !== a.n) return no('none');
-    for (const v of mem.spawns.values()) if (v.bounty === b.slot) return no('alive');
+    // (still registered — the game reloaded / came back to the map: hand back the same lord, same number)
+    for (const [sid0, v] of mem.spawns) if (v.bounty === b.slot) return { sid: sid0, mob: b.mob, name: b.name, hp: BOUNTY_HP };
     const sid = mem.sid++; mem.spawns.set(sid, { key: b.mob.key, elite: false, boss: false, bounty: b.slot, srv: true });
     (s as { bountySid?: { slot: number; sid: number; key: string } }).bountySid = { slot: b.slot, sid, key: b.mob.key };   // (kept in the save: the server's memory is wiped by a restart / sleep — a player lost a bounty that way)
     return { sid, mob: b.mob, name: b.name, hp: BOUNTY_HP };

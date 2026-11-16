@@ -263,7 +263,14 @@ export class Combat {
 
   /** the wandering bounty lord, when this map is the bounty's map (systems/bounty.ts) */
   spawnBounty(n: number) {
-    const r = act('bountySpawn', { n }); if (refused(r) || !this.pickSpot) return;
+    // (player report 16 Nov: "the bounty pays sometimes, sometimes not") online the SERVER's number for the lord must be used —
+    // the game's own count gave it another number, so the kill often did not match the server's bounty
+    if (isOnline()) { const st = this.stage; actServer('bountySpawn', { n }).then(r => { if (!refused(r) && this.stage === st && this.s.sys.isActive() && !this.mons.some(m => m.bounty && m.alive)) this.placeBounty(r); }); return; }
+    const r = act('bountySpawn', { n }); if (refused(r)) return;
+    this.placeBounty(r);
+  }
+  private placeBounty(r: { sid: number; mob: StageMon; name: string; hp: number }) {
+    if (!this.pickSpot) return;
     const p = this.pickSpot(), mob = { ...r.mob, name: `👑 ${r.name}`, size: Math.round(r.mob.size * 1.6) };
     this.spawn(mob, p.x, p.y, false, { sid: r.sid, hpMult: r.hp });
     const m = this.mons[this.mons.length - 1]; m.bounty = true; m.local = true;
