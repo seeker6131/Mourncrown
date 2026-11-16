@@ -10,7 +10,7 @@ import com.elitetunerx.core.Shell
 import java.util.Locale
 
 /**
- * Non-root tuning through the ADB shell user (Shizuku). Every tweak:
+ * Non-root tuning through the ADB shell user (built-in ADB / root / Shizuku). Every tweak:
  *  1. saves the original value (once) so it can be reverted,
  *  2. applies the change,
  *  3. reads the value back from the system and reports what is now really in effect.
@@ -42,7 +42,7 @@ object Tweaks {
         return "${if (ok) "✔" else "✖"} $ns/$key = $now" + if (!r.ok) " (${r.text()})" else ""
     }
 
-    private fun need(): String? = if (!Shell.ready) "✖ ต้องเปิด Shizuku และอนุญาตสิทธิ์ก่อน" else null
+    private fun need(): String? = if (!Shell.ready) "✖ ต้องเชื่อม ADB ในตัวก่อน (ตั้งค่า → การเชื่อมต่อ)" else null
 
     // ---------------------------------------------------------------- display
     fun supportedRates(ctx: Context): List<Float> {
@@ -168,7 +168,7 @@ object Tweaks {
     }
 
     fun updatableDriverInfo(): String {
-        if (!Shell.ready) return "ต้องใช้ Shizuku"
+        if (!Shell.ready) return "ต้องเชื่อม ADB ในตัว"
         val p0 = sh("getprop ro.gfx.driver.0").out.trim()
         val p1 = sh("getprop ro.gfx.driver.1").out.trim()
         return "production driver: ${p0.ifEmpty { "ไม่มี" }}\nprerelease driver: ${p1.ifEmpty { "ไม่มี" }}"
@@ -184,7 +184,7 @@ object Tweaks {
     }
 
     fun thermalReport(): String {
-        if (!Shell.ready) return "ต้องใช้ Shizuku"
+        if (!Shell.ready) return "ต้องเชื่อม ADB ในตัว"
         return sh("dumpsys thermalservice | head -n 60").out.trim()
     }
 

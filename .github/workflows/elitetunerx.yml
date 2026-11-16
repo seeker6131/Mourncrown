@@ -68,4 +68,4 @@ jobs:
           files: EliteTunerX/out/*.apk
           body: |
             Elite Tuner X ${{ env.VERSION }} — built from ${{ github.sha }} on branch ${{ github.ref_name }}.
-            ดาวน์โหลดไฟล์ .apk ด้านล่างแล้วติดตั้งบน Xiaomi Pad 8 Pro (อนุญาตติดตั้งจากแหล่งที่ไม่รู้จัก)
+            ดาวน์โหลดไฟล์ .apk ด้านล่างแล้วติดตั้ง (อนุญาตติดตั้งจากแหล่งที่ไม่รู้จัก) • รองรับ Android 8+ ทุกชิป • ไม่ต้องรูท ไม่ต้องลง Shizuku — ดูวิธีเชื่อม ADB ในตัวใน EliteTunerX/README_TH.md

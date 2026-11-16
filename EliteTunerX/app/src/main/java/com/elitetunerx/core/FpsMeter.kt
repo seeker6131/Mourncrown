@@ -6,7 +6,7 @@ import android.os.SystemClock
  * Measures the real frame rate of the focused app from SurfaceFlinger's present
  * timestamps (`dumpsys SurfaceFlinger --latency <layer>`). These are the exact times each
  * frame of the layer reached the display, so FPS and frame-times derived from them are what
- * the user actually sees. Requires the shell user (Shizuku).
+ * the user actually sees. Requires the shell user (built-in ADB, root or Shizuku).
  */
 object FpsMeter {
     data class Result(
@@ -39,7 +39,7 @@ object FpsMeter {
     @Synchronized
     fun poll(): Result {
         val now = SystemClock.elapsedRealtime()
-        if (pkg == null || now - lastFocusCheck > 3000) {
+        if (pkg == null || now - lastFocusCheck > 1500) {
             lastFocusCheck = now
             val p = focusedPackage()
             if (p != null && p != pkg) {
@@ -76,8 +76,15 @@ object FpsMeter {
 
     private fun consume(ts: List<Long>): List<Double> {
         if (lastTs == 0L) {
-            lastTs = ts.last()
-            return emptyList()
+            // First look at a layer: SurfaceFlinger already holds the last ~128 presented frames,
+            // so the real FPS is available immediately instead of after a warm-up.
+            val last = ts.last()
+            lastTs = last
+            if (System.nanoTime() - last > 1_000_000_000L) return emptyList()
+            val recent = ts.filter { it >= last - 1_000_000_000L }
+            val out = ArrayList<Double>(recent.size)
+            for (i in 1 until recent.size) out.add((recent[i] - recent[i - 1]) / 1e6)
+            return out
         }
         val fresh = ts.filter { it > lastTs }
         if (fresh.isEmpty()) return emptyList()

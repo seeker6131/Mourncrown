@@ -9,7 +9,7 @@ option(ETX_ADRENOTOOLS "Load custom Vulkan drivers (Turnip) through libadrenotoo
 add_library(etxvk SHARED vkprobe.cpp)
 target_link_libraries(etxvk log dl)
 
-if(ETX_ADRENOTOOLS)
+if(ETX_ADRENOTOOLS AND ANDROID_ABI STREQUAL "arm64-v8a")
     include(FetchContent)
     FetchContent_Declare(
         adrenotools

@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("app.cash.paparazzi")
 }
 
 android {
@@ -10,11 +11,12 @@ android {
 
     defaultConfig {
         applicationId = "com.elitetunerx"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
-        ndk { abiFilters += listOf("arm64-v8a") }
+        versionCode = 3
+        versionName = "0.3.0"
+        // All Android CPUs: 64/32-bit ARM phones + x86_64 (Chromebooks, emulators)
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
         externalNativeBuild {
             cmake { arguments += listOf("-DETX_ADRENOTOOLS=ON") }
         }
@@ -51,7 +53,7 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
 
     // libadrenotools hook libraries must be extracted to nativeLibraryDir.
     packaging { jniLibs { useLegacyPackaging = true } }
@@ -68,4 +70,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    // Built-in ADB client (wireless debugging pairing) — Apache-2.0 option of the dual license
+    implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
+    implementation("org.conscrypt:conscrypt-android:2.5.3")
+    implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
+    testImplementation("junit:junit:4.13.2")
 }

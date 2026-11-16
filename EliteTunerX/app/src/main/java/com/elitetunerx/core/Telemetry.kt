@@ -8,6 +8,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
 import android.os.SystemClock
+import com.elitetunerx.adb.AdbLink
 import com.elitetunerx.session.Recorder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,9 @@ data class Snapshot(
     val gpuFreq: Reading,
     val gpuTemp: Reading,
     val gpuModel: String?,
+    val gpuName: String,
+    val game: GameInfo?,
+    val backend: Shell.Backend,
     val cpuUsage: Reading,
     val clusters: List<ClusterFreq>,
     val cpuTemp: Reading,
@@ -89,6 +93,8 @@ object Telemetry {
         var policies = listOf<Pair<String, String>>()
         var gpuBusyPath: String? = null
         var gpuBusyPair = false
+        var gpuBusyLabel = "kgsl"
+        var gpuWork = false
         var gpuFreqPath: String? = null
         var gpuFreqToMhz = 1e-6
         var gpuTempPath: String? = null
@@ -129,25 +135,60 @@ object Telemetry {
             label to "$polDir/$pol"
         }
 
-        // Adreno GPU (kgsl)
+        // GPU — every vendor exposes load/clock somewhere different. Try the known nodes in order.
         val k = "/sys/class/kgsl/kgsl-3d0"
-        val gpuFiles = listOf(
-            "$k/gpu_busy_percentage", "$k/gpubusy", "$k/gpuclk", "$k/devfreq/cur_freq", "$k/clock_mhz",
-            "$k/temp", "$k/gpu_model", "/proc/stat"
-        )
-        val g = resolve(p, gpuFiles, priv)
-        when {
-            g["$k/gpu_busy_percentage"] != null -> p.gpuBusyPath = "$k/gpu_busy_percentage"
-            g["$k/gpubusy"] != null -> { p.gpuBusyPath = "$k/gpubusy"; p.gpuBusyPair = true }
+        val devfreqDirs = Sysfs.listDir("/sys/class/devfreq", priv)
+            .filter { d -> listOf("gpu", "mali", "kgsl", "g3d", "pvr", "sgpu", "img").any { d.lowercase().contains(it) } }
+            .map { "/sys/class/devfreq/$it" }
+        val maliDirs = Sysfs.listDir("/sys/devices/platform", priv).filter { it.lowercase().contains("mali") }
+            .map { "/sys/devices/platform/$it" }
+        // (path, label, isPair) for load; first readable wins
+        val loadCandidates = buildList {
+            add(Triple("$k/gpu_busy_percentage", "Adreno kgsl", false))
+            add(Triple("$k/gpubusy", "Adreno kgsl", true))
+            add(Triple("/sys/kernel/gpu/gpu_busy", "GPU driver (Exynos/Xclipse/Mali)", false))
+            add(Triple("/sys/kernel/ged/hal/gpu_utilization", "MediaTek GED", false))
+            add(Triple("/sys/module/ged/parameters/gpu_loading", "MediaTek GED", false))
+            add(Triple("/sys/class/misc/mali0/device/utilization", "Mali", false))
+            add(Triple("/sys/class/misc/mali0/device/utilisation", "Mali", false))
+            maliDirs.forEach { add(Triple("$it/utilization", "Mali", false)); add(Triple("$it/utilisation", "Mali", false)) }
+            devfreqDirs.forEach { d ->
+                add(Triple("$d/gpu_load", "devfreq " + d.substringAfterLast('/'), false))
+                add(Triple("$d/load", "devfreq " + d.substringAfterLast('/'), false))
+                add(Triple("$d/utilization", "devfreq " + d.substringAfterLast('/'), false))
+            }
         }
-        when {
-            g["$k/gpuclk"] != null -> { p.gpuFreqPath = "$k/gpuclk"; p.gpuFreqToMhz = 1e-6 }
-            g["$k/devfreq/cur_freq"] != null -> { p.gpuFreqPath = "$k/devfreq/cur_freq"; p.gpuFreqToMhz = 1e-6 }
-            g["$k/clock_mhz"] != null -> { p.gpuFreqPath = "$k/clock_mhz"; p.gpuFreqToMhz = 1.0 }
+        // (path, toMHz) for clock
+        val freqCandidates = buildList {
+            add("$k/gpuclk" to 1e-6)
+            add("$k/devfreq/cur_freq" to 1e-6)
+            add("$k/clock_mhz" to 1.0)
+            add("/sys/kernel/gpu/gpu_clock" to 1.0)
+            devfreqDirs.forEach { add("$it/cur_freq" to 1e-6) }
+            maliDirs.forEach { add("$it/clock" to 1e-3) }
+        }
+        val gpuFiles = loadCandidates.map { it.first } + freqCandidates.map { it.first } +
+            listOf("$k/temp", "$k/gpu_model", "/sys/kernel/gpu/gpu_model", "/proc/stat")
+        val g = resolve(p, gpuFiles.distinct(), priv)
+        loadCandidates.firstOrNull { (path, _, _) -> Sysfs.firstNumber(g[path]) != null }?.let { (path, label, pair) ->
+            p.gpuBusyPath = path; p.gpuBusyPair = pair; p.gpuBusyLabel = label
+        }
+        freqCandidates.firstOrNull { (path, _) -> (Sysfs.firstNumber(g[path]) ?: 0.0) > 0 }?.let { (path, mul) ->
+            // Some drivers report kHz in cur_freq: normalise by magnitude
+            val raw = Sysfs.firstNumber(g[path]) ?: 0.0
+            p.gpuFreqPath = path
+            p.gpuFreqToMhz = when {
+                mul == 1.0 -> 1.0
+                raw > 1e7 -> 1e-6   // Hz
+                raw > 1e4 -> 1e-3   // kHz
+                else -> 1.0         // already MHz
+            }
         }
         if (g["$k/temp"] != null) p.gpuTempPath = "$k/temp"
-        p.gpuModel = g["$k/gpu_model"]
+        p.gpuModel = g["$k/gpu_model"] ?: g["/sys/kernel/gpu/gpu_model"]
         p.procStat = g["/proc/stat"] != null
+        // Last resort that works on any vendor with Android 13+ kernels: GPU work periods per app.
+        if (p.gpuBusyPath == null && priv) p.gpuWork = GpuWork.available()
 
         // Thermal zones
         val tz = "/sys/class/thermal"
@@ -158,10 +199,13 @@ object Telemetry {
             val t = types["$tz/$z/type"]?.lowercase() ?: return@forEach
             val path = "$tz/$z/temp"
             when {
-                t.contains("gpu") -> gpu += path
-                t.contains("cpu") && !t.contains("cpuss-max") -> cpu += path
+                // Adreno "gpu*", Exynos/Tensor "G3D", MediaTek "mtktsgpu"/"gpu*", Mali "mali"
+                t.contains("gpu") || t.contains("g3d") || t.contains("mali") -> gpu += path
+                (t.contains("cpu") && !t.contains("cpuss-max")) || t.startsWith("big") || t.startsWith("mid") ||
+                    t.startsWith("little") || t.contains("cluster") || t.contains("mtktscpu") || t.contains("soc_max") -> cpu += path
                 t.contains("skin") || t.contains("quiet") || t.contains("xo-therm") || t.contains("sys-therm") ||
-                    t.contains("board") -> skin += path
+                    t.contains("board") || t.contains("shell") || t.contains("case") || t.contains("ap_ntc") ||
+                    t.contains("mtktsap") || t.contains("conn_therm") -> skin += path
             }
         }
         val tr = resolve(p, (cpu + gpu + skin), priv)
@@ -194,12 +238,22 @@ object Telemetry {
         val pm = ctx.getSystemService(PowerManager::class.java)
         val bm = ctx.getSystemService(BatteryManager::class.java)
 
+        // Bring up the privileged shell: root if present, otherwise the built-in ADB link.
+        Shell.probeRoot()
+        if (!Shell.ready && AdbLink.everPaired(ctx)) AdbLink.connect(ctx, quiet = true)
+        GpuInfo.get()
+        var lastAdbTry = SystemClock.elapsedRealtime()
+
         while (currentCoroutineContext().isActive) {
             val t0 = SystemClock.elapsedRealtime()
+            if (!Shell.ready && AdbLink.everPaired(ctx) && t0 - lastAdbTry > 15000) {
+                lastAdbTry = t0
+                AdbLink.connect(ctx, quiet = true)
+            }
             val st = Shell.state()
-            if (st != lastState || probe == null || tick % 120 == 0) {
+            if (st != lastState || probe == null || tick % 480 == 0) {
                 probe = runCatching { discover(st == Shell.State.READY) }.getOrElse { Probe() }
-                if (st != lastState) FpsMeter.reset()
+                if (st != lastState) { FpsMeter.reset(); GameProbe.reset() }
                 lastState = st
             }
             val p = probe!!
@@ -228,7 +282,7 @@ object Telemetry {
             }
             tick++
             val spent = SystemClock.elapsedRealtime() - t0
-            delay((500 - spent).coerceAtLeast(40))
+            delay((250 - spent).coerceAtLeast(30))
         }
     }
 
@@ -270,7 +324,7 @@ object Telemetry {
                 ft = Reading.of(if (flipFps > 0) 1000.0 / flipFps else null, "%.2f", " ms", FpsMeter.SRC_FLIP)
             }
             else -> {
-                val why = if (priv) "no layer found" else "needs Shizuku"
+                val why = if (priv) "no layer found" else "ต้องเชื่อม ADB ในตัว"
                 fps = Reading.na(why); ft = Reading.na(why)
             }
         }
@@ -282,11 +336,12 @@ object Telemetry {
                 val n = raw?.trim()?.split(Regex("\\s+"))?.mapNotNull { it.toDoubleOrNull() }
                 if (n != null && n.size >= 2) (if (n[1] > 0) n[0] / n[1] * 100.0 else 0.0) else null
             } else Sysfs.firstNumber(raw)
-            Reading.of(value?.coerceIn(0.0, 100.0), "%.0f", "%", srcOf(p, path, "kgsl " + path.substringAfterLast('/')))
-        } ?: Reading.na(if (priv) "kgsl busy node blocked on this firmware" else "needs Shizuku")
+            Reading.of(value?.coerceIn(0.0, 100.0), "%.0f", "%", srcOf(p, path, p.gpuBusyLabel + " " + path.substringAfterLast('/')))
+        } ?: (if (p.gpuWork) GpuWork.sample()?.let { Reading.of(it, "%.0f", "%", "Android GPU work periods (all apps)") } else null)
+        ?: Reading.na(if (priv) "GPU load node blocked by this firmware" else "ต้องเชื่อม ADB ในตัว")
         val gpuFreq = p.gpuFreqPath?.let { path ->
-            Reading.of(Sysfs.firstNumber(v[path])?.times(p.gpuFreqToMhz), "%.0f", " MHz", srcOf(p, path, "kgsl " + path.substringAfterLast('/')))
-        } ?: Reading.na(if (priv) "kgsl clock node blocked" else "needs Shizuku")
+            Reading.of(Sysfs.firstNumber(v[path])?.times(p.gpuFreqToMhz), "%.0f", " MHz", srcOf(p, path, "GPU clock " + path.substringAfterLast('/')))
+        } ?: Reading.na(if (priv) "GPU clock node blocked" else "ต้องเชื่อม ADB ในตัว")
         val gpuTempVal = p.gpuTempPath?.let { temp(v[it]) } ?: p.gpuZones.mapNotNull { temp(v[it]) }.maxOrNull()
         val gpuTemp = Reading.of(gpuTempVal, "%.1f", " °C", if (p.gpuTempPath != null) "kgsl temp" else "thermal zones (gpu*) max")
 
@@ -295,7 +350,7 @@ object Telemetry {
         val cpuUsage = run {
             val line = v["/proc/stat"]?.lineSequence()?.firstOrNull { it.startsWith("cpu ") }
             val nums = line?.trim()?.split(Regex("\\s+"))?.drop(1)?.mapNotNull { it.toLongOrNull() }
-            if (nums == null || nums.size < 4) return@run Reading.na(if (priv) "/proc/stat unreadable" else "needs Shizuku (/proc/stat)")
+            if (nums == null || nums.size < 4) return@run Reading.na(if (priv) "/proc/stat unreadable" else "ต้องเชื่อม ADB ในตัว (/proc/stat)")
             val idle = nums[3] + (nums.getOrNull(4) ?: 0)
             val total = nums.take(8).sum()
             newStat = longArrayOf(idle, total)
@@ -329,7 +384,7 @@ object Telemetry {
         am.getMemoryInfo(mi)
         val gb = 1024.0 * 1024 * 1024
 
-        val thermal = when (pm.currentThermalStatus) {
+        val thermal = if (Build.VERSION.SDK_INT < 29) "Unknown" else when (pm.currentThermalStatus) {
             PowerManager.THERMAL_STATUS_NONE -> "Nominal"
             PowerManager.THERMAL_STATUS_LIGHT -> "Light"
             PowerManager.THERMAL_STATUS_MODERATE -> "Moderate"
@@ -349,6 +404,8 @@ object Telemetry {
             timeMs = System.currentTimeMillis(), shell = st, fgPackage = fpsRes?.pkg,
             fps = fps, frameTime = ft, newFrameTimes = frames,
             gpuBusy = gpuBusy, gpuFreq = gpuFreq, gpuTemp = gpuTemp, gpuModel = p.gpuModel,
+            gpuName = GpuInfo.shortName(), backend = Shell.backend(),
+            game = runCatching { GameProbe.poll(ctx, fpsRes?.pkg ?: (if (priv) FpsMeter.focusedPackage() else null), fpsRes?.layer, priv) }.getOrNull(),
             cpuUsage = cpuUsage, clusters = clusters, cpuTemp = cpuTemp, skinTemp = skinTemp,
             batteryTemp = batteryTemp, power = power, charging = charging,
             ramUsedGb = (mi.totalMem - mi.availMem).coerceAtLeast(0) / gb, ramTotalGb = mi.totalMem / gb,

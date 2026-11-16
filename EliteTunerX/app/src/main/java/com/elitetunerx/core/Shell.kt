@@ -1,6 +1,7 @@
 package com.elitetunerx.core
 
 import android.content.pm.PackageManager
+import com.elitetunerx.adb.AdbLink
 import rikka.shizuku.Shizuku
 import java.io.File
 import kotlin.concurrent.thread
@@ -11,15 +12,33 @@ data class ShellResult(val code: Int, val out: String, val err: String) {
 }
 
 /**
- * Runs commands either as the app (uid of this app) or, when Shizuku is running and
- * permission is granted, as the ADB shell user (uid 2000). The shell user is what unlocks
- * SurfaceFlinger frame timestamps, protected sysfs nodes and `settings`/`cmd` tweaks
- * without root.
+ * Runs commands as the app, or — when one is available — as a privileged user:
+ *  1. Root (su)                      uid 0
+ *  2. Built-in ADB (Wireless debugging, see [AdbLink])   uid 2000, no extra app needed
+ *  3. Shizuku (optional, only if the user already uses it)  uid 2000
+ * The shell user is what unlocks SurfaceFlinger frame timestamps, protected sysfs nodes and
+ * `settings`/`cmd` tweaks on every Android skin without root.
  */
 object Shell {
     enum class State { UNAVAILABLE, NO_PERMISSION, READY }
+    enum class Backend(val label: String) { ROOT("Root"), ADB("ADB ในตัว"), SHIZUKU("Shizuku"), NONE("ไม่มี") }
 
-    fun state(): State = try {
+    @Volatile private var rootChecked = false
+    @Volatile private var hasRoot = false
+
+    /** Call off the main thread once; `su` may show a grant dialog. */
+    fun probeRoot(): Boolean {
+        if (rootChecked) return hasRoot
+        rootChecked = true
+        hasRoot = runCatching {
+            val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
+            val out = p.inputStream.bufferedReader().readText()
+            p.waitFor() == 0 && out.contains("uid=0")
+        }.getOrDefault(false)
+        return hasRoot
+    }
+
+    private fun shizukuState(): State = try {
         when {
             !Shizuku.pingBinder() || Shizuku.isPreV11() -> State.UNAVAILABLE
             Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED -> State.READY
@@ -29,10 +48,26 @@ object Shell {
         State.UNAVAILABLE
     }
 
+    fun shizukuInstalledButNotAllowed(): Boolean = shizukuState() == State.NO_PERMISSION
+
+    fun backend(): Backend = when {
+        hasRoot -> Backend.ROOT
+        AdbLink.connected -> Backend.ADB
+        shizukuState() == State.READY -> Backend.SHIZUKU
+        else -> Backend.NONE
+    }
+
+    fun state(): State = if (backend() != Backend.NONE) State.READY else State.UNAVAILABLE
+
     val ready: Boolean get() = state() == State.READY
 
-    /** 0 = root (Sui / Shizuku started with root), 2000 = adb shell */
-    fun uid(): Int = try { Shizuku.getUid() } catch (t: Throwable) { -1 }
+    /** 0 = root, 2000 = adb shell, -1 = none */
+    fun uid(): Int = when (backend()) {
+        Backend.ROOT -> 0
+        Backend.ADB -> 2000
+        Backend.SHIZUKU -> try { Shizuku.getUid() } catch (t: Throwable) { -1 }
+        Backend.NONE -> -1
+    }
 
     // Shizuku.newProcess is private in API 13 but still the simplest way to spawn a shell process.
     private val newProcess by lazy {
@@ -41,10 +76,21 @@ object Shell {
         ).apply { isAccessible = true }
     }
 
+    fun quote(a: String): String =
+        if (a.isNotEmpty() && a.all { it.isLetterOrDigit() || it in "-_./:=,+@%" }) a else "'" + a.replace("'", "'\\''") + "'"
+
     fun exec(cmd: Array<String>, timeoutMs: Long = 8000, privileged: Boolean = true): ShellResult {
+        val b = if (privileged) backend() else Backend.NONE
+        if (b == Backend.ADB) {
+            val (code, out) = AdbLink.exec(cmd.joinToString(" ") { quote(it) }, timeoutMs)
+            return ShellResult(code, out, "")
+        }
         val proc: Process = try {
-            if (privileged && ready) newProcess.invoke(null, cmd, null, null) as Process
-            else Runtime.getRuntime().exec(cmd)
+            when (b) {
+                Backend.ROOT -> Runtime.getRuntime().exec(arrayOf("su", "-c", cmd.joinToString(" ") { quote(it) }))
+                Backend.SHIZUKU -> newProcess.invoke(null, cmd, null, null) as Process
+                else -> Runtime.getRuntime().exec(cmd)
+            }
         } catch (t: Throwable) {
             return ShellResult(-1, "", (t.cause ?: t).toString())
         }
@@ -67,7 +113,10 @@ object Shell {
     }
 
     fun sh(script: String, timeoutMs: Long = 8000, privileged: Boolean = true): ShellResult =
-        exec(arrayOf("sh", "-c", script), timeoutMs, privileged)
+        if (privileged && backend() == Backend.ADB) {
+            val (code, out) = AdbLink.exec("sh -c ${quote(script)}", timeoutMs)
+            ShellResult(code, out, "")
+        } else exec(arrayOf("sh", "-c", script), timeoutMs, privileged)
 
     fun readDirect(path: String): String? = try {
         File(path).readText().trim().ifEmpty { null }

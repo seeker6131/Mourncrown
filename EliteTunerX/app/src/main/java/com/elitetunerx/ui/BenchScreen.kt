@@ -56,6 +56,7 @@ fun BenchScreen() {
 
     ScreenColumn {
         Header("GPU BENCHMARK", "OpenGL ES 3 • offscreen 1920×1080 • ไม่ติด vsync • glFinish ทุกเฟรม")
+        PanelCard("เมนูนี้ใช้ทำอะไร?", help = "ทดสอบพลัง GPU ของเครื่องแบบไม่ขึ้นกับเกม: ALU = พลังคำนวณ shader, Fill/Texture = ความเร็ววาดพิกเซลและอ่านเท็กซ์เจอร์, Stability = รันยาวแล้วดูว่าเครื่องร้อนจนความเร็วตกกี่ % (ค่าสูง = ระบายความร้อนดี) • ใช้เทียบก่อน/หลังติดพัดลม หรือเทียบกับเครื่องอื่น") { Body("แตะ ⓘ เพื่ออ่านคำอธิบาย") }
         PanelCard("ทดสอบ") {
             Body("Quick (~25 วิ): วัดพลัง ALU (shader คำนวณหนัก) + Fill/Texture (bandwidth) • Stability: รันต่อเนื่องเพื่อดูว่าเครื่องร้อนแล้วลดสปีดกี่ % (thermal throttling)")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

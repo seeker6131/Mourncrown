@@ -80,6 +80,7 @@ fun DriverScreen() {
 
     ScreenColumn {
         Header("DRIVER LAB", "Vulkan probe • DXVK / VKD3D-Proton / D8VK compatibility • Turnip loader • bandwidth bench")
+        PanelCard("เมนูนี้ใช้ทำอะไร?", help = "สำหรับคนเล่นเกม PC ผ่าน Winlator/GameHub: ตรวจว่าไดรเวอร์ Vulkan ของเครื่อง (หรือ Turnip ที่นำเข้าเป็น .zip) รองรับ DXVK / VKD3D รุ่นไหน และวัดแบนด์วิดท์หน่วยความจำ GPU • Turnip โหลดได้เฉพาะ Adreno บน CPU 64-bit • ทดสอบใน process แยก ไดรเวอร์พังแอปก็ไม่เด้ง") { Body("แตะ ⓘ เพื่ออ่านคำอธิบาย") }
         PanelCard("วิธีทดสอบ DXVK ทุกเวอร์ชันให้เห็นผลจริง") {
             Body("1) ตรวจว่าไดรเวอร์ (ระบบ หรือ Turnip ที่นำเข้า) มี Vulkan feature ครบตามที่ DXVK/VKD3D แต่ละรุ่นต้องการ — ตารางด้านล่างอ่านจาก GPU จริง\n2) DXVK ทำงานภายใน Wine ของ Winlator/GameHub — เลือกเวอร์ชันในแอปนั้น แล้วใช้ HUD + ● REC อัดผล ไปเทียบในแท็บ Sessions (avg FPS, 1% low, วัตต์)")
         }
