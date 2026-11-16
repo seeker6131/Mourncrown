@@ -338,6 +338,9 @@ const EN: Record<string, string> = {
   '💥 ของแตกหายไป': '💥 The item broke',
   'แตะเพื่อปิด': 'tap to close',
   'เสียวัตถุดิบ • แตะเพื่อปิด': 'materials lost • tap to close',
+  '🎰 ตู้สุ่มปีก / พาหนะ เปลี่ยนเป็นใช้ทอง 💰20,000 ต่อครั้ง (10 ครั้ง 💰180,000) — ฟาร์มแล้วมาลุ้น! ของปลอบใจเป็นผลึกมานา': '🎰 The wing / mount slot machine now takes gold: 💰20,000 a spin (10 spins 💰180,000) — farm and try your luck! Consolation: mana crystals',
+  'ทองไม่พอ (ต้องใช้ 💰': 'Not enough gold (need 💰',
+  '— ฟาร์มมอนแล้วมาลุ้นใหม่': '— farm and come back',
   '🎰 ปุ่มตู้สุ่มอยู่แถบบนข้างกงล้อ — ตู้เดียว 2 แท็บ: 🪽 ปีก / 🐎 พาหนะ': '🎰 The slot machine button is on the top bar next to the wheel — one machine, two tabs: 🪽 Wings / 🐎 Mounts',
   '🎰 ตู้สุ่ม': '🎰 Slot machine', 'ตู้สุ่ม': 'Slot', 'พาหนะของฉัน': 'My mounts', '🐎 พาหนะของฉัน (ขี่ / ลง)': '🐎 My mounts (ride / get off)', 'หมาป่าเงาจันทร์': 'Moonshadow Wolf', 'หมีศึกเกราะเหล็ก': 'Iron War Bear', 'กวางวิญญาณพงไพร': 'Forest Spirit Stag', 'เสือดำทมิฬ': 'Shadow Panther', 'มังกรทองเหินฟ้า': 'Skyborne Golden Dragon',
   // PvP
