@@ -54,3 +54,18 @@ describe('🐎 mounts from golden monsters and the roaming boss', () => {
     expect(h / N).toBeGreaterThan(0.005); expect(h / N).toBeLessThan(0.009);
   });
 });
+
+describe('🎲 no pattern to see', () => {
+  it('the better prize of a 10-spin lands anywhere in the 10, not always the same place', () => {
+    const at = new Set<number>();
+    for (let t = 0; t < 300; t++) { const s = rich(), r = spinWings(s, 10, rnd); if (typeof r !== 'object' || r.prizes.some(p => p.wing)) continue; r.prizes.forEach((p, i) => { if (p.item && GOOD_IDS.has(p.item.id)) at.add(i); }); }
+    expect(at.size).toBeGreaterThanOrEqual(8);
+    const w = new Set<number>(); for (let t = 0; t < 2000; t++) rollSpins(10, rnd).forEach((i, k) => { if (WHEEL_SEGS[i].key === 'rare') w.add(k); });
+    expect(w.size).toBe(10);
+  });
+  it('two players spinning at the same moment do not get the same prizes', () => {
+    const a = rich(), b = rich(), ra = spinWings(a, 10, Math.random), rb = spinWings(b, 10, Math.random);
+    if (typeof ra !== 'object' || typeof rb !== 'object') throw new Error('spin');
+    expect(JSON.stringify(ra.prizes)).not.toBe(JSON.stringify(rb.prizes));
+  });
+});

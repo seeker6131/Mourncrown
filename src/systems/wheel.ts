@@ -40,7 +40,7 @@ const GOOD_SEG = new Set<WheelKey>(['legend', 'sr', 'rare', 'core', 'elixir']);
 export function rollSpins(n: number, rnd: () => number) {
   const segs: number[] = [], cnt = new Map<number, number>();
   for (let k = 0; k < n; k++) { const i = roll(rnd, j => n > 1 && (cnt.get(j) ?? 0) >= SAME_MAX); segs.push(i); cnt.set(i, (cnt.get(i) ?? 0) + 1); }
-  if (n === 10 && !segs.some(i => GOOD_SEG.has(WHEEL_SEGS[i].key))) segs[segs.length - 1] = WHEEL_SEGS.findIndex(q => q.key === 'rare');
+  if (n === 10 && !segs.some(i => GOOD_SEG.has(WHEEL_SEGS[i].key))) segs[Math.floor(rnd() * segs.length)] = WHEEL_SEGS.findIndex(q => q.key === 'rare');   // (any place, not always the last)
   return segs;
 }
 function give(s: GameState, seg: number, rnd: () => number): WheelPrize {

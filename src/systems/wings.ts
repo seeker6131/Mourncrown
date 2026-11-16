@@ -41,7 +41,9 @@ function fill(s: GameState, rnd: () => number, seen: Map<string, number>): { id:
 }
 /** a 10-spin with no wing / mount: the last small prize becomes a better one */
 function better(s: GameState, rnd: () => number, list: { item?: { id: string; qty: number } }[]) {
-  const last = [...list].reverse().find(p => p.item); if (!last?.item) return;
+  const small = list.filter(p => p.item); if (!small.length) return;
+  const last = small[Math.floor(rnd() * small.length)];   // (any place in the 10, not always the last — no pattern to see)
+  if (!last.item) return;
   const it = s.inventory.find(i => i.id === last.item!.id);
   if (it) { it.qty -= last.item.qty; if (it.qty <= 0) s.inventory.splice(s.inventory.indexOf(it), 1); }   // (take the small one back)
   const g = wpick(GOOD, rnd); addItem(s, g.id, 1); last.item = { id: g.id, qty: 1 };
