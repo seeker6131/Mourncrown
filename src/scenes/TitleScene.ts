@@ -118,7 +118,7 @@ export class TitleScene extends Phaser.Scene {
   prefetch() {
     try {
       const s = loadGame() ?? newGameState();
-      queueTd(this, { gv: !!guildOf(s), stageN: 0, st: null, boss: false, mount: !!mountOn(s), form: formKeyOf(s.cls, activeTier(s), s.look) });
+      queueTd(this, { gv: false, stageN: 0, st: null, boss: false, mount: !!mountOn(s), form: formKeyOf(s.cls, activeTier(s), s.look) });
       loadAtlas(this, 'skill'); loadAtlas(this, 'icon');   // the HUD's icons (TdUIScene)
       if (this.load.list.size) this.load.start();
     } catch { /* the scene loads what is missing itself */ }

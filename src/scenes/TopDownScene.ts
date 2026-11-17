@@ -372,7 +372,9 @@ export class TopDownScene extends Phaser.Scene {
     this.resumePos = data?.pos && data.pos.x >= 0 ? data.pos : null; this.resumeFarm = !!data?.farm;
     this.stageN = data?.stage ?? 0; this.roomPick = data?.room; MW = this.wild || isPvp(this.stageN) ? 2560 : this.stageN ? 2048 : 1280; MH = this.wild || isPvp(this.stageN) ? 1792 : this.stageN ? 1408 : 1024;   // (⚔ the team battlefield is big: chests take finding)
     const st0 = runtime.state;
-    this.gv = !this.stageN && (data?.guild ?? !!(st0 && guildOf(st0)));
+    // (players 17 Nov: guild members always landed in the guild village — on start, after a recall, a death, a map's "village"
+    //  gate. Now the home village is home for everyone; the guild village only when asked for: its gate, the guild menu, a war)
+    this.gv = !this.stageN && !!data?.guild && !!(st0 && guildOf(st0));
     this.inside = this.gv ? data?.inside ?? -1 : -1; this.arriveAt = data?.at ?? -1;
     this.warSide = this.gv && data?.war && WC.war && !WC.war.over ? data.war : null; WC.side = this.warSide; this.warShown = false; this.warT = 0;
     if (this.warSide === 'enemy' && WC.war) RAID_DATA = { rival: WC.war.rival, structs: rivalStructs(WC.war.rival), secs: Math.max(1, Math.round((WC.war.end - Date.now()) / 1000)), war: true };
