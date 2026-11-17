@@ -1243,6 +1243,14 @@ export class Player {
     let gold = 0; const sold: string[] = [];
     for (const p of paid) { gold += p.gold; sold.push(p.listing); await DB.prepare('UPDATE market_pay SET done = 1 WHERE listing = ?').bind(p.listing).run(); }
     if (gold) { const eb = this.eSnap(); st.gold += gold; st.myListings = (st.myListings ?? []).filter(l => !sold.includes(l.id)); this.eAdd('marketSold', eb); }
+    // (player report 17 Nov: two listings shown as "expired" forever, "cancel" did nothing — they had been sold and paid long
+    //  ago, but the entries stayed in the player's list) anything of mine the market no longer holds as open leaves the list
+    { const mine = st.myListings ?? [];
+      if (mine.length) {
+        const rows = (await DB.prepare("SELECT id, status FROM market WHERE seller = ? AND id IN (SELECT value FROM json_each(?))").bind(this.id, JSON.stringify(mine.map(l => l.id))).all<{ id: string; status: string }>()).results;
+        const gone = new Set(rows.filter(r => r.status !== 'open').map(r => r.id));
+        if (gone.size) st.myListings = mine.filter(l => !gone.has(l.id));
+      } }
     const late = (await DB.prepare("SELECT id FROM market WHERE seller = ? AND status = 'open' AND until < ?").bind(this.id, now).all<{ id: string }>()).results;
     let back = 0;
     for (const l of late) {
