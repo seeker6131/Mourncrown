@@ -10,7 +10,7 @@ import { MONSTERS } from '../data/monsters';
 import { monTarget, respawnMs, lowWater, SIGHT, SEEK_SPEED, SEEK_GIVEUP, packN, PACK_R, WANDER } from '../systems/spawnRate';
 import { RARITY_COLORS, RARITY_NAMES, itemDef } from '../data/items';
 import { S, bus, EV } from '../core/events';
-import { lootSkip, lootDis } from '../systems/lootOpt';
+import { lootSkip, lootDis, lootDisSet } from '../systems/lootOpt';
 import { isGear } from '../systems/loot';
 import { saveGame } from '../core/save';
 import { derive, gainExp, calcDamage } from '../systems/stats';
@@ -163,7 +163,7 @@ export class Combat {
       onComplete: () => this.pickLoot(g) });
   }
   pickLoot(g: Loot) {
-    const dis = lootDis(S()), args = dis === undefined ? { did: g.did } : { did: g.did, dis };   // (👑 VIP auto-dismantle)
+    const dis = lootDis(S()), args = dis === undefined ? { did: g.did } : lootDisSet(S()) ? { did: g.did, dis, dset: true } : { did: g.did, dis };   // (👑 VIP auto-dismantle)
     if (isOnline()) { actServer('pickup', args).then(r => this.picked(g, r)); return; }   // the loot is the server's
     this.picked(g, act('pickup', args));
   }

@@ -8,14 +8,14 @@ import { vipActive } from './premium';
 export const LOOT_RARS = [0, 1, 2, 3];
 export const LOOT_MAX = 3;
 export const LOOT_DIS_MAX = 3;
-export interface LootOpt { /** gear rarities picked up ([] = all) */ keep: number[]; /** gear rarities dismantled on pickup ([] = none) */ dis: number[] }
+export interface LootOpt { /** gear rarities picked up ([] = all) */ keep: number[]; /** gear rarities dismantled on pickup ([] = none) */ dis: number[]; /** set pieces of those rarities too (player report 18 Nov: the bag filled with Rare set pieces) */ disSet: boolean }
 const list = (v: unknown, old: (n: number) => number[]): number[] => {
   if (typeof v === 'number') return old(v);   // (the first version kept one number: "this rarity and up" / "this and lower")
   return Array.isArray(v) ? [...new Set(v.map(Number).filter(n => LOOT_RARS.includes(n)))].sort().slice(0, LOOT_MAX) : [];
 };
 export const lootOpt = (s: GameState): LootOpt => {
-  const o = (s as GameState & { lootOpt?: { keep?: unknown; dis?: unknown } }).lootOpt ?? {};
-  return { keep: list(o.keep, k => k <= 0 ? [] : LOOT_RARS.filter(r => r >= k)), dis: list(o.dis, d => LOOT_RARS.filter(r => r <= d)) };
+  const o = (s as GameState & { lootOpt?: { keep?: unknown; dis?: unknown; disSet?: unknown } }).lootOpt ?? {};
+  return { keep: list(o.keep, k => k <= 0 ? [] : LOOT_RARS.filter(r => r >= k)), dis: list(o.dis, d => LOOT_RARS.filter(r => r <= d)), disSet: !!o.disSet };
 };
 /** tick / untick one rarity; false = already 3 ticked */
 export function toggleLoot(s: GameState, which: 'keep' | 'dis', rar: number): boolean {
@@ -23,6 +23,10 @@ export function toggleLoot(s: GameState, which: 'keep' | 'dis', rar: number): bo
   if (i >= 0) l.splice(i, 1); else { if (l.length >= LOOT_MAX || !LOOT_RARS.includes(rar)) return false; l.push(rar); l.sort(); }
   (s as GameState & { lootOpt?: LootOpt }).lootOpt = o; return true;
 }
+/** set pieces: dismantle them too, or keep them (default) */
+export function toggleDisSet(s: GameState) { const o = lootOpt(s); o.disSet = !o.disSet; (s as GameState & { lootOpt?: LootOpt }).lootOpt = o; return o.disSet; }
+/** (device) send with a pickup: set pieces may be dismantled too */
+export const lootDisSet = (s: GameState, now = Date.now()) => vipActive(s, now) && lootOpt(s).disSet;
 /** (device) leave this drop on the ground: VIP, gear, a rarity not ticked (and not to be dismantled) */
 export const lootSkip = (s: GameState, gear: boolean, rar: number, now = Date.now()) => {
   if (!gear || rar > 3 || !vipActive(s, now)) return false;

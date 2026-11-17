@@ -253,12 +253,12 @@ export const handlers = {
     return { ...r, drops, restExp };   // (VIP auto-sell removed — director 2026-11-12)
   },
   /** pick up a drop from the ground (first come, first served) */
-  pickup(s: GameState, a: { did: number; dis?: number | number[] }, c: Ctx) {
+  pickup(s: GameState, a: { did: number; dis?: number | number[]; dset?: boolean }, c: Ctx) {
     const d = mem.drops.get(a.did); if (!d || d.until < c.now) { mem.drops.delete(a.did); return no('gone'); }
     if (!rateOk('pickup', 30, c.now)) return no('rate');
     { // 👑 VIP auto-dismantle (systems/lootOpt.ts): gear of the chosen rarity or lower turns into mana shards right away (no bag slot needed)
       const def = itemDef(d.id), rar = d.gear?.rar ?? def.rarity;
-      if (a.dis !== undefined && vipActive(s, c.now) && isGear(def) && !d.gear?.set && disMatch(a.dis, rar)) {
+      if (a.dis !== undefined && vipActive(s, c.now) && isGear(def) && (!d.gear?.set || !!a.dset) && disMatch(a.dis, rar)) {
         const y = dismantleYield(def.rarity), shards = y.shards * d.qty, cores = y.cores * d.qty;
         if (!addItem(s, 'mana_shard', shards)) return no('bag');
         if (cores) addItem(s, 'ancient_core', cores);

@@ -22,7 +22,7 @@ import { invSize, type InvItem } from '../core/state';
 import { BUILDINGS, RES_NAMES, levelCost, forgeRecipe, unlockedPlots, MEALS, mealPower, type BuildingId, type Cost, type MealId } from '../data/buildings';
 import { buildingAt, canAfford, levelOf, underConstruction } from '../systems/settlement';
 import { buffClash, clock, type Incoming } from '../systems/buffs';
-import { lootOpt, toggleLoot, LOOT_RARS, LOOT_MAX } from '../systems/lootOpt';
+import { lootOpt, toggleLoot, toggleDisSet, LOOT_RARS, LOOT_MAX } from '../systems/lootOpt';
 import { WHEEL_SEGS, WHEEL_PRICE, WHEEL_OPEN, pickChoices, type WheelPrize } from '../systems/wheel';
 import { DWHEEL_SEGS, DWHEEL_PRICE, DWHEEL_PRICE10, DWHEEL_OPEN, DIAMOND_ODDS_SHOWN, STAR_TRADE, dChance } from '../systems/diamondWheel';
 import { SKILL_MAX, currentSkills, nextForm, activeTier } from '../systems/stats';
@@ -1140,9 +1140,13 @@ export class Panels implements GuildHost {
       });
     };
     row(top, 'keep', '⛏ เก็บอุปกรณ์ระดับ (ติ๊กได้ไม่เกิน 3)', 'ไม่ติ๊กเลย = เก็บทุกระดับ • ระดับที่ไม่ได้ติ๊กจะทิ้งไว้บนพื้น • Legend / SL เก็บเสมอ • วัตถุดิบ ยา ของอื่นเก็บเสมอ');
-    row(top + 92, 'dis', '⚙ ย่อยอัตโนมัติเมื่อเก็บ (ติ๊กได้ไม่เกิน 3)', 'ระดับที่ติ๊ก → เก็บแล้วกลายเป็นเศษมานาทันที (ไม่กินช่องกระเป๋า) • ไม่ย่อย Legend / SL และชุดเซ็ต');
+    row(top + 92, 'dis', '⚙ ย่อยอัตโนมัติเมื่อเก็บ (ติ๊กได้ไม่เกิน 3)', 'ระดับที่ติ๊ก → เก็บแล้วกลายเป็นเศษมานาทันที (ไม่กินช่องกระเป๋า) • ไม่ย่อย Legend / SL เด็ดขาด');
+    { const on = lootOpt(s).disSet, by = top + 172, bw = W - 32;   // (player report 18 Nov: Rare set pieces filled the bag)
+      g.fillStyle(on ? 0x3a2a10 : 0x2a1d12, 0.95).fillRoundedRect(x + 16, by, bw, 24, 4).lineStyle(on ? 2 : 1, on ? GOLD : GOLD_D, 1).strokeRoundedRect(x + 16, by, bw, 24, 4);
+      c.add(k.text(x + 16 + bw / 2, by + 6, `${on ? '☑' : '☐'} ย่อยชิ้นส่วนเซ็ตด้วย (ระดับที่ติ๊กด้านบน) — ไม่ติ๊ก = เก็บของเซ็ตไว้เสมอ`, 8.5, on ? '#ffd84a' : '#f3e6c4').setOrigin(0.5, 0));
+      const z = ui.add.zone(x + 16, by, bw, 24).setOrigin(0).setInteractive(); z.on('pointerup', () => { toggleDisSet(s); sfx.click(); saveGame(s); this.rebuild(); }); c.add(z); }
     const o = lootOpt(s), nm = (l: number[]) => l.map(r => names[r]).join(', ');
-    c.add(k.text(x + W / 2, top + 196, `ตอนนี้: เก็บ ${o.keep.length ? nm(o.keep) + ' + Legend/SL' : 'ทุกระดับ'} • ${o.dis.length ? 'ย่อย ' + nm(o.dis) : 'ไม่ย่อยอัตโนมัติ'}`, 8, '#9ad8ff', { align: 'center', wordWrap: { width: W - 32 } }).setOrigin(0.5, 0));
+    c.add(k.text(x + W / 2, top + 202, `ตอนนี้: เก็บ ${o.keep.length ? nm(o.keep) + ' + Legend/SL' : 'ทุกระดับ'} • ${o.dis.length ? 'ย่อย ' + nm(o.dis) + (o.disSet ? ' (รวมของเซ็ต)' : ' (ยกเว้นของเซ็ต)') : 'ไม่ย่อยอัตโนมัติ'}`, 8, '#9ad8ff', { align: 'center', wordWrap: { width: W - 32 } }).setOrigin(0.5, 0));
   }
   buildWardrobe(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k;

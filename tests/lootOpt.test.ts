@@ -18,7 +18,7 @@ describe('👑 VIP loot settings: tick up to 3 rarities to pick up / to dismantl
     expect(toggleLoot(s, 'keep', 0)).toBe(false);   // (a 4th: refused)
     expect(toggleLoot(s, 'keep', 5)).toBe(false);   // (SL: not a choice — always picked up)
     expect(toggleLoot(s, 'keep', 2)).toBe(true); expect(lootOpt(s).keep).toEqual([1, 3]);   // (untick)
-    (s as unknown as { lootOpt: unknown }).lootOpt = { keep: 2, dis: 1 }; expect(lootOpt(s)).toEqual({ keep: [2, 3], dis: [0, 1] });
+    (s as unknown as { lootOpt: unknown }).lootOpt = { keep: 2, dis: 1 }; expect(lootOpt(s)).toEqual({ keep: [2, 3], dis: [0, 1], disSet: false });
   });
   it('what stays on the ground: an unticked rarity (unless it is to be dismantled); never Legend / SL; not for non-VIP', () => {
     const s = vip(); (s as unknown as { lootOpt: unknown }).lootOpt = { keep: [2, 3], dis: [0] };
@@ -35,7 +35,15 @@ describe('👑 VIP loot settings: tick up to 3 rarities to pick up / to dismantl
     expect(r.dis?.shards).toBeGreaterThan(0); expect(shard()).toBe(sh0 + r.dis!.shards); expect(nGear()).toBe(g0);
     drop(gearId, 1); expect((handlers.pickup(s, { did: 1, dis: [0, 2] }, ctx) as { dis?: unknown }).dis).toBeUndefined();   // (not ticked)
     drop(gearId, 0, 'set_x'); expect((handlers.pickup(s, { did: 1, dis: [0] }, ctx) as { dis?: unknown }).dis).toBeUndefined();   // (set gear: kept)
+    drop(gearId, 0, 'set_x'); expect((handlers.pickup(s, { did: 1, dis: [0], dset: true }, ctx) as { dis?: unknown }).dis).toBeDefined();   // (unless the player ticked "set pieces too")
     drop(legendId, 4); expect((handlers.pickup(s, { did: 1, dis: [4, 5] }, ctx) as { dis?: unknown }).dis).toBeUndefined();     // (Legend: never)
     const n = startNewGame(); drop(gearId, 0); expect((handlers.pickup(n, { did: 1, dis: [0] }, ctx) as { dis?: unknown }).dis).toBeUndefined();   // (not VIP)
+  });
+});
+
+describe('⚙ dismantling set pieces (player report 18 Nov)', () => {
+  it('off by default; the toggle turns it on and off', async () => {
+    const { toggleDisSet } = await import('../src/systems/lootOpt');
+    const s = vip(); expect(lootOpt(s).disSet).toBe(false); expect(toggleDisSet(s)).toBe(true); expect(lootOpt(s).disSet).toBe(true); expect(toggleDisSet(s)).toBe(false);
   });
 });
