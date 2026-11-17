@@ -7,7 +7,7 @@ import type { GameState } from '../core/state';
 export type FarmKey = 'wood' | 'stone' | 'ore' | 'food';
 export type FarmGoal = Record<FarmKey, number>;
 export const FARM_KEYS: FarmKey[] = ['wood', 'stone', 'ore', 'food'];
-export const FARM_STEPS = [0, 20, 50, 100, 200];
+export const FARM_STEPS = [0, 50, 100, 200, 400, 700];   // (director 17 Nov: up to 700 — players asked for 1500-2000)
 export const FARM_NAMES: Record<FarmKey, string> = { wood: '🪵 ไม้', stone: '🪨 หิน', ore: '⛏ แร่', food: '🍖 เนื้อ' };
 export const FARM_DEFAULT: FarmGoal = { wood: 50, stone: 0, ore: 0, food: 50 };
 

@@ -1604,7 +1604,7 @@ export class Panels implements GuildHost {
     const W = Math.min(460, this.ui.VW - 20), H = 238;
     const { x, y, g } = this.window(c, W, H, '👑 ฟาร์มทรัพยากรออโต้ (VIP)');
     c.add(k.text(x + W / 2, y + 30, 'เลือกว่าจะเก็บอะไร เท่าไร แล้วกดเริ่ม — ครบแล้วหยุดเอง', 8.5, '#c8b898').setOrigin(0.5, 0));
-    const bx = x + 130, bw = (W - 130 - 16 - 4 * 4) / 5;
+    const bx = x + 118, bw = (W - 118 - 16 - (FARM_STEPS.length - 1) * 4) / FARM_STEPS.length;
     FARM_KEYS.forEach((key, i) => {
       const ry = y + 50 + i * 30, have = key === 'ore' ? '' : `มี ${s.res[key].toLocaleString()}`;
       g.fillStyle(0x0a0705, 0.45).fillRoundedRect(x + 10, ry - 3, W - 20, 26, 4);
