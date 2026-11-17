@@ -40,7 +40,7 @@ function give(s: GameState, seg: number, rnd: () => number, now: number): DPrize
   switch (key) {
     case 'dragon': return hasMount(s, 'dragon') ? dup(p, seg, key, 60, 'มังกร') : (grantMount(s, 'dragon'), { seg, key, text: '🐉 มังกรเพลิงนิรันดร์!' });
     case 'cloud': if ((p.pets ??= []).includes('cloud')) return dup(p, seg, key, 30, 'เมฆพายุ'); p.pets.push('cloud'); return { seg, key, text: '⛈ เมฆพายุ!' };
-    case 'horse': if ((p.skins ??= []).includes('horse_black')) return dup(p, seg, key, 10, 'สกินม้าดำนิล'); p.skins.push('horse_black'); return { seg, key, text: '🐎 สกินม้าดำนิล' };
+    case 'horse': if ((p.skins ??= []).includes('horse_black') && hasMount(s, 'horse')) return dup(p, seg, key, 10, 'สกินม้าดำนิล'); if (!p.skins.includes('horse_black')) p.skins.push('horse_black'); blackHorseFix(s); return { seg, key, text: '🐎 ม้าดำนิล' };
     case 'title': { const t = titlesOf(s); if (t.includes(STORM_TITLE) && (p.nameColors ?? []).includes('gold')) return dup(p, seg, key, 5, 'ฉายาพายุ'); if (!t.includes(STORM_TITLE)) t.push(STORM_TITLE); (p.nameColors ??= []).includes('gold') || p.nameColors.push('gold'); return { seg, key, text: '🏷 ฉายา "ผู้บุกเบิกพายุ" + ชื่อสีทอง' }; }
     case 'aura': p.auraLtd = Math.max(p.auraLtd ?? 0, now) + 30 * 86400000; return { seg, key, text: '✨ ออร่าพายุ 30 วัน' };
     case 'fx': { const left = FXS.filter(f => !(p.fxOwned ?? []).includes(f)); if (!left.length) return dup(p, seg, key, 3, 'เอฟเฟกต์ดาบ'); const f = left[Math.floor(rnd() * left.length)]; p.fxOwned = [...(p.fxOwned ?? []), f]; p.fx = f; return { seg, key, text: `⚔ เอฟเฟกต์ดาบ ${({ fx_gold: 'เปลวทอง', fx_void: 'ม่วงทมิฬ', fx_frost: 'น้ำแข็ง', fx_blood: 'เลือดชาด' } as Record<string, string>)[f]}` }; }
@@ -59,6 +59,12 @@ export function spinDiamond(s: GameState, n: number, rnd: () => number, now = Da
   const cnt = new Map<number, number>(), prizes: DPrize[] = [];
   for (let k = 0; k < n; k++) { const i = roll(rnd, j => n > 1 && (cnt.get(j) ?? 0) >= SAME_MAX); cnt.set(i, (cnt.get(i) ?? 0) + 1); prizes.push(give(s, i, rnd, now)); }
   return { prizes, cost, stars: p.stars };
+}
+/** (player report 18 Nov: "won the black horse — it is nowhere") the prize is the war horse in black: without the war horse
+ *  the skin had nothing to sit on and the mounts tab showed nothing. Whoever owns the skin gets the horse too (once). */
+export function blackHorseFix(s: GameState): boolean {
+  const p = s as DS; if (!(p.skins ?? []).includes('horse_black') || hasMount(s, 'horse')) return false;
+  grantMount(s, 'horse'); (p as { horseSkin?: string }).horseSkin = undefined; return true;
 }
 /** 150 ⭐ → the dragon or the storm cloud */
 export function starTrade(s: GameState, what: 'dragon' | 'cloud'): 'stars' | 'owned' | true {

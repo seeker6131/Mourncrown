@@ -5,6 +5,7 @@ import { CHEST_LIFE, CHEST_OPEN_MS, CHEST_REACH, CHEST_SIGHT } from '../src/syst
 import { brRoundById, brZone, brResult, brPay, brRoll, BR_CHESTS, BR_DC_MS, BR_MIN_TEAMS, BR_TEAM_MAX, BR_ZONE_DMG, type BrPrize } from '../src/systems/br';
 import { PVP_FEE } from '../src/systems/pvp';
 import { isPvp } from '../src/world/stages';
+import { blackHorseFix } from '../src/systems/diamondWheel';
 import { handlers, useMem, newMem, type Mem } from '../src/server/handlers';
 import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
 import { MONSTERS, type MonsterKind } from '../src/data/monsters';
@@ -1335,6 +1336,7 @@ export class Player {
       // the director's account: everything in the game, given once by the server (src/systems/adminKit.ts)
       if (this.st && (this.env.ADMINS ?? '').split(',').includes(id)) { const eb = this.eSnap(); if (grantAdminKit(this.st as unknown as GameState)) { this.eAdd('adminKit', eb); await this.later(); } }
       if (this.st && ensureHomeVillage(this.st as unknown as GameState)) await this.later();
+      if (this.st && blackHorseFix(this.st as unknown as GameState)) await this.later();   // (the black horse prize without the horse — 18 Nov)
       if (this.st) { const hf = homeFix(this.st as unknown as GameState); if (hf) await this.later(); if (hf === 2) addMail(this.st as unknown as GameState, { id: 'homefix', from: 'ทีมงาน Mourncrown', title: '🏠 ขออภัยเรื่องบ้านหาย', text: 'บ้านที่สร้างไว้หายหลังอัปเดตเพราะบั๊กของเรา — ทีมงานสร้างบ้าน Lv1 คืนให้แล้ว (เควสต่อจากนี้ทำต่อได้เลย) ขออภัยในความไม่สะดวกครับ 🙏' }); }   // (the lost-house bug: src/systems/settlement.ts homeFix)   // the home village's NPC buildings live here too (they used to exist on the device only)
       if (this.st && await this.mailAll()) await this.later();   // letters to everyone from the back office, not had yet
       if (this.cbtLetter()) await this.later();

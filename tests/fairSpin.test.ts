@@ -69,3 +69,12 @@ describe('🎲 no pattern to see', () => {
     expect(JSON.stringify(ra.prizes)).not.toBe(JSON.stringify(rb.prizes));
   });
 });
+
+import { blackHorseFix } from '../src/systems/diamondWheel';
+import { hasMount } from '../src/systems/mounts';
+describe('🐎 the black horse prize (player report 18 Nov)', () => {
+  it('owning the skin without the war horse gives the horse, once', () => {
+    const s = rich() as ReturnType<typeof rich> & { skins?: string[] }; s.skins = ['horse_black'];
+    expect(hasMount(s, 'horse')).toBe(false); expect(blackHorseFix(s)).toBe(true); expect(hasMount(s, 'horse')).toBe(true); expect(blackHorseFix(s)).toBe(false);
+  });
+});
