@@ -89,6 +89,10 @@ const NPC_INFO: Record<string, { name: string; tex: string }> = {
 
 /** roaming bosses alive now (server /bosses), refreshed every 20 s while the map select is open */
 const stageBosses: { at: number; list: { n: number; name: string; left: number }[] } = { at: 0, list: [] };
+/** (player report 17 Nov: "can't buy — or is my net slow?") a market action that never reached the server */
+const NET_TRY = '⚠ เน็ตหลุด — ยังไม่ได้ส่งถึงเซิร์ฟ ลองกดใหม่อีกครั้ง (ทองและของไม่ถูกหัก)';
+/** (no answer in time: the server may still have done it — look before pressing again) */
+const NET_SLOW = '⚠ เน็ตช้า — รอสักครู่ แล้วเช็คกระเป๋า/ทองก่อนกดใหม่';
 export class Panels implements GuildHost {
   cur: PanelId | null = null;
   guildTab: GuildTab = 'home'; guildSlot = -1; guildPick: DefenseId | null = null;
@@ -1406,7 +1410,7 @@ export class Panels implements GuildHost {
     if (this.busyAct) return; this.busyAct = true;
     actServer('marketBuy', { id }).then(r => {
       this.busyAct = false;
-      if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, ({ gone: 'มีคนซื้อไปแล้ว / หมดเวลา', gold: 'ทองไม่พอ', bag: 'กระเป๋าเต็ม', own: 'เป็นของที่คุณลงขายเอง' } as Record<string, string>)[r.refused] ?? 'ซื้อไม่ได้', '#ff8a6a'); }
+      if (refused(r)) { sfx.error(); bus.emit(EV.TOAST, ({ gone: 'มีคนซื้อไปแล้ว / หมดเวลา', gold: 'ทองไม่พอ', bag: 'กระเป๋าเต็ม — เคลียร์ช่องว่างก่อน', own: 'เป็นของที่คุณลงขายเอง', offline: NET_TRY, timeout: NET_SLOW } as Record<string, string>)[r.refused] ?? 'ซื้อไม่ได้ ลองใหม่อีกครั้ง', '#ff8a6a'); }
       else { sfx.coin(); bus.emit(EV.TOAST, `ซื้อ ${itemDef(r.id).name}${r.qty > 1 ? ' x' + r.qty : ''} แล้ว (-${r.price.toLocaleString()} 💰)`, '#9fffb0'); saveGame(S()); bus.emit(EV.STATE_CHANGED); }
       this.mkKey = ''; if (this.cur === 'market') this.rebuild();
     });
@@ -1530,7 +1534,7 @@ export class Panels implements GuildHost {
         c.add(k.text(x + 42, ry + 6, `${d.name}${l.item.upg ? ' +' + l.item.upg : ''}${l.item.qty > 1 ? ' x' + l.item.qty : ''}`, 8.5, rcol(rr)));
         c.add(k.text(x + W - 260, ry + 6, left > 0 ? `เหลือ ${Math.floor(left / 3600000)} ชม. • รอผู้ซื้อ (เมื่อออนไลน์)` : 'หมดเวลา', 7.5, '#c8b898'));
         c.add(k.text(x + W - 100, ry + 5, `💰 ${l.price.toLocaleString()}`, 9, '#ffd84a').setOrigin(1, 0));
-        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { const done = (ok: boolean) => { if (ok) bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); else bus.emit(EV.TOAST, isOnline() ? 'ขายไปแล้ว / กระเป๋าเต็ม' : 'กระเป๋าเต็ม', '#ff8a6a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }; if (isOnline()) actServer('marketCancel', { id: l.id }).then(r => done(r === true)); else done(act('marketCancel', { id: l.id }) === true); }, { size: 8, color: 0x5a1a1a }));
+        c.add(k.button(x + W - 90, ry + 2, 70, 19, 'ยกเลิก', () => { const done = (ok: boolean) => { if (ok) bus.emit(EV.TOAST, 'คืนของเข้ากระเป๋าแล้ว', '#9fffb0'); else bus.emit(EV.TOAST, isOnline() ? 'ขายไปแล้ว / กระเป๋าเต็ม' : 'กระเป๋าเต็ม', '#ff8a6a'); saveGame(s); bus.emit(EV.STATE_CHANGED); this.rebuild(); }; if (isOnline()) actServer('marketCancel', { id: l.id }).then(r => { if (refused(r) && (r.refused === 'offline' || r.refused === 'timeout')) { bus.emit(EV.TOAST, r.refused === 'offline' ? NET_TRY : NET_SLOW, '#ff8a6a'); return; } done(r === true); }); else done(act('marketCancel', { id: l.id }) === true); }, { size: 8, color: 0x5a1a1a }));
       });
     }
   }
