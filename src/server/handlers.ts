@@ -191,7 +191,9 @@ export const handlers = {
   },
   /** a monster / animal died — the server checks it can live on this map and that the hero could deal that much damage */
   /** (shared map) a monster the room's host spawned: known here too, so its kill can be paid */
-  mirror(_s: GameState, a: { sid: number; key: string; boss: boolean; elite: boolean }) { mem.spawns.set(a.sid, { key: a.key, elite: !!a.elite, boss: !!a.boss }); mem.sid = Math.max(mem.sid, a.sid + 1); return { ok: true }; },   // (new spawns never reuse a mirrored number)
+  // (18 Nov audit) the game cannot say a monster is golden: only the server's own roll (spawn) makes one — a faked golden
+  // monster paid 5x gold, 3x EXP, a sure gear drop and now and then a mount
+  mirror(_s: GameState, a: { sid: number; key: string; boss: boolean; elite: boolean }) { if (mem.spawns.has(a.sid)) return { ok: true }; mem.spawns.set(a.sid, { key: a.key, elite: false, boss: !!a.boss }); mem.sid = Math.max(mem.sid, a.sid + 1); return { ok: true }; },   // (new spawns never reuse a mirrored number)
   kill(s: GameState, a: { sid: number; kind: MonsterKind; key: string; name: string; size: number; boss: boolean; share?: number; n?: number; c?: number }, c: Ctx) {
     // the server's memory of this player (map, spawned monsters) is lost whenever its object sleeps or the server restarts:
     // the game names the map it is on — taken when the hero's level may be there (a farming map or the Deepwild; never a dungeon)
@@ -219,7 +221,7 @@ export const handlers = {
     else { const L = STAGES[n - 1].land; if (base.animal || ![...L.mobs, ...(STAGES[n - 1].boss ? [L.boss] : [])].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); }
     const st = stageOf(n, s.level), hp = scaleStats(base, st.level, a.boss).hp * (sp.elite ? 5 : sp.bounty !== undefined ? BOUNTY_HP : 1) * (isPvp(n) ? PVP_MON_HP : 1) * (isDungeon(n) && !a.boss ? dungeonHpK(st.level) : 1), dps = dpsOf(s);
     mem.dmg = Math.min(dps * 20 * 8, mem.dmg + (c.now - mem.dmgT) / 1000 * dps * 8); mem.dmgT = c.now;
-    const part = hp * Math.max(0.03, Math.min(1, a.share ?? 1));   // shared map: only my part of the damage counts
+    const part = hp * Math.max(0.5, Math.min(1, Number(a.share) || 1));   // (18 Nov audit: the game names its share — it was a way to pay a whole kill for 3% of the damage; the room's shared kills are paid by the room)
     if (!c.admin && mem.dmg < part) return no('dps');
     { const sv = s as GameState & { tdCasts?: number }, nc = Math.max(0, Math.min(10, Math.floor(Number(a.c) || 0))); if (nc) sv.tdCasts = (sv.tdCasts ?? 0) + nc; }   // skills cast since the last kill (the quest counts them; casting runs on the device)
     mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid); if (old) { mem.forgot.add(a.sid); if (mem.forgot.size > 2000) mem.forgot.clear(); }
