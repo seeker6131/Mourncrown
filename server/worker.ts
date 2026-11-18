@@ -1032,6 +1032,8 @@ export class Room {
 // Holds the real character: every action the game sends runs the same rules (src/server/handlers.ts) here with the
 // server's dice and clock, and the answer carries what changed. What is valuable (level, gold, items, resources,
 // buildings, diamonds, VIP...) is written ONLY here; the game's own save can only bring the harmless fields below.
+/** actions only the server itself may run (the map room's pay) — refused when a game sends them */
+const ROOM_ONLY = new Set(['wbKill']);
 const MARKET = new Set(['marketList', 'marketCancel', 'marketBrowse', 'marketBuy', 'marketHistory']);
 /** actions that change the guild itself: run by the guild's own object on the one shared copy (all members see it) */
 const GUILD_ACTS = new Set(['guildSync', 'guildUpgrade', 'guildCollect', 'guildFlag', 'guildRole', 'guildKick', 'guildShop', 'guildInvite', 'donate', 'houseBuild', 'houseRepair', 'bldRepair', 'hireGuard', 'dismissGuard', 'defBuild', 'defUpgrade', 'defRepair', 'defRemove', 'seasonClaim', 'raidStart', 'raidEnd', 'warStart', 'warSync', 'warHit', 'warKill', 'warEnd', 'warDone']);
@@ -1511,6 +1513,9 @@ export class Player {
     if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } if (this.cbtLetter()) { await this.later(); this.send({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
     if (m.t === 'sync' && this.st) { const own: St = {}; for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k]; ws.send(JSON.stringify({ t: 'note', own })); return; }   // (the game did something the server refused: its whole copy)
     if (m.t !== 'act' || typeof m.name !== 'string') return;
+    // (18 Nov: an account sent 'wbKill' itself 6,281 times in a day — 38M gold, Lv1→100) the roaming boss's pay comes ONLY
+    //  from the map room (payOne), never from the game
+    if (ROOM_ONLY.has(m.name)) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'action' }, own: {} })); if (!(this as { roFlag?: boolean }).roFlag) { (this as { roFlag?: boolean }).roFlag = true; await flag(this.env, this.id, 'roomOnly', m.name); } return; }
     if (Date.now() - this.helloT > 300000) this.hello('/hello');
     if (this.cbtLetter()) { await this.later(); ws.send(JSON.stringify({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' })); }   // (still playing: keep counting me online)
     if (!this.st) { ws.send(JSON.stringify({ t: 'r', q: m.q, r: { refused: 'nostate' }, own: {} })); return; }
