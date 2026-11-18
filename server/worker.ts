@@ -11,7 +11,7 @@ import { STAGES, WILD, stageOf, scaleStats } from '../src/world/stages';
 import { MONSTERS, type MonsterKind } from '../src/data/monsters';
 import { MapSim, mapOfRoom, gridOk, WB, type Grid, type SimPlayer } from '../src/server/mapSim';
 import { itemDef, ITEMS } from '../src/data/items';
-import { invSize, type GameState } from '../src/core/state';
+import { invSize, newGameState, type GameState } from '../src/core/state';
 import { addItem } from '../src/systems/inventory';
 import { MARKET_FEE, type Listing } from '../src/systems/market';
 import { startNewGame } from '../src/core/save';
@@ -503,6 +503,11 @@ export default {
             const had = await one<{ inviter: string }>('SELECT inviter FROM referrals WHERE invitee = ?', fr.id);
             if (had) return json(req, { error: had.inviter === id ? 'นับให้แล้ว' : 'เพื่อนคนนี้ถูกนับให้คนอื่นแล้ว' }, 400);
             await DB.prepare('INSERT INTO referrals (invitee, inviter, at) VALUES (?, ?, ?)').bind(fr.id, id, now).run();
+          }
+          else if (b.what === 'wipe') {   // 🧹 a cheater's account starts over (Lv1, no gold / items / mounts / wings); their open listings come off the market
+            await DB.prepare("UPDATE market SET status = 'cancel' WHERE seller = ? AND status = 'open'").bind(id).run();
+            await DB.prepare('UPDATE market_pay SET done = 1 WHERE seller = ? AND done = 0').bind(id).run();
+            await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/wipe?id=' + id, { method: 'POST' }));
           }
           else if (b.what === 'refwing') {   // 🪽 the invite reward wing, given by hand
             await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/grantwing?id=' + id, { method: 'POST', body: JSON.stringify({ wing: REF_WING }) }));
@@ -1420,6 +1425,13 @@ export class Player {
       }
       this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
       return new Response(JSON.stringify({ ok: true }));
+    }
+    if (u.pathname === '/wipe') {   // (the back office, 18 Nov: a cheater's account) the hero starts over: Lv1, nothing — the name stays
+      const name = (this.st as { name?: string } | null)?.name ?? 'Aren';
+      const fresh = newGameState() as unknown as St & { name?: string }; fresh.name = name;
+      this.st = fresh; this.mem = newMem(); this.dirty = true; await this.persist();
+      for (const w of this.state.getWebSockets()) { try { w.close(1012, 'wiped'); } catch { /* gone */ } }   // (the game reconnects and takes the server's copy)
+      return new Response('{}');
     }
     if (u.pathname === '/grantwing' && this.st) {   // (the back office) a wing given by hand — the invite reward for a checked case
       const j = JSON.parse(await req.text()) as { wing: string }, st = this.st as unknown as GameState & { wings?: string[] }, b = this.snap();

@@ -384,6 +384,7 @@ async function player(id) {
     <div>เข้าล่าสุด</div><div>${when(a.seen)}</div><div>สมัคร</div><div>${when(a.created)}</div><div>เซฟล่าสุด</div><div>${when(d.save?.at)} (ครั้งที่ ${d.save?.rev ?? 0})</div></div>
     <h2>⚙ จัดการ</h2><div class="row">
       ${a.banned ? `<button class="btn green" data-a="unban">✅ ปลดแบน</button>` : `<button class="btn red" data-a="ban">⛔ แบน</button>`}
+      <button class="btn red" data-a="wipe">🧹 ล้างบัญชี (เริ่ม Lv1 ใหม่)</button>
       ${muted ? `<button class="btn green" data-a="unmute">🔊 เปิดแชต</button>` : `<button class="btn" data-a="mute" data-h="24">🔇 ปิดแชต 24 ชม.</button><button class="btn" data-a="mute" data-h="168">🔇 ปิดแชต 7 วัน</button>`}</div>
     <h2>🤝 ชวนเพื่อน (${(d.refs || []).length} คน)</h2>
     <div style="font-size:13px">${(d.refs || []).map(r => `${esc(r.name || r.invitee)} • ${r.lv30 ? '✅ ถึง Lv30 (จ่ายแล้ว)' : r.lv10 ? 'ถึง Lv10' : 'ยังไม่ถึง Lv10'}`).join('<br>') || '<span class="dim">ยังไม่มี</span>'}</div>
@@ -405,6 +406,7 @@ async function player(id) {
   $('dbody').querySelectorAll('button[data-a]').forEach(b => b.onclick = async () => {
     const what = b.dataset.a, label = b.textContent.trim();
     if (!confirm(`ยืนยัน "${label}" กับ ${a.name || a.id}?`)) return;
+    if (what === 'wipe' && prompt(`⚠ ล้างบัญชีนี้ถาวร: เลเวล ทอง เพชร ของ สัตว์ขี่ ปีก หายหมด (ย้อนกลับไม่ได้)\nพิมพ์ชื่อ "${a.name || a.id}" เพื่อยืนยัน`) !== (a.name || a.id)) { alert('ยกเลิก — ชื่อไม่ตรง'); return; }
     const r = await api('/admin/act', { id: a.id, what, hours: Number(b.dataset.h) || 24 });
     if (r.ok) { player(id); if (tab !== 'overview') show(); } else alert('ทำไม่สำเร็จ: ' + (r.error || '?'));
   });
