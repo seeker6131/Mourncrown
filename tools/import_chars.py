@@ -292,7 +292,15 @@ def build(key, zips, man):
     def centre(im, n):
         if im.width == n and im.height == n: return im
         c = Image.new('RGBA', (n, n)); c.paste(im, ((n - im.width) // 2, (n - im.height) // 2)); return c
+    # heroes whose idle mixes canvas sizes (a clipped direction took an attack / walk frame, which PixelLab centres on its
+    # bigger canvas): every direction stands on ONE ground line - the lowest body pixel, not the canvas bottom (form 5: the
+    # wing tips touched the 48 px edge and those directions floated 16 px above the others)
+    mixed = human and len({rot[d].width for d in dirs}) > 1
+    if mixed:
+        bot = {d: rot[d].getbbox()[3] for d in dirs if rot[d].getbbox()}
+        F = max(w - rot[d].height + bot[d] for d in bot if rot[d].width < w) if any(rot[d].width < w for d in bot) else w - 1
     for d in dirs:
+        if mixed and d in bot: pad = Image.new('RGBA', (w, w)); pad.paste(rot[d], ((w - rot[d].width) // 2, F - bot[d])); rot[d] = pad; continue
         if rot[d].width == w: continue
         if human: pad = Image.new('RGBA', (w, w)); pad.paste(rot[d], ((w - rot[d].width) // 2, w - rot[d].height)); rot[d] = pad
         else: rot[d] = centre(rot[d], w)

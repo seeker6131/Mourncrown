@@ -118,6 +118,7 @@ const TABS = [
   ['reports', '🚩', 'รายงานแชต', 'ผู้เล่น', 'ข้อความแชตที่ผู้เล่นกดรายงาน • ถูกรายงาน 3 คนในวันเดียว = ปิดแชตเอง 1 วัน • แตะแถวเพื่อเปิดผู้เล่นแล้วแบน/ปิดแชตเพิ่ม'],
   ['flags', '🛡', 'กันโกง', 'ผู้เล่น', 'สิ่งที่ระบบกันโกงจับได้ (ทอง/เลเวลพุ่งผิดปกติ, แก้เพชร/VIP เอง) และบันทึกสิ่งที่แอดมินทำ • แตะแถวเพื่อเปิดผู้เล่น'],
   ['pay', '💳', 'เติมเงิน', 'เงิน & เศรษฐกิจ', 'รายได้จริง • ตั้ง QR รับเงิน • เปิด/ปิดระบบเติมเงิน • รายการที่ "ตรวจผ่านแต่ยังไม่ได้เพชร" กดส่งเพชรซ้ำได้'],
+  ['sup', '👑', 'ผู้สนับสนุน', 'เงิน & เศรษฐกิจ', 'ขั้นผู้สนับสนุน (ผู้ร่วมสร้างตำนาน): ตั้งช่วงวันที่นับยอด (ช่วง OBT) • ดูว่าใครสนับสนุนเท่าไร ขั้นไหน • ลดยอดเองเมื่อมีการคืนเงิน'],
   ['econ', '💰', 'เศรษฐกิจ', 'เงิน & เศรษฐกิจ', 'ทองในเกมเฟ้อหรือฝืด • ทองมาจากไหน/ไปไหน • ใครได้ทองมากสุด (แตะเพื่อดูที่มา) • ราคาตลาด • เลือกดู วันนี้ / 7 วัน / 30 วัน'],
   ['market', '🏪', 'ตลาด', 'เงิน & เศรษฐกิจ', 'ของที่ผู้เล่นลงขายในตลาดกลาง ทั้งที่วางขาย ขายแล้ว และหมดเวลา (ดูอย่างเดียว)'],
   ['guilds', '🏛', 'กิลด์', 'ชุมชน', 'รายชื่อกิลด์ทั้งหมด หัวหน้า สมาชิก เลเวลหอกิลด์ คะแนนสัปดาห์ และโล่ (ดูอย่างเดียว)'],
@@ -264,6 +265,21 @@ async function show() {
       $('qrSave').onclick = () => saveQr($('qrText').value.trim());
       $('payOpen').onclick = async () => { if (!d.open && !confirm('เปิดให้ผู้เล่นทุกคนเติมเงินจริงได้เลย?')) return; await api('/admin/payopen', { open: !d.open }); show(); };
       main.querySelectorAll('[data-ref]').forEach(b => b.onclick = async () => { const r = await api('/admin/paycredit', { ref: b.dataset.ref }); alert(r.ok ? 'ส่งเพชรแล้ว' : 'ยังส่งไม่ได้ — ผู้เล่นต้องมีตัวละครบนเซิร์ฟ'); show(); });
+    } else if (tab === 'sup') {   // 👑 supporter tiers (server/worker.ts /admin/sup*, src/systems/supporter.ts)
+      const d = await api('/admin/sup'), day = t => t ? new Date(t + 7 * 3600000).toISOString().slice(0, 10) : '';
+      main.innerHTML = `<div class="grid">
+          <div class="stat"><div class="v" style="font-size:18px;color:${d.on ? 'var(--green)' : 'var(--red)'}">${d.on ? '🟢 กำลังนับยอด' : '⏸ ไม่ได้นับ'}</div><div class="k">${d.season ? 'ช่วงนับ ' + day(d.season.from) + ' ถึง ' + day(d.season.to) : 'ยังไม่ได้ตั้งช่วงนับ'}</div></div>
+          <div class="stat"><div class="v">${num(d.rows.length)}</div><div class="k">ผู้สนับสนุน</div></div>
+        </div>
+        <h2>📅 ช่วงวันที่นับยอด (เวลาไทย)</h2>
+        <p class="dim">นับเฉพาะเงินที่จ่ายจริง (สลิปตรวจผ่าน) ในช่วงนี้ • ของที่ได้ไปแล้วอยู่ถาวร • เว้นว่าง = ปิดการนับ</p>
+        <div class="row"><input type="date" id="supFrom" value="${day(d.season?.from)}"> ถึง <input type="date" id="supTo" value="${day(d.season?.to)}"><button class="btn green" id="supSave">บันทึก</button><button class="btn" id="supOff">ปิดการนับ</button></div>
+        <h2>👑 ใครสนับสนุนเท่าไร</h2>
+        <div class="tw"><table><tr><th>ผู้เล่น</th><th>ยอด (บาท)</th><th>ขั้น</th><th>บนกำแพง</th><th></th></tr>${d.rows.map(r => `<tr><td>${esc(r.name || r.id)}<div class="dim">${esc(r.id)}</div></td><td>฿${num(r.paid)}</td><td>${r.tier}/7</td><td>${r.wall ? '✅' : ''}</td><td><button class="btn" data-sid="${esc(r.id)}" data-paid="${r.paid}">แก้ยอด (คืนเงิน)</button></td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มี</td></tr>'}</table></div>`;
+      const at = v => v ? Date.parse(v + 'T00:00:00+07:00') : 0;
+      $('supSave').onclick = async () => { const from = at($('supFrom').value), to = at($('supTo').value) + 86400000; if (!from || to <= from) return alert('เลือกวันเริ่มและวันจบให้ถูก'); await api('/admin/sup', { from, to }); show(); };
+      $('supOff').onclick = async () => { if (!confirm('ปิดการนับยอดผู้สนับสนุน?')) return; await api('/admin/sup', { from: 0 }); show(); };
+      main.querySelectorAll('[data-sid]').forEach(b => b.onclick = async () => { const v = prompt('ยอดใหม่ (บาท) — ขั้นจะคิดใหม่จากยอดนี้', b.dataset.paid); if (v === null) return; const r = await api('/admin/supset', { id: b.dataset.sid, paid: Number(v) || 0 }); alert(r.ok ? 'แก้แล้ว: ขั้น ' + r.tier : 'ไม่สำเร็จ: ' + (r.error || '')); show(); });
     } else if (tab === 'players') {
       const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}${showTests ? '&all=1' : ''}`);
       main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ หรือวางรหัสผู้เล่นที่เขาส่งมา" value="${esc(q)}">

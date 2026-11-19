@@ -27,7 +27,8 @@ SMASH = ('a heavy overhead smash with the weapon in his weapon hand: he lifts it
          'then recovers to his guard stance with the shield held at his side. Feet stay planted.')
 SHOOT = ('shooting his bow: he raises the bow with the bow arm straight out, pulls the string back to his cheek with the other hand, '
          'lets go, then lowers the bow. Feet stay planted.')
-ACT = {'hero': SLASH, 'hr1': SLASH, 'hr2': SLASH, 'hr7': CAST2, 'hr8': CAST, 'hr9': CAST2, 'hr10': SMASH, 'hr11': SMASH, 'hr12': SMASH, 'hr5': SHOOT, 'hr6': SHOOT}
+ACT = {'hr13': SLASH, 'hr14': SHOOT, 'hr15': CAST2, 'hr16': SMASH,   # (form 5, the god-like set — director 19 Nov)
+       'hero': SLASH, 'hr1': SLASH, 'hr2': SLASH, 'hr7': CAST2, 'hr8': CAST, 'hr9': CAST2, 'hr10': SMASH, 'hr11': SMASH, 'hr12': SMASH, 'hr5': SHOOT, 'hr6': SHOOT}
 NAME = 'attackfix'
 REDO = {'hr7'}          # keys whose first 'attackfix' was not good enough (staff melted)
 

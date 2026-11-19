@@ -507,6 +507,16 @@ const EN: Record<string, string> = {
   '▶ เล่นแบบแขก (ตัวละครใหม่)': '▶ Play as guest (new hero)',
   '⚠ ยังไม่ผูก Google — เปลี่ยนเครื่องตัวละครจะหาย • แตะ': '⚠ Not linked to Google — your hero is lost on a new device • tap',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
+  // 👑 supporter tiers (src/systems/supporter.ts)
+  '👑 ผู้ร่วมสร้างตำนาน': '👑 Legend Makers', 'ผู้ร่วมสร้างตำนาน': 'Legend Maker', 'ผู้ค้ำจุนแห่ง Mourncrown': 'Pillar of Mourncrown',
+  'ยอดสนับสนุนของคุณ': 'Your support total', 'ถึงขั้นสูงสุดแล้ว — ขอบคุณที่ร่วมสร้างตำนานกับเรา!': 'Top tier reached — thank you for building the legend with us!',
+  'ถึงขั้น': 'to tier', 'ต้องสนับสนุนเพิ่ม': 'Needed:', '💎 โบนัสเพชร': '💎 Diamond bonus', 'แสดงชื่อบนกำแพงผู้สนับสนุน': 'Show my name on the supporters\' wall', 'ซ่อนป้ายชื่อบนหัว': 'Hide the plate over my head',
+  'นับเฉพาะเงินที่จ่ายจริงในช่วง OBT': 'Counts real payments during OBT only', 'ของตกแต่งเท่านั้น ไม่เพิ่มพลัง': 'Looks only, no power',
+  'ฉายา「ผู้ร่วมสร้างตำนาน」': 'Title "Legend Maker"', 'ป้ายชื่อผู้สนับสนุนบนหัว': 'Supporter plate over the head', 'ชื่อบนกำแพงผู้สนับสนุน': 'Name on the supporters\' wall',
+  '👑 มงกุฎเล็กหน้าชื่อ': '👑 Small crown before the name', 'ป้ายชื่อขั้นเงิน': 'Silver plate', 'ออร่าผู้สนับสนุน': 'Supporter aura',
+  'ชื่อสลักบนอนุสาวรีย์ในหมู่บ้าน': 'Name carved on the village monument', 'ป้ายชื่อขั้นทอง มีแสงเรือง': 'Glowing gold plate', 'ชื่อสีทอง': 'Gold name',
+  'เลือกสีฉายาได้': 'Pick your title colour', 'ฉายา「ผู้ค้ำจุนแห่ง Mourncrown」': 'Title "Pillar of Mourncrown"', 'ป้ายชื่อขั้นสูงสุด (ปีก + มงกุฎ)': 'Top plate (wings + crown)',
+  'ตั้งชื่อ NPC 1 ตัว (แอดมินอนุมัติ)': 'Name one NPC (admin approves)', '👑 โบนัสผู้สนับสนุน': '👑 Supporter bonus', '👑 ปลดล็อกผู้สนับสนุนขั้น': '👑 Supporter tier unlocked:',
 };
 
 // longest phrases first so sentences beat the words inside them

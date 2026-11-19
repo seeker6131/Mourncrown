@@ -82,6 +82,8 @@ import { preloadMounts, createMountAnims, Riding, mountReady } from '../world/mo
 import { StormCloud } from '../world/petCloud';
 import { UpgRing, upgTier, weaponUpg } from '../world/upgRing';
 import { nameStyle } from '../world/nameTag';
+import { SupPlate, plateOver } from '../world/supPlate';
+import { supTier } from '../systems/supporter';
 import { activePet, activeNameColor, activeHorseSkin, auraOf, CLOUD_SPEED, rideSpeed } from '../systems/cosmetics';
 import { SERVER } from '../net/cloud';
 import { mountOn } from '../systems/mounts';
@@ -316,7 +318,7 @@ export class TopDownScene extends Phaser.Scene {
   defense?: DefenseBattle;
   defendNext = false;
   hunters?: Hunters;
-  heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text;
+  heroBar?: Phaser.GameObjects.Graphics; heroTag?: Phaser.GameObjects.Text; heroPlate?: SupPlate;
   link?: RoomLink; peers?: OtherPlayers; heroBubble?: Phaser.GameObjects.Text; heroBubbleT = 0;
   /** which shared room this scene is (null = alone): village, guild village, monster map n, the Deepwild */
   /** the map's walls for the room (8 px cells: a cell is a wall if any part is blocked or water), its meadows and gate */
@@ -483,7 +485,7 @@ export class TopDownScene extends Phaser.Scene {
     this.events.once('shutdown', () => { this.peers?.destroy(); this.link?.close(); this.peers = undefined; this.link = undefined; });
     { const onPay = (e: { sid: number; r: ReturnType<typeof act<'kill'>> }) => this.combat.onPay(e.sid, e.r); bus.on('net:pay', onPay); this.events.once('shutdown', () => bus.off('net:pay', onPay)); }
     this.heroTag = this.add.text(0, 0, S().name ?? '', { fontFamily: 'sans-serif', fontSize: '7px', color: '#ffe7a0', stroke: '#1a1006', strokeThickness: 3, resolution: 6 }).setOrigin(0.5, 1).setDepth(99991);
-    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined; this.autoRing = undefined; this.navGo = null; this.wingView = undefined; this.wingLift = 0;   // (scene objects are made anew on restart)
+    this.riding = undefined; this.rideBlockT = 0; this.pet = undefined; this.guide = undefined; this.guideTx = undefined; this.heroTagGold = false; this.walkGoal = null; this.walkMark = undefined; this.upgRing = undefined; this.autoRing = undefined; this.navGo = null; this.wingView = undefined; this.wingLift = 0; this.heroPlate = undefined;   // (scene objects are made anew on restart)
     this.heroRing = fx2(this, 'fx_ring_hero', this.hero.x, this.hero.y, this.hero.y - 3, 0.42)?.setOrigin(0.5, 0.5).setAlpha(0.7).setVisible(false);
     if (this.stageN && !this.wild && !this.dungeon && !this.townRaid) this.time.delayedCall(300, () => this.joinRoom());
     { const hm = homeOf(S()); if (hm.sleptAt && this.roomKind !== 'house') { const r = act('wake', {}); if (r.gained > 0) this.time.delayedCall(600, () => bus.emit(EV.TOAST, `🛏 ตื่นแล้ว! พลังพักผ่อน +${r.gained} (มี ${r.rest}) — ล่ามอนได้ EXP เพิ่ม • ⚡ แรงเก็บของ ${energyLeft(S())}/1200`, '#9ad8ff')); } }
@@ -2501,7 +2503,11 @@ export class TopDownScene extends Phaser.Scene {
       const s0 = S(); this.heroBar.clear();
       if (h.visible && fight) hpBar(this.heroBar, h.x, head - 5, s0.hp / Math.max(1, derive(s0).maxHp), 24);
       const nm = accountName(); if (nm && s0.name !== nm) s0.name = nm;   // the server's name (it can arrive after the scene opened)
-      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); const gold = !!activeNameColor(s0); if (gold !== this.heroTagGold) { this.heroTagGold = gold; nameStyle(this.heroTag, gold, '#ffe7a0', '#1a1006'); } this.heroTag.setPosition(Math.round(h.x), Math.round(head - (fight ? 6 : 1))).setVisible(h.visible || !!this.riding); }
+      if (this.heroTag) { if (this.heroTag.text !== s0.name) this.heroTag.setText(s0.name ?? ''); const gold = !!activeNameColor(s0); if (gold !== this.heroTagGold) { this.heroTagGold = gold; nameStyle(this.heroTag, gold, '#ffe7a0', '#1a1006'); } this.heroTag.setPosition(Math.round(h.x), Math.round(head - (fight ? 6 : 1))).setVisible(h.visible || !!this.riding);
+        // 👑 my supporter plate (not on the battlefield — director; hidden when I chose to hide it)
+        const st = isPvp(this.stageN) || (s0 as { supHide?: boolean }).supHide ? 0 : supTier(s0);
+        if (st && !this.heroPlate) this.heroPlate = new SupPlate(this);
+        this.heroPlate?.update(this.heroTag, st, !!st && !!this.link && plateOver(this.heroTag.x, this.heroTag.y, this.link.others.values()), this.time.now); }
     }
     if (this.raid) this.raid.update(time, dt); else this.town?.update(time, dt);
     this.defense?.update(time, dt);

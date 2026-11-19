@@ -74,8 +74,8 @@ export function playAnim(sp: Phaser.GameObjects.Sprite, k: string, a: string, d:
 
 /** PixelLab character per class line and form tier (0 = villager) */
 const FORM_KEYS: Record<string, string[]> = {
-  novice: ['hero'], sword: ['hero', 'hr1', 'hr2', 'hr3'], archer: ['hero', 'hr4', 'hr5', 'hr6'],
-  mage: ['hero', 'hr7', 'hr8', 'hr9'], cleric: ['hero', 'hr10', 'hr11', 'hr12'],
+  novice: ['hero'], sword: ['hero', 'hr1', 'hr2', 'hr3', 'hr13'], archer: ['hero', 'hr4', 'hr5', 'hr6', 'hr14'],
+  mage: ['hero', 'hr7', 'hr8', 'hr9', 'hr15'], cleric: ['hero', 'hr10', 'hr11', 'hr12', 'hr16'],   // (form 5 = tier 4, the god-like set — director 19 Nov; not reachable until its level / skills are set)
 };
 export function formKeyOf(cls: string, tier: number, look?: 'm' | 'f') {
   if (look === 'f' && (FORM_KEYS[cls]?.[tier] ?? 'hero') === 'hero' && CH.heroF) return 'heroF';

@@ -1111,5 +1111,61 @@
  },
  "mt_gdragon2": {
   "cid": "3ef24f1a-7abb-472b-96cf-335b97482409"
+ },
+ "hr13": {
+  "cid": "ef38a0b6-1b79-4eee-9a8f-77b6a1ee287e",
+  "walkfix_g": "ad844f44-331a-45de-bdb1-bccf86718fad",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr14": {
+  "cid": "4a3f6cd5-c490-44e2-a2ec-faa121a3c9fb",
+  "walkfix_g": "451aa0ba-9872-46d9-935f-e6a3031ecd8d",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr15": {
+  "cid": "bd7e62f2-010b-48f3-9b5f-925e7a5fca23",
+  "walkfix_g": "d8ec97f6-132b-4413-af59-083508f35958",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
+ },
+ "hr16": {
+  "cid": "40107682-b0f5-4e9b-9d27-9c311815ab63",
+  "walkfix_g": "5143edde-e224-4f0d-8f47-dbb27a004720",
+  "walkfix": [
+   "east",
+   "north",
+   "north-east",
+   "north-west",
+   "south",
+   "south-east",
+   "south-west",
+   "west"
+  ]
  }
 }

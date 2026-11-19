@@ -56,6 +56,7 @@ import { SETS, LAND_SET, fxText, setBonus } from '../data/sets';
 import { vipActive, vipLeftMs as vipLeft2 } from '../systems/premium';
 import { CBT_ACTIVE, CBT_VIP_DAYS, CBT_TITLE, CBT_PACK, cbtGot, cbtReady } from '../systems/cbtGift';
 import { mailOf, mailWaiting, hasGift, mailLive, giftText } from '../systems/mail';
+import { SUP_TIERS, SUP_OPEN, supTier, supPaid, supNext } from '../systems/supporter';
 import { ACHS, CODEX, achProgress, titlesOf, titleOf, pstats, achDone, SPECIAL_TITLES } from '../data/achievements';
 import { MARKET_FEE, MAX_LISTINGS, LISTING_HOURS, feeOf, suggestPrice, myListings, sampleListings, priceRange, DAILY_LISTINGS, listedToday } from '../systems/market';
 import { openTopup } from './topupDom';
@@ -79,7 +80,7 @@ import { testBots, BOT_STEPS } from '../core/testBots';
 import { buildGuild, buildStash, buildTrophy, type GuildTab, type GuildHost } from './guildPanels';
 import type { DefenseId } from '../data/guild';
 
-type PanelId = 'chars' | 'charsend' | 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt' | 'wheel' | 'pick' | 'dwheel' | 'wslot' | 'refer';
+type PanelId = 'chars' | 'charsend' | 'wardrobe' | 'bag' | 'stats' | 'quest' | 'menu' | 'shop' | 'smith' | 'dialog' | 'plot' | 'job' | 'forms' | 'uiopt' | 'stages' | 'premium' | 'market' | 'alchemy' | 'login' | 'collection' | 'dungeon' | 'profile' | 'guild' | 'stash' | 'trophy' | 'bounty' | 'mounts' | 'potion' | 'farm' | 'cbt' | 'mail' | 'lootopt' | 'wheel' | 'pick' | 'dwheel' | 'wslot' | 'refer' | 'sup';
 
 const NPC_INFO: Record<string, { name: string; tex: string }> = {
   elder: { name: 'ผู้เฒ่าอัลดริค', tex: 'npc_elder' },
@@ -209,6 +210,7 @@ export class Panels implements GuildHost {
       case 'cbt': this.buildCbt(c); break;
       case 'mail': this.buildMail(c); break;
       case 'refer': this.buildRefer(c); break;
+      case 'sup': this.buildSup(c); break;
     }
   }
 
@@ -1283,6 +1285,7 @@ export class Panels implements GuildHost {
     b('🏛 กิลด์ & หมู่บ้านกิลด์', () => this.openGuild('home'), 0x4a3a10);
     b('📜 กระดานค่าหัว (บอสเร่ร่อน)', () => this.open('bounty'), 0x4a3a10);
     b('🐎 สัตว์ขี่', () => this.open('mounts'), 0x4a3a10);
+    if (SUP_OPEN || isAdmin()) b('👑 ผู้ร่วมสร้างตำนาน', () => this.open('sup'), 0x6a4a10);
     if (CBT_ACTIVE) b(`🎁 ของขวัญ CBT${cbtReady(s) ? ' (รับได้!)' : ''}`, () => this.open('cbt'), 0x5a2a6a);
     b(`🏆 สะสม & ฉายา${ACHS.some(a => !titlesOf(s).includes(a.id) && achProgress(s, a) >= a.need) ? ' (รับได้!)' : ''}`, () => this.open('collection'), 0x4a3a10);
     // a guest links a Google account here and keeps everything (director)
@@ -1921,6 +1924,26 @@ export class Panels implements GuildHost {
       });
     }, { size: 9, color: 0x1f5a2a }));
     else c.add(k.text(L, by + 6, 'ใส่รหัสเพื่อนได้เฉพาะผู้เล่นใหม่ (3 วันแรก ก่อน Lv10)', 8, '#8a7a60'));
+  }
+  // 👑 supporter tiers (src/systems/supporter.ts): what you paid in the season, the next tier, every tier's looks, the opt-ins
+  buildSup(c: Phaser.GameObjects.Container) {
+    const s = S() as ReturnType<typeof S> & { supHide?: boolean; supWall?: boolean }, ui = this.ui, k = this.k;
+    const W = Math.min(620, ui.VW - 12), H = 330, tier = supTier(s), paid = supPaid(s), nx = supNext(s);
+    const { x, y, g } = this.window(c, W, H, '👑 ผู้ร่วมสร้างตำนาน');
+    c.add(k.text(x + 14, y + 28, `ยอดสนับสนุนของคุณ ${paid.toLocaleString()} ฿ • ขั้น ${tier}/7`, 10, '#ffe7a0', { fontStyle: 'bold' }));
+    const bw = W - 28, f = nx ? Math.min(1, paid / nx.tier.thb) : 1;
+    g.fillStyle(0x000000, 0.6).fillRoundedRect(x + 14, y + 46, bw, 8, 3).fillStyle(0xffc83a, 1).fillRoundedRect(x + 14, y + 46, Math.max(2, bw * f), 8, 3);
+    c.add(k.text(x + 14, y + 58, nx ? `ต้องสนับสนุนเพิ่ม ${nx.more.toLocaleString()} ฿ ถึงขั้น ${nx.tier.n}` : 'ถึงขั้นสูงสุดแล้ว — ขอบคุณที่ร่วมสร้างตำนานกับเรา!', 8, '#c8b898'));
+    SUP_TIERS.forEach((t, i) => {
+      const ry = y + 76 + i * 28, got = tier >= t.n;
+      g.fillStyle(got ? 0x3a2a10 : 0x1a140e, 0.95).fillRoundedRect(x + 14, ry, bw, 25, 4).lineStyle(1, got ? 0xffd84a : 0x4a3a2a, 1).strokeRoundedRect(x + 14, ry, bw, 25, 4);
+      c.add(k.text(x + 22, ry + 3, `${got ? '✅' : '🔒'} ขั้น ${t.n} • ${t.thb.toLocaleString()} ฿`, 8.5, got ? '#ffe07a' : '#e8dcc0', { fontStyle: 'bold' }));
+      c.add(k.text(x + 22, ry + 14, `💎 โบนัสเพชร +${t.bonus}% • ${t.rewards.join(' • ')}`, 6.8, '#c8b898', { wordWrap: { width: bw - 20 } }));
+    });
+    const oy = y + H - 34;
+    c.add(k.button(x + 14, oy, 190, 22, `${s.supWall ? '☑' : '☐'} แสดงชื่อบนกำแพงผู้สนับสนุน`, () => { s.supWall = !s.supWall; saveGame(s); sfx.click(); this.rebuild(); }, { size: 8, color: 0x2a3a5a }));
+    c.add(k.button(x + 212, oy, 150, 22, `${s.supHide ? '☑' : '☐'} ซ่อนป้ายชื่อบนหัว`, () => { s.supHide = !s.supHide; saveGame(s); sfx.click(); this.rebuild(); }, { size: 8, color: 0x2a3a5a }));
+    c.add(k.text(x + W - 14, oy + 3, 'นับเฉพาะเงินที่จ่ายจริงในช่วง OBT\nของตกแต่งเท่านั้น ไม่เพิ่มพลัง', 6.5, '#8a7a60', { align: 'right' }).setOrigin(1, 0));
   }
   buildMail(c: Phaser.GameObjects.Container) {
     const s = S(), ui = this.ui, k = this.k, now = Date.now(), box = mailOf(s);

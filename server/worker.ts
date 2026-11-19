@@ -27,6 +27,7 @@ import { GUILD_MAX } from '../src/data/guild';
 import { packOf, packDiamonds, qrCheck, qrWithAmount, slipVerdict, SLIP_PER_HOUR, type SlipData } from '../src/systems/topup';
 import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
+import { supCount, supSeasonOn, supSet, supTier, type SupSeason } from '../src/systems/supporter';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
 import { RAID_SECS, RAID_MIN_KILLS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
@@ -60,11 +61,13 @@ async function townInfo(env: Env, fresh = false) {
   }
   return townC;
 }
+let wallC: { at: number; v: { name: string; tier: number }[] } | null = null;   // (👑 the supporters' wall, cached in this worker)
 async function kvSet(env: Env, k: string, v: string) { await env.DB.prepare('INSERT INTO kv (k, v, at) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at').bind(k, v, Date.now()).run(); }
 /** a paid slip → the player's diamonds (the Player object skips a ref it already has) → the record says 'ok' */
 async function payCredit(env: Env, id: string, ref: string, dia: number, thb: number, pack: string) {
   try {
-    const r = await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/topup?id=' + id, { method: 'POST', body: JSON.stringify({ ref, dia, thb, pack }) }));
+    let zn: SupSeason | null = null; try { const v = await kvGet(env, 'sup_season'); zn = v ? JSON.parse(v) : null; } catch { zn = null; }   // (👑 supporter tiers count only inside the season the admin set)
+    const r = await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/topup?id=' + id, { method: 'POST', body: JSON.stringify({ ref, dia, thb, pack, sup: supSeasonOn(zn, Date.now()) ? 1 : 0 }) }));
     if (!(await r.json() as { ok?: boolean }).ok) throw new Error('credit');
     await env.DB.prepare("UPDATE payments SET status = 'ok' WHERE ref = ?").bind(ref).run(); return true;
   } catch { await flag(env, id, 'pay:credit', `${ref} ${pack} ${dia}💎 — not given yet (back office → 💳 → ส่งเพชรอีกครั้ง)`); return false; }
@@ -237,6 +240,14 @@ export default {
       }
       // 🟢 how many are playing now (the small counter at the top of the screen)
       if (path === '/online') return json(req, await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/count'))).json());
+      // 👑 the supporters' wall (no login): names of supporters who chose to be shown, by tier — kept 10 minutes
+      if (path === '/supporters') {
+        if (!wallC || Date.now() - wallC.at > 600000) {
+          const r = await env.DB.prepare("SELECT a.name AS name, CAST(json_extract(s.data, '$.supTier') AS INTEGER) AS tier FROM saves s JOIN accounts a ON a.id = s.id WHERE json_extract(s.data, '$.supTier') > 0 AND json_extract(s.data, '$.supWall') = 1 AND a.name IS NOT NULL ORDER BY tier DESC, s.at ASC LIMIT 500").all<{ name: string; tier: number }>();
+          wallC = { at: Date.now(), v: (r.results ?? []).map(x => ({ name: String(x.name).slice(0, 24), tier: Math.max(1, Math.min(7, Number(x.tier) || 1)) })) };
+        }
+        return json(req, { list: wallC.v });
+      }
       // 👹 roaming bosses alive now (map-select screen; no login needed)
       if (path === '/bosses') return json(req, { list: await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/bosslist'))).json() });
       // 💬 world chat / guild chat (WebSocket): the world from Lv5 (keeps throwaway spam accounts out), a guild only for its members
@@ -472,6 +483,24 @@ export default {
           if (!r) return json(req, { error: 'ref' }, 400);
           return (await payCredit(env, r.id, r.ref, r.dia, r.thb, r.pack)) ? json(req, { ok: true }) : json(req, { error: 'credit' }, 500);
         }
+        // 👑 supporter tiers (src/systems/supporter.ts): the season the payments count in + who paid how much in it
+        if (path === '/admin/sup') {
+          if (req.method === 'POST') {
+            const b = await req.json().catch(() => ({})) as { from?: number; to?: number };
+            const from = Math.max(0, Number(b.from) || 0), to = Math.max(from, Number(b.to) || 0);
+            await kvSet(env, 'sup_season', from ? JSON.stringify({ from, to }) : ''); await flag(env, me.id, 'admin:supseason', from ? `${new Date(from).toISOString()} → ${new Date(to).toISOString()}` : 'off');
+          }
+          let zn: SupSeason | null = null; try { const v = await kvGet(env, 'sup_season'); zn = v ? JSON.parse(v) : null; } catch { zn = null; }
+          return json(req, { season: zn, on: supSeasonOn(zn, now),
+            rows: await all("SELECT s.id, a.name, CAST(json_extract(s.data, '$.supPaid') AS REAL) AS paid, CAST(json_extract(s.data, '$.supTier') AS INTEGER) AS tier, json_extract(s.data, '$.supWall') AS wall FROM saves s LEFT JOIN accounts a ON a.id = s.id WHERE json_extract(s.data, '$.supPaid') > 0 ORDER BY paid DESC LIMIT 300") });
+        }
+        if (path === '/admin/supset' && req.method === 'POST') {   // a reversed payment: the admin lowers the total by hand (the tier follows)
+          const b = await req.json().catch(() => ({})) as { id?: string; paid?: number };
+          const id = String(b.id ?? ''); if (!id || !(await one('SELECT 1 AS x FROM saves WHERE id = ?', id))) return json(req, { error: 'target' }, 400);
+          const out = await (await env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/supset?id=' + id, { method: 'POST', body: JSON.stringify({ paid: Number(b.paid) || 0 }) }))).json() as { ok?: boolean; tier?: number };
+          if (out.ok) await flag(env, id, 'admin:supset', `${b.paid}฿ → tier ${out.tier} — by ${me.id}`);
+          return json(req, out, out.ok ? 200 : 400);
+        }
         if (path === '/admin/give' && req.method === 'POST') {   // send gold / wood / stone / food / items to a player (bug compensation) — no diamonds (real money only)
           const b = await req.json().catch(() => ({})) as { id?: string; gold?: number; wood?: number; stone?: number; food?: number; items?: { id: string; qty: number }[]; note?: string };
           const id = String(b.id ?? ''); if (!id || !(await one('SELECT 1 AS x FROM saves WHERE id = ?', id))) return json(req, { error: 'target' }, 400);
@@ -579,7 +608,7 @@ const SOLO_MONSTERS = true;
 const roomCap = (room: string) => room === 'chat-world' ? 5000 : room.startsWith('m300') ? 50 : room.startsWith('chat') ? 60 : room.startsWith('w') ? 100 : room.startsWith('m') ? 30 : 50;
 // Positions are relayed as they come (the sender is rate-limited), chat is filtered. Uses the hibernation WebSocket
 // API so an idle room costs nothing. Monsters are still each player's own (step 3 moves combat here).
-interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
+interface Who { id: string; room: string; name: string; lv?: number; lvT?: number; /** 👑 supporter tier (from the Player, every 10 min) */ sup?: number; supT?: number; p?: Record<string, unknown>; n: number; win: number; chatT: number; join: number; bud: number; budT: number;
   /** ⚔ PvP: the hero's fighting numbers (from its Player), server-side HP, last hit sent, fallen at */ pv?: { pw: number; atk: number; matk: number; def: number; hp: number; crit: number; iv: number; cls: string; lv: number; t: number }; php?: number; phT?: number; paT?: number; dead?: number; /** 📦 the chest this game was shown / hinted about */ pcs?: number; pch?: number; /** ⚔ the round this game was sent the teams of */ brSeen?: number }
 const RUDE = ['fuck', 'shit', 'bitch', 'dick', 'เหี้ย', 'ควย', 'สัส', 'เย็ด', 'ระยำ', 'ชาติหมา', 'หี', 'แตด'];
 const cleanChat = (t: string) => { let o = t.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 90); for (const w of RUDE) o = o.split(w).join('*'.repeat(w.length)); return o; };
@@ -599,6 +628,14 @@ export class Room {
       me.lvT = now; (ws as WSX).serializeAttachment(me);
     }
     return Math.max(1, Math.min(999, me.lv ?? 1));
+  }
+  /** 👑 the supporter tier others see on this hero's name plate — from the server's character, never from the game */
+  private async supOf(ws: WebSocket, me: Who, now: number) {
+    if (me.supT === undefined || now - me.supT > 600000) {
+      try { const r = (await (await this.env.PLAYER.get(this.env.PLAYER.idFromName(me.id)).fetch(new Request('https://p/lv?id=' + me.id))).json()) as { lv: number; sup?: number }; me.sup = Math.max(0, Math.min(7, Number(r.sup) || 0)); me.lv = r.lv; me.lvT = now; } catch { me.sup = me.sup ?? 0; }
+      me.supT = now; (ws as WSX).serializeAttachment(me);
+    }
+    return me.sup ?? 0;
   }
   private players(): SimPlayer[] {
     return this.all().filter(x => x.a.p).map(x => { const p = x.a.p as { x: number; y: number; hp: number; lv: number }; return { id: x.a.id, x: p.x, y: p.y, hp: p.hp, lv: Math.min(p.lv, x.a.lv ?? p.lv) }; });
@@ -963,7 +1000,8 @@ export class Room {
         if (me.brSeen !== b.id) { me.brSeen = b.id; (ws as WSX).serializeAttachment(me); try { ws.send(JSON.stringify({ t: 'bteams', teams: this.brTeamsOut(), started: !!b.roster, done: b.done, alive: b.alive })); } catch { /* closing */ } }
         this.pvpChestTick(ws, me, now);
       }
-      this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p }));
+      const sp = isPvp(mapOfRoom(room)) || chat ? 0 : await this.supOf(ws, me, now);   // (no plates on the battlefield — director)
+      this.others(ws, JSON.stringify({ t: 'p', id: me.id, name: me.name, ...p, ...(sp ? { sp } : {}) }));
       // a sleeping room wakes only for a reason: a boss is due (a missed alarm) or someone came near the standing boss
       // (not on every position — that kept the room awake all the time)
       if (this.sim && !this.timer && ((!SOLO_MONSTERS) || (this.sim.quietUntil(now) === 0 && !this.sim.boss()) || this.sim.bossNear(now, this.players()))) this.start();
@@ -1045,7 +1083,7 @@ const GUILD_ACTS = new Set(['guildSync', 'guildUpgrade', 'guildCollect', 'guildF
 const GUILD_CAP = GUILD_MAX;   // members of a real guild (the village has GUILD_MAX house plots)
 /** the CBT gift (src/systems/cbtGift.ts): only the server hands it out */
 const CBT = new Set(['cbtClaim']);
-const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name', 'lootOpt', 'wingOn']);
+const CLIENT_KEYS = new Set(['pos', 'hp', 'mp', 'auto', 'music', 'sfx', 'mapPos', 'map', 'dayTime', 'playTime', 'introSeen', 'outfit', 'prevOutfit', 'look', 'pot', 'farm', 'aura', 'auraOff', 'tut', 'tutBase', 'useTier', 'uiOpt', 'name', 'lootOpt', 'wingOn', 'supHide', 'supWall']);   // (👑 supporter opt-ins: looks only)
 type St = Record<string, unknown>;
 interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<number | null> }
 export class Player {
@@ -1364,15 +1402,24 @@ export class Player {
     }
     if (u.pathname === '/topup' && req.method === 'POST') {   // (the worker, after Thunder said the slip is good) diamonds — once per slip
       if (!this.st) return new Response(JSON.stringify({ error: 'nosave' }), { status: 400 });
-      const t = JSON.parse(await req.text()) as { ref: string; dia: number; thb: number; pack: string };
+      const t = JSON.parse(await req.text()) as { ref: string; dia: number; thb: number; pack: string; sup?: number };
       const st = this.st as St & { payRefs?: string[]; topups?: number; topupThb?: number };
       if ((st.payRefs ?? []).includes(t.ref)) return new Response(JSON.stringify({ ok: true, again: true }));
       const eb = this.eSnap(), b = this.snap();
       const card = packOf(String(t.pack)); if (card?.days) grantVip(st as unknown as GameState, card.days); else grantDiamonds(st as unknown as GameState, Math.max(0, Math.floor(Number(t.dia) || 0)));
       st.payRefs = [...(st.payRefs ?? []), String(t.ref)].slice(-50); st.topups = (st.topups ?? 0) + 1; st.topupThb = (st.topupThb ?? 0) + (Number(t.thb) || 0);
+      // 👑 supporter tiers (src/systems/supporter.ts): a real payment inside the season counts; a diamond pack gets the tier's bonus
+      const sc = t.sup ? supCount(st as unknown as GameState, Math.max(0, Number(t.thb) || 0), card?.days ? 0 : Math.max(0, Math.floor(Number(t.dia) || 0))) : null;
+      if (sc?.bonus) grantDiamonds(st as unknown as GameState, sc.bonus);
       this.eAdd('topup', eb); this.dirty = true; await this.persist(); await this.eFlush(true);
-      this.send({ t: 'note', own: this.diff(b), text: card?.days ? `👑 ซื้อ VIP ${card.days} วัน สำเร็จ! — ขอบคุณที่สนับสนุนเกม` : `💎 เติมเงินสำเร็จ! ได้รับ ${t.dia.toLocaleString()} เพชร — ขอบคุณที่สนับสนุนเกม` });
+      this.send({ t: 'note', own: this.diff(b), text: (card?.days ? `👑 ซื้อ VIP ${card.days} วัน สำเร็จ! — ขอบคุณที่สนับสนุนเกม` : `💎 เติมเงินสำเร็จ! ได้รับ ${t.dia.toLocaleString()} เพชร — ขอบคุณที่สนับสนุนเกม`) + (sc?.bonus ? ` • 👑 โบนัสผู้สนับสนุน +${sc.bonus.toLocaleString()} เพชร` : '') + (sc?.got.length ? ` • 👑 ปลดล็อกผู้สนับสนุนขั้น ${sc.after}!` : '') });
       return new Response(JSON.stringify({ ok: true }));
+    }
+    if (u.pathname === '/supset' && req.method === 'POST') {   // (the back office) 👑 a reversed payment: the total set by hand
+      if (!this.st) return new Response(JSON.stringify({ error: 'nosave' }), { status: 400 });
+      const b = this.snap(); supSet(this.st as unknown as GameState, Number((JSON.parse(await req.text()) as { paid?: number }).paid) || 0);
+      this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
+      return new Response(JSON.stringify({ ok: true, tier: supTier(this.st as unknown as GameState) }));
     }
     if (u.pathname === '/gift') {   // (the back office) the admin sends resources / items — written at once, the game is told
       if (!this.st) return new Response(JSON.stringify({ error: 'nosave' }), { status: 400 });
@@ -1447,7 +1494,7 @@ export class Player {
       this.send({ t: 'note', own: this.diff(b), text: `🤝 เพื่อน ${String(j.name).slice(0, 16)} ถึง Lv30! ได้ 💎${REF_INVITER_DIA}${wing ? ' + 🪽 ปีกพายุอสนี (Limited)!' : ''}` });
       return new Response('{}');
     }
-    if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1 }));   // (rooms ask: the damage cap uses the server's level)
+    if (u.pathname === '/lv') return new Response(JSON.stringify({ lv: Number(this.st?.level) || 1, sup: this.st && !(this.st as { supHide?: boolean }).supHide ? supTier(this.st as unknown as GameState) : 0 }));   // (rooms ask: the damage cap uses the server's level)
     if (u.pathname === '/merge') {   // the game's save: only the harmless fields are taken (the first save of a new account seeds it)
       const body = JSON.parse(await req.text()) as { data?: St };
       if (!body.data || typeof body.data !== 'object' || typeof body.data.version !== 'number') return new Response(JSON.stringify({ error: 'data' }), { status: 400 });

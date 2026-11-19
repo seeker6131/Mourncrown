@@ -19,8 +19,9 @@ import { gfx } from '../core/uiOptions';
 import { SKILL_BY_ID } from '../data/skills';
 import { playSkill } from '../audio/skillSfx';
 import { fx2, hasFx2 } from './fx2';
+import { SupPlate, plateOver } from './supPlate';
 
-interface View { sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; bubble?: Phaser.GameObjects.Text; bubbleT: number; form: string; aura: number; glow?: Phaser.FX.Glow; busy: number; dir: number; moving: boolean; ride?: Riding; pet?: StormCloud; gold?: boolean; ring?: UpgRing; wing?: WingView; lift?: number }
+interface View { sp: Phaser.GameObjects.Sprite; sh: Phaser.GameObjects.Image; tag: Phaser.GameObjects.Text; bubble?: Phaser.GameObjects.Text; bubbleT: number; form: string; aura: number; glow?: Phaser.FX.Glow; busy: number; dir: number; moving: boolean; ride?: Riding; pet?: StormCloud; gold?: boolean; ring?: UpgRing; wing?: WingView; lift?: number; plate?: SupPlate }
 
 /** how far in the past other players are shown (a bit more than the 0.2 s between their updates) */
 
@@ -57,10 +58,11 @@ export class OtherPlayers {
     v.bubble = this.sc.add.text(0, 0, text, { fontFamily: 'sans-serif', fontSize: '7px', color: '#1a1410', backgroundColor: '#f3ead6', padding: { x: 3, y: 2 }, wordWrap: { width: 110 }, resolution: 6 }).setOrigin(0.5, 1).setDepth(99993);
     v.bubbleT = this.sc.time.now + 4500;
   }
-  private drop(id: string) { const v = this.views.get(id); if (!v) return; v.sp.destroy(); v.sh.destroy(); v.tag.destroy(); v.bubble?.destroy(); v.ride?.destroy(); v.pet?.destroy(); v.ring?.destroy(); v.wing?.destroy(); this.views.delete(id); }
+  private drop(id: string) { const v = this.views.get(id); if (!v) return; v.sp.destroy(); v.sh.destroy(); v.tag.destroy(); v.bubble?.destroy(); v.ride?.destroy(); v.pet?.destroy(); v.ring?.destroy(); v.wing?.destroy(); v.plate?.destroy(); this.views.delete(id); }
   update(dt: number) {
     const now = this.sc.time.now; this.bars.clear();
     for (const id of [...this.views.keys()]) if (!this.link.others.has(id)) this.drop(id);
+    let spots: { x: number; y: number }[] | undefined;   // (👑 where everyone stands, for the see-through plates — made once a frame)
     for (const o of this.link.others.values()) {
       const form = CH[o.f] && this.sc.textures.exists(`c_${o.f}_idle`) ? o.f : 'hero';
       let v = this.views.get(o.id);
@@ -102,6 +104,8 @@ export class OtherPlayers {
       if (!!o.nc !== !!v.gold) { v.gold = !!o.nc; nameStyle(v.tag, v.gold, '#bfe8ff', '#06121a'); }
       if (fight) hpBar(this.bars, o.x, head - 5, o.hp / 100, 22);
       v.tag.setText(o.name).setPosition(Math.round(o.x), Math.round(head - (fight ? 6 : 1)));
+      // 👑 the supporter plate (the room never sends it on the battlefield); see-through when it covers someone
+      { const t = o.sp ?? 0; if (t && !v.plate) v.plate = new SupPlate(this.sc); if (v.plate) { const me = (this.sc as unknown as { hero?: { x: number; y: number } }).hero; v.plate.update(v.tag, t, plateOver(v.tag.x, v.tag.y, spots ??= [...this.link.others.values(), ...(me ? [me] : [])], o), now); } }
       if (v.bubble) { if (now > v.bubbleT) { v.bubble.destroy(); v.bubble = undefined; } else v.bubble.setPosition(Math.round(o.x), Math.round(head - (fight ? 16 : 12))); }
       // the VIP aura by card
       const au = gfx.low ? 0 : o.a;   // (low graphics: other players' auras off)
