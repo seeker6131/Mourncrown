@@ -113,3 +113,26 @@ describe('loot on the ground', () => {
     t += 61000; expect(handlers.pickup(s, { did }, c())).toEqual({ refused: 'gone' });
   });
 });
+
+describe('🐛 19 Nov: kills of monsters the server forgot', () => {
+  it('a plain monster the server lost track of is paid once, never twice; a boss is not', () => {
+    s.level = 20; handlers.enterMap(s, { n: 1 }, c());
+    const L = STAGES[0].land, mob = L.mobs[0];
+    const a = handlers.spawn(s, { key: mob.key, boss: false }, c()) as { sid: number };
+    handlers.enterMap(s, { n: 1 }, c());   // (a second device entered the map: the list is cleared)
+    t += 5000;
+    const k = { sid: a.sid, kind: mob.kind, key: mob.key, name: mob.name, size: mob.size, boss: false, share: 1, n: 1 };
+    expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBeUndefined();
+    expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBe('spawn');   // (the same number again: nothing)
+    expect((handlers.kill(s, { ...k, sid: a.sid + 999, key: L.boss.key, kind: L.boss.kind, boss: true }, c()) as { refused?: string }).refused).toBe('spawn');
+  });
+  it('a new monster under a number already paid is paid again (the game restarted its count)', () => {
+    s.level = 20; handlers.enterMap(s, { n: 1 }, c());
+    const mob = STAGES[0].land.mobs[0];
+    const a = handlers.spawn(s, { key: mob.key, boss: false }, c()) as { sid: number }; t += 5000;
+    const k = { sid: a.sid, kind: mob.kind, key: mob.key, name: mob.name, size: mob.size, boss: false, share: 1, n: 1 };
+    expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBeUndefined();
+    handlers.spawn(s, { key: mob.key, boss: false, sid: a.sid }, c()); t += 5000;
+    expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBeUndefined();
+  });
+});

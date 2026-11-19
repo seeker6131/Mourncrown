@@ -156,7 +156,7 @@ export const handlers = {
     // (online the game names the number it already uses; the server keeps its count past it)
     const elite = !a.boss && !a.animal && mem.map !== WILD && c.rnd() < 0.03, sid = a.sid && a.sid > 0 && !mem.spawns.has(a.sid) ? a.sid : mem.sid++;
     mem.sid = Math.max(mem.sid, sid + 1); if (!mem.sidLow) mem.sidLow = sid;
-    mem.spawns.set(sid, { key: a.key, elite, boss: !!a.boss, srv: true });
+    mem.spawns.set(sid, { key: a.key, elite, boss: !!a.boss, srv: true }); mem.forgot.delete(sid);   // (a new monster under a number used before — the game restarted its count)
     return { sid, elite };
   },
   /** (map room) a roaming boss died: gold / EXP by your share of the damage; items only for the one who struck it down —
@@ -201,7 +201,11 @@ export const handlers = {
     const n = mem.map, base = MONSTERS[a.kind]; if (!n || !base) return no('map');
     // a monster spawned before this memory began (forgotten in a restart) counts as a plain one, once — never golden or a
     // boss; numbers from after the restart must have been registered (an invented / replayed kill is refused)
-    const old = !mem.spawns.has(a.sid) && !a.boss && !isDungeon(n) && a.sid > 0 && (!mem.sidLow || a.sid < mem.sidLow) && !mem.forgot.has(a.sid);
+    // (player report 19 Nov: "kills not paid, about 70%") the server's list of this hero's monsters is lost more often than
+    // thought (its object restarts, the same account open on a second device clears it on map entry): a plain monster the
+    // server does not know is paid as a plain one, ONCE (every paid number is remembered) — never golden, never a boss;
+    // the damage budget and the kill rate below still cap what can be earned
+    const old = !mem.spawns.has(a.sid) && !a.boss && !isDungeon(n) && a.sid > 0 && !mem.forgot.has(a.sid) && (!mem.sidLow || a.sid < mem.sidLow || a.sid < mem.sid);   // (a number the game really handed out — not one past the newest)
     // the bounty lord registered before a restart: the save remembers it (player report 14 Nov: killed it, got nothing)
     const bs = (s as { bountySid?: { slot: number; sid: number; key: string } }).bountySid;
     const savedBounty = !mem.spawns.has(a.sid) && bs && bs.sid === a.sid && bs.key === a.key && !a.boss && Math.floor(c.now / BOUNTY_SLOT) - bs.slot <= 1 && (s as { bounty?: { slot: number } }).bounty?.slot !== bs.slot
@@ -224,7 +228,7 @@ export const handlers = {
     const part = hp * Math.max(0.5, Math.min(1, Number(a.share) || 1));   // (18 Nov audit: the game names its share — it was a way to pay a whole kill for 3% of the damage; the room's shared kills are paid by the room)
     if (!c.admin && mem.dmg < part) return no('dps');
     { const sv = s as GameState & { tdCasts?: number }, nc = Math.max(0, Math.min(10, Math.floor(Number(a.c) || 0))); if (nc) sv.tdCasts = (sv.tdCasts ?? 0) + nc; }   // skills cast since the last kill (the quest counts them; casting runs on the device)
-    mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid); if (old) { mem.forgot.add(a.sid); if (mem.forgot.size > 2000) mem.forgot.clear(); }
+    mem.dmg = Math.max(0, mem.dmg - part); mem.spawns.delete(a.sid); mem.forgot.add(a.sid); if (mem.forgot.size > 5000) mem.forgot.delete(mem.forgot.values().next().value!);   // (every paid number: a resent / replayed kill pays nothing)
     // loot falls on the ground (server keeps it): the first player to reach it picks it up
     const drops: { did: number; id: string; qty: number; rar: number; set?: string }[] = [];
     const give = (id: string, qty: number, gear?: Drop['gear']) => { const did = mem.did++; mem.drops.set(did, { id, qty, gear, until: c.now + 60000 }); drops.push({ did, id, qty, rar: gear?.rar ?? itemDef(id).rarity, set: gear?.set }); return true; };

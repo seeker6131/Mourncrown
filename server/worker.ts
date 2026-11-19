@@ -1119,6 +1119,15 @@ export class Player {
       await this.env.DB.batch(rows.map(([src, q]) => this.env.DB.prepare('INSERT INTO econ (day, id, src, g_in, g_out, d_in, d_out, wood, stone, food, n) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(day, id, src) DO UPDATE SET g_in = g_in + excluded.g_in, g_out = g_out + excluded.g_out, d_in = d_in + excluded.d_in, d_out = d_out + excluded.d_out, wood = wood + excluded.wood, stone = stone + excluded.stone, food = food + excluded.food, n = n + excluded.n').bind(day, this.id, src, ...q.map(Math.round))));
     } catch { /* the database is busy: these minutes are not in the ledger */ }
   }
+  /** (player report 19 Nov: kills unpaid) refused kills by reason — a back-office flag when one hero gets many (10 min apart) */
+  kr: Record<string, number> = {}; krN = 0; krT = 0;
+  private async killNote(why?: string) {
+    this.krN++; if (why) this.kr[why] = (this.kr[why] ?? 0) + 1;
+    const bad = Object.values(this.kr).reduce((a, b) => a + b, 0), now = Date.now();
+    if (now - this.krT < 600000 || this.krN < 20) return;
+    if (bad >= 10) await flag(this.env, this.id, 'killRefused', `${bad}/${this.krN} ${JSON.stringify(this.kr)}`);
+    this.kr = {}; this.krN = 0; this.krT = now;
+  }
   private async later() { this.dirty = true; if (!(await this.state.storage.getAlarm())) await this.state.storage.setAlarm(Date.now() + 30000); }   // (written at most every 30 s, and when the game closes)
   async alarm() { await this.persist(); await this.eFlush(); }
   /** run one action with the server's dice and clock; the answer + the top-level fields it changed */
@@ -1593,6 +1602,7 @@ export class Player {
     this.eAdd(m.name, eb);
     if (Object.keys(out.own).length) { await this.later(); await this.eFlush(); }
     ws.send(JSON.stringify({ t: 'r', q: m.q, ...out }));
+    if (m.name === 'kill') await this.killNote((out.r as { refused?: string } | null)?.refused);
   }
   async webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already */ } await this.persist(); await this.eFlush(true); if (!this.state.getWebSockets().filter(w => w !== ws).length) await this.hello('/bye'); }
   /** the online counter (a map in the chat-world room): hello on connect and now and then while playing, bye on leaving */
