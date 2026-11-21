@@ -123,7 +123,7 @@ describe('🐛 19 Nov: kills of monsters the server forgot', () => {
     t += 5000;
     const k = { sid: a.sid, kind: mob.kind, key: mob.key, name: mob.name, size: mob.size, boss: false, share: 1, n: 1 };
     expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBeUndefined();
-    expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBe('spawn');   // (the same number again: nothing)
+    expect((handlers.kill(s, k, c()) as { refused?: string }).refused).toBe('paid');   // (the same number again: nothing)
     expect((handlers.kill(s, { ...k, sid: a.sid + 999, key: L.boss.key, kind: L.boss.kind, boss: true }, c()) as { refused?: string }).refused).toBe('spawn');
   });
   it('a new monster under a number already paid is paid again (the game restarted its count)', () => {

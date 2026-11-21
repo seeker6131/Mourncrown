@@ -1208,8 +1208,8 @@ export class Player {
     this.krN++; if (why) this.kr[why] = (this.kr[why] ?? 0) + 1;
     const bad = Object.values(this.kr).reduce((a, b) => a + b, 0), now = Date.now();
     if (now - this.krT < 600000 || this.krN < 20) return;
-    if (bad >= 10) await flag(this.env, this.id, 'killRefused', `${bad}/${this.krN} ${JSON.stringify(this.kr)}`);
-    this.kr = {}; this.krN = 0; this.krT = now;
+    const line = `${bad}/${this.krN} ${JSON.stringify(this.kr)}`; this.kr = {}; this.krN = 0; this.krT = now;   // (reset BEFORE writing: other kills run while the database answers — 20 Nov: one report became ten lines)
+    if (bad >= 10) await flag(this.env, this.id, 'killRefused', line);
   }
   private async later() { this.dirty = true; if (!(await this.state.storage.getAlarm())) await this.state.storage.setAlarm(Date.now() + 30000); }   // (written at most every 30 s, and when the game closes)
   async alarm() { await this.persist(); await this.eFlush(); }

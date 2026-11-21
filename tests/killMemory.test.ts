@@ -24,7 +24,7 @@ describe('a kill still counts after the server forgot this player (its object sl
     useMem(newMem()); const s = startNewGame(); s.level = 5;
     handlers.spawn(s, { key: mob(1).key, boss: false, sid: 500 }, ctx);   // (the first monster after the restart)
     expect(refused(handlers.kill(s, killArgs(1, 120), ctx))).toBeNull();          // spawned before: paid
-    expect(refused(handlers.kill(s, killArgs(1, 120), ctx))).toBe('spawn');       // the same one again: no
+    expect(refused(handlers.kill(s, killArgs(1, 120), ctx))).toBe('paid');        // the same one again: no (already paid)
     expect(refused(handlers.kill(s, killArgs(1, 9999), ctx))).toBe('spawn');      // invented, newer than the restart: no
     expect(refused(handlers.kill(s, killArgs(1, 500), ctx))).toBeNull();          // registered: paid
   });

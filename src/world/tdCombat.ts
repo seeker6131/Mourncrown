@@ -697,7 +697,7 @@ export class Combat {
   reward(at: { x: number; y: number; boss: boolean }, r: ReturnType<typeof act<'kill'>>) {
     const m = at, s = S();
     if (this.dungeon) { const d = this.dungeon; if (--d.left <= 0) { if (d.wave > DUNGEON_WAVES.length) this.s.time.delayedCall(50, d.onClear); else this.s.time.delayedCall(1500, () => this.s.sys.isActive() && this.nextWave()); } }
-    if (refused(r)) { this.float(m.x, m.y - 20, `⛔ เซิร์ฟไม่รับ (${r.refused})`, '#ff8a6a', 8); return; }   // (the reason: a player's screenshot tells us which check)
+    if (refused(r)) { if (r.refused !== 'paid') this.float(m.x, m.y - 20, `⛔ เซิร์ฟไม่รับ (${r.refused})`, '#ff8a6a', 8); return; }   // ('paid': a resend of a kill already paid — nothing to show)   // (the reason: a player's screenshot tells us which check)
     const bty = (r as { bounty?: { gold: number; name: string; dragon?: boolean } }).bounty;
     if (bty?.dragon) { bus.emit(EV.TOAST, '🐉✦ ลิมิเต็ด! ได้ "มังกรเพลิงนิรันดร์" — สัตว์ขี่ในตำนาน! (เมนู → 🐎 สัตว์ขี่)', '#ff9a3a'); { const pil = fx2(this.s, 'fx_drop_sl', m.x, m.y, m.y + 2, 1.2); this.s.time.delayedCall(3000, () => pil?.destroy()); } this.s.cameras.main.flash(300, 255, 140, 40); }   // (player report 16 Nov: the pillar loops — it stayed on the ground for good, looking like loot nobody could pick up)
     { const md = (r as { mount?: { mount: string; tier: string; stars?: number } }).mount;   // 🐎 a mount from a golden monster / the roaming boss

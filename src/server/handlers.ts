@@ -205,13 +205,16 @@ export const handlers = {
     // thought (its object restarts, the same account open on a second device clears it on map entry): a plain monster the
     // server does not know is paid as a plain one, ONCE (every paid number is remembered) — never golden, never a boss;
     // the damage budget and the kill rate below still cap what can be earned
-    const old = !mem.spawns.has(a.sid) && !a.boss && !isDungeon(n) && a.sid > 0 && !mem.forgot.has(a.sid) && (!mem.sidLow || a.sid < mem.sidLow || a.sid < mem.sid);   // (a number the game really handed out — not one past the newest)
+    if (!mem.spawns.has(a.sid) && mem.forgot.has(a.sid)) return no('paid');   // (already paid: a resend after a lost answer — the game shows nothing)
+    // (a number near the newest the server saw: spawns made while the connection was down never reached it — 20 Nov logs)
+    const old = !mem.spawns.has(a.sid) && !a.boss && !isDungeon(n) && a.sid > 0 && (!mem.sidLow || a.sid < mem.sidLow || a.sid < mem.sid + 200);
     // the bounty lord registered before a restart: the save remembers it (player report 14 Nov: killed it, got nothing)
     const bs = (s as { bountySid?: { slot: number; sid: number; key: string } }).bountySid;
     const savedBounty = !mem.spawns.has(a.sid) && bs && bs.sid === a.sid && bs.key === a.key && !a.boss && Math.floor(c.now / BOUNTY_SLOT) - bs.slot <= 1 && (s as { bounty?: { slot: number } }).bounty?.slot !== bs.slot
       ? { key: a.key, elite: false, boss: false, bounty: bs.slot } : undefined;
     const sp = mem.spawns.get(a.sid) ?? savedBounty ?? (old ? { key: a.key, elite: false, boss: false } as { key: string; elite: boolean; boss: boolean; bounty?: number } : undefined);
-    if (!sp || sp.key !== a.key || sp.boss !== a.boss) return no('spawn');
+    if (!sp) return no('spawn');
+    if (sp.key !== a.key || sp.boss !== a.boss) return no('spawnkey');   // (registered as another monster)
     if (!rateOk('kill', 25, c.now)) return no('rate');   // area skills can drop a whole pack at once
     if (n === WILD) { if (!base.animal) return no('kind'); }
     else if (isDungeon(n)) { const L = LANDS[n - DUNGEON]; if (base.animal || ![...L.mobs, L.boss].some(m => m.kind === a.kind && m.key === a.key && (m === L.boss) === a.boss)) return no('kind'); mem.dungeon?.sids?.add(a.sid); }   // (the wave counts even when this kill's pay is refused below: area skills drop a whole wave at once)
