@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Mourncrown หลังบ้าน</title>
+<style>
+  /* The back office (director): everything in the game, for the admin accounts only. The server checks every request
+     (server/worker.ts /admin/*); this page holds no secret — it uses the game's own sign-in on this device.
+     Layout (director 16 Nov): a side menu in clear groups, every page says what it is for, "things to look at" first. */
+  :root { --bg:#f3f5fa; --card:#ffffff; --line:#e3e7f0; --text:#1f2433; --dim:#7a8299; --gold:#c98a00; --red:#e04848; --green:#1f9d63; --blue:#4a6cf7;
+    --side:#ffffff; --soft:#eef2ff; --th:#f6f8fc; --inp:#ffffff; --hover:#f2f5ff; --shadow:0 1px 3px rgba(20,30,60,.06),0 4px 14px rgba(20,30,60,.05); }
+  :root[data-theme="dark"] { --bg:#11131a; --card:#1a1d27; --line:#2a2f3d; --text:#e8ebf3; --dim:#8b93a8; --gold:#ffcc4a; --red:#ff6a5a; --green:#4cd08a; --blue:#7d95ff;
+    --side:#161922; --soft:#232a45; --th:#20242f; --inp:#12151d; --hover:#222838; --shadow:none; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  aside { background: var(--side); border-right: 1px solid var(--line); position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 16px 12px; overflow-y: auto; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; letter-spacing: .5px; padding: 2px 8px 14px; }
+  .brand i { width: 10px; height: 10px; border-radius: 3px; background: var(--blue); display: inline-block; } .brand small { font-weight: 500; font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .grp { font-size: 11px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: .6px; padding: 12px 10px 4px; }
+  nav button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: var(--text); border-radius: 10px; padding: 7px 10px; font: 500 14px system-ui; cursor: pointer; text-align: left; }
+  nav button:hover { background: var(--hover); }
+  nav button.on { background: var(--blue); color: #fff; box-shadow: 0 4px 12px rgba(74,108,247,.3); }
+  nav button .n { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: 700; text-align: center; background: #f5a623; color: #fff; }
+  nav button .n:empty { display: none; }
+  .foot { margin-top: auto; padding: 14px 8px 0; border-top: 1px solid var(--line); font-size: 12px; color: var(--dim); display: grid; gap: 8px; }
+  .foot .live { color: var(--green); } .foot .row { margin: 0; gap: 6px; }
+  .wrap { min-width: 0; }
+  .top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 16px 24px 10px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .top h1 { margin: 0; font-size: 20px; } .top .sub { color: var(--dim); font-size: 13px; }
+  .top .uid { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .desc { margin: 0 24px 4px; padding: 10px 14px; background: var(--soft); border-radius: 12px; font-size: 13px; color: var(--text); }
+  .btn { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px; font-size: 13px; cursor: pointer; font-weight: 500; }
+  .btn:hover { background: var(--hover); } .btn:disabled { opacity: .45; cursor: default; }
+  .btn.red { background: #fdecec; border-color: #f4bcbc; color: #b42318; } .btn.green { background: var(--blue); border-color: var(--blue); color: #fff; }
+  :root[data-theme="dark"] .btn.red { background: #4a1d1d; border-color: #7a2e2e; color: #ffb4a8; }
+  main { padding: 10px 24px 48px; max-width: 1280px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+  .stat, .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .stat .v { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.2; } .stat .k { color: var(--dim); font-size: 12px; }
+  .stat .k:first-child { font-weight: 600; color: var(--text); font-size: 13px; margin-bottom: 4px; }
+  .alerts { border-left: 4px solid #f5a623; margin-bottom: 16px; } .alerts h3 { margin: 0 0 8px; font-size: 16px; }
+  .alert { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: var(--th); margin-top: 6px; font-size: 13px; cursor: pointer; }
+  .alert:hover { background: var(--hover); } .alert b { margin-left: auto; color: var(--blue); font-weight: 600; } .alert.ok { cursor: default; color: var(--green); }
+  h2 { font-size: 16px; color: var(--text); margin: 24px 0 10px; }
+  .tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; font-size: 13px; }
+  tr:last-child td { border-bottom: 0; }
+  th { background: var(--th); color: var(--dim); font-weight: 600; position: sticky; top: 0; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: var(--hover); }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; background: var(--th); border: 1px solid var(--line); }
+  .tag.vip { background: #efe5ff; color: #6b3fd4; border-color: #dccbff; } .tag.ban { background: #fde2e2; color: #b42318; border-color: #f4bcbc; }
+  .tag.mute { background: #fff3d6; color: #9a6700; border-color: #f5dc9a; } .tag.g { background: #e3efff; color: #1d5fc4; border-color: #c4dcff; }
+  :root[data-theme="dark"] .tag { color: var(--text); background: var(--th); border-color: var(--line); }
+  .bar { height: 8px; background: var(--th); border-radius: 4px; overflow: hidden; margin-top: 8px; } .bar i { display: block; height: 100%; background: var(--green); }
+  input, select, textarea, #gNote { background: var(--inp) !important; color: var(--text) !important; border: 1px solid var(--line) !important; border-radius: 9px !important; padding: 7px 10px; font: 14px system-ui; }
+  input[type=file] { border: 0 !important; padding: 0; }
+  label { font-size: 13px; color: var(--dim); }
+  input[type=search] { width: min(320px, 100%); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .dim { color: var(--dim); } .msg { padding: 60px 10px; text-align: center; color: var(--dim); }
+  section.box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 18px 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 16px; width: min(780px, 94vw); max-height: 88vh; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(15,20,35,.45); }
+  .dh { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card); }
+  .db { padding: 14px 18px; overflow: auto; max-height: calc(88vh - 60px); }
+  pre { background: var(--th); border: 1px solid var(--line); border-radius: 10px; padding: 10px; overflow: auto; max-height: 300px; font-size: 12px; }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 13px; } .kv div:nth-child(odd) { color: var(--dim); }
+  @media (max-width: 820px) {
+    .app { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 10px; gap: 4px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .brand { width: 100%; padding-bottom: 6px; } .grp { display: none; } nav { display: flex; flex-wrap: wrap; gap: 4px; }
+    nav button { width: auto; padding: 7px 10px; font-size: 13px; } .foot { width: 100%; border: 0; padding: 6px 0 0; grid-auto-flow: column; justify-content: start; }
+    .top, main { padding-left: 16px; padding-right: 16px; } .desc { margin: 0 16px 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><i></i>MOURNCROWN <small>หลังบ้าน</small></div>
+    <nav id="tabs"></nav>
+    <div class="foot">
+      <span><span class="live">●</span> สด • <span id="upd">-</span></span>
+      <div class="row"><button class="btn" id="pause" title="หยุด/เริ่ม รีเฟรชเอง">⏸ หยุด</button><button class="btn" id="reload" title="โหลดใหม่ (R)">↻</button><button class="btn" id="theme" title="สว่าง / มืด">☾</button></div>
+      <span>กด 1–9 เปลี่ยนหน้า • R โหลดใหม่</span>
+    </div>
+  </aside>
+  <div class="wrap">
+    <div class="top"><h1 id="ttl">ภาพรวม</h1><span class="sub" id="tsub"></span>
+      <span class="uid"><input type="search" id="uid" placeholder="🆔 วางรหัสผู้เล่น (UID)" style="width:min(240px,100%)"><button class="btn green" id="uidGo">🔎 เปิดผู้เล่น / ส่งของ</button></span></div>
+    <div class="desc" id="desc"></div>
+    <main id="main"><div class="msg">กำลังโหลด...</div></main>
+  </div>
+</div>
+<dialog id="dlg"><div class="dh"><b id="dt"></b><button class="btn" onclick="dlg.close()">ปิด</button></div><div class="db" id="dbody"></div></dialog>
+<script>
+const SERVER = ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('srv') === 'local' ? 'http://127.0.0.1:8787' : 'https://mourncrown.egowenit.workers.dev';   // (?srv=local: a local test copy, this machine only)
+let token = ''; try { token = JSON.parse(localStorage.getItem('mc_cloud') || 'null')?.token || ''; } catch {}
+const $ = id => document.getElementById(id), main = $('main');
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => (Number(v) || 0).toLocaleString('th-TH');
+const when = t => { if (!t) return '-'; const d = (Date.now() - t) / 1000; if (d < 60) return 'เมื่อกี้'; if (d < 3600) return Math.floor(d / 60) + ' นาทีที่แล้ว'; if (d < 86400) return Math.floor(d / 3600) + ' ชม.ที่แล้ว'; return new Date(t).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }); };
+const CLS = { novice: 'ชาวบ้าน', sword: 'ดาบ', archer: 'ธนู', mage: 'เวท', cleric: 'ผู้พิทักษ์' };
+const tags = r => [r.google ? '<span class="tag g">Google</span>' : '<span class="tag">แขก</span>', (r.vip || 0) > Date.now() ? '<span class="tag vip">VIP</span>' : '', r.banned ? '<span class="tag ban">แบน</span>' : '', (r.muted_until || 0) > Date.now() ? '<span class="tag mute">ปิดแชต</span>' : ''].join(' ');
+async function api(path, body) {
+  const r = await fetch(SERVER + path, { method: body ? 'POST' : 'GET', headers: { 'x-mc-token': token, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401 || r.status === 403) throw new Error('admin');
+  return r.json();
+}
+// the side menu (director 16 Nov): grouped, and every page says what it is for and how to use it
+const TABS = [
+  ['overview', '📊', 'ภาพรวม', 'ภาพรวม', 'ดูก่อนทุกครั้ง: กล่อง "สิ่งที่ต้องดู" บอกเรื่องที่ควรจัดการ (แตะเพื่อไปหน้านั้น) • ตัวเลขสำคัญของเซิร์ฟ • ใครออนไลน์อยู่ (แตะชื่อเพื่อดูรายละเอียด) • หน้านี้รีเฟรชเองทุก 30 วินาที'],
+  ['players', '👥', 'ผู้เล่น', 'ผู้เล่น', 'ค้นหาผู้เล่นด้วยชื่อหรือรหัส (UID) • แตะแถวเพื่อเปิด: ดูของ/ทอง/เพชร, ส่งของให้รายคน, แบน/ปิดแชต, ดูเพื่อนที่ชวน • บัญชีทดสอบซ่อนไว้ (กดปุ่มเพื่อแสดง)'],
+  ['reports', '🚩', 'รายงานแชต', 'ผู้เล่น', 'ข้อความแชตที่ผู้เล่นกดรายงาน • ถูกรายงาน 3 คนในวันเดียว = ปิดแชตเอง 1 วัน • แตะแถวเพื่อเปิดผู้เล่นแล้วแบน/ปิดแชตเพิ่ม'],
+  ['flags', '🛡', 'กันโกง', 'ผู้เล่น', 'สิ่งที่ระบบกันโกงจับได้ (ทอง/เลเวลพุ่งผิดปกติ, แก้เพชร/VIP เอง) และบันทึกสิ่งที่แอดมินทำ • แตะแถวเพื่อเปิดผู้เล่น'],
+  ['pay', '💳', 'เติมเงิน', 'เงิน & เศรษฐกิจ', 'รายได้จริง • ตั้ง QR รับเงิน • เปิด/ปิดระบบเติมเงิน • รายการที่ "ตรวจผ่านแต่ยังไม่ได้เพชร" กดส่งเพชรซ้ำได้'],
+  ['sup', '👑', 'ผู้สนับสนุน', 'เงิน & เศรษฐกิจ', 'ขั้นผู้สนับสนุน (ผู้ร่วมสร้างตำนาน): ตั้งช่วงวันที่นับยอด (ช่วง OBT) • ดูว่าใครสนับสนุนเท่าไร ขั้นไหน • ลดยอดเองเมื่อมีการคืนเงิน'],
+  ['econ', '💰', 'เศรษฐกิจ', 'เงิน & เศรษฐกิจ', 'ทองในเกมเฟ้อหรือฝืด • ทองมาจากไหน/ไปไหน • ใครได้ทองมากสุด (แตะเพื่อดูที่มา) • ราคาตลาด • เลือกดู วันนี้ / 7 วัน / 30 วัน'],
+  ['market', '🏪', 'ตลาด', 'เงิน & เศรษฐกิจ', 'ของที่ผู้เล่นลงขายในตลาดกลาง ทั้งที่วางขาย ขายแล้ว และหมดเวลา (ดูอย่างเดียว)'],
+  ['guilds', '🏛', 'กิลด์', 'ชุมชน', 'รายชื่อกิลด์ทั้งหมด หัวหน้า สมาชิก เลเวลหอกิลด์ คะแนนสัปดาห์ และโล่ (ดูอย่างเดียว)'],
+  ['ann', '📢', 'ประกาศในเกม', 'เครื่องมือแอดมิน', 'ข้อความสั้นขึ้นแถบทองใต้ชื่อแผนที่ของทุกคน ไม่บังจอ • ใช้แจ้งปิดปรับปรุง กิจกรรม • ตั้งเวลาแสดงได้ ยกเลิกได้'],
+  ['mail', '📬', 'จดหมายถึงทุกคน', 'เครื่องมือแอดมิน', 'ส่งจดหมาย + ของ (ทอง ทรัพยากร ไอเทม) ให้ผู้เล่นทุกคน ใช้แจกรางวัล/ชดเชย • ⚠ ส่งแล้วยกเลิกไม่ได้ • ส่งให้รายคน: ไปที่หน้าผู้เล่น'],
+  ['raid', '⚔', 'มอนบุกหมู่บ้าน', 'เครื่องมือแอดมิน', 'มอนบุกหมู่บ้านกลางอัตโนมัติวันละ 3 รอบ (12:00 • 18:00 • 21:00) • แทรกรอบพิเศษ / ยกเลิก • ซ่อมหรือทำให้อาคารกลางพัง (ทดสอบ)'],
+  ['move', '🔁', 'ย้ายตัวละคร', 'เครื่องมือแอดมิน', 'ใช้เมื่อผู้เล่นย้ายเครื่องแล้วไม่มีทางเข้าเอง (ปกติผู้เล่นใช้ "📱 โค้ดย้ายเครื่อง" หรือ Google ได้เอง) • บัญชีเดิมจะถูกปิดกันของซ้ำ'],
+  ['obt', '🧹', 'ปิดเซิร์ฟ & ล้างข้อมูล', 'เครื่องมือแอดมิน', 'วันเปิด OBT: 1) ปิดปรับปรุง (เตะทุกคนออก) 2) ติ๊กของที่จะเก็บ → ดูยอดก่อน 3) ล้างข้อมูล (สำรองให้อัตโนมัติ) 4) เปิดเซิร์ฟ • กู้คืนจากสำรองได้'],
+  ['gw', '🧪', 'ทดสอบกิลด์วอ', 'เครื่องมือแอดมิน', 'สร้างกิลด์บอทไว้ทดสอบสงคราม (ผู้เล่นไม่เห็น) • อัปกิลด์แอดมินเต็มสูบ / คืนค่า • ใส่บอทเป็นเป้า หรือให้บอทบุกกิลด์แอดมิน'],
+];
+const MAIL_TABS = ['mail', 'ann', 'raid', 'move'];
+let tab = 'overview', timer = 0, q = '', sort = 'seen', page = 0, showTests = false, paused = false;
+const badges = {};
+function drawNav() {
+  let g = '', h = '';
+  TABS.forEach(([k, ic, n, grp], i) => { if (grp !== g) { g = grp; h += `<div class="grp">${grp}</div>`; } h += `<button data-k="${k}" class="${k === tab ? 'on' : ''}" title="กด ${i < 9 ? i + 1 : ''}"><span>${ic}</span><span>${n}</span><span class="n">${badges[k] || ''}</span></button>`; });
+  $('tabs').innerHTML = h;
+}
+drawNav();
+$('tabs').onclick = e => { const k = e.target.closest('button')?.dataset?.k; if (k) go(k); };
+function go(k) { tab = k; page = 0; show(); }
+document.addEventListener('keydown', e => { if (e.target.closest('input,textarea,select') || e.ctrlKey || e.metaKey) return; const n = Number(e.key); if (n >= 1 && n <= 9 && TABS[n - 1]) go(TABS[n - 1][0]); if (e.key === 'r' || e.key === 'R') show(); });
+$('reload').onclick = () => show();
+$('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? '▶ เริ่ม' : '⏸ หยุด'; if (!paused) show(); };
+const setTheme = t => { document.documentElement.dataset.theme = t; $('theme').textContent = t === 'dark' ? '☀' : '☾'; try { localStorage.setItem('mc_admin_theme', t); } catch {} };
+try { setTheme(localStorage.getItem('mc_admin_theme') || 'light'); } catch { setTheme('light'); }
+$('theme').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+const playerRow = r => `<tr class="click" data-id="${esc(r.id)}"><td>${r.test ? '🧪 ' : ''}${esc(r.name || '(ยังไม่ตั้งชื่อ)')}</td><td>${r.lv ?? '-'}</td><td>${esc(CLS[r.cls] || r.cls || '-')}${r.tier ? ' ร่าง ' + (r.tier + 1) : ''}</td><td>${num(r.gold)}</td><td>${num(r.diamonds)}</td><td>${tags(r)}</td><td>${when(r.seen)}</td><td class="dim">${when(r.created)}</td></tr>`;
+const playerTable = rows => `<div class="tw"><table><tr><th>ชื่อ</th><th>Lv</th><th>อาชีพ</th><th>ทอง</th><th>💎</th><th>สถานะ</th><th>เข้าล่าสุด</th><th>สมัคร</th></tr>${rows.map(playerRow).join('') || '<tr><td colspan="8" class="dim">ไม่มี</td></tr>'}</table></div>`;
+// ---- 💰 the economy (server/worker.ts /admin/econ + the `econ` ledger): what inflates, where gold comes from, who earns ----
+let econDays = 7;
+const SRC = { kill: 'ฆ่ามอน', roomKill: 'ฆ่ามอน (แมพรวม)', wbKill: 'บอสเร่ร่อน', botKill: 'ฆ่ามอน', pickup: 'เก็บของดรอป', gather: 'เก็บทรัพยากรในป่า', sell: 'ขายของให้ร้าน', sellJunk: 'ขายของขยะให้ร้าน',
+  shopBuy: 'ซื้อของร้าน', autoPotion: 'ซื้อยาอัตโนมัติ', vipBuyPotion: 'ซื้อยา (VIP)', upgradeItem: 'ตีบวกอุปกรณ์', dismantle: 'ย่อยอุปกรณ์', craft: 'ตีอุปกรณ์ (โรงตีเหล็ก)', cook: 'ทำอาหาร', brew: 'ปรุงยา',
+  build: 'สร้างอาคาร', upgradeBuilding: 'อัปอาคาร', collect: 'เก็บผลผลิตอาคาร', claimTdQuest: 'รางวัลเควส', completeQuest: 'รางวัลเควส', achClaim: 'รางวัลความสำเร็จ', loginClaim: 'รางวัลล็อกอินรายวัน',
+  tutorialDone: 'จบบทสอน', dungeonClear: 'ดันเจี้ยน', mailClaim: 'จดหมาย / ของจากแอดมิน', cbtClaim: 'ของขวัญ CBT', marketBuy: 'ซื้อในตลาด (จ่ายผู้เล่น)', marketSold: 'ขายในตลาด (ได้จากผู้เล่น)',
+  marketList: 'ลงขายตลาด', marketCancel: 'ยกเลิกขาย', donate: 'บริจาคกิลด์', guildCreate: 'ตั้งกิลด์', guildUpgrade: 'อัปกิลด์', guildShop: 'ร้านกิลด์', houseBuild: 'บ้านในกิลด์', bldRepair: 'ซ่อมอาคารกิลด์',
+  houseRepair: 'ซ่อมบ้านกิลด์', hireGuard: 'จ้างทหาร', defBuild: 'ป้อมกิลด์', defUpgrade: 'อัปป้อม', defRepair: 'ซ่อมป้อม', raidEnd: 'ปล้นหมู่บ้าน', warEnd: 'สงครามกิลด์', warDone: 'สงครามกิลด์', seasonClaim: 'รางวัลฤดูกาล',
+  mountBuy: 'ซื้อสัตว์ขี่', buyDiamond: 'ซื้อของร้านเพชร', topup: '💳 เติมเงินจริง', vipGift: 'ของขวัญ VIP', supplyTick: 'เสบียงบนแมพ', upSkill: 'อัปสกิล', advanceClass: 'เปลี่ยนร่าง', adminKit: 'ชุดแอดมิน', bountySpawn: 'ค่าหัว',
+  sleep: 'นอนพัก', useItem: 'ใช้ไอเทม', stashPut: 'หีบเก็บของ', stashTake: 'หีบเก็บของ', dev: 'ปุ่มทดสอบ (แอดมิน)', wheelSpin: 'กงล้อนำโชค (ทอง)', dwheelSpin: 'กงล้อเพชร', starTrade: 'แลกเหรียญดาว' };
+const srcName = k => SRC[k] ? `${SRC[k]} <span class="dim" style="font-size:11px">${esc(k)}</span>` : esc(k);
+const sgn = v => { v = Math.round(Number(v) || 0); return v > 0 ? `<span style="color:var(--green)">+${num(v)}</span>` : v < 0 ? `<span style="color:var(--red)">−${num(-v)}</span>` : '<span class="dim">0</span>'; };
+function econVerdict(inn, out) {   // gold made vs gold removed (player-to-player market money cancels out)
+  if (!inn && !out) return ['⚪', 'ยังไม่มีข้อมูล', 'ระบบเพิ่งเริ่มบันทึก — รอผู้เล่นเล่นสักพัก'];
+  if (inn + out < 50000) return ['⚪', 'ข้อมูลยังน้อย', `มีการเคลื่อนไหวของทองแค่ ${num(inn + out)} — รอเก็บข้อมูลสักวันก่อน ค่อยอ่านว่าเฟ้อหรือสมดุล`];
+  const r = out ? inn / out : 99;
+  if (r > 1.5) return ['🔴', 'เฟ้อ', `ทองถูกสร้างมากกว่าที่ถูกใช้ออก ${r.toFixed(1)} เท่า — ทองสะสมในเกมเร็ว ราคาของจะค่อยๆ แพงขึ้น ควรเพิ่มที่ใช้ทอง หรือลดทองจากแหล่งหลัก`];
+  if (r > 1.1) return ['🟡', 'เพิ่มขึ้นช้าๆ', `ทองเข้า ${r.toFixed(2)} เท่าของทองออก — ปกติของเกมช่วงแรก (ผู้เล่นยังเก็บสะสม) จับตาดูต่อ`];
+  if (r >= 0.8) return ['🟢', 'สมดุล', `ทองเข้า/ออกใกล้กัน (${r.toFixed(2)} เท่า)`];
+  return ['🔵', 'ฝืด', `ทองถูกใช้ออกมากกว่าที่ได้ (${r.toFixed(2)} เท่า) — ผู้เล่นอาจรู้สึกจน ของแพงเกินไป`];
+}
+function econHtml(d) {
+  const tot = k => d.bySrc.reduce((t, r) => t + (Number(r[k]) || 0), 0), sold = Number(d.bySrc.find(r => r.src === 'marketSold')?.g_in) || 0;
+  const inn = tot('g_in') - sold, out = tot('g_out') - sold, [ic, word, why] = econVerdict(inn, out);
+  const snaps = d.snaps.slice().reverse(), first = snaps.find(x => x.day >= d.since) || snaps[0], last = snaps[snaps.length - 1];
+  const per = x => x && x.players ? x.gold / x.players : 0, grow = first && last && first !== last && per(first) ? ((per(last) / per(first) - 1) * 100) : null;
+  const resV = (k, name) => { const v = tot(k); return `<div class="stat"><div class="k">${name} สุทธิ ${d.days} วัน</div><div class="v" style="font-size:17px">${sgn(v)}</div><div class="k">${v > 0 ? 'สะสมเพิ่ม (ผลิต > ใช้)' : v < 0 ? 'ถูกใช้มากกว่าผลิต' : '-'} • ทั้งเกมมี ${num(d.now[k])}</div></div>`; };
+  const maxIn = Math.max(1, ...d.byDay.map(r => Math.max(Number(r.g_in) || 0, Number(r.g_out) || 0)));
+  const medTop = d.top.length ? d.top.map(t => t.g_in).sort((a, b) => a - b)[Math.floor(d.top.length / 2)] : 0;
+  return `<div class="row">${[1, 7, 30].map(n => `<button class="btn${econDays === n ? ' green' : ''}" data-days="${n}">${n === 1 ? 'วันนี้' : n + ' วัน'}</button>`).join('')}
+      <span class="dim" style="font-size:12px">เริ่มบันทึกที่มาของทองตั้งแต่ 13 พ.ย. 2026 (ก่อนหน้านั้นไม่มีข้อมูล) • ไม่นับบัญชีทดสอบและแอดมิน</span></div>
+    <div class="stat" style="margin-bottom:10px"><div class="k">สถานะเศรษฐกิจทอง (${d.days === 1 ? 'วันนี้' : d.days + ' วันล่าสุด'})</div><div class="v">${ic} ${word}</div><div style="font-size:13px">${why}</div>
+      <div class="k" style="margin-top:6px">ทองเกิดใหม่ ${num(inn)} • ทองถูกใช้ออก ${num(out)} • ซื้อขายระหว่างผู้เล่น ${num(sold)} (ย้ายมือ ไม่ได้สร้างใหม่)${grow !== null ? ` • ทองเฉลี่ยต่อคน ${grow >= 0 ? '+' : ''}${grow.toFixed(0)}% ตั้งแต่ ${first.day}` : ''}</div></div>
+    <div class="grid">
+      <div class="stat"><div class="k">ทองทั้งเกมตอนนี้</div><div class="v">💰 ${num(d.now.gold)}</div><div class="k">${num(d.now.players)} คน • เฉลี่ย ${num(Math.round(d.now.gold / Math.max(1, d.now.players)))} • มัธยฐาน ${num(d.now.med)}</div></div>
+      <div class="stat"><div class="k">เพชรทั้งเกม</div><div class="v">💎 ${num(d.now.dia)}</div><div class="k">เข้า ${num(tot('d_in'))} • ใช้ ${num(tot('d_out'))} (${d.days} วัน)</div></div>
+      ${resV('wood', '🪵 ไม้')}${resV('stone', '🪨 หิน')}${resV('food', '🍖 อาหาร')}
+    </div>
+    <h2>📊 ทองเข้า / ออก รายวัน</h2>
+    <div class="tw"><table><tr><th>วัน</th><th>ทองเข้า</th><th></th><th>ทองออก</th><th>สุทธิ</th><th>คนเล่น</th></tr>${d.byDay.map(r => `<tr><td>${r.day}</td><td>${num(r.g_in)}</td><td style="width:40%"><div class="bar" style="margin:0"><i style="width:${100 * r.g_in / maxIn}%"></i></div><div class="bar" style="margin:2px 0 0"><i style="width:${100 * r.g_out / maxIn}%;background:var(--red)"></i></div></td><td>${num(r.g_out)}</td><td>${sgn(r.g_in - r.g_out)}</td><td>${r.who}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ยังไม่มีข้อมูล</td></tr>'}</table></div>
+    <h2>🔎 ทองมาจากไหน / ไปไหน (${d.days === 1 ? 'วันนี้' : d.days + ' วัน'})</h2>
+    <div class="tw"><table><tr><th>แหล่ง</th><th>ทองเข้า</th><th>ทองออก</th><th>💎 เข้า/ออก</th><th>🪵</th><th>🪨</th><th>🍖</th><th>ครั้ง</th><th>คน</th></tr>${d.bySrc.map(r => `<tr><td>${srcName(r.src)}</td><td>${r.g_in ? num(r.g_in) : '-'}</td><td>${r.g_out ? num(r.g_out) : '-'}</td><td>${r.d_in || r.d_out ? `${num(r.d_in)} / ${num(r.d_out)}` : '-'}</td><td>${sgn(r.wood)}</td><td>${sgn(r.stone)}</td><td>${sgn(r.food)}</td><td>${num(r.n)}</td><td>${r.who}</td></tr>`).join('') || '<tr><td colspan="9" class="dim">ยังไม่มีข้อมูล — ข้อมูลเข้าทุก 5 นาทีที่ผู้เล่นเล่นอยู่</td></tr>'}</table></div>
+    <h2>🏆 ใครได้ทองมากสุด (${d.days === 1 ? 'วันนี้' : d.days + ' วัน'}) — แตะเพื่อดูที่มาของคนนั้น</h2>
+    <div class="tw"><table><tr><th>ชื่อ</th><th>Lv</th><th>ทองเข้า</th><th>ทองออก</th><th>แหล่งหลัก</th><th></th></tr>${d.top.map(t => `<tr class="click" data-id="${esc(t.id)}"><td>${esc(t.name || '(ไม่มีชื่อ)')}</td><td>${t.lv ?? '-'}</td><td>${num(t.g_in)}</td><td>${num(t.g_out)}</td><td>${SRC[t.main] || esc(t.main)}</td><td>${medTop && t.g_in > medTop * 5 && t.g_in > 20000 ? '<span class="tag ban">⚠ สูงผิดปกติ</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ยังไม่มีข้อมูล</td></tr>'}</table></div>
+    <h2>💎 รวยสุดตอนนี้</h2>
+    <div class="tw"><table><tr><th>ชื่อ</th><th>ทอง</th><th>เพชร</th></tr>${d.rich.map(r => `<tr class="click" data-id="${esc(r.id)}"><td>${esc(r.name || '(ไม่มีชื่อ)')}</td><td>${num(r.gold)}</td><td>${num(r.dia)}</td></tr>`).join('')}</table></div>
+    <h2>🏪 ราคาตลาด (ขายได้จริง) — ช่วงนี้เทียบช่วงก่อน</h2>
+    <div class="tw"><table><tr><th>ไอเทม</th><th>ขายได้</th><th>ราคาเฉลี่ย</th><th>ช่วงก่อน</th><th>เปลี่ยน</th></tr>${d.market.map(m => `<tr><td>${esc(m.name)}</td><td>${m.n}</td><td>${m.n ? num(m.avg) : '-'}</td><td>${m.pn ? num(m.pavg) : '-'}</td><td>${m.n && m.pn ? (m.avg > m.pavg * 1.2 ? '🔴 แพงขึ้น ' : m.avg < m.pavg * 0.8 ? '🔵 ถูกลง ' : '🟢 ') + Math.round((m.avg / m.pavg - 1) * 100) + '%' : '-'}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มีการซื้อขาย</td></tr>'}</table></div>
+    <h2>🗓 ภาพรวมรายวัน (ถ่ายตอนเปิดหน้านี้ วันละ 1 แถว)</h2>
+    <div class="tw"><table><tr><th>วัน</th><th>ผู้เล่น</th><th>ทองรวม</th><th>เฉลี่ย/คน</th><th>มัธยฐาน</th><th>💎</th><th>🪵</th><th>🪨</th><th>🍖</th></tr>${d.snaps.map(x => `<tr><td>${x.day}</td><td>${x.players}</td><td>${num(x.gold)}</td><td>${num(Math.round(x.gold / Math.max(1, x.players)))}</td><td>${num(x.med_gold)}</td><td>${num(x.dia)}</td><td>${num(x.wood)}</td><td>${num(x.stone)}</td><td>${num(x.food)}</td></tr>`).join('')}</table></div>`;
+}
+async function show() {
+  clearTimeout(timer);
+  const T = TABS.find(t => t[0] === tab) || TABS[0];
+  $('ttl').textContent = T[1] + ' ' + T[2]; $('tsub').textContent = T[3]; $('desc').textContent = T[4]; drawNav();
+  if (!token) { main.innerHTML = '<div class="msg">ยังไม่ได้ล็อกอินในเครื่องนี้<br>เปิดเกมแล้ว<b>ล็อกอิน Google ด้วยบัญชีแอดมิน</b>ก่อน แล้วกลับมาหน้านี้</div>'; return; }
+  try {
+    if (tab === 'overview') {
+      const o = await api('/admin/overview'), cap = o.limits.dayHours ? Math.min(100, o.hoursToday / o.limits.dayHours * 100) : 0;
+      let unpaid = 0; try { const pd = await api('/admin/pay'); unpaid = (pd.rows || []).filter(r => r.status === 'paid').length; } catch {}
+      // "things to look at" (director: like the sample — what needs the admin, first)
+      const al = [];
+      if (unpaid) al.push(['💳', `มีการเติมเงิน ${unpaid} รายการที่ตรวจผ่านแล้วแต่ผู้เล่นยังไม่ได้เพชร — กดส่งเพชรอีกครั้ง`, 'pay']);
+      if (o.reports) al.push(['🚩', `มีรายงานแชต ${o.reports} เรื่องใน 24 ชม.`, 'reports']);
+      if (o.flags) al.push(['🛡', `ระบบกันโกงจับได้ ${o.flags} เรื่องใน 24 ชม.`, 'flags']);
+      if (cap > 85) al.push(['⏱', `ชั่วโมงเล่นวันนี้ใช้ไป ${Math.round(cap)}% ของเพดาน — ใกล้เต็ม ผู้เล่นใหม่อาจเข้าไม่ได้`, 'overview']);
+      if (o.limits.maxOnline && o.online >= o.limits.maxOnline * 0.9) al.push(['🟢', `คนออนไลน์ ${o.online} ใกล้เพดาน ${o.limits.maxOnline} คน`, 'overview']);
+      badges.overview = al.length || ''; badges.reports = o.reports || ''; badges.flags = o.flags || ''; badges.pay = unpaid || ''; drawNav();
+      const card = (k, v, sub, extra = '') => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="k">${sub}</div>${extra}</div>`;
+      main.innerHTML = `<div class="card alerts"><h3>สิ่งที่ต้องดู (${al.length})</h3>${al.length ? al.map(a => `<div class="alert" data-go="${a[2]}">${a[0]} <span>${a[1]}</span><b>ดู →</b></div>`).join('') : '<div class="alert ok">✅ ไม่มีเรื่องที่ต้องจัดการตอนนี้</div>'}</div>
+      <div class="grid">
+        ${card('🟢 ออนไลน์ตอนนี้', `${o.online}${o.limits.maxOnline ? '<span class="dim" style="font-size:15px"> / ' + o.limits.maxOnline + '</span>' : ''}`, 'คนที่เปิดเกมอยู่ตอนนี้')}
+        ${card('⏱ ชั่วโมงเล่นวันนี้', `${o.hoursToday}<span class="dim" style="font-size:15px"> / ${o.limits.dayHours || '∞'} ชม.</span>`, 'เพดานค่าเซิร์ฟ • รีเซ็ต 07:00', `<div class="bar"><i style="width:${cap}%;background:${cap > 85 ? 'var(--red)' : cap > 60 ? 'var(--gold)' : 'var(--green)'}"></i></div>`)}
+        ${card('👥 เข้าเล่นใน 24 ชม.', num(o.activeToday), 'ผู้เล่นจริงที่เข้าเกม')}
+        ${card('🆕 สมัครใหม่ 24 ชม.', num(o.newToday), 'บัญชีใหม่วันนี้')}
+        ${card('🧑 ผู้เล่นจริงทั้งหมด', num(o.played), `เล่นเกิน 2 นาทีหรือผูก Google • Google ${num(o.google)}`)}
+        ${card('🗂 บัญชีที่มีตัวละคร', num(o.accounts), `ไม่มีตัวละคร ${num(o.nosave)} • 🧪 ทดสอบ ${num(o.tests)} (ซ่อน)`)}
+        ${card('🏛 กิลด์', num(o.guilds), 'กิลด์ทั้งหมดในเซิร์ฟ')}
+        ${card('🏪 ของวางขาย', num(o.market), 'ในตลาดกลางตอนนี้')}
+        ${card('🚩 รายงานแชต', `<span style="color:${o.reports ? 'var(--red)' : 'inherit'}">${num(o.reports)}</span>`, 'ใน 24 ชม.')}
+        ${card('🛡 กันโกงจับได้', `<span style="color:${o.flags ? 'var(--red)' : 'inherit'}">${num(o.flags)}</span>`, 'ใน 24 ชม.')}
+        ${card('⛔ ถูกแบน', num(o.banned), 'บัญชีที่แบนอยู่')}
+      </div>
+      <h2>👹 บอสเร่ร่อนตอนนี้</h2>
+      <div>${o.bosses.length ? o.bosses.map(b => `<span class="tag" style="background:#fde8e0;color:#a3341a;border-color:#f6c6b5;margin:2px;font-size:12px;padding:3px 10px">แผนที่ ${b.n} • ${esc(b.name)} • อีก ~${Math.max(1, Math.ceil(b.left / 60000))} นาที</span>`).join(' ') : '<span class="dim">ไม่มี</span>'}</div>
+      <h2>🟢 ใครออนไลน์อยู่ (${o.who.length})</h2>${playerTable(o.who)}`;
+      if (!paused) timer = setTimeout(show, 30000);
+    } else if (tab === 'pay') {   // 💳 top-ups (server/worker.ts /admin/pay*, src/systems/topup.ts)
+      const d = await api('/admin/pay'), WHY = { ok: '✅ ผ่าน', dup: 'สลิปซ้ำ', account: 'ไม่ได้โอนเข้าบัญชีเกม', amount: 'ยอดไม่ตรง', old: 'สลิปเก่า', bad: 'อ่านไม่ได้', image: 'รูปไม่ชัด/ไม่ใช่สลิป', service: '⚠️ ระบบตรวจสลิปขัดข้อง' };
+      const ST = { ok: '✅ ได้เพชรแล้ว', paid: '⚠️ ตรวจผ่าน แต่ยังไม่ได้เพชร' };
+      main.innerHTML = `<div class="grid">
+          <div class="stat"><div class="v">฿${num(d.today.thb)}</div><div class="k">เติม 24 ชม. (${num(d.today.n)} ครั้ง)</div></div>
+          <div class="stat"><div class="v">฿${num(d.sum.thb)}</div><div class="k">เติมทั้งหมด (${num(d.sum.n)} ครั้ง)</div></div>
+          <div class="stat"><div class="v" style="font-size:18px">${d.key ? '✅ ใส่แล้ว' : '❌ ยังไม่ใส่'}</div><div class="k">คีย์ตรวจสลิป (THUNDER_API_KEY ใน Cloudflare)</div></div>
+          <div class="stat"><div class="v" style="font-size:18px">${d.qr ? '✅ ' + esc(d.qr.kind) + ' …' + esc(d.qr.tail) : '❌ ยังไม่ตั้ง'}</div><div class="k">QR รับเงิน</div></div>
+          <div class="stat"><div class="v" style="font-size:18px;color:${d.open ? 'var(--green)' : 'var(--red)'}">${d.open ? '🟢 เปิดให้ทุกคน' : '🔒 เฉพาะแอดมิน'}</div><div class="k">สถานะระบบเติมเงิน</div></div>
+        </div>
+        <h2>🧾 ตั้ง QR รับเงิน</h2>
+        <p class="dim">เปิดแอปธนาคาร → รับเงิน / QR ของฉัน → บันทึกรูป QR (แบบไม่ระบุยอด) แล้วเลือกรูปที่นี่ • ระบบเก็บไว้บนเซิร์ฟเวอร์ ไม่อยู่ในโค้ด/GitHub • เกมจะใส่ยอดให้เองตามแพ็ก</p>
+        <div class="row"><input type="file" accept="image/*" id="qrFile"><span id="qrMsg" class="dim"></span></div>
+        <details><summary class="dim">อ่านรูปไม่ได้? วางข้อความ QR เอง</summary><div class="row"><input id="qrText" placeholder="000201..." style="width:min(520px,100%)"><button class="btn" id="qrSave">บันทึก</button></div></details>
+        <div class="row" style="margin-top:10px"><button class="btn ${d.open ? '' : 'green'}" id="payOpen" ${!d.open && (!d.qr || !d.key) ? 'disabled' : ''}>${d.open ? '🔒 ปิด (เหลือเฉพาะแอดมิน)' : '🟢 เปิดให้ผู้เล่นทุกคนเติมได้'}</button>
+          <span class="dim">ก่อนเปิด: ทดสอบเติมจริงด้วยบัญชีแอดมิน 1 ครั้ง (29 บาท) และลองสแกน QR จากแอปธนาคารอื่นด้วย</span></div>
+        <h2>💳 รายการเติมเงิน</h2>
+        <div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>แพ็ก</th><th>บาท</th><th>💎</th><th>สถานะ</th><th></th></tr>${d.rows.map(r => `<tr><td class="dim">${when(r.at)}</td><td>${esc(r.name || r.id)}</td><td>${esc(r.pack)}</td><td>฿${num(r.thb)}</td><td>${num(r.dia)}</td><td>${ST[r.status] || esc(r.status)}</td><td>${r.status === 'paid' ? `<button class="btn" data-ref="${esc(r.ref)}">ส่งเพชรอีกครั้ง</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="dim">ยังไม่มีการเติม</td></tr>'}</table></div>
+        <h2>🔎 การตรวจสลิปล่าสุด (รวมที่ไม่ผ่าน)</h2>
+        <div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>แพ็ก</th><th>ผล</th><th>รหัสจากระบบตรวจ</th></tr>${d.tries.map(r => `<tr><td class="dim">${when(r.at)}</td><td>${esc(r.name || r.id)}</td><td>${esc(r.pack)}</td><td>${WHY[r.why] || esc(r.why)}</td><td class="dim">${esc(r.code || '')}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มี</td></tr>'}</table></div>`;
+      const saveQr = async text => { const r = await api('/admin/payqr', { qr: text }); if (r.ok) { alert('บันทึก QR แล้ว: ' + r.qr.kind + ' …' + r.qr.tail); show(); } else alert('QR นี้ใช้ไม่ได้ (' + r.error + ') — ต้องเป็น QR รับเงินของธนาคารไทย/พร้อมเพย์'); };
+      $('qrFile').onchange = async () => {
+        const f = $('qrFile').files[0]; if (!f) return;
+        if (!('BarcodeDetector' in window)) { $('qrMsg').textContent = 'เบราว์เซอร์นี้อ่าน QR จากรูปไม่ได้ — ใช้ Chrome บนมือถือ Android หรือวางข้อความ QR ด้านล่าง'; return; }
+        try { const bmp = await createImageBitmap(f), codes = await new BarcodeDetector({ formats: ['qr_code'] }).detect(bmp);
+          if (!codes.length) { $('qrMsg').textContent = 'ไม่เจอ QR ในรูป — ลองรูปที่ชัดกว่านี้'; return; } await saveQr(codes[0].rawValue);
+        } catch (e) { $('qrMsg').textContent = 'อ่านรูปไม่ได้: ' + e; }
+      };
+      $('qrSave').onclick = () => saveQr($('qrText').value.trim());
+      $('payOpen').onclick = async () => { if (!d.open && !confirm('เปิดให้ผู้เล่นทุกคนเติมเงินจริงได้เลย?')) return; await api('/admin/payopen', { open: !d.open }); show(); };
+      main.querySelectorAll('[data-ref]').forEach(b => b.onclick = async () => { const r = await api('/admin/paycredit', { ref: b.dataset.ref }); alert(r.ok ? 'ส่งเพชรแล้ว' : 'ยังส่งไม่ได้ — ผู้เล่นต้องมีตัวละครบนเซิร์ฟ'); show(); });
+    } else if (tab === 'sup') {   // 👑 supporter tiers (server/worker.ts /admin/sup*, src/systems/supporter.ts)
+      const d = await api('/admin/sup'), day = t => t ? new Date(t + 7 * 3600000).toISOString().slice(0, 10) : '';
+      main.innerHTML = `<div class="grid">
+          <div class="stat"><div class="v" style="font-size:18px;color:${d.on ? 'var(--green)' : 'var(--red)'}">${d.on ? '🟢 กำลังนับยอด' : '⏸ ไม่ได้นับ'}</div><div class="k">${d.season ? 'ช่วงนับ ' + day(d.season.from) + ' ถึง ' + day(d.season.to) : 'ยังไม่ได้ตั้งช่วงนับ'}</div></div>
+          <div class="stat"><div class="v">${num(d.rows.length)}</div><div class="k">ผู้สนับสนุน</div></div>
+        </div>
+        <h2>📅 ช่วงวันที่นับยอด (เวลาไทย)</h2>
+        <p class="dim">นับเฉพาะเงินที่จ่ายจริง (สลิปตรวจผ่าน) ในช่วงนี้ • ของที่ได้ไปแล้วอยู่ถาวร • เว้นว่าง = ปิดการนับ</p>
+        <div class="row"><input type="date" id="supFrom" value="${day(d.season?.from)}"> ถึง <input type="date" id="supTo" value="${day(d.season?.to)}"><button class="btn green" id="supSave">บันทึก</button><button class="btn" id="supOff">ปิดการนับ</button></div>
+        <h2>👑 ใครสนับสนุนเท่าไร</h2>
+        <div class="tw"><table><tr><th>ผู้เล่น</th><th>ยอด (บาท)</th><th>ขั้น</th><th>บนกำแพง</th><th></th></tr>${d.rows.map(r => `<tr><td>${esc(r.name || r.id)}<div class="dim">${esc(r.id)}</div></td><td>฿${num(r.paid)}</td><td>${r.tier}/7</td><td>${r.wall ? '✅' : ''}</td><td><button class="btn" data-sid="${esc(r.id)}" data-paid="${r.paid}">แก้ยอด (คืนเงิน)</button></td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มี</td></tr>'}</table></div>`;
+      const at = v => v ? Date.parse(v + 'T00:00:00+07:00') : 0;
+      $('supSave').onclick = async () => { const from = at($('supFrom').value), to = at($('supTo').value) + 86400000; if (!from || to <= from) return alert('เลือกวันเริ่มและวันจบให้ถูก'); await api('/admin/sup', { from, to }); show(); };
+      $('supOff').onclick = async () => { if (!confirm('ปิดการนับยอดผู้สนับสนุน?')) return; await api('/admin/sup', { from: 0 }); show(); };
+      main.querySelectorAll('[data-sid]').forEach(b => b.onclick = async () => { const v = prompt('ยอดใหม่ (บาท) — ขั้นจะคิดใหม่จากยอดนี้', b.dataset.paid); if (v === null) return; const r = await api('/admin/supset', { id: b.dataset.sid, paid: Number(v) || 0 }); alert(r.ok ? 'แก้แล้ว: ขั้น ' + r.tier : 'ไม่สำเร็จ: ' + (r.error || '')); show(); });
+    } else if (tab === 'obt') {   // 🧹 OBT day (server/worker.ts /admin/obt, src/systems/obtWipe.ts)
+      const d = await api('/admin/obt'), m = d.maint || { on: false, msg: '', since: 0 };
+      const mins = m.on ? Math.floor((Date.now() - m.since) / 60000) : 0;
+      main.innerHTML = `<div class="grid">
+          <div class="stat"><div class="v" style="font-size:18px;color:${m.on ? 'var(--red)' : 'var(--green)'}">${m.on ? '🔧 ปิดปรับปรุงอยู่ (' + mins + ' นาที)' : '🟢 เซิร์ฟเปิดอยู่'}</div><div class="k">ผู้เล่นทั่วไปเข้าไม่ได้ตอนปิด • แอดมินเข้าได้</div></div>
+          <div class="stat"><div class="v">${num(d.counts.saves)}</div><div class="k">ตัวละครในฐานข้อมูล</div></div>
+          <div class="stat"><div class="v">${num(d.counts.guilds)}</div><div class="k">กิลด์</div></div>
+          <div class="stat"><div class="v">${num(d.counts.market)}</div><div class="k">ของวางขายในตลาด</div></div>
+          <div class="stat"><div class="v" style="font-size:16px">${d.wipeAt ? when(d.wipeAt) : '—'}</div><div class="k">ล้างข้อมูลครั้งล่าสุด</div></div>
+        </div>
+        <h2>1️⃣ ปิดปรับปรุง</h2>
+        <div class="row"><input id="mMsg" style="width:min(520px,100%)" placeholder="ข้อความบนจอผู้เล่น" value="${esc(m.msg || 'ปิดปรับปรุงเพื่อเตรียมเปิด OBT — กลับมาเร็ว ๆ นี้!')}">
+          <button class="btn ${m.on ? 'green' : ''}" id="mBtn">${m.on ? '🟢 เปิดเซิร์ฟ' : '🔧 ปิดปรับปรุง (เตะทุกคนออก)'}</button></div>
+        <h2>2️⃣ เลือกของที่จะ "เก็บไว้" <span class="dim" style="font-weight:400">(ที่ไม่ติ๊ก = ล้าง)</span></h2>
+        <div id="keeps">${d.opts.map(o => `<label style="display:block;margin:4px 0"><input type="checkbox" value="${o.id}" ${o.def ? 'checked' : ''}> ${esc(o.label)}</label>`).join('')}</div>
+        <p class="dim">เก็บเสมอ (ไม่ต้องติ๊ก): 💎 เพชร / สลิปเติมเงิน / ยอดเติมสะสม / ยอดผู้สนับสนุน • ล้างเสมอ: เลเวล EXP ทอง ไอเท็ม อุปกรณ์ ทรัพยากร หมู่บ้าน เควส ของในตลาด จดหมายถึงทุกคน • อาคารกลางซ่อมให้หมด</p>
+        <div class="row"><button class="btn" id="pBtn">🔍 ดูยอดก่อน (ยังไม่ล้าง)</button><span id="pOut" class="dim"></span></div>
+        <h2>3️⃣ ล้างข้อมูล</h2>
+        <p class="dim">ต้องปิดปรับปรุงอย่างน้อย 1 นาทีก่อน (ให้เกมทุกเครื่องเซฟและออกครบ) • ระบบสำรองข้อมูลให้อัตโนมัติก่อนล้าง</p>
+        <div class="row"><button class="btn" id="wBtn" style="background:#a3341a;color:#fff" ${m.on && mins >= 1 ? '' : 'disabled'}>🧹 ล้างข้อมูลผู้เล่นทั้งหมด</button><span id="wOut"></span></div>
+        <h2>📋 สรุปผู้เล่นที่มี สัตว์ขี่ / ปีก / เพชร</h2>
+        <div class="row"><select id="lSrc"><option value="">ตอนนี้</option>${d.backups.filter(t => t.endsWith('_saves')).map(t => `<option value="${esc(t)}">สำรอง ${esc(t)} (ก่อนล้าง)</option>`).join('')}</select>
+          <button class="btn" id="lBtn">📋 ดึงรายชื่อ</button><button class="btn" id="lCopy" style="display:none">📄 คัดลอกเป็นข้อความ</button><span id="lInfo" class="dim"></span></div>
+        <div id="lOut"></div>
+        <h2>↩️ กู้คืนตัวละครจากสำรอง</h2>
+        <div class="row">${d.backups.filter(t => t.endsWith('_saves')).map(t => `<button class="btn" data-rest="${esc(t)}">กู้คืน ${esc(t)}</button>`).join('') || '<span class="dim">ยังไม่มีสำรอง</span>'}</div>
+        <p class="dim">กู้คืนเฉพาะตัวละคร (กิลด์ / ตลาด / ชื่อ ไม่กลับ) • ต้องปิดปรับปรุงอยู่</p>`;
+      const keep = () => [...main.querySelectorAll('#keeps input:checked')].map(i => i.value);
+      $('mBtn').onclick = async () => { if (!m.on && !confirm('ปิดเซิร์ฟเลย? ผู้เล่นที่ออนไลน์จะถูกเตะออกทันที')) return; await api('/admin/obt', { action: 'maint', on: !m.on, msg: $('mMsg').value }); show(); };
+      $('pBtn').onclick = async () => { $('pOut').textContent = 'กำลังนับ...'; const r = await api('/admin/obt', { action: 'preview', keep: keep() }); const x = r.sum;
+        $('pOut').innerHTML = `ตัวละคร <b>${num(x.players)}</b> • เพชรที่เก็บไว้ <b>${num(x.diaKept)}</b> • VIP ที่ยังมีวัน <b>${num(x.vipKept)}</b> คน • ปีกที่เก็บ <b>${num(x.wingsKept)}</b> • สัตว์ขี่ที่เก็บ <b>${num(x.mountsKept)}</b> • ทองที่จะหายรวม <b>${num(x.goldGone)}</b> • เลเวลสูงสุดตอนนี้ ${x.topLevel}`; };
+      $('wBtn').onclick = async () => {
+        const k = keep(), names = [...main.querySelectorAll('#keeps input:checked')].map(i => i.parentElement.textContent.trim());
+        if (!confirm('ล้างข้อมูลผู้เล่นทั้งหมด?\n\nเก็บไว้:\n- ' + (names.join('\n- ') || '(ไม่มี)') + '\n\nที่เหลือหายหมด (มีสำรอง)')) return;
+        if (prompt('พิมพ์คำว่า ล้างข้อมูล เพื่อยืนยัน') !== 'ล้างข้อมูล') return alert('ยกเลิก');
+        $('wOut').textContent = ' กำลังล้าง... อย่าปิดหน้านี้';
+        const r = await api('/admin/obt', { action: 'wipe', keep: k, confirm: 'ล้างข้อมูล' });
+        alert(r.ok ? `ล้างแล้ว ${r.n} ตัวละคร • สำรองไว้ที่ ${r.backup}_*\nตรวจด้วยบัญชีแอดมินก่อน แล้วค่อยกด 🟢 เปิดเซิร์ฟ` : 'ไม่สำเร็จ: ' + (r.error === 'maint' ? 'ต้องปิดปรับปรุงก่อนอย่างน้อย 1 นาที' : r.error)); show(); };
+      let lText = '';
+      $('lBtn').onclick = async () => {
+        $('lInfo').textContent = ' กำลังดึง...'; const r = await api('/admin/obt', { action: 'list', table: $('lSrc').value });
+        if (!r.ok) { $('lInfo').textContent = ' ไม่สำเร็จ'; return; }
+        const T = { cbt: 'ผู้บุกเบิก', storm: 'ผู้บุกเบิกพายุ', sup1: 'ผู้ร่วมสร้างตำนาน', sup7: 'ผู้ค้ำจุน' }, extra = x => [...x.pets.map(() => '⛈ เมฆพายุ'), ...x.skins.map(() => '🐴 สกินม้าดำ'), ...x.names.map(() => '✨ ชื่อทอง'), ...x.titles.map(t => '🏷 ' + (T[t] || t))].join(', ');
+        const sum = { n: r.rows.length, dia: r.rows.reduce((a, x) => a + x.dia, 0), w: r.rows.reduce((a, x) => a + x.wings.length, 0), m: r.rows.reduce((a, x) => a + x.mounts.length, 0) };
+        $('lInfo').textContent = ` ${num(sum.n)} คน • 💎 รวม ${num(sum.dia)} • ปีก ${num(sum.w)} • สัตว์ขี่ ${num(sum.m)} (${r.src === 'saves' ? 'ข้อมูลตอนนี้' : 'จากสำรอง'})`;
+        $('lOut').innerHTML = `<div class="tw"><table><tr><th>#</th><th>ชื่อ</th><th>Lv</th><th>💎 เพชร</th><th>🪽 ปีก</th><th>🐎 สัตว์ขี่</th><th>ของพิเศษ</th><th>เติม (฿)</th></tr>${r.rows.map((x, i) => `<tr><td class="dim">${i + 1}</td><td>${esc(x.name || '-')}<div class="dim" style="font-size:11px">${esc(x.id)}</div></td><td>${x.lv}</td><td>${x.dia ? num(x.dia) : ''}</td><td>${esc(x.wings.join(', '))}</td><td>${esc(x.mounts.join(', '))}</td><td>${esc(extra(x))}</td><td>${x.paid ? num(x.paid) : ''}</td></tr>`).join('') || '<tr><td colspan="8" class="dim">ไม่มี</td></tr>'}</table></div>`;
+        lText = r.rows.map((x, i) => `${i + 1}. ${x.name || x.id}${x.dia ? ' • 💎' + x.dia : ''}${x.wings.length ? ' • 🪽 ' + x.wings.join(', ') : ''}${x.mounts.length ? ' • 🐎 ' + x.mounts.join(', ') : ''}${extra(x) ? ' • ' + extra(x) : ''}`).join('\n');
+        $('lCopy').style.display = '';
+      };
+      $('lCopy').onclick = async () => { try { await navigator.clipboard.writeText(lText); alert('คัดลอกแล้ว ' + lText.split('\n').length + ' บรรทัด'); } catch { prompt('คัดลอกข้อความนี้', lText); } };
+      main.querySelectorAll('[data-rest]').forEach(b => b.onclick = async () => {
+        if (prompt('กู้คืนตัวละครทั้งหมดจาก ' + b.dataset.rest + ' ?\nพิมพ์คำว่า กู้คืน เพื่อยืนยัน') !== 'กู้คืน') return;
+        const r = await api('/admin/obt', { action: 'restore', table: b.dataset.rest, confirm: 'กู้คืน' }); alert(r.ok ? 'กู้คืนแล้ว' : 'ไม่สำเร็จ: ' + (r.error || '')); show(); });
+    } else if (tab === 'players') {
+      const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}${showTests ? '&all=1' : ''}`);
+      main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ หรือวางรหัสผู้เล่นที่เขาส่งมา" value="${esc(q)}">
+        <button class="btn" id="srt">เรียง: ${sort === 'lv' ? 'เลเวล' : 'เข้าล่าสุด'}</button><button class="btn" id="tst">${showTests ? '🧪 ซ่อนบัญชีทดสอบ' : '🧪 แสดงบัญชีทดสอบ'}</button>
+        <button class="btn" id="pv" ${page ? '' : 'disabled'}>◀</button><span class="dim">หน้า ${page + 1}</span><button class="btn" id="nx" ${d.rows.length < 50 ? 'disabled' : ''}>▶</button></div>${playerTable(d.rows)}`;
+      const qi = $('q'); let t = 0; qi.oninput = () => { clearTimeout(t); t = setTimeout(() => { q = qi.value; page = 0; show(); }, 400); };
+      $('srt').onclick = () => { sort = sort === 'lv' ? 'seen' : 'lv'; page = 0; show(); }; $('tst').onclick = () => { showTests = !showTests; page = 0; show(); }; $('pv').onclick = () => { page--; show(); }; $('nx').onclick = () => { page++; show(); };
+    } else if (tab === 'gw') {   // 🧪 guild-war test kit: bot guilds + the admin's own guild only (server/worker.ts /admin/gw)
+      const d = await api('/admin/gw'), tr = r => r ? `💰${num(r.treasury?.gold)} 🪵${num(r.treasury?.wood)} 🪨${num(r.treasury?.stone)} 🍖${num(r.treasury?.food)}` : '-';
+      const sh = r => r && r.shield > Date.now() ? '🛡 มีโล่ ' + Math.ceil((r.shield - Date.now()) / 60000) + ' นาที' : 'ไม่มีโล่';
+      const g = d.mine;
+      main.innerHTML = `<h2>🧪 ทดสอบกิลด์วอ (เฉพาะแอดมิน — ไม่กระทบผู้เล่น)</h2>
+        <p class="dim">กิลด์บอทอยู่แค่บนเซิร์ฟ ไม่ขึ้นในรายชื่อกิลด์ การจับคู่ หรือตารางฤดูกาลของผู้เล่น • ปุ่มทุกปุ่มใช้ได้เฉพาะ <b>กิลด์ของแอดมิน</b> กับ <b>กิลด์บอท</b></p>
+        <h2>🏛 กิลด์ของแอดมิน</h2>
+        ${g ? `<div class="kv"><div>ชื่อ</div><div>${esc(g.name)}</div><div>หอกิลด์</div><div>Lv ${g.hall}</div><div>ป้อม / ทหาร</div><div>${g.defenses} ป้อม • หอก ${g.guards?.spear ?? 0} ธนู ${g.guards?.archer ?? 0}</div><div>คลัง</div><div>${tr(g)}</div><div>โล่</div><div>${sh(g)}</div></div>
+          <div class="row" style="margin-top:8px"><button class="btn green" data-op="max" data-g="${esc(g.id)}">⬆ อัปเต็มสูบ</button><button class="btn" data-op="restore" data-g="${esc(g.id)}" ${g.backup ? '' : 'disabled'}>↩ คืนค่าก่อนอัป</button><button class="btn" data-op="open" data-g="${esc(g.id)}">🛡✖ ปิดโล่ + รีเซ็ตสิทธิ์ปล้น</button></div>`
+          : '<p class="dim">บัญชีแอดมินยังไม่มีกิลด์ — เข้าเกมแล้วก่อตั้งกิลด์ก่อน (Lv20+)</p>'}
+        <h2>🤖 กิลด์บอท</h2>
+        <div class="row"><label>ระดับ <select id="gwTier" style="background:#0f0b12;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px">${[1, 2, 3, 4, 5].map(i => `<option value="${i}" ${i === 3 ? 'selected' : ''}>${['1 อ่อน', '2', '3 กลาง', '4', '5 เทพ'][i - 1]}</option>`).join('')}</select></label><button class="btn green" id="gwNew">➕ สร้างกิลด์บอท</button></div>
+        <div class="tw"><table><tr><th>กิลด์บอท</th><th>หอกิลด์</th><th>คลัง</th><th>โล่</th><th></th></tr>${d.bots.map(b => `<tr><td>${esc(b.name)}</td><td>Lv ${b.info?.hall ?? '-'}</td><td>${tr(b.info)}</td><td>${sh(b.info)}</td>
+          <td><button class="btn" data-op="rival" data-b="${esc(b.id)}" ${g ? '' : 'disabled'}>🎯 ใส่เป็นเป้าให้กิลด์เรา</button> <button class="btn red" data-op="attack" data-b="${esc(b.id)}" ${g ? '' : 'disabled'}>⚔ บุกกิลด์เราเลย</button> <button class="btn" data-op="max" data-g="${esc(b.id)}">⬆ เต็มสูบ</button> <button class="btn" data-op="delbot" data-g="${esc(b.id)}">🗑</button></td></tr>`).join('') || '<tr><td colspan="5" class="dim">ยังไม่มี — กดสร้างด้านบน</td></tr>'}</table></div>
+        <p class="dim" style="font-size:13px">🎯 ใส่เป็นเป้า → ในเกม: กิลด์ → ⚔ สงคราม → ประกาศสงครามกับกิลด์บอท (สู้สด 4 นาที ทั้งสองฝั่งบุกพร้อมกัน) • ⚔ บุกกิลด์เราเลย → บอทประกาศสงครามใส่เรา เซิร์ฟคิดผล 4 นาทีทันที กิลด์เราเสียของ/อาคารพังจริง (เฉพาะกิลด์แอดมิน) แล้วได้รายงานในกิลด์ • ⬆ เต็มสูบ = อาคาร ป้อม ทหาร คลัง เต็มทุกอย่าง (กด ↩ คืนค่าได้)</p>
+        <div id="gwOut" class="dim" style="font-size:13px;white-space:pre-wrap"></div>`;
+      $('gwNew').onclick = async () => { const r = await api('/admin/gw', { op: 'bot', tier: Number($('gwTier').value) }); if (r.error) alert(r.error); show(); };
+      main.querySelectorAll('[data-op]').forEach(b => b.onclick = async () => {
+        const op = b.dataset.op, gid = b.dataset.g, bot = b.dataset.b;
+        if (op === 'attack' && !confirm('ให้กิลด์บอทบุกกิลด์ของแอดมินตอนนี้? (กิลด์แอดมินจะเสียของ/อาคารพังจริง)')) return;
+        if (op === 'max' && !confirm('อัปกิลด์นี้เต็มสูบ? (มีปุ่มคืนค่า)')) return;
+        if (op === 'delbot' && !confirm('ลบกิลด์บอทนี้?')) return;
+        b.disabled = true; const r = await api('/admin/gw', { op, gid, bot });
+        if (r.error || r.refused) { alert('ไม่สำเร็จ: ' + (r.error || r.refused)); show(); return; }
+        await show();
+        if (op === 'attack' && r.over) $('gwOut').textContent = '⚔ ผลการบุก:\n' + (r.over.got || []).join('\n') + `\n(หมู่บ้านบอทเหลือ ${Math.round(r.over.ours * 100)}% • กิลด์เราเหลือ ${Math.round(r.over.theirs * 100)}%)`;
+        if (op === 'rival') $('gwOut').textContent = '🎯 ใส่เป้าแล้ว — เข้าเกม: กิลด์ → ⚔ สงคราม → ประกาศสงคราม';
+      });
+    } else if (MAIL_TABS.includes(tab)) {
+      const d = await api('/admin/mailall'), gtext = g => { let o = {}; try { o = JSON.parse(g || '{}'); } catch {} const it = (o.items || []).map(i => ((window.ITEMS || []).find(x => x.id === i.id)?.name || i.id) + (i.qty > 1 ? ' x' + i.qty : '')); return [o.gold && '💰 ' + num(o.gold), o.wood && '🪵 ' + num(o.wood), o.stone && '🪨 ' + num(o.stone), o.food && '🍖 ' + num(o.food), ...it].filter(Boolean).join(' • ') || '-'; };
+      const an = await api('/admin/ann'), rd = await api('/admin/raid');
+      const TN = { lumber: '🪵 โรงไม้', kitchen: '🍲 โรงครัว', forge: '⚒ โรงหลอม', barn: '🐄 คอกสัตว์', tavern: '🍺 โรงเตี๊ยม' };
+      const rPlan = rd.plan && rd.plan.at + 180000 > Date.now() ? `กำหนดแล้ว: ${new Date(rd.plan.at).toLocaleString('th-TH')} ${rd.plan.at > Date.now() ? '(อีก ' + Math.ceil((rd.plan.at - Date.now()) / 60000) + ' นาที)' : '(กำลังบุก!)'}` : 'ยังไม่มีกำหนด';
+      main.innerHTML = `<section class="box" data-sec="raid"><h2>⚔ มอนบุกหมู่บ้านกลาง</h2>
+        <p class="dim">⏰ อัตโนมัติวันละ 3 รอบ: 12:00 • 18:00 • 21:00 (ตั้งเวลาเองด้านล่าง = แทรกรอบพิเศษ / ยกเลิก = กลับไปใช้ตารางปกติ) • ผู้เล่นเห็นแถบเตือน + ปุ่มเข้าร่วม 5 นาทีก่อนเริ่ม (แถบมาถึงภายใน ~1 นาที) • บุก 3 นาที • อาคารที่พังใช้ไม่ได้ทั้งเซิร์ฟจนกว่าจะซ่อม (หรือ 2 ชม.)</p>
+        <div class="row"><label>เริ่มในอีก <input type="number" id="rMins" min="1" max="1440" value="6" style="width:70px"> นาที</label><button class="btn green" id="rGo">⚔ ตั้งเวลามอนบุก</button><button class="btn" id="rNo">ยกเลิก</button></div>
+        <div class="dim" style="font-size:13px;margin-bottom:8px">${rPlan}</div>
+        <div class="tw"><table><tr><th>อาคารกลาง</th><th>สถานะ</th><th>หลอดซ่อม</th><th></th></tr>${['lumber','kitchen','forge','barn','tavern'].map(b => { const r = (rd.rows || []).find(x => x.bid === b); const br = r && r.broken; return `<tr><td>${TN[b]}</td><td>${br ? '🔥 พัง' : '✅ ปกติ'}</td><td>${r ? r.donated + ' / ' + r.need : '-'}</td><td>${br ? `<button class="btn" data-fix="${b}">ซ่อมทันที</button>` : `<button class="btn" data-brk="${b}">ทำให้พัง (ทดสอบ)</button>`}</td></tr>`; }).join('')}</table></div>
+</section><section class="box" data-sec="move"><h2>🔁 ย้ายตัวละคร (ผู้เล่นย้ายเครื่องแต่ไม่ได้ผูก Google)</h2>
+        <p class="dim">ให้ผู้เล่นเปิดเกมในเครื่องใหม่แล้วส่ง "รหัสผู้เล่น" (บัญชีใหม่) มา • หา "รหัสบัญชีเดิม" จากแท็บผู้เล่น (ดูเลเวล/อาชีพ/เข้าล่าสุด) • ย้ายแล้วบัญชีเดิมจะถูกปิด (กันของซ้ำ) และตัวละครในบัญชีใหม่จะถูกแทนที่</p>
+        <div class="row"><input id="mvFrom" placeholder="รหัสบัญชีเดิม (24 ตัว)" style="width:220px"><span>→</span><input id="mvTo" placeholder="รหัสบัญชีใหม่ (24 ตัว)" style="width:220px"><button class="btn" id="mvGo">🔁 ย้ายตัวละคร</button></div>
+</section><section class="box" data-sec="ann"><h2>📢 โทรโข่งแอดมิน (ประกาศในเกม)</h2>
+        <p class="dim">ขึ้นเป็นแถบเล็กสีทองใต้ชื่อแผนที่ ไม่บังจอ • ทุกคนที่ออนไลน์เห็นภายใน 2 นาที • คนที่เข้าเกมทีหลังเห็นตอนเข้า (ภายในเวลาที่ตั้ง) • เห็นคนละครั้ง</p>
+        <div class="row"><input id="aText" maxlength="160" placeholder="เช่น อีก 10 นาทีเซิร์ฟปิดปรับปรุง 5 นาที" style="width:min(520px,100%)">
+          <label>แสดงนาน <input type="number" id="aMins" min="1" max="1440" value="60" style="width:70px"> นาที</label><button class="btn green" id="aSend">📢 ประกาศ</button>${an.ann ? '<button class="btn" id="aClear">ยกเลิกประกาศ</button>' : ''}</div>
+        <div class="dim" style="font-size:13px;margin-bottom:14px">${an.ann ? `กำลังประกาศ: “${esc(an.ann.text)}” — หมดใน ${Math.max(1, Math.round((an.ann.until - Date.now()) / 60000))} นาที` : 'ตอนนี้ไม่มีประกาศ'}</div>
+</section><section class="box" data-sec="mail"><h2>📬 ส่งจดหมายหาผู้เล่นทุกคน</h2>
+        <p class="dim">ทุกคนจะได้ในกล่องจดหมายในเกม (คนที่ไม่ได้ออนไลน์จะได้ตอนเข้าเกมครั้งถัดไป) — ใช้แจกรางวัลกิจกรรม ชดเชยเซิร์ฟล่ม ฯลฯ</p>
+        <div class="row"><input id="mTitle" placeholder="หัวข้อ เช่น ชดเชยเซิร์ฟปิดปรับปรุง" style="width:min(380px,100%)" maxlength="40"></div>
+        <div class="row"><textarea id="mText" placeholder="ข้อความ" style="width:min(560px,100%);height:70px;background:#0f0b12;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px" maxlength="300"></textarea></div>
+        <div class="row"><label>💰 ทอง <input type="number" min="0" id="mGold" style="width:100px"></label><label>🪵 ไม้ <input type="number" min="0" id="mWood" style="width:80px"></label>
+          <label>🪨 หิน <input type="number" min="0" id="mStone" style="width:80px"></label><label>🍖 อาหาร <input type="number" min="0" id="mFood" style="width:80px"></label></div>
+        <div class="row"><input list="itemList2" id="mItem" placeholder="พิมพ์ชื่อไอเทม..." style="width:220px"><datalist id="itemList2">${(window.ITEMS || []).map(i => `<option value="${esc(i.name)} [${esc(i.id)}]">`).join('')}</datalist>
+          <label>จำนวน <input type="number" min="1" max="999" value="1" id="mQty" style="width:60px"></label><button class="btn" id="mAdd">➕ เพิ่มไอเทม</button></div>
+        <div id="mList" class="dim" style="font-size:13px;margin-bottom:6px">ยังไม่ได้เลือกไอเทม</div>
+        <div class="row"><label>หมดอายุใน <input type="number" min="0" max="90" value="7" id="mDays" style="width:60px"> วัน (0 = ไม่หมดอายุ)</label><button class="btn green" id="mSend">📬 ส่งหาทุกคน</button></div>
+</section><section data-sec="mail"><h2>📜 จดหมายถึงทุกคนที่เคยส่ง</h2>
+        <div class="tw"><table><tr><th>เมื่อ</th><th>หัวข้อ</th><th>ของ</th><th>หมดอายุ</th></tr>${d.rows.map(r => `<tr><td class="dim">${when(r.at)}</td><td style="white-space:normal">${esc(r.title)}<div class="dim" style="font-size:12px">${esc(r.text)}</div></td><td style="white-space:normal">${esc(gtext(r.gift))}</td><td>${r.until ? (r.until > Date.now() ? new Date(r.until).toLocaleDateString('th-TH') : 'หมดแล้ว') : '-'}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ยังไม่เคยส่ง</td></tr>'}</table></div></section>`;
+      main.querySelectorAll('section[data-sec]').forEach(x => { x.style.display = x.dataset.sec === tab ? '' : 'none'; });
+      $('mvGo').onclick = async () => { const f = $('mvFrom').value.trim(), t = $('mvTo').value.trim(); if (!f || !t) return alert('ใส่รหัสทั้งสองช่อง'); if (!confirm('ย้ายตัวละครจาก ' + f + ' ไปบัญชี ' + t + '?\n\nบัญชีเดิมจะถูกปิด และตัวละครในบัญชีใหม่จะถูกแทนที่')) return; const r = await api('/admin/movehero', { from: f, to: t }); alert(r.ok ? '✔ ย้ายแล้ว — ผู้เล่นเห็นตัวละครเดิมทันที (หรือเปิดเกมใหม่)' : 'ย้ายไม่ได้: ' + (r.error || '?')); };
+      $('rGo').onclick = async () => { const m = Number($('rMins').value) || 0; if (!confirm('ตั้งมอนบุกหมู่บ้านกลางในอีก ' + m + ' นาที?')) return; await api('/admin/raid', { mins: m }); show(); };
+      $('rNo').onclick = async () => { await api('/admin/raid', { clear: true }); show(); };
+      main.querySelectorAll('[data-fix]').forEach(b => b.onclick = async () => { await api('/admin/raid', { bid: b.dataset.fix, act: 'fix' }); show(); });
+      main.querySelectorAll('[data-brk]').forEach(b => b.onclick = async () => { if (!confirm('ทำให้อาคารนี้พังทั้งเซิร์ฟ (ทดสอบ)?')) return; await api('/admin/raid', { bid: b.dataset.brk, act: 'break' }); show(); });
+      $('aSend').onclick = async () => { const text = $('aText').value.trim(); if (!text) return alert('พิมพ์ข้อความก่อน'); if (!confirm('ประกาศถึงทุกคนในเกม?\n\n' + text)) return; await api('/admin/ann', { text, mins: Number($('aMins').value) || 60 }); show(); };
+      if ($('aClear')) $('aClear').onclick = async () => { await api('/admin/ann', { text: '', mins: 0 }); show(); };
+      const pick = [], draw = () => { $('mList').textContent = pick.length ? 'จะส่ง: ' + pick.map(p => `${p.name} x${p.qty}`).join(', ') : 'ยังไม่ได้เลือกไอเทม'; };
+      $('mAdd').onclick = () => { const v = $('mItem').value, m = v.match(/\[([^\]]+)\]$/), it = (window.ITEMS || []).find(i => i.id === (m ? m[1] : v) || i.name === v); if (!it) { alert('ไม่พบไอเทมนี้ — เลือกจากรายการที่ขึ้นมา'); return; } pick.push({ id: it.id, name: it.name, qty: Math.max(1, Math.min(999, Number($('mQty').value) || 1)) }); $('mItem').value = ''; draw(); };
+      $('mSend').onclick = async () => {
+        const b = { title: $('mTitle').value.trim(), text: $('mText').value.trim(), gold: Number($('mGold').value) || 0, wood: Number($('mWood').value) || 0, stone: Number($('mStone').value) || 0, food: Number($('mFood').value) || 0, items: pick.map(p => ({ id: p.id, qty: p.qty })), days: Number($('mDays').value) || 0 };
+        if (!b.title) { alert('ใส่หัวข้อก่อน'); return; }
+        const sum = [b.gold && '💰 ' + num(b.gold), b.wood && '🪵 ' + num(b.wood), b.stone && '🪨 ' + num(b.stone), b.food && '🍖 ' + num(b.food), ...pick.map(p => `${p.name} x${p.qty}`)].filter(Boolean);
+        if (!confirm(`ส่งหาผู้เล่น "ทุกคน":\n${b.title}\n${sum.join('\n') || '(จดหมายเปล่า ไม่มีของ)'}\n\nส่งแล้วยกเลิกไม่ได้ — ยืนยัน?`)) return;
+        const r = await api('/admin/mailall', b); if (r.ok) { alert('✅ ส่งแล้ว\n' + r.text); show(); } else alert('ส่งไม่สำเร็จ: ' + r.error);
+      };
+    } else if (tab === 'guilds') {
+      const d = await api('/admin/guilds');
+      main.innerHTML = `<div class="tw"><table><tr><th>กิลด์</th><th>หัวหน้า</th><th>สมาชิก</th><th>หอกิลด์</th><th>คะแนนสัปดาห์</th><th>โล่</th><th>สร้างเมื่อ</th></tr>${d.rows.map(g => `<tr><td>${esc(g.name)}</td><td>${esc(g.leader_name || '-')}</td><td>${g.members}/10</td><td>Lv${g.hall}</td><td>${num(g.score)}</td><td>${g.shield > Date.now() ? '🛡 อีก ' + Math.ceil((g.shield - Date.now()) / 3600000) + ' ชม.' : '-'}</td><td class="dim">${when(g.at)}</td></tr>`).join('') || '<tr><td colspan="7" class="dim">ยังไม่มีกิลด์</td></tr>'}</table></div>`;
+    } else if (tab === 'market') {
+      const d = await api('/admin/market'), RAR = ['Common', 'Uncommon', 'Rare', 'Super Rare', 'Legend', 'SL'];
+      main.innerHTML = `<div class="tw"><table><tr><th>ของ</th><th>ระดับ</th><th>ราคา</th><th>ผู้ขาย</th><th>สถานะ</th><th>ลงขาย</th></tr>${d.rows.map(m => { let it = {}; try { it = JSON.parse(m.item); } catch {} const st = m.status === 'sold' ? '✅ ขายแล้ว' : m.status === 'open' && m.until > Date.now() ? '🟢 วางขาย' : m.status === 'open' ? '⌛ หมดเวลา' : esc(m.status); return `<tr><td>${esc(it.id)}${it.upg ? ' +' + it.upg : ''}${it.qty > 1 ? ' x' + it.qty : ''}</td><td>${RAR[m.rar] || m.rar}</td><td>💰 ${num(m.price)}</td><td>${esc(m.seller_name)}</td><td>${st}</td><td class="dim">${when(m.at)}</td></tr>`; }).join('') || '<tr><td colspan="6" class="dim">ยังไม่มีของขาย</td></tr>'}</table></div>`;
+    } else if (tab === 'reports') {
+      const d = await api('/admin/reports');
+      main.innerHTML = `<div class="tw"><table><tr><th>เมื่อ</th><th>ผู้ถูกรายงาน</th><th>ข้อความ</th><th>ห้อง</th><th>คนรายงาน</th><th>ปิดแชตอยู่</th></tr>${d.rows.map(r => `<tr class="click" data-id="${esc(r.target)}"><td class="dim">${when(r.at)}</td><td>${esc(r.target_name)}</td><td style="white-space:normal;min-width:200px">${esc(r.text)}</td><td>${esc(r.room)}</td><td>${esc(r.by_name)}</td><td>${(r.muted_until || 0) > Date.now() ? '🔇 ใช่' : '-'}</td></tr>`).join('') || '<tr><td colspan="6" class="dim">ไม่มีรายงาน</td></tr>'}</table></div>`;
+    } else if (tab === 'econ') {
+      const d = await api('/admin/econ?days=' + econDays);
+      main.innerHTML = econHtml(d);
+      main.querySelectorAll('button[data-days]').forEach(b => b.onclick = () => { econDays = Number(b.dataset.days); show(); });
+    } else if (tab === 'flags') {
+      const d = await api('/admin/flags');
+      main.innerHTML = `<p class="dim">สิ่งที่ระบบกันโกงจับได้ (ทอง/เลเวลพุ่งผิดปกติ, แก้เพชร/VIP เอง) และสิ่งที่แอดมินทำ</p><div class="tw"><table><tr><th>เมื่อ</th><th>ผู้เล่น</th><th>เรื่อง</th><th>รายละเอียด</th></tr>${d.rows.map(f => `<tr class="click" data-id="${esc(f.id)}"><td class="dim">${when(f.at)}</td><td>${esc(f.name || f.id)}</td><td>${esc(f.what)}</td><td style="white-space:normal">${esc(f.detail)}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">ไม่มี</td></tr>'}</table></div>`;
+    }
+    $('upd').textContent = new Date().toLocaleTimeString('th-TH');
+  } catch (e) {
+    main.innerHTML = e.message === 'admin' ? '<div class="msg">⛔ บัญชีในเครื่องนี้ไม่ใช่แอดมิน<br>เปิดเกมแล้วล็อกอิน Google ด้วยบัญชีแอดมินก่อน</div>' : `<div class="msg">โหลดไม่สำเร็จ (${esc(e.message)}) — ลองใหม่อีกครั้ง</div>`;
+  }
+}
+main.onclick = e => { const a = e.target.closest('[data-go]'); if (a) { go(a.dataset.go); return; } const tr = e.target.closest('tr.click'); if (tr) player(tr.dataset.id); };
+// the UID box (director): a player copies the ID from their profile and sends it — paste it here to open them (gift form inside)
+$('uidGo').onclick = async () => { const id = $('uid').value.trim().replace(/^ID[:\s]*/i, ''); if (!id) { alert('ใส่รหัสผู้เล่นก่อน'); return; } try { const d = await api('/admin/player?id=' + encodeURIComponent(id)); if (!d.acc) { alert('ไม่พบผู้เล่นรหัสนี้ — ตรวจว่าคัดลอกมาครบไหม'); return; } player(id); } catch { alert('เปิดไม่สำเร็จ'); } };
+$('uid').onkeydown = e => { if (e.key === 'Enter') $('uidGo').click(); };
+async function player(id) {
+  const d = await api('/admin/player?id=' + encodeURIComponent(id)), a = d.acc || {}, s = d.save?.data || {};
+  $('dt').textContent = (a.name || '(ยังไม่ตั้งชื่อ)') + ' • Lv' + (a.lv ?? '-');
+  const inv = (s.inventory || []).map(i => `${i.id}${i.upg ? '+' + i.upg : ''}${i.qty > 1 ? ' x' + i.qty : ''}`).join(', ');
+  const muted = (a.muted_until || 0) > Date.now();
+  $('dbody').innerHTML = `<div class="row">${tags(a)}</div>
+    <div class="kv"><div>รหัสบัญชี</div><div>${esc(a.id)}</div><div>อาชีพ</div><div>${esc(CLS[s.cls] || s.cls)} ร่าง ${(s.tier ?? 0) + 1}</div>
+    <div>ทอง</div><div>💰 ${num(s.gold)}</div><div>เพชร</div><div>💎 ${num(s.diamonds)}</div><div>VIP ถึง</div><div>${(s.vipUntil || 0) > Date.now() ? new Date(s.vipUntil).toLocaleString('th-TH') : '-'}</div>
+    <div>ไม้ / หิน / อาหาร</div><div>${num(s.res?.wood)} / ${num(s.res?.stone)} / ${num(s.res?.food)}</div><div>กิลด์</div><div>${esc(s.guild?.name || '-')}</div>
+    <div>เข้าล่าสุด</div><div>${when(a.seen)}</div><div>สมัคร</div><div>${when(a.created)}</div><div>เซฟล่าสุด</div><div>${when(d.save?.at)} (ครั้งที่ ${d.save?.rev ?? 0})</div></div>
+    <h2>⚙ จัดการ</h2><div class="row">
+      ${a.banned ? `<button class="btn green" data-a="unban">✅ ปลดแบน</button>` : `<button class="btn red" data-a="ban">⛔ แบน</button>`}
+      <button class="btn red" data-a="wipe">🧹 ล้างบัญชี (เริ่ม Lv1 ใหม่)</button>
+      ${muted ? `<button class="btn green" data-a="unmute">🔊 เปิดแชต</button>` : `<button class="btn" data-a="mute" data-h="24">🔇 ปิดแชต 24 ชม.</button><button class="btn" data-a="mute" data-h="168">🔇 ปิดแชต 7 วัน</button>`}</div>
+    <h2>🤝 ชวนเพื่อน (${(d.refs || []).length} คน)</h2>
+    <div style="font-size:13px">${(d.refs || []).map(r => `${esc(r.name || r.invitee)} • ${r.lv30 ? '✅ ถึง Lv30 (จ่ายแล้ว)' : r.lv10 ? 'ถึง Lv10' : 'ยังไม่ถึง Lv10'}`).join('<br>') || '<span class="dim">ยังไม่มี</span>'}</div>
+    <div class="row" style="margin-top:6px"><input id="refFriend" placeholder="ชื่อหรือรหัสบัญชีเพื่อน" style="width:200px;background:#0f0b12;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px"><button class="btn" id="refAdd">➕ นับเป็นเพื่อนที่ชวน</button><button class="btn green" id="refWing">🪽 มอบปีกพายุอสนี (รางวัลชวนครบ)</button></div>
+    <p class="dim" style="font-size:12px">ใช้กับกรณีที่ตรวจแล้วว่าเป็นเพื่อนจริง (เช่น อยู่หอเดียวกัน ใช้เน็ตเดียวกัน) • รางวัลเพชรจ่ายเองเมื่อเพื่อนถึงเงื่อนไข</p>
+    <h2>🎁 ส่งของให้ผู้เล่นนี้ (เข้ากล่องจดหมายในเกม)</h2>
+    <div class="row"><label>💰 ทอง <input type="number" min="0" id="gGold" style="width:100px"></label><label>🪵 ไม้ <input type="number" min="0" id="gWood" style="width:80px"></label>
+      <label>🪨 หิน <input type="number" min="0" id="gStone" style="width:80px"></label><label>🍖 อาหาร <input type="number" min="0" id="gFood" style="width:80px"></label></div>
+    <div class="row"><input list="itemList" id="gItem" placeholder="พิมพ์ชื่อไอเทม..." style="width:220px"><datalist id="itemList">${(window.ITEMS || []).map(i => `<option value="${esc(i.name)} [${esc(i.id)}]">`).join('')}</datalist>
+      <label>จำนวน <input type="number" min="1" max="999" value="1" id="gQty" style="width:60px"></label><button class="btn" id="gAdd">➕ เพิ่ม</button></div>
+    <div id="gList" class="dim" style="font-size:13px;margin-bottom:6px">ยังไม่ได้เลือกไอเทม</div>
+    <div class="row"><input id="gNote" placeholder="ข้อความถึงผู้เล่น (ไม่ใส่ก็ได้) เช่น ชดเชยบั๊กอาคารหาย" style="width:min(420px,100%)"><button class="btn green" id="gSend">🎁 ส่งของ</button></div>
+    <h2>🎒 กระเป๋า (${(s.inventory || []).length})</h2><div style="font-size:13px">${esc(inv) || '<span class="dim">ว่าง</span>'}</div>
+    <h2>🚩 ถูกรายงาน (${d.reports.length})</h2>${d.reports.map(r => `<div style="font-size:13px"><span class="dim">${when(r.at)} • ${esc(r.by_name)}:</span> ${esc(r.text)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>💰 ที่มาของทอง 7 วัน (เริ่มบันทึก 13 พ.ย.)</h2>${(d.econ || []).length ? `<div class="tw"><table style="min-width:420px"><tr><th>แหล่ง</th><th>ทองเข้า</th><th>ทองออก</th><th>💎</th><th>🪵/🪨/🍖</th><th>ครั้ง</th></tr>${d.econ.map(r => `<tr><td>${srcName(r.src)}</td><td>${r.g_in ? num(r.g_in) : '-'}</td><td>${r.g_out ? num(r.g_out) : '-'}</td><td>${r.d_in || r.d_out ? num(r.d_in) + ' / ' + num(r.d_out) : '-'}</td><td>${sgn(r.wood)} / ${sgn(r.stone)} / ${sgn(r.food)}</td><td>${num(r.n)}</td></tr>`).join('')}<tr><td><b>รวม</b></td><td><b>${num(d.econ.reduce((t, r) => t + r.g_in, 0))}</b></td><td><b>${num(d.econ.reduce((t, r) => t + r.g_out, 0))}</b></td><td colspan="3"></td></tr></table></div>` : '<span class="dim">ยังไม่มีข้อมูล</span>'}
+    <h2>🛡 กันโกง (${d.flags.length})</h2>${d.flags.map(f => `<div style="font-size:13px"><span class="dim">${when(f.at)}</span> ${esc(f.what)} — ${esc(f.detail)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>🏪 ของที่ลงขาย (${d.market.length})</h2>${d.market.map(m => `<div style="font-size:13px">${esc((() => { try { return JSON.parse(m.item).id; } catch { return '?'; } })())} • 💰 ${num(m.price)} • ${esc(m.status)}</div>`).join('') || '<span class="dim">ไม่มี</span>'}
+    <h2>🧾 ข้อมูลตัวละครทั้งหมด</h2><pre>${esc(JSON.stringify(s, null, 1))}</pre>`;
+  $('dbody').querySelectorAll('button[data-a]').forEach(b => b.onclick = async () => {
+    const what = b.dataset.a, label = b.textContent.trim();
+    if (!confirm(`ยืนยัน "${label}" กับ ${a.name || a.id}?`)) return;
+    if (what === 'wipe' && prompt(`⚠ ล้างบัญชีนี้ถาวร: เลเวล ทอง เพชร ของ สัตว์ขี่ ปีก หายหมด (ย้อนกลับไม่ได้)\nพิมพ์ชื่อ "${a.name || a.id}" เพื่อยืนยัน`) !== (a.name || a.id)) { alert('ยกเลิก — ชื่อไม่ตรง'); return; }
+    const r = await api('/admin/act', { id: a.id, what, hours: Number(b.dataset.h) || 24 });
+    if (r.ok) { player(id); if (tab !== 'overview') show(); } else alert('ทำไม่สำเร็จ: ' + (r.error || '?'));
+  });
+  $('refAdd').onclick = async () => { const f = $('refFriend').value.trim(); if (!f) return alert('ใส่ชื่อหรือรหัสบัญชีเพื่อน'); if (!confirm(`นับ "${f}" เป็นเพื่อนที่ ${a.name || a.id} ชวน?`)) return; const r = await api('/admin/act', { id: a.id, what: 'refadd', friend: f }); if (r.ok) player(id); else alert('ทำไม่สำเร็จ: ' + (r.error || '?')); };
+  $('refWing').onclick = async () => { if (!confirm(`มอบปีกพายุอสนี (Limited) ให้ ${a.name || a.id}?`)) return; const r = await api('/admin/act', { id: a.id, what: 'refwing' }); if (r.ok) { alert('ส่งปีกแล้ว ✅'); player(id); } else alert('ทำไม่สำเร็จ: ' + (r.error || '?')); };
+  // the gift form: resources + a list of items, sent in one go after a confirmation
+  const pick = []; const drawPick = () => { $('gList').textContent = pick.length ? 'จะส่ง: ' + pick.map(p => `${p.name} x${p.qty}`).join(', ') : 'ยังไม่ได้เลือกไอเทม'; };
+  $('gAdd').onclick = () => { const v = $('gItem').value, m = v.match(/\[([^\]]+)\]$/), it = (window.ITEMS || []).find(i => i.id === (m ? m[1] : v) || i.name === v); if (!it) { alert('ไม่พบไอเทมนี้ — เลือกจากรายการที่ขึ้นมา'); return; } pick.push({ id: it.id, name: it.name, qty: Math.max(1, Math.min(999, Number($('gQty').value) || 1)) }); $('gItem').value = ''; drawPick(); };
+  $('gSend').onclick = async () => {
+    const g = { id: a.id, gold: Number($('gGold').value) || 0, wood: Number($('gWood').value) || 0, stone: Number($('gStone').value) || 0, food: Number($('gFood').value) || 0, items: pick.map(p => ({ id: p.id, qty: p.qty })), note: $('gNote').value.trim() };
+    const sum = [g.gold && `💰 ${num(g.gold)}`, g.wood && `🪵 ${num(g.wood)}`, g.stone && `🪨 ${num(g.stone)}`, g.food && `🍖 ${num(g.food)}`, ...pick.map(p => `${p.name} x${p.qty}`)].filter(Boolean);
+    if (!sum.length) { alert('ยังไม่ได้ใส่ของที่จะส่ง'); return; }
+    if (!confirm(`ส่งเข้ากล่องจดหมายของ ${a.name || a.id}:\n${sum.join('\n')}\n\nยืนยัน?`)) return;
+    const r = await api('/admin/give', g);
+    if (r.ok) { alert('✅ ส่งแล้ว\n' + r.text); player(id); } else alert('ส่งไม่สำเร็จ: ' + (r.error === 'nosave' || r.error === 'target' ? 'ผู้เล่นนี้ยังไม่มีตัวละครบนเซิร์ฟ' : r.error === 'empty' ? 'ไม่มีอะไรส่งได้ (กระเป๋าเต็ม?)' : r.error));
+  };
+  if (!$('dlg').open) $('dlg').showModal();
+}
+api('/admin/items').then(d => { window.ITEMS = d.items; }).catch(() => {});
+show();
+</script>
+</body>
+</html>

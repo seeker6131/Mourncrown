@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตั้งค่าเกมไลฟ์</title>
+<style>
+  :root { --bg:#14101f; --card:#1f1930; --line:#3a3054; --tx:#f2ecff; --mut:#a99fc2; --acc:#ffd84a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tx); font: 15px system-ui, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; color: var(--acc); }
+  .stat { font-size: 14px; color: var(--mut); margin-bottom: 12px; }
+  .stat b { color: var(--tx); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 12px 0; }
+  .card h2 { font-size: 16px; margin: 0 0 8px; }
+  label { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; align-items: center; margin: 7px 0; }
+  label small { display: block; color: var(--mut); font-size: 12px; }
+  input, select, textarea { width: 100%; padding: 7px 9px; background: #0f0b18; color: var(--tx); border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+  input[type=color] { height: 38px; padding: 2px; }
+  input[type=checkbox] { width: 22px; height: 22px; justify-self: start; }
+  textarea { min-height: 80px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line); background: #2d2545; color: var(--tx); font: 600 14px system-ui; cursor: pointer; }
+  button.pri { background: var(--acc); color: #221; border-color: var(--acc); }
+  button.red { background: #5a1a22; border-color: #a33; }
+  .ok { color: #4cd964; } .bad { color: #ff6a5a; } .wait { color: #ffcc00; }
+  .note { font-size: 13px; color: var(--mut); line-height: 1.5; }
+  @media (max-width: 520px) { label { grid-template-columns: 1fr; gap: 4px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚙ ตั้งค่าเกมชักเยอ LIVE</h1>
+  <div class="stat" id="stat">ยังไม่เห็นหน้าเกม: เปิด <a href="index.html" target="_blank" style="color:var(--acc)">หน้าเกม</a> ในเบราว์เซอร์เดียวกันนี้</div>
+
+  <div class="card"><h2>🎮 ควบคุมรอบ</h2>
+    <div class="btns">
+      <button class="pri" data-cmd="reset">🔄 เริ่มรอบใหม่</button>
+      <button data-cmd="win1">🏆 ให้ทีม 1 ชนะ</button>
+      <button data-cmd="win2">🏆 ให้ทีม 2 ชนะ</button>
+      <button onclick="open('index.html','_blank')">📺 เปิดหน้าเกม</button>
+    </div>
+  </div>
+
+  <div class="card"><h2>🧪 จำลองคนดู (เทสโดยไม่ต้องไลฟ์)</h2>
+    <div class="btns">
+      <button data-sim="c1">💬 คนพิมพ์ทีม 1</button>
+      <button data-sim="c2">💬 คนพิมพ์ทีม 2</button>
+      <button data-sim="like">❤️ หัวใจ x20</button>
+      <button data-sim="g1">🌹 ของขวัญเล็ก</button>
+      <button data-sim="g99">🎁 ของขวัญกลาง</button>
+      <button data-sim="g1000">🦁 ของขวัญใหญ่</button>
+      <button data-sim="crowd">👥 คนดู 30 คน (ส่งของขวัญด้วย)</button>
+    </div>
+  </div>
+
+  <form id="f">
+  <div class="card"><h2>🏷 ข้อความบนจอ</h2>
+    <label>ชื่อเกม (หัวจอ)<input name="title"></label>
+    <label>คำแนะนำด้านล่าง<input name="help"></label>
+  </div>
+  <div class="card"><h2>🚩 ทีม</h2>
+    <label>ชื่อทีม 1<input name="t1Name"></label>
+    <label>สีทีม 1<input name="t1Color" type="color"></label>
+    <label><span>คำที่พิมพ์เข้าทีม 1<small>เช่น 1 หรือ แดง</small></span><input name="t1Key"></label>
+    <label>ชื่อทีม 2<input name="t2Name"></label>
+    <label>สีทีม 2<input name="t2Color" type="color"></label>
+    <label>คำที่พิมพ์เข้าทีม 2<input name="t2Key"></label>
+  </div>
+  <div class="card"><h2>💪 แรงดึง</h2>
+    <label><span>เฉพาะคนส่งของขวัญถึงดึงได้<small>หัวใจ/คอมเมนต์ไม่ดึง • คนส่งของขวัญได้ตัวละครพร้อมรูปโปรไฟล์และชื่อ</small></span><input name="donorOnly" type="checkbox"></label>
+    <label><span>จำนวนตัวละครบนเชือกต่อทีม<small>คนส่งของขวัญมากสุดอยู่หน้า (1-5)</small></span><input name="showN" type="number" min="1" max="5"></label>
+    <label><span>หัวใจ 1 ดวง ดึงได้<small>ค่าเดิม 0.05</small></span><input name="likePower" type="number" step="0.01" min="0"></label>
+    <label><span>คอมเมนต์ 1 ครั้ง ดึงได้<small>0 = คอมเมนต์ไม่ดึง</small></span><input name="chatPower" type="number" step="0.1" min="0"></label>
+    <label>ของขวัญ 1 เพชร ดึงได้<input name="diamondPower" type="number" step="0.1" min="0"></label>
+    <label><span>แรงดึงเฉพาะของขวัญ<small>บรรทัดละ 1 ชิ้น: ชื่อ=แรงดึง (ใช้แทนค่าเพชร)</small></span><textarea name="giftPower"></textarea></label>
+    <label><span>ของขวัญ 1 ชิ้น ดึงได้ไม่เกิน<small>สัดส่วนของระยะชนะ: 0.35 = 35% (กันของขวัญชิ้นเดียวจบรอบ, 1 = ไม่จำกัด)</small></span><input name="giftCap" type="number" step="0.05" min="0.05" max="1"></label>
+    <label><span>ของขวัญที่ขึ้นป้ายใหญ่<small>ตั้งแต่กี่เพชรขึ้นไป</small></span><input name="bigGift" type="number" min="1"></label>
+    <label><span>ช่วยทีมที่กำลังแพ้<small>0 = ปิด, 0.3 = แรงขึ้นสูงสุด 30% ทำให้สูสี</small></span><input name="comeback" type="number" step="0.05" min="0" max="2"></label>
+  </div>
+  <div class="card"><h2>⏱ กติกาแต่ละรอบ</h2>
+    <label><span>ระยะดึงที่ชนะ<small>ยิ่งมาก รอบยิ่งนาน (ค่าเดิม 100)</small></span><input name="winAt" type="number" min="5"></label>
+    <label><span>เวลาต่อรอบ (วินาที)<small>0 = ไม่จำกัด หมดเวลาฝั่งที่นำชนะ</small></span><input name="roundSec" type="number" min="0"></label>
+    <label>พักหลังจบรอบ (วินาที)<input name="restartSec" type="number" min="3"></label>
+    <label>คนที่ยังไม่เลือกทีมแต่ส่งหัวใจ/ของขวัญ<select name="noTeam"><option value="auto">จัดเข้าทีมที่คนน้อยกว่าให้</option><option value="ignore">ไม่นับ (ต้องพิมพ์เลือกทีมก่อน)</option></select></label>
+    <label>รอบใหม่ คงทีมเดิมไว้<input name="keepTeams" type="checkbox"></label>
+    <label>ย้ายทีมกลางรอบได้<input name="allowSwitch" type="checkbox"></label>
+  </div>
+  <div class="card"><h2>🔌 การเชื่อมต่อ TikFinity</h2>
+    <label><span>ที่อยู่ WebSocket<small>ค่าเดิมของ TikFinity: ws://localhost:21213/</small></span><input name="wsUrl"></label>
+    <label><span>โชว์จุดสถานะมุมจอ<small>เขียว = ต่อแล้ว, แดง = ยังไม่ต่อ</small></span><input name="showStatus" type="checkbox"></label>
+  </div>
+  <div class="card"><h2>🔊 เสียง</h2>
+    <label>เปิดเสียง<input name="sound" type="checkbox"></label>
+    <label>ความดัง<input name="volume" type="range" min="0" max="1" step="0.05"></label>
+  </div>
+  </form>
+
+  <div class="card"><h2>💾 สำรองการตั้งค่า</h2>
+    <div class="btns">
+      <button id="exp">📋 คัดลอกโค้ดการตั้งค่า</button>
+      <button id="imp">📥 วางโค้ดการตั้งค่า</button>
+      <button id="def" class="red">↩ คืนค่าเริ่มต้นทั้งหมด</button>
+    </div>
+    <p class="note">ทุกช่องบันทึกเองทันทีและเปลี่ยนบนจอเกมทันที การตั้งค่าเก็บในเบราว์เซอร์เครื่องนี้ ถ้าย้ายเครื่องให้คัดลอกโค้ดไปวาง</p>
+  </div>
+
+  <div class="card"><h2>📖 วิธีไลฟ์</h2>
+    <ol class="note">
+      <li>ติดตั้งและเปิด <b>TikFinity</b> บนคอม แล้วเชื่อมกับบัญชี TikTok ที่จะไลฟ์</li>
+      <li>เปิด <b>หน้าเกม</b> ใน Chrome (จุดมุมซ้ายบนเป็นสีเขียว = รับของขวัญได้แล้ว)</li>
+      <li>ใน <b>TikTok LIVE Studio</b> เพิ่มแหล่งภาพ "จับภาพหน้าต่าง" แล้วเลือกหน้าต่าง Chrome ที่เปิดเกม</li>
+      <li>เปิดหน้านี้ไว้อีกแท็บเพื่อปรับค่าระหว่างไลฟ์</li>
+    </ol>
+  </div>
+</div>
+<script src="common.js"></script>
+<script>
+  const f = document.getElementById('f');
+  let cfg = liveLoad();
+  function fill() {
+    for (const el of f.elements) {
+      if (!el.name) continue;
+      if (el.type === 'checkbox') el.checked = !!cfg[el.name]; else el.value = cfg[el.name];
+    }
+  }
+  function read() {
+    for (const el of f.elements) {
+      if (!el.name) continue;
+      const d = LIVE_DEFAULTS[el.name];
+      cfg[el.name] = el.type === 'checkbox' ? el.checked : typeof d === 'number' ? (isFinite(parseFloat(el.value)) ? parseFloat(el.value) : d) : el.value;
+    }
+    liveSave(cfg);
+  }
+  f.addEventListener('input', read); f.addEventListener('change', read); f.addEventListener('submit', e => e.preventDefault());
+  fill();
+
+  document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => {
+    const c = b.dataset.cmd; liveChan.post(c === 'reset' ? { t: 'reset' } : { t: 'win', team: c === 'win1' ? 1 : 2 });
+  });
+  let n = 0;
+  const ev = (event, data) => liveChan.post({ t: 'ev', ev: { event, data } });
+  const pic = id => { const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d'); x.fillStyle = `hsl(${(id.length * 47 + n * 83) % 360},70%,55%)`; x.fillRect(0, 0, 96, 96); x.fillStyle = '#fff'; x.font = 'bold 54px system-ui'; x.textAlign = 'center'; x.fillText(id.slice(-2), 48, 66); return c.toDataURL(); };
+  const user = () => { const id = 'ทดสอบ' + (++n % 40); return { uniqueId: id, nickname: id, profilePictureUrl: pic(id) }; };
+  const sim = {
+    c1: () => ev('chat', { ...user(), comment: cfg.t1Key }),
+    c2: () => ev('chat', { ...user(), comment: cfg.t2Key }),
+    like: () => ev('like', { ...user(), likeCount: 20 }),
+    g1: () => ev('gift', { ...user(), giftName: 'Rose', diamondCount: 1, repeatCount: 1, giftType: 0 }),
+    g99: () => ev('gift', { ...user(), giftName: 'Hand Heart', diamondCount: 100, repeatCount: 1, giftType: 0 }),
+    g1000: () => ev('gift', { ...user(), giftName: 'Lion', diamondCount: 29999, repeatCount: 1, giftType: 0 }),
+    crowd: () => {
+      for (let i = 0; i < 30; i++) ev('chat', { uniqueId: 'คนดู' + i, nickname: 'คนดู' + i, comment: i % 2 ? cfg.t2Key : cfg.t1Key });
+      let k = 0; const it = setInterval(() => { const i = Math.floor(Math.random() * 30); ev('like', { uniqueId: 'คนดู' + i, nickname: 'คนดู' + i, likeCount: 10 }); if (++k > 80) clearInterval(it); }, 100);
+      let q = 0; const gi = setInterval(() => { const i = Math.floor(Math.random() * 30), id = 'คนดู' + i; ev('gift', { uniqueId: id, nickname: id, profilePictureUrl: pic(id), giftName: 'Rose', diamondCount: 1 + Math.floor(Math.random() * 10), repeatCount: 1, giftType: 0 }); if (++q > 25) clearInterval(gi); }, 200);
+    },
+  };
+  document.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => sim[b.dataset.sim]());
+
+  document.getElementById('exp').onclick = async () => {
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+    try { await navigator.clipboard.writeText(code); alert('คัดลอกแล้ว'); } catch { prompt('คัดลอกโค้ดนี้', code); }
+  };
+  document.getElementById('imp').onclick = () => {
+    const code = prompt('วางโค้ดการตั้งค่า'); if (!code) return;
+    try { cfg = { ...LIVE_DEFAULTS, ...JSON.parse(decodeURIComponent(escape(atob(code.trim())))) }; fill(); liveSave(cfg); alert('ใช้การตั้งค่าแล้ว'); } catch { alert('โค้ดไม่ถูกต้อง'); }
+  };
+  document.getElementById('def').onclick = () => { if (!confirm('คืนค่าเริ่มต้นทั้งหมด?')) return; cfg = { ...LIVE_DEFAULTS }; fill(); liveSave(cfg); };
+
+  const stat = document.getElementById('stat'); let seen = 0;
+  liveChan.on(m => {
+    if (m.t !== 'status') return; seen = Date.now();
+    const ws = { on: '<b class="ok">● ต่อ TikFinity แล้ว</b>', wait: '<b class="wait">● กำลังต่อ TikFinity...</b>', err: '<b class="bad">● ยังไม่ต่อ TikFinity</b>', off: '<b>● ปิดการเชื่อมต่อ</b>' }[m.ws];
+    stat.innerHTML = `📺 หน้าเกมเปิดอยู่ • ${ws} • ${cfg.t1Name} <b>${m.n1}</b> คน • ${cfg.t2Name} <b>${m.n2}</b> คน • ${m.phase === 'win' ? 'กำลังประกาศผล' : 'กำลังแข่ง'}`;
+  });
+  setInterval(() => { if (seen && Date.now() - seen > 3000) { stat.textContent = 'หน้าเกมปิดอยู่ หรือเปิดคนละเบราว์เซอร์'; seen = 0; } }, 1000);
+</script>
+</body>
+</html>
