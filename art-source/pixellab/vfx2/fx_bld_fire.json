@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-bld-fire 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 1.png",
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 2.png",
+   "frame": {
+    "x": 176,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 3.png",
+   "frame": {
+    "x": 264,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 4.png",
+   "frame": {
+    "x": 0,
+    "y": 78,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 5.png",
+   "frame": {
+    "x": 88,
+    "y": 78,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 6.png",
+   "frame": {
+    "x": 176,
+    "y": 78,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 7.png",
+   "frame": {
+    "x": 264,
+    "y": 78,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 8.png",
+   "frame": {
+    "x": 0,
+    "y": 156,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 9.png",
+   "frame": {
+    "x": 88,
+    "y": 156,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 10.png",
+   "frame": {
+    "x": 176,
+    "y": 156,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-bld-fire 11.png",
+   "frame": {
+    "x": 264,
+    "y": 156,
+    "w": 88,
+    "h": 78
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 88,
+    "h": 78
+   },
+   "sourceSize": {
+    "w": 88,
+    "h": 78
+   },
+   "pivot": {
+    "x": 1.375,
+    "y": 1.2820512820512822
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-bld-fire.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 352,
+   "h": 234
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 121,
+   "y": 100
+  },
+  "frameTags": [
+   {
+    "name": "fx-bld-fire",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

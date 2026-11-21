@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-elite-aura 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 1.png",
+   "frame": {
+    "x": 68,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 2.png",
+   "frame": {
+    "x": 136,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 3.png",
+   "frame": {
+    "x": 204,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 4.png",
+   "frame": {
+    "x": 0,
+    "y": 112,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 5.png",
+   "frame": {
+    "x": 68,
+    "y": 112,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 6.png",
+   "frame": {
+    "x": 136,
+    "y": 112,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 7.png",
+   "frame": {
+    "x": 204,
+    "y": 112,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 8.png",
+   "frame": {
+    "x": 0,
+    "y": 224,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 9.png",
+   "frame": {
+    "x": 68,
+    "y": 224,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 10.png",
+   "frame": {
+    "x": 136,
+    "y": 224,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-elite-aura 11.png",
+   "frame": {
+    "x": 204,
+    "y": 224,
+    "w": 68,
+    "h": 112
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 68,
+    "h": 112
+   },
+   "sourceSize": {
+    "w": 68,
+    "h": 112
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.8660714285714286
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-elite-aura.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 272,
+   "h": 336
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 34,
+   "y": 97
+  },
+  "frameTags": [
+   {
+    "name": "fx-elite-aura",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

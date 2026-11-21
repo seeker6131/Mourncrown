@@ -1,0 +1,235 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-t3-quake 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 1.png",
+   "frame": {
+    "x": 91,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 2.png",
+   "frame": {
+    "x": 182,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 3.png",
+   "frame": {
+    "x": 0,
+    "y": 53,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 4.png",
+   "frame": {
+    "x": 91,
+    "y": 53,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 5.png",
+   "frame": {
+    "x": 182,
+    "y": 53,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 6.png",
+   "frame": {
+    "x": 0,
+    "y": 106,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  },
+  {
+   "filename": "fx-sk-t3-quake 7.png",
+   "frame": {
+    "x": 91,
+    "y": 106,
+    "w": 91,
+    "h": 53
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 53
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 53
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.4528301886792453
+   },
+   "duration": 91
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-t3-quake.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 273,
+   "h": 159
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 45,
+   "y": 24
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-t3-quake",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

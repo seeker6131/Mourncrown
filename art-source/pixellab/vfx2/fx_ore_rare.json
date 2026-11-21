@@ -1,0 +1,521 @@
+{
+ "frames": [
+  {
+   "filename": "fx-ore-rare 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 1.png",
+   "frame": {
+    "x": 70,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 2.png",
+   "frame": {
+    "x": 140,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 3.png",
+   "frame": {
+    "x": 210,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 4.png",
+   "frame": {
+    "x": 280,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 5.png",
+   "frame": {
+    "x": 0,
+    "y": 65,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 6.png",
+   "frame": {
+    "x": 70,
+    "y": 65,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 7.png",
+   "frame": {
+    "x": 140,
+    "y": 65,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 8.png",
+   "frame": {
+    "x": 210,
+    "y": 65,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 9.png",
+   "frame": {
+    "x": 280,
+    "y": 65,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 10.png",
+   "frame": {
+    "x": 0,
+    "y": 130,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 11.png",
+   "frame": {
+    "x": 70,
+    "y": 130,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 12.png",
+   "frame": {
+    "x": 140,
+    "y": 130,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 13.png",
+   "frame": {
+    "x": 210,
+    "y": 130,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 14.png",
+   "frame": {
+    "x": 280,
+    "y": 130,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 15.png",
+   "frame": {
+    "x": 0,
+    "y": 195,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 16.png",
+   "frame": {
+    "x": 70,
+    "y": 195,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 17.png",
+   "frame": {
+    "x": 140,
+    "y": 195,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ore-rare 18.png",
+   "frame": {
+    "x": 210,
+    "y": 195,
+    "w": 70,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 70,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 70,
+    "h": 65
+   },
+   "pivot": {
+    "x": 1.7428571428571429,
+    "y": 1.8153846153846154
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-ore-rare.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 350,
+   "h": 260
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 122,
+   "y": 118
+  },
+  "frameTags": [
+   {
+    "name": "fx-ore-rare",
+    "from": 0,
+    "to": 18,
+    "direction": "forward"
+   }
+  ]
+ }
+}

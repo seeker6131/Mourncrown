@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-t4-fortress 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 1.png",
+   "frame": {
+    "x": 72,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 2.png",
+   "frame": {
+    "x": 144,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 3.png",
+   "frame": {
+    "x": 216,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 4.png",
+   "frame": {
+    "x": 0,
+    "y": 88,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 5.png",
+   "frame": {
+    "x": 72,
+    "y": 88,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 6.png",
+   "frame": {
+    "x": 144,
+    "y": 88,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 7.png",
+   "frame": {
+    "x": 216,
+    "y": 88,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 8.png",
+   "frame": {
+    "x": 0,
+    "y": 176,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 9.png",
+   "frame": {
+    "x": 72,
+    "y": 176,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 10.png",
+   "frame": {
+    "x": 144,
+    "y": 176,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-t4-fortress 11.png",
+   "frame": {
+    "x": 216,
+    "y": 176,
+    "w": 72,
+    "h": 88
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 72,
+    "h": 88
+   },
+   "sourceSize": {
+    "w": 72,
+    "h": 88
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5681818181818182
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-t4-fortress.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 288,
+   "h": 264
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 36,
+   "y": 50
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-t4-fortress",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

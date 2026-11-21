@@ -1,0 +1,651 @@
+{
+ "frames": [
+  {
+   "filename": "fx-ring-hero 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 1.png",
+   "frame": {
+    "x": 100,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 2.png",
+   "frame": {
+    "x": 200,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 3.png",
+   "frame": {
+    "x": 300,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 4.png",
+   "frame": {
+    "x": 400,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 5.png",
+   "frame": {
+    "x": 0,
+    "y": 60,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 6.png",
+   "frame": {
+    "x": 100,
+    "y": 60,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 7.png",
+   "frame": {
+    "x": 200,
+    "y": 60,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 8.png",
+   "frame": {
+    "x": 300,
+    "y": 60,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 9.png",
+   "frame": {
+    "x": 400,
+    "y": 60,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 10.png",
+   "frame": {
+    "x": 0,
+    "y": 120,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 11.png",
+   "frame": {
+    "x": 100,
+    "y": 120,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 12.png",
+   "frame": {
+    "x": 200,
+    "y": 120,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 13.png",
+   "frame": {
+    "x": 300,
+    "y": 120,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 14.png",
+   "frame": {
+    "x": 400,
+    "y": 120,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 15.png",
+   "frame": {
+    "x": 0,
+    "y": 180,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 16.png",
+   "frame": {
+    "x": 100,
+    "y": 180,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 17.png",
+   "frame": {
+    "x": 200,
+    "y": 180,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 18.png",
+   "frame": {
+    "x": 300,
+    "y": 180,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 19.png",
+   "frame": {
+    "x": 400,
+    "y": 180,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 20.png",
+   "frame": {
+    "x": 0,
+    "y": 240,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 21.png",
+   "frame": {
+    "x": 100,
+    "y": 240,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 22.png",
+   "frame": {
+    "x": 200,
+    "y": 240,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ring-hero 23.png",
+   "frame": {
+    "x": 300,
+    "y": 240,
+    "w": 100,
+    "h": 60
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 60
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 60
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-ring-hero.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 500,
+   "h": 300
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 50,
+   "y": 30
+  },
+  "frameTags": [
+   {
+    "name": "fx-ring-hero",
+    "from": 0,
+    "to": 23,
+    "direction": "forward"
+   }
+  ]
+ }
+}

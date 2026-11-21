@@ -1,0 +1,235 @@
+{
+ "frames": [
+  {
+   "filename": "fx-firestep-c 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 1.png",
+   "frame": {
+    "x": 44,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 2.png",
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 3.png",
+   "frame": {
+    "x": 0,
+    "y": 48,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 4.png",
+   "frame": {
+    "x": 44,
+    "y": 48,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 5.png",
+   "frame": {
+    "x": 88,
+    "y": 48,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 6.png",
+   "frame": {
+    "x": 0,
+    "y": 96,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  },
+  {
+   "filename": "fx-firestep-c 7.png",
+   "frame": {
+    "x": 44,
+    "y": 96,
+    "w": 44,
+    "h": 48
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 48
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 48
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.625
+   },
+   "duration": 100
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-firestep-c.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 132,
+   "h": 144
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 22,
+   "y": 30
+  },
+  "frameTags": [
+   {
+    "name": "fx-firestep-c",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

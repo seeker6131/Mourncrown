@@ -1,0 +1,521 @@
+{
+ "frames": [
+  {
+   "filename": "fx-ult-bow 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 1.png",
+   "frame": {
+    "x": 90,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 2.png",
+   "frame": {
+    "x": 180,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 3.png",
+   "frame": {
+    "x": 270,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 4.png",
+   "frame": {
+    "x": 360,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 5.png",
+   "frame": {
+    "x": 0,
+    "y": 164,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 6.png",
+   "frame": {
+    "x": 90,
+    "y": 164,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 7.png",
+   "frame": {
+    "x": 180,
+    "y": 164,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 8.png",
+   "frame": {
+    "x": 270,
+    "y": 164,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 9.png",
+   "frame": {
+    "x": 360,
+    "y": 164,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 10.png",
+   "frame": {
+    "x": 0,
+    "y": 328,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 11.png",
+   "frame": {
+    "x": 90,
+    "y": 328,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 12.png",
+   "frame": {
+    "x": 180,
+    "y": 328,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 13.png",
+   "frame": {
+    "x": 270,
+    "y": 328,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 14.png",
+   "frame": {
+    "x": 360,
+    "y": 328,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 15.png",
+   "frame": {
+    "x": 0,
+    "y": 492,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 16.png",
+   "frame": {
+    "x": 90,
+    "y": 492,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 17.png",
+   "frame": {
+    "x": 180,
+    "y": 492,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  },
+  {
+   "filename": "fx-ult-bow 18.png",
+   "frame": {
+    "x": 270,
+    "y": 492,
+    "w": 90,
+    "h": 164
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 90,
+    "h": 164
+   },
+   "sourceSize": {
+    "w": 90,
+    "h": 164
+   },
+   "pivot": {
+    "x": 0.4777777777777778,
+    "y": 0.5304878048780488
+   },
+   "duration": 53
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-ult-bow.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 450,
+   "h": 656
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 43,
+   "y": 87
+  },
+  "frameTags": [
+   {
+    "name": "fx-ult-bow",
+    "from": 0,
+    "to": 18,
+    "direction": "forward"
+   }
+  ]
+ }
+}

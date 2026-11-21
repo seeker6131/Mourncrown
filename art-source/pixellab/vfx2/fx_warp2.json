@@ -1,0 +1,651 @@
+{
+ "frames": [
+  {
+   "filename": "fx-warp2 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 1.png",
+   "frame": {
+    "x": 112,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 2.png",
+   "frame": {
+    "x": 224,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 3.png",
+   "frame": {
+    "x": 336,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 4.png",
+   "frame": {
+    "x": 448,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 5.png",
+   "frame": {
+    "x": 0,
+    "y": 94,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 6.png",
+   "frame": {
+    "x": 112,
+    "y": 94,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 7.png",
+   "frame": {
+    "x": 224,
+    "y": 94,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 8.png",
+   "frame": {
+    "x": 336,
+    "y": 94,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 9.png",
+   "frame": {
+    "x": 448,
+    "y": 94,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 10.png",
+   "frame": {
+    "x": 0,
+    "y": 188,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 11.png",
+   "frame": {
+    "x": 112,
+    "y": 188,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 12.png",
+   "frame": {
+    "x": 224,
+    "y": 188,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 13.png",
+   "frame": {
+    "x": 336,
+    "y": 188,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 14.png",
+   "frame": {
+    "x": 448,
+    "y": 188,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 15.png",
+   "frame": {
+    "x": 0,
+    "y": 282,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 16.png",
+   "frame": {
+    "x": 112,
+    "y": 282,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 17.png",
+   "frame": {
+    "x": 224,
+    "y": 282,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 18.png",
+   "frame": {
+    "x": 336,
+    "y": 282,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 19.png",
+   "frame": {
+    "x": 448,
+    "y": 282,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 20.png",
+   "frame": {
+    "x": 0,
+    "y": 376,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 21.png",
+   "frame": {
+    "x": 112,
+    "y": 376,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 22.png",
+   "frame": {
+    "x": 224,
+    "y": 376,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-warp2 23.png",
+   "frame": {
+    "x": 336,
+    "y": 376,
+    "w": 112,
+    "h": 94
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 112,
+    "h": 94
+   },
+   "sourceSize": {
+    "w": 112,
+    "h": 94
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6276595744680851
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-warp2.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 560,
+   "h": 470
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 56,
+   "y": 59
+  },
+  "frameTags": [
+   {
+    "name": "fx-warp2",
+    "from": 0,
+    "to": 23,
+    "direction": "forward"
+   }
+  ]
+ }
+}

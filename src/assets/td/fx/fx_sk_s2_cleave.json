@@ -1,0 +1,313 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-s2-cleave 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 1.png",
+   "frame": {
+    "x": 54,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 2.png",
+   "frame": {
+    "x": 108,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 3.png",
+   "frame": {
+    "x": 162,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 4.png",
+   "frame": {
+    "x": 0,
+    "y": 85,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 5.png",
+   "frame": {
+    "x": 54,
+    "y": 85,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 6.png",
+   "frame": {
+    "x": 108,
+    "y": 85,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 7.png",
+   "frame": {
+    "x": 162,
+    "y": 85,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 8.png",
+   "frame": {
+    "x": 0,
+    "y": 170,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 9.png",
+   "frame": {
+    "x": 54,
+    "y": 170,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-s2-cleave 10.png",
+   "frame": {
+    "x": 108,
+    "y": 170,
+    "w": 54,
+    "h": 85
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 85
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 85
+   },
+   "pivot": {
+    "x": 0.037037037037037035,
+    "y": 0.9294117647058824
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-s2-cleave.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 216,
+   "h": 255
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 2,
+   "y": 79
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-s2-cleave",
+    "from": 0,
+    "to": 10,
+    "direction": "forward"
+   }
+  ]
+ }
+}

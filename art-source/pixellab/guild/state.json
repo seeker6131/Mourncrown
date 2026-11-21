@@ -1,0 +1,26 @@
+{
+ "rooms": {
+  "guildhall": "c59b5a7c-ccdb-4487-a556-e7c296308ead",
+  "house": "b78497d5-9bb5-42c6-b5f7-b9f29a12d239",
+  "tavern": "67b98c20-036b-4136-9ee6-b771e816f5df",
+  "kitchen": "1a19ac16-bf7b-4e13-98b0-abf1352b0518",
+  "forge": "62ffea68-209b-4ea6-a3da-1c45cb3b5e2c",
+  "warehouse": "e3a2ae15-1a9c-4695-9687-61ee2c611a17",
+  "market": "12211cab-e8f0-46bf-bba9-fab8b784eb75",
+  "barracks": "bdfa751b-8522-4155-904c-a668d87929ec"
+ },
+ "objs": {
+  "def_cannon": {
+   "oid": "845af6c1-c64e-4278-b501-4e8bf1669de9",
+   "g": "2847e252-7bd6-4b73-9f3a-1b1cf2a0f907"
+  },
+  "def_ballista": {
+   "oid": "b2fbefdf-00c5-4510-97a4-2349f88a6b86",
+   "g": "7351e5ce-dde5-47bb-99f5-d854b397e3bd"
+  },
+  "def_archer": {
+   "oid": "6355e117-6ff3-4ee7-980d-ad8fb8969b02",
+   "g": "0663aa05-cfdb-448e-a850-bead4ddd1aeb"
+  }
+ }
+}

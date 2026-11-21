@@ -1,0 +1,651 @@
+{
+ "frames": [
+  {
+   "filename": "fx-shield 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 1.png",
+   "frame": {
+    "x": 94,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 2.png",
+   "frame": {
+    "x": 188,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 3.png",
+   "frame": {
+    "x": 282,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 4.png",
+   "frame": {
+    "x": 376,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 5.png",
+   "frame": {
+    "x": 0,
+    "y": 72,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 6.png",
+   "frame": {
+    "x": 94,
+    "y": 72,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 7.png",
+   "frame": {
+    "x": 188,
+    "y": 72,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 8.png",
+   "frame": {
+    "x": 282,
+    "y": 72,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 9.png",
+   "frame": {
+    "x": 376,
+    "y": 72,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 10.png",
+   "frame": {
+    "x": 0,
+    "y": 144,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 11.png",
+   "frame": {
+    "x": 94,
+    "y": 144,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 12.png",
+   "frame": {
+    "x": 188,
+    "y": 144,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 13.png",
+   "frame": {
+    "x": 282,
+    "y": 144,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 14.png",
+   "frame": {
+    "x": 376,
+    "y": 144,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 15.png",
+   "frame": {
+    "x": 0,
+    "y": 216,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 16.png",
+   "frame": {
+    "x": 94,
+    "y": 216,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 17.png",
+   "frame": {
+    "x": 188,
+    "y": 216,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 18.png",
+   "frame": {
+    "x": 282,
+    "y": 216,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 19.png",
+   "frame": {
+    "x": 376,
+    "y": 216,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 20.png",
+   "frame": {
+    "x": 0,
+    "y": 288,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 21.png",
+   "frame": {
+    "x": 94,
+    "y": 288,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 22.png",
+   "frame": {
+    "x": 188,
+    "y": 288,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-shield 23.png",
+   "frame": {
+    "x": 282,
+    "y": 288,
+    "w": 94,
+    "h": 72
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 72
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 72
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6805555555555556
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-shield.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 470,
+   "h": 360
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 47,
+   "y": 49
+  },
+  "frameTags": [
+   {
+    "name": "fx-shield",
+    "from": 0,
+    "to": 23,
+    "direction": "forward"
+   }
+  ]
+ }
+}

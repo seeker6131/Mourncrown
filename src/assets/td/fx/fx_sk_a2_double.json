@@ -1,0 +1,313 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-a2-double 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 1.png",
+   "frame": {
+    "x": 93,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 2.png",
+   "frame": {
+    "x": 186,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 3.png",
+   "frame": {
+    "x": 279,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 4.png",
+   "frame": {
+    "x": 0,
+    "y": 61,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 5.png",
+   "frame": {
+    "x": 93,
+    "y": 61,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 6.png",
+   "frame": {
+    "x": 186,
+    "y": 61,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 7.png",
+   "frame": {
+    "x": 279,
+    "y": 61,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 8.png",
+   "frame": {
+    "x": 0,
+    "y": 122,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 9.png",
+   "frame": {
+    "x": 93,
+    "y": 122,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a2-double 10.png",
+   "frame": {
+    "x": 186,
+    "y": 122,
+    "w": 93,
+    "h": 61
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 93,
+    "h": 61
+   },
+   "sourceSize": {
+    "w": 93,
+    "h": 61
+   },
+   "pivot": {
+    "x": 1.2580645161290323,
+    "y": 1.7049180327868851
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-a2-double.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 372,
+   "h": 183
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 117,
+   "y": 104
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-a2-double",
+    "from": 0,
+    "to": 10,
+    "direction": "forward"
+   }
+  ]
+ }
+}

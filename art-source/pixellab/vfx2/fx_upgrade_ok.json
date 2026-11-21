@@ -1,0 +1,365 @@
+{
+ "frames": [
+  {
+   "filename": "fx-upgrade-ok 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 1.png",
+   "frame": {
+    "x": 115,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 2.png",
+   "frame": {
+    "x": 230,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 3.png",
+   "frame": {
+    "x": 345,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 4.png",
+   "frame": {
+    "x": 0,
+    "y": 107,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 5.png",
+   "frame": {
+    "x": 115,
+    "y": 107,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 6.png",
+   "frame": {
+    "x": 230,
+    "y": 107,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 7.png",
+   "frame": {
+    "x": 345,
+    "y": 107,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 8.png",
+   "frame": {
+    "x": 0,
+    "y": 214,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 9.png",
+   "frame": {
+    "x": 115,
+    "y": 214,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 10.png",
+   "frame": {
+    "x": 230,
+    "y": 214,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 11.png",
+   "frame": {
+    "x": 345,
+    "y": 214,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-upgrade-ok 12.png",
+   "frame": {
+    "x": 0,
+    "y": 321,
+    "w": 115,
+    "h": 107
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 115,
+    "h": 107
+   },
+   "sourceSize": {
+    "w": 115,
+    "h": 107
+   },
+   "pivot": {
+    "x": 0.5130434782608696,
+    "y": 0.514018691588785
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-upgrade-ok.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 460,
+   "h": 428
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 59,
+   "y": 55
+  },
+  "frameTags": [
+   {
+    "name": "fx-upgrade-ok",
+    "from": 0,
+    "to": 12,
+    "direction": "forward"
+   }
+  ]
+ }
+}

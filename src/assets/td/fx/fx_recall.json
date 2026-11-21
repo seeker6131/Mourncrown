@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-recall 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 1.png",
+   "frame": {
+    "x": 69,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 2.png",
+   "frame": {
+    "x": 138,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 3.png",
+   "frame": {
+    "x": 207,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 4.png",
+   "frame": {
+    "x": 0,
+    "y": 99,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 5.png",
+   "frame": {
+    "x": 69,
+    "y": 99,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 6.png",
+   "frame": {
+    "x": 138,
+    "y": 99,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 7.png",
+   "frame": {
+    "x": 207,
+    "y": 99,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 8.png",
+   "frame": {
+    "x": 0,
+    "y": 198,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 9.png",
+   "frame": {
+    "x": 69,
+    "y": 198,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 10.png",
+   "frame": {
+    "x": 138,
+    "y": 198,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-recall 11.png",
+   "frame": {
+    "x": 207,
+    "y": 198,
+    "w": 69,
+    "h": 99
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 69,
+    "h": 99
+   },
+   "sourceSize": {
+    "w": 69,
+    "h": 99
+   },
+   "pivot": {
+    "x": 0.5362318840579711,
+    "y": 0.8686868686868687
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-recall.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 276,
+   "h": 297
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 37,
+   "y": 86
+  },
+  "frameTags": [
+   {
+    "name": "fx-recall",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

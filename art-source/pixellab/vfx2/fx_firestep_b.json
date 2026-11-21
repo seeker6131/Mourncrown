@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-firestep-b 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 1.png",
+   "frame": {
+    "x": 81,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 2.png",
+   "frame": {
+    "x": 162,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 3.png",
+   "frame": {
+    "x": 243,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 4.png",
+   "frame": {
+    "x": 0,
+    "y": 62,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 5.png",
+   "frame": {
+    "x": 81,
+    "y": 62,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 6.png",
+   "frame": {
+    "x": 162,
+    "y": 62,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 7.png",
+   "frame": {
+    "x": 243,
+    "y": 62,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 8.png",
+   "frame": {
+    "x": 0,
+    "y": 124,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 9.png",
+   "frame": {
+    "x": 81,
+    "y": 124,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 10.png",
+   "frame": {
+    "x": 162,
+    "y": 124,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-firestep-b 11.png",
+   "frame": {
+    "x": 243,
+    "y": 124,
+    "w": 81,
+    "h": 62
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 81,
+    "h": 62
+   },
+   "sourceSize": {
+    "w": 81,
+    "h": 62
+   },
+   "pivot": {
+    "x": 0.5061728395061729,
+    "y": 0.7258064516129032
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-firestep-b.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 324,
+   "h": 186
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "feet",
+   "x": 41,
+   "y": 45
+  },
+  "frameTags": [
+   {
+    "name": "fx-firestep-b",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

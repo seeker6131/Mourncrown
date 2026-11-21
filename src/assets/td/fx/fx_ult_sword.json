@@ -1,0 +1,677 @@
+{
+ "frames": [
+  {
+   "filename": "fx-ult-sword 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 1.png",
+   "frame": {
+    "x": 106,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 2.png",
+   "frame": {
+    "x": 212,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 3.png",
+   "frame": {
+    "x": 318,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 4.png",
+   "frame": {
+    "x": 424,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 5.png",
+   "frame": {
+    "x": 0,
+    "y": 144,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 6.png",
+   "frame": {
+    "x": 106,
+    "y": 144,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 7.png",
+   "frame": {
+    "x": 212,
+    "y": 144,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 8.png",
+   "frame": {
+    "x": 318,
+    "y": 144,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 9.png",
+   "frame": {
+    "x": 424,
+    "y": 144,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 10.png",
+   "frame": {
+    "x": 0,
+    "y": 288,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 11.png",
+   "frame": {
+    "x": 106,
+    "y": 288,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 12.png",
+   "frame": {
+    "x": 212,
+    "y": 288,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 13.png",
+   "frame": {
+    "x": 318,
+    "y": 288,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 14.png",
+   "frame": {
+    "x": 424,
+    "y": 288,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 15.png",
+   "frame": {
+    "x": 0,
+    "y": 432,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 16.png",
+   "frame": {
+    "x": 106,
+    "y": 432,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 17.png",
+   "frame": {
+    "x": 212,
+    "y": 432,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 18.png",
+   "frame": {
+    "x": 318,
+    "y": 432,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 19.png",
+   "frame": {
+    "x": 424,
+    "y": 432,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 20.png",
+   "frame": {
+    "x": 0,
+    "y": 576,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 21.png",
+   "frame": {
+    "x": 106,
+    "y": 576,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 22.png",
+   "frame": {
+    "x": 212,
+    "y": 576,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 23.png",
+   "frame": {
+    "x": 318,
+    "y": 576,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-ult-sword 24.png",
+   "frame": {
+    "x": 424,
+    "y": 576,
+    "w": 106,
+    "h": 144
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 106,
+    "h": 144
+   },
+   "sourceSize": {
+    "w": 106,
+    "h": 144
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.4513888888888889
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-ult-sword.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 530,
+   "h": 720
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 53,
+   "y": 65
+  },
+  "frameTags": [
+   {
+    "name": "fx-ult-sword",
+    "from": 0,
+    "to": 24,
+    "direction": "forward"
+   }
+  ]
+ }
+}

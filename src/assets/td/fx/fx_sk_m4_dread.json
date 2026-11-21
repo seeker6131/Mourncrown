@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-m4-dread 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 1.png",
+   "frame": {
+    "x": 116,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 2.png",
+   "frame": {
+    "x": 232,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 3.png",
+   "frame": {
+    "x": 348,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 4.png",
+   "frame": {
+    "x": 0,
+    "y": 63,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 5.png",
+   "frame": {
+    "x": 116,
+    "y": 63,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 6.png",
+   "frame": {
+    "x": 232,
+    "y": 63,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 7.png",
+   "frame": {
+    "x": 348,
+    "y": 63,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 8.png",
+   "frame": {
+    "x": 0,
+    "y": 126,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-m4-dread 9.png",
+   "frame": {
+    "x": 116,
+    "y": 126,
+    "w": 116,
+    "h": 63
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 63
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 63
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.47619047619047616
+   },
+   "duration": 71
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-m4-dread.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 464,
+   "h": 189
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 58,
+   "y": 30
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-m4-dread",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -1,0 +1,287 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-t2-slam 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 1.png",
+   "frame": {
+    "x": 182,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 2.png",
+   "frame": {
+    "x": 364,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 3.png",
+   "frame": {
+    "x": 546,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 4.png",
+   "frame": {
+    "x": 0,
+    "y": 74,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 5.png",
+   "frame": {
+    "x": 182,
+    "y": 74,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 6.png",
+   "frame": {
+    "x": 364,
+    "y": 74,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 7.png",
+   "frame": {
+    "x": 546,
+    "y": 74,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 8.png",
+   "frame": {
+    "x": 0,
+    "y": 148,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  },
+  {
+   "filename": "fx-sk-t2-slam 9.png",
+   "frame": {
+    "x": 182,
+    "y": 148,
+    "w": 182,
+    "h": 74
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 182,
+    "h": 74
+   },
+   "sourceSize": {
+    "w": 182,
+    "h": 74
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 71
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-t2-slam.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 728,
+   "h": 222
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 91,
+   "y": 37
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-t2-slam",
+    "from": 0,
+    "to": 9,
+    "direction": "forward"
+   }
+  ]
+ }
+}

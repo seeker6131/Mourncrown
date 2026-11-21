@@ -1,0 +1,313 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-m3-volley 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 1.png",
+   "frame": {
+    "x": 54,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 2.png",
+   "frame": {
+    "x": 108,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 3.png",
+   "frame": {
+    "x": 162,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 4.png",
+   "frame": {
+    "x": 0,
+    "y": 65,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 5.png",
+   "frame": {
+    "x": 54,
+    "y": 65,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 6.png",
+   "frame": {
+    "x": 108,
+    "y": 65,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 7.png",
+   "frame": {
+    "x": 162,
+    "y": 65,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 8.png",
+   "frame": {
+    "x": 0,
+    "y": 130,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 9.png",
+   "frame": {
+    "x": 54,
+    "y": 130,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-m3-volley 10.png",
+   "frame": {
+    "x": 108,
+    "y": 130,
+    "w": 54,
+    "h": 65
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 54,
+    "h": 65
+   },
+   "sourceSize": {
+    "w": 54,
+    "h": 65
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.38461538461538464
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-m3-volley.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 216,
+   "h": 195
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 27,
+   "y": 25
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-m3-volley",
+    "from": 0,
+    "to": 10,
+    "direction": "forward"
+   }
+  ]
+ }
+}

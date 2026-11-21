@@ -1,0 +1,209 @@
+{
+ "frames": [
+  {
+   "filename": "fx-cannon 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-cannon 1.png",
+   "frame": {
+    "x": 84,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-cannon 2.png",
+   "frame": {
+    "x": 168,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-cannon 3.png",
+   "frame": {
+    "x": 0,
+    "y": 82,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-cannon 4.png",
+   "frame": {
+    "x": 84,
+    "y": 82,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-cannon 5.png",
+   "frame": {
+    "x": 168,
+    "y": 82,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-cannon 6.png",
+   "frame": {
+    "x": 0,
+    "y": 164,
+    "w": 84,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 84,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 84,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.9634146341463414
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-cannon.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 252,
+   "h": 246
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "feet",
+   "x": 42,
+   "y": 79
+  },
+  "frameTags": [
+   {
+    "name": "fx-cannon",
+    "from": 0,
+    "to": 6,
+    "direction": "forward"
+   }
+  ]
+ }
+}

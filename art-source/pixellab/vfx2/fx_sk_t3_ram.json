@@ -1,0 +1,261 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-t3-ram 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 1.png",
+   "frame": {
+    "x": 94,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 2.png",
+   "frame": {
+    "x": 188,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 3.png",
+   "frame": {
+    "x": 0,
+    "y": 56,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 4.png",
+   "frame": {
+    "x": 94,
+    "y": 56,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 5.png",
+   "frame": {
+    "x": 188,
+    "y": 56,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 6.png",
+   "frame": {
+    "x": 0,
+    "y": 112,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 7.png",
+   "frame": {
+    "x": 94,
+    "y": 112,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  },
+  {
+   "filename": "fx-sk-t3-ram 8.png",
+   "frame": {
+    "x": 188,
+    "y": 112,
+    "w": 94,
+    "h": 56
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 94,
+    "h": 56
+   },
+   "sourceSize": {
+    "w": 94,
+    "h": 56
+   },
+   "pivot": {
+    "x": 0.6276595744680851,
+    "y": 0.5714285714285714
+   },
+   "duration": 77
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-t3-ram.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 282,
+   "h": 168
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 59,
+   "y": 32
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-t3-ram",
+    "from": 0,
+    "to": 8,
+    "direction": "forward"
+   }
+  ]
+ }
+}

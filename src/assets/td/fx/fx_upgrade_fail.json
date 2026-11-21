@@ -1,0 +1,235 @@
+{
+ "frames": [
+  {
+   "filename": "fx-upgrade-fail 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 1.png",
+   "frame": {
+    "x": 64,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 2.png",
+   "frame": {
+    "x": 128,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 3.png",
+   "frame": {
+    "x": 0,
+    "y": 51,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 4.png",
+   "frame": {
+    "x": 64,
+    "y": 51,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 5.png",
+   "frame": {
+    "x": 128,
+    "y": 51,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 6.png",
+   "frame": {
+    "x": 0,
+    "y": 102,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-upgrade-fail 7.png",
+   "frame": {
+    "x": 64,
+    "y": 102,
+    "w": 64,
+    "h": 51
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 64,
+    "h": 51
+   },
+   "sourceSize": {
+    "w": 64,
+    "h": 51
+   },
+   "pivot": {
+    "x": 0.28125,
+    "y": 0.49019607843137253
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-upgrade-fail.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 192,
+   "h": 153
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 18,
+   "y": 25
+  },
+  "frameTags": [
+   {
+    "name": "fx-upgrade-fail",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

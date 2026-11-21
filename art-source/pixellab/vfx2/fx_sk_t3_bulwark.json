@@ -1,0 +1,261 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-t3-bulwark 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 1.png",
+   "frame": {
+    "x": 120,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 2.png",
+   "frame": {
+    "x": 240,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 3.png",
+   "frame": {
+    "x": 0,
+    "y": 110,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 4.png",
+   "frame": {
+    "x": 120,
+    "y": 110,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 5.png",
+   "frame": {
+    "x": 240,
+    "y": 110,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 6.png",
+   "frame": {
+    "x": 0,
+    "y": 220,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 7.png",
+   "frame": {
+    "x": 120,
+    "y": 220,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-t3-bulwark 8.png",
+   "frame": {
+    "x": 240,
+    "y": 220,
+    "w": 120,
+    "h": 110
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 120,
+    "h": 110
+   },
+   "sourceSize": {
+    "w": 120,
+    "h": 110
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5272727272727272
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-t3-bulwark.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 360,
+   "h": 330
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 60,
+   "y": 58
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-t3-bulwark",
+    "from": 0,
+    "to": 8,
+    "direction": "forward"
+   }
+  ]
+ }
+}

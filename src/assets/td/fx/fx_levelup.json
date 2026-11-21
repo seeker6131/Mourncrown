@@ -1,0 +1,755 @@
+{
+ "frames": [
+  {
+   "filename": "fx-levelup 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 1.png",
+   "frame": {
+    "x": 104,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 2.png",
+   "frame": {
+    "x": 208,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 3.png",
+   "frame": {
+    "x": 312,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 4.png",
+   "frame": {
+    "x": 416,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 5.png",
+   "frame": {
+    "x": 520,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 6.png",
+   "frame": {
+    "x": 0,
+    "y": 128,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 7.png",
+   "frame": {
+    "x": 104,
+    "y": 128,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 8.png",
+   "frame": {
+    "x": 208,
+    "y": 128,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 9.png",
+   "frame": {
+    "x": 312,
+    "y": 128,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 10.png",
+   "frame": {
+    "x": 416,
+    "y": 128,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 11.png",
+   "frame": {
+    "x": 520,
+    "y": 128,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 12.png",
+   "frame": {
+    "x": 0,
+    "y": 256,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 13.png",
+   "frame": {
+    "x": 104,
+    "y": 256,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 14.png",
+   "frame": {
+    "x": 208,
+    "y": 256,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 15.png",
+   "frame": {
+    "x": 312,
+    "y": 256,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 16.png",
+   "frame": {
+    "x": 416,
+    "y": 256,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 17.png",
+   "frame": {
+    "x": 520,
+    "y": 256,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 18.png",
+   "frame": {
+    "x": 0,
+    "y": 384,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 19.png",
+   "frame": {
+    "x": 104,
+    "y": 384,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 20.png",
+   "frame": {
+    "x": 208,
+    "y": 384,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 21.png",
+   "frame": {
+    "x": 312,
+    "y": 384,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 22.png",
+   "frame": {
+    "x": 416,
+    "y": 384,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 23.png",
+   "frame": {
+    "x": 520,
+    "y": 384,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 24.png",
+   "frame": {
+    "x": 0,
+    "y": 512,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 25.png",
+   "frame": {
+    "x": 104,
+    "y": 512,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 26.png",
+   "frame": {
+    "x": 208,
+    "y": 512,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-levelup 27.png",
+   "frame": {
+    "x": 312,
+    "y": 512,
+    "w": 104,
+    "h": 128
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 104,
+    "h": 128
+   },
+   "sourceSize": {
+    "w": 104,
+    "h": 128
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.828125
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-levelup.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 624,
+   "h": 640
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 52,
+   "y": 106
+  },
+  "frameTags": [
+   {
+    "name": "fx-levelup",
+    "from": 0,
+    "to": 27,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -1,0 +1,261 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-v-bash 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 1.png",
+   "frame": {
+    "x": 44,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 2.png",
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 3.png",
+   "frame": {
+    "x": 0,
+    "y": 55,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 4.png",
+   "frame": {
+    "x": 44,
+    "y": 55,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 5.png",
+   "frame": {
+    "x": 88,
+    "y": 55,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 6.png",
+   "frame": {
+    "x": 0,
+    "y": 110,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 7.png",
+   "frame": {
+    "x": 44,
+    "y": 110,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-sk-v-bash 8.png",
+   "frame": {
+    "x": 88,
+    "y": 110,
+    "w": 44,
+    "h": 55
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 55
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 55
+   },
+   "pivot": {
+    "x": 0.29545454545454547,
+    "y": 0.4909090909090909
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-v-bash.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 132,
+   "h": 165
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 13,
+   "y": 27
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-v-bash",
+    "from": 0,
+    "to": 8,
+    "direction": "forward"
+   }
+  ]
+ }
+}

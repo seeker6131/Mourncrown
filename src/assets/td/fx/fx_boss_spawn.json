@@ -1,0 +1,807 @@
+{
+ "frames": [
+  {
+   "filename": "fx-boss-spawn 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 1.png",
+   "frame": {
+    "x": 91,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 2.png",
+   "frame": {
+    "x": 182,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 3.png",
+   "frame": {
+    "x": 273,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 4.png",
+   "frame": {
+    "x": 364,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 5.png",
+   "frame": {
+    "x": 455,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 6.png",
+   "frame": {
+    "x": 0,
+    "y": 115,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 7.png",
+   "frame": {
+    "x": 91,
+    "y": 115,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 8.png",
+   "frame": {
+    "x": 182,
+    "y": 115,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 9.png",
+   "frame": {
+    "x": 273,
+    "y": 115,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 10.png",
+   "frame": {
+    "x": 364,
+    "y": 115,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 11.png",
+   "frame": {
+    "x": 455,
+    "y": 115,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 12.png",
+   "frame": {
+    "x": 0,
+    "y": 230,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 13.png",
+   "frame": {
+    "x": 91,
+    "y": 230,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 14.png",
+   "frame": {
+    "x": 182,
+    "y": 230,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 15.png",
+   "frame": {
+    "x": 273,
+    "y": 230,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 16.png",
+   "frame": {
+    "x": 364,
+    "y": 230,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 17.png",
+   "frame": {
+    "x": 455,
+    "y": 230,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 18.png",
+   "frame": {
+    "x": 0,
+    "y": 345,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 19.png",
+   "frame": {
+    "x": 91,
+    "y": 345,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 20.png",
+   "frame": {
+    "x": 182,
+    "y": 345,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 21.png",
+   "frame": {
+    "x": 273,
+    "y": 345,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 22.png",
+   "frame": {
+    "x": 364,
+    "y": 345,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 23.png",
+   "frame": {
+    "x": 455,
+    "y": 345,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 24.png",
+   "frame": {
+    "x": 0,
+    "y": 460,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 25.png",
+   "frame": {
+    "x": 91,
+    "y": 460,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 26.png",
+   "frame": {
+    "x": 182,
+    "y": 460,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 27.png",
+   "frame": {
+    "x": 273,
+    "y": 460,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 28.png",
+   "frame": {
+    "x": 364,
+    "y": 460,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  },
+  {
+   "filename": "fx-boss-spawn 29.png",
+   "frame": {
+    "x": 455,
+    "y": 460,
+    "w": 91,
+    "h": 115
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 91,
+    "h": 115
+   },
+   "sourceSize": {
+    "w": 91,
+    "h": 115
+   },
+   "pivot": {
+    "x": 0.4945054945054945,
+    "y": 0.7565217391304347
+   },
+   "duration": 50
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-boss-spawn.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 546,
+   "h": 575
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 45,
+   "y": 87
+  },
+  "frameTags": [
+   {
+    "name": "fx-boss-spawn",
+    "from": 0,
+    "to": 29,
+    "direction": "forward"
+   }
+  ]
+ }
+}

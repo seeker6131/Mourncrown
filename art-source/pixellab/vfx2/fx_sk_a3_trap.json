@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-a3-trap 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 1.png",
+   "frame": {
+    "x": 100,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 2.png",
+   "frame": {
+    "x": 200,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 3.png",
+   "frame": {
+    "x": 300,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 4.png",
+   "frame": {
+    "x": 0,
+    "y": 82,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 5.png",
+   "frame": {
+    "x": 100,
+    "y": 82,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 6.png",
+   "frame": {
+    "x": 200,
+    "y": 82,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 7.png",
+   "frame": {
+    "x": 300,
+    "y": 82,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 8.png",
+   "frame": {
+    "x": 0,
+    "y": 164,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 9.png",
+   "frame": {
+    "x": 100,
+    "y": 164,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 10.png",
+   "frame": {
+    "x": 200,
+    "y": 164,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  },
+  {
+   "filename": "fx-sk-a3-trap 11.png",
+   "frame": {
+    "x": 300,
+    "y": 164,
+    "w": 100,
+    "h": 82
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 100,
+    "h": 82
+   },
+   "sourceSize": {
+    "w": 100,
+    "h": 82
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.6707317073170732
+   },
+   "duration": 67
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-a3-trap.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 400,
+   "h": 246
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 50,
+   "y": 55
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-a3-trap",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

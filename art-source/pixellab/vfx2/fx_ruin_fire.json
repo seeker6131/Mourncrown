@@ -1,0 +1,339 @@
+{
+ "frames": [
+  {
+   "filename": "fx-ruin-fire 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 1.png",
+   "frame": {
+    "x": 55,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 2.png",
+   "frame": {
+    "x": 110,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 3.png",
+   "frame": {
+    "x": 165,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 4.png",
+   "frame": {
+    "x": 0,
+    "y": 40,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 5.png",
+   "frame": {
+    "x": 55,
+    "y": 40,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 6.png",
+   "frame": {
+    "x": 110,
+    "y": 40,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 7.png",
+   "frame": {
+    "x": 165,
+    "y": 40,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 8.png",
+   "frame": {
+    "x": 0,
+    "y": 80,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 9.png",
+   "frame": {
+    "x": 55,
+    "y": 80,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 10.png",
+   "frame": {
+    "x": 110,
+    "y": 80,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  },
+  {
+   "filename": "fx-ruin-fire 11.png",
+   "frame": {
+    "x": 165,
+    "y": 80,
+    "w": 55,
+    "h": 40
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 55,
+    "h": 40
+   },
+   "sourceSize": {
+    "w": 55,
+    "h": 40
+   },
+   "pivot": {
+    "x": 2.090909090909091,
+    "y": 2.85
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-ruin-fire.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 220,
+   "h": 120
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 115,
+   "y": 114
+  },
+  "frameTags": [
+   {
+    "name": "fx-ruin-fire",
+    "from": 0,
+    "to": 11,
+    "direction": "forward"
+   }
+  ]
+ }
+}

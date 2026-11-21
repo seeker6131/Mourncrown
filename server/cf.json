@@ -1,0 +1,16 @@
+{
+  "account": "2a23c3f4cabf7dee140f122ac5876004",
+  "worker": "mourncrown",
+  "dbName": "mourncrown",
+  "db": "4c3dbe5c-4b7c-410d-87a9-818fd57400fb",
+  "googleClientId": "481032367362-eu2jvusbdcecpppgnb5gf2bp8a46664b.apps.googleusercontent.com",
+  "migrationTag": "v3",
+  "admins": [
+    "6d898d8003a7f618019b9345"
+  ],
+  "limits": {
+    "maxOnline": 50,
+    "dayHours": 200,
+    "_note": "money cap (director, budget 600 THB/month): max players online at once, and player-hours per UTC day (resets 07:00 Thai). Workers Paid $5 since 2026-11-14. Measured 2026-11-14: ~21k DO requests + ~58 GB-s per player-hour, so the bill is mostly DO requests ($0.15/M over the 1M included). Re-measured 2026-11-14 afternoon: ~15.8k DO requests + ~62 GB-s per player-hour. dayHours 200 = about 675 THB/month if hit every day (raised from 170 on 2026-11-14 21:00, director; 170 was ~575, raised from 120 on 2026-11-14 15:05, director; 120 was ~460). Free plan was 30. 0 = no limit. Then python3 -I tools/deploy_server.py"
+  }
+}

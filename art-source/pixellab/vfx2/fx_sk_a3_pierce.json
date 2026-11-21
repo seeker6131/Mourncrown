@@ -1,0 +1,313 @@
+{
+ "frames": [
+  {
+   "filename": "fx-sk-a3-pierce 0.png",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 1.png",
+   "frame": {
+    "x": 116,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 2.png",
+   "frame": {
+    "x": 232,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 3.png",
+   "frame": {
+    "x": 348,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 4.png",
+   "frame": {
+    "x": 0,
+    "y": 50,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 5.png",
+   "frame": {
+    "x": 116,
+    "y": 50,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 6.png",
+   "frame": {
+    "x": 232,
+    "y": 50,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 7.png",
+   "frame": {
+    "x": 348,
+    "y": 50,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 8.png",
+   "frame": {
+    "x": 0,
+    "y": 100,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 9.png",
+   "frame": {
+    "x": 116,
+    "y": 100,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  },
+  {
+   "filename": "fx-sk-a3-pierce 10.png",
+   "frame": {
+    "x": 232,
+    "y": 100,
+    "w": 116,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 116,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 116,
+    "h": 50
+   },
+   "pivot": {
+    "x": 0.5,
+    "y": 0.5
+   },
+   "duration": 63
+  }
+ ],
+ "meta": {
+  "app": "PixelLab VFX Creator",
+  "image": "fx-sk-a3-pierce.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 464,
+   "h": 150
+  },
+  "scale": "1",
+  "anchor": {
+   "kind": "origin",
+   "x": 58,
+   "y": 25
+  },
+  "frameTags": [
+   {
+    "name": "fx-sk-a3-pierce",
+    "from": 0,
+    "to": 10,
+    "direction": "forward"
+   }
+  ]
+ }
+}
