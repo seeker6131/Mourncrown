@@ -9,8 +9,7 @@ export interface KeepOpt { id: string; label: string; def: boolean; keys: string
 /** the ticks in the back office (def = ticked at first). Wings / mounts / titles are partly kept by filters below. */
 export const KEEP_OPTS: KeepOpt[] = [
   { id: 'name', label: 'ชื่อตัวละคร + หน้าตา (ชาย/หญิง)', def: true, keys: ['name', 'look'] },
-  { id: 'dia', label: '💎 เพชร (มาจากเติมเงินจริง)', def: true, keys: ['diamonds'] },
-  { id: 'vip', label: '👑 VIP วันที่เหลือ', def: true, keys: ['vipTier', 'vipUntil', 'vipGift'] },
+  { id: 'vip', label: '👑 VIP วันที่เหลือ', def: false, keys: ['vipTier', 'vipUntil', 'vipGift'] },   // (director 21 Nov: VIP is not kept)
   { id: 'wheel', label: '🎡 ของจากกงล้อเพชร (เมฆพายุ สกินม้าดำ ชื่อทอง ออร่าพายุ เอฟเฟกต์ดาบ กระเป๋า+5 ดาว⭐)', def: true,
     keys: ['pets', 'petOn', 'skins', 'horseSkin', 'nameColors', 'nameColor', 'auraLtd', 'fxOwned', 'fx', 'bagPlus', 'stars'] },
   { id: 'wingLtd', label: '🪽 ปีก Limited (พายุอสนี / จักรวาล / เทวาตกสวรรค์)', def: true, keys: [] },
@@ -23,8 +22,8 @@ export const KEEP_OPTS: KeepOpt[] = [
   { id: 'settings', label: '⚙ การตั้งค่า (ปุ่ม เสียง ยาออโต้ เก็บของ)', def: true, keys: ['uiOpt', 'music', 'sfx', 'pot', 'lootOpt', 'introSeen'] },
   { id: 'guild', label: '🏛 กิลด์ (ไม่ติ๊ก = ยุบกิลด์ทั้งหมด)', def: false, keys: ['guild', 'guildId'] },
 ];
-/** always kept, whatever is ticked: the money records */
-export const ALWAYS_KEEP = ['payRefs', 'topups', 'topupThb', 'supPaid', 'supTier'];
+/** always kept, whatever is ticked: the money records + the diamonds (bought with real money — director 21 Nov) */
+export const ALWAYS_KEEP = ['diamonds', 'payRefs', 'topups', 'topupThb', 'supPaid', 'supTier'];
 export const LTD_WINGS = ['ltd', 'x_cosmos', 'x_fallen'];
 export const SPECIAL_TITLE_IDS = ['cbt', 'storm', 'sup1', 'sup7'];
 export const LTD_MOUNTS = ['dragon'];

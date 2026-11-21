@@ -19,16 +19,16 @@ describe('🧹 OBT wipe', () => {
   });
   it('the default ticks keep the paid things and the Limited ones only', () => {
     const n = wipeSave(old, def, 5);
-    expect(n.name).toBe('Tester'); expect(n.diamonds).toBe(320); expect(n.vipTier).toBe(2); expect(n.pets).toEqual(['cloud']); expect(n.stars).toBe(130);
+    expect(n.name).toBe('Tester'); expect(n.diamonds).toBe(320); expect(n.vipTier ?? 0).toBe(0); expect(n.vipUntil ?? 0).toBe(0); expect(n.pets).toEqual(['cloud']); expect(n.stars).toBe(130);
     expect(n.wings).toEqual(['ltd', 'x_cosmos']); expect(n.wingOn).toBeUndefined();   // (the worn wing was not Limited)
     expect(n.mounts).toEqual(['dragon']); expect(n.mountLast).toBe('dragon');
     expect(n.titles).toEqual(['cbt', 'storm']); expect(n.title).toBeUndefined();
     expect(n.slotsBought).toBe(1); expect(n.uiOpt).toEqual({ scale: 0.9 });
   });
-  it('the money records stay whatever is ticked', () => {
+  it('the money records and the diamonds stay whatever is ticked', () => {
     const n = wipeSave(old, [], 5);
     expect(n.payRefs).toEqual(['slip1']); expect(n.topupThb).toBe(99); expect(n.supPaid).toBe(99);
-    expect(n.diamonds ?? 0).toBe(0); expect(n.wings).toBeUndefined(); expect(n.name).toBeUndefined();
+    expect(n.diamonds).toBe(320); expect(n.wings).toBeUndefined(); expect(n.name).toBeUndefined();
   });
   it('"all wings / all mounts / all titles / guild" keep everything of that kind', () => {
     const n = wipeSave(old, ['wingAll', 'mounts', 'titleAll', 'guild'], 5);
