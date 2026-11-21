@@ -126,6 +126,7 @@ const TABS = [
   ['mail', '📬', 'จดหมายถึงทุกคน', 'เครื่องมือแอดมิน', 'ส่งจดหมาย + ของ (ทอง ทรัพยากร ไอเทม) ให้ผู้เล่นทุกคน ใช้แจกรางวัล/ชดเชย • ⚠ ส่งแล้วยกเลิกไม่ได้ • ส่งให้รายคน: ไปที่หน้าผู้เล่น'],
   ['raid', '⚔', 'มอนบุกหมู่บ้าน', 'เครื่องมือแอดมิน', 'มอนบุกหมู่บ้านกลางอัตโนมัติวันละ 3 รอบ (12:00 • 18:00 • 21:00) • แทรกรอบพิเศษ / ยกเลิก • ซ่อมหรือทำให้อาคารกลางพัง (ทดสอบ)'],
   ['move', '🔁', 'ย้ายตัวละคร', 'เครื่องมือแอดมิน', 'ใช้เมื่อผู้เล่นย้ายเครื่องแล้วไม่มีทางเข้าเอง (ปกติผู้เล่นใช้ "📱 โค้ดย้ายเครื่อง" หรือ Google ได้เอง) • บัญชีเดิมจะถูกปิดกันของซ้ำ'],
+  ['obt', '🧹', 'ปิดเซิร์ฟ & ล้างข้อมูล', 'เครื่องมือแอดมิน', 'วันเปิด OBT: 1) ปิดปรับปรุง (เตะทุกคนออก) 2) ติ๊กของที่จะเก็บ → ดูยอดก่อน 3) ล้างข้อมูล (สำรองให้อัตโนมัติ) 4) เปิดเซิร์ฟ • กู้คืนจากสำรองได้'],
   ['gw', '🧪', 'ทดสอบกิลด์วอ', 'เครื่องมือแอดมิน', 'สร้างกิลด์บอทไว้ทดสอบสงคราม (ผู้เล่นไม่เห็น) • อัปกิลด์แอดมินเต็มสูบ / คืนค่า • ใส่บอทเป็นเป้า หรือให้บอทบุกกิลด์แอดมิน'],
 ];
 const MAIL_TABS = ['mail', 'ann', 'raid', 'move'];
@@ -280,6 +281,43 @@ async function show() {
       $('supSave').onclick = async () => { const from = at($('supFrom').value), to = at($('supTo').value) + 86400000; if (!from || to <= from) return alert('เลือกวันเริ่มและวันจบให้ถูก'); await api('/admin/sup', { from, to }); show(); };
       $('supOff').onclick = async () => { if (!confirm('ปิดการนับยอดผู้สนับสนุน?')) return; await api('/admin/sup', { from: 0 }); show(); };
       main.querySelectorAll('[data-sid]').forEach(b => b.onclick = async () => { const v = prompt('ยอดใหม่ (บาท) — ขั้นจะคิดใหม่จากยอดนี้', b.dataset.paid); if (v === null) return; const r = await api('/admin/supset', { id: b.dataset.sid, paid: Number(v) || 0 }); alert(r.ok ? 'แก้แล้ว: ขั้น ' + r.tier : 'ไม่สำเร็จ: ' + (r.error || '')); show(); });
+    } else if (tab === 'obt') {   // 🧹 OBT day (server/worker.ts /admin/obt, src/systems/obtWipe.ts)
+      const d = await api('/admin/obt'), m = d.maint || { on: false, msg: '', since: 0 };
+      const mins = m.on ? Math.floor((Date.now() - m.since) / 60000) : 0;
+      main.innerHTML = `<div class="grid">
+          <div class="stat"><div class="v" style="font-size:18px;color:${m.on ? 'var(--red)' : 'var(--green)'}">${m.on ? '🔧 ปิดปรับปรุงอยู่ (' + mins + ' นาที)' : '🟢 เซิร์ฟเปิดอยู่'}</div><div class="k">ผู้เล่นทั่วไปเข้าไม่ได้ตอนปิด • แอดมินเข้าได้</div></div>
+          <div class="stat"><div class="v">${num(d.counts.saves)}</div><div class="k">ตัวละครในฐานข้อมูล</div></div>
+          <div class="stat"><div class="v">${num(d.counts.guilds)}</div><div class="k">กิลด์</div></div>
+          <div class="stat"><div class="v">${num(d.counts.market)}</div><div class="k">ของวางขายในตลาด</div></div>
+          <div class="stat"><div class="v" style="font-size:16px">${d.wipeAt ? when(d.wipeAt) : '—'}</div><div class="k">ล้างข้อมูลครั้งล่าสุด</div></div>
+        </div>
+        <h2>1️⃣ ปิดปรับปรุง</h2>
+        <div class="row"><input id="mMsg" style="width:min(520px,100%)" placeholder="ข้อความบนจอผู้เล่น" value="${esc(m.msg || 'ปิดปรับปรุงเพื่อเตรียมเปิด OBT — กลับมาเร็ว ๆ นี้!')}">
+          <button class="btn ${m.on ? 'green' : ''}" id="mBtn">${m.on ? '🟢 เปิดเซิร์ฟ' : '🔧 ปิดปรับปรุง (เตะทุกคนออก)'}</button></div>
+        <h2>2️⃣ เลือกของที่จะ "เก็บไว้" <span class="dim" style="font-weight:400">(ที่ไม่ติ๊ก = ล้าง)</span></h2>
+        <div id="keeps">${d.opts.map(o => `<label style="display:block;margin:4px 0"><input type="checkbox" value="${o.id}" ${o.def ? 'checked' : ''}> ${esc(o.label)}</label>`).join('')}</div>
+        <p class="dim">เก็บเสมอ (ไม่ต้องติ๊ก): สลิปเติมเงิน / ยอดเติมสะสม / ยอดผู้สนับสนุน • ล้างเสมอ: เลเวล EXP ทอง ไอเท็ม อุปกรณ์ ทรัพยากร หมู่บ้าน เควส ของในตลาด จดหมายถึงทุกคน • อาคารกลางซ่อมให้หมด</p>
+        <div class="row"><button class="btn" id="pBtn">🔍 ดูยอดก่อน (ยังไม่ล้าง)</button><span id="pOut" class="dim"></span></div>
+        <h2>3️⃣ ล้างข้อมูล</h2>
+        <p class="dim">ต้องปิดปรับปรุงอย่างน้อย 1 นาทีก่อน (ให้เกมทุกเครื่องเซฟและออกครบ) • ระบบสำรองข้อมูลให้อัตโนมัติก่อนล้าง</p>
+        <div class="row"><button class="btn" id="wBtn" style="background:#a3341a;color:#fff" ${m.on && mins >= 1 ? '' : 'disabled'}>🧹 ล้างข้อมูลผู้เล่นทั้งหมด</button><span id="wOut"></span></div>
+        <h2>↩️ กู้คืนตัวละครจากสำรอง</h2>
+        <div class="row">${d.backups.filter(t => t.endsWith('_saves')).map(t => `<button class="btn" data-rest="${esc(t)}">กู้คืน ${esc(t)}</button>`).join('') || '<span class="dim">ยังไม่มีสำรอง</span>'}</div>
+        <p class="dim">กู้คืนเฉพาะตัวละคร (กิลด์ / ตลาด / ชื่อ ไม่กลับ) • ต้องปิดปรับปรุงอยู่</p>`;
+      const keep = () => [...main.querySelectorAll('#keeps input:checked')].map(i => i.value);
+      $('mBtn').onclick = async () => { if (!m.on && !confirm('ปิดเซิร์ฟเลย? ผู้เล่นที่ออนไลน์จะถูกเตะออกทันที')) return; await api('/admin/obt', { action: 'maint', on: !m.on, msg: $('mMsg').value }); show(); };
+      $('pBtn').onclick = async () => { $('pOut').textContent = 'กำลังนับ...'; const r = await api('/admin/obt', { action: 'preview', keep: keep() }); const x = r.sum;
+        $('pOut').innerHTML = `ตัวละคร <b>${num(x.players)}</b> • เพชรที่เก็บไว้ <b>${num(x.diaKept)}</b> • VIP ที่ยังมีวัน <b>${num(x.vipKept)}</b> คน • ปีกที่เก็บ <b>${num(x.wingsKept)}</b> • สัตว์ขี่ที่เก็บ <b>${num(x.mountsKept)}</b> • ทองที่จะหายรวม <b>${num(x.goldGone)}</b> • เลเวลสูงสุดตอนนี้ ${x.topLevel}`; };
+      $('wBtn').onclick = async () => {
+        const k = keep(), names = [...main.querySelectorAll('#keeps input:checked')].map(i => i.parentElement.textContent.trim());
+        if (!confirm('ล้างข้อมูลผู้เล่นทั้งหมด?\n\nเก็บไว้:\n- ' + (names.join('\n- ') || '(ไม่มี)') + '\n\nที่เหลือหายหมด (มีสำรอง)')) return;
+        if (prompt('พิมพ์คำว่า ล้างข้อมูล เพื่อยืนยัน') !== 'ล้างข้อมูล') return alert('ยกเลิก');
+        $('wOut').textContent = ' กำลังล้าง... อย่าปิดหน้านี้';
+        const r = await api('/admin/obt', { action: 'wipe', keep: k, confirm: 'ล้างข้อมูล' });
+        alert(r.ok ? `ล้างแล้ว ${r.n} ตัวละคร • สำรองไว้ที่ ${r.backup}_*\nตรวจด้วยบัญชีแอดมินก่อน แล้วค่อยกด 🟢 เปิดเซิร์ฟ` : 'ไม่สำเร็จ: ' + (r.error === 'maint' ? 'ต้องปิดปรับปรุงก่อนอย่างน้อย 1 นาที' : r.error)); show(); };
+      main.querySelectorAll('[data-rest]').forEach(b => b.onclick = async () => {
+        if (prompt('กู้คืนตัวละครทั้งหมดจาก ' + b.dataset.rest + ' ?\nพิมพ์คำว่า กู้คืน เพื่อยืนยัน') !== 'กู้คืน') return;
+        const r = await api('/admin/obt', { action: 'restore', table: b.dataset.rest, confirm: 'กู้คืน' }); alert(r.ok ? 'กู้คืนแล้ว' : 'ไม่สำเร็จ: ' + (r.error || '')); show(); });
     } else if (tab === 'players') {
       const d = await api(`/admin/players?q=${encodeURIComponent(q)}&sort=${sort}&page=${page}${showTests ? '&all=1' : ''}`);
       main.innerHTML = `<div class="row"><input type="search" id="q" placeholder="ค้นหาชื่อ หรือวางรหัสผู้เล่นที่เขาส่งมา" value="${esc(q)}">

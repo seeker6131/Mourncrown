@@ -164,6 +164,7 @@ export class TdUIScene extends Phaser.Scene {
       else if (!this.offSince) this.offSince = now;
       const long = now - this.offSince > 12000, show = off && now - this.offSince > 1500;
       const cap = play.full && Date.now() - play.full.at < 90000 ? play.full : null;   // the server's cap (director's money limit)
+      maintScreen(off && cap?.why === 'maint' ? cap.msg ?? '' : null);   // 🔧 maintenance: the whole screen says so (nothing is saved meanwhile)
       if (show && cap) { this.offShown = true; this.offText?.setText(cap.why === 'day' ? '🚧 วันนี้เซิร์ฟเปิดครบเวลาแล้ว — เปิดใหม่ 07:00 น. (ตอนนี้ของที่ได้จะไม่ถูกบันทึก)' : `🚧 เซิร์ฟเต็ม (${cap.n}/${cap.max} คน) — รอสักครู่ ระบบจะพาเข้าเองเมื่อมีที่ว่าง`).setBackgroundColor('rgba(90,50,10,0.85)'); }
       else if (show) { this.offShown = true; this.offText?.setText(long ? '⚠ ออฟไลน์ — กำลังเชื่อมต่อเซิร์ฟ... ของที่ได้ตอนนี้จะไม่ถูกบันทึก' : '🔄 กำลังเชื่อมต่อเซิร์ฟใหม่... รอสักครู่').setBackgroundColor(long ? 'rgba(110,20,20,0.85)' : 'rgba(20,60,110,0.85)'); }
       this.offText?.setVisible(show);
@@ -636,3 +637,16 @@ export class TdUIScene extends Phaser.Scene {
   }
 }
 
+/** 🔧 the maintenance screen (the admin closed the server — back office → 🧹 OBT); null hides it */
+function maintScreen(msg: string | null) {
+  let d = document.getElementById('mc-maint');
+  if (msg === null) { d?.remove(); return; }
+  if (!d) {
+    d = document.createElement('div'); d.id = 'mc-maint';
+    d.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(10,7,4,.92);color:#fff3d0;font:16px/1.6 system-ui,sans-serif;text-align:center;padding:24px';
+    document.body.append(d);
+  }
+  const t = `<div style="max-width:520px"><div style="font-size:44px">🔧</div><div style="font-size:22px;font-weight:800;color:#ffd84a;margin:6px 0">${tr('ปิดปรับปรุงเซิร์ฟเวอร์')}</div>`
+    + `<div>${(msg || tr('กำลังอัปเดตเกม กลับมาเร็ว ๆ นี้')).replace(/[<>&]/g, '')}</div><div style="opacity:.6;font-size:13px;margin-top:14px">${tr('เกมจะเชื่อมต่อใหม่เองเมื่อเซิร์ฟเปิด')}</div></div>`;
+  if (d.innerHTML !== t) d.innerHTML = t;
+}

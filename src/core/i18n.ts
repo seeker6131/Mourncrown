@@ -508,6 +508,7 @@ const EN: Record<string, string> = {
   '⚠ ยังไม่ผูก Google — เปลี่ยนเครื่องตัวละครจะหาย • แตะ': '⚠ Not linked to Google — your hero is lost on a new device • tap',
   'กลับ': 'Back', 'ยืนยัน': 'Confirm', 'เพื่อ': 'to', 'และ': 'and', 'หรือ': 'or',
   // 👑 supporter tiers (src/systems/supporter.ts)
+  'ปิดปรับปรุงเซิร์ฟเวอร์': 'Server maintenance', 'กำลังอัปเดตเกม กลับมาเร็ว ๆ นี้': 'Updating the game — back soon', 'เกมจะเชื่อมต่อใหม่เองเมื่อเซิร์ฟเปิด': 'The game reconnects by itself when the server opens',
   '🐞 แก้แล้ว: ตีมอนตายแล้วขึ้น "เซิร์ฟไม่รับ" ไม่ได้ EXP / ทอง — ตอนนี้เซิร์ฟจ่ายให้ครบ (เน็ตสะดุดก็ส่งซ้ำให้เอง)': '🐞 Fixed: killing a monster sometimes showed "Server refused" with no EXP / gold — the server now pays every kill (and resends if your connection hiccups)',
   '👑 ผู้ร่วมสร้างตำนาน': '👑 Legend Makers', 'ผู้ร่วมสร้างตำนาน': 'Legend Maker', 'ผู้ค้ำจุนแห่ง Mourncrown': 'Pillar of Mourncrown',
   'ยอดสนับสนุนของคุณ': 'Your support total', 'ถึงขั้นสูงสุดแล้ว — ขอบคุณที่ร่วมสร้างตำนานกับเรา!': 'Top tier reached — thank you for building the legend with us!',

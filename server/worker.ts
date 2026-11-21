@@ -28,6 +28,7 @@ import { packOf, packDiamonds, qrCheck, qrWithAmount, slipVerdict, SLIP_PER_HOUR
 import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
 import { supCount, supSeasonOn, supSet, supTier, type SupSeason } from '../src/systems/supporter';
+import { KEEP_OPTS, ALWAYS_KEEP, wipeSave, wipeSummary } from '../src/systems/obtWipe';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
 import { RAID_SECS, RAID_MIN_KILLS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
@@ -96,16 +97,24 @@ async function byToken(env: Env, t: string) {
 }
 /** the money cap (director, server/cf.json limits): at most MAX_ONLINE players at once and DAY_HOURS player-hours a day
  *  (Cloudflare has no spending limit of its own). Someone already playing always gets back in; the admin always does. */
-async function gate(env: Env, id: string): Promise<{ ok: boolean; why?: string; n?: number; max?: number }> {
+// 🔧 maintenance (back office → 🧹 OBT): players cannot come online, the admin can · 🧹 the time of the last wipe (a server
+// object holding an older copy in memory drops it). Both read from D1 kv, kept 10 s in this worker.
+let maintC: { at: number; v: { on: boolean; msg: string; since: number } | null } = { at: 0, v: null };
+async function maintOf(env: Env) { if (Date.now() - maintC.at > 10000) { try { const v = await kvGet(env, 'maint'); maintC = { at: Date.now(), v: v ? JSON.parse(v) : null }; } catch { maintC.at = Date.now() - 5000; } } return maintC.v?.on ? maintC.v : null; }
+let wipeC = { at: 0, v: 0 };
+async function wipeAt(env: Env) { if (Date.now() - wipeC.at > 10000) { try { wipeC = { at: Date.now(), v: Number(await kvGet(env, 'wipe_at')) || 0 }; } catch { wipeC.at = Date.now() - 5000; } } return wipeC.v; }
+const isAdminId = (env: Env, id: string) => (env.ADMINS ?? '').split(',').includes(id);
+async function gate(env: Env, id: string): Promise<{ ok: boolean; why?: string; n?: number; max?: number; msg?: string }> {
   if ((env.ADMINS ?? '').split(',').includes(id)) return { ok: true };
+  { const m = await maintOf(env); if (m) return { ok: false, why: 'maint', msg: m.msg }; }
   const max = Number(env.MAX_ONLINE) || 0, hours = Number(env.DAY_HOURS) || 0; if (!max && !hours) return { ok: true };
   try { return await (await env.ROOM.get(env.ROOM.idFromName('chat-world')).fetch(new Request('https://r/gate', { method: 'POST', body: JSON.stringify({ id, max, hours }) }))).json() as { ok: boolean; why?: string }; }
   catch { return { ok: true }; }   // (the counter cannot answer: let them in)
 }
 /** a refused game socket: it opens, says why, and closes (4002 = the cap; the game waits a minute before trying again) */
-function refuseWs(g: { why?: string; n?: number; max?: number }) {
+function refuseWs(g: { why?: string; n?: number; max?: number; msg?: string }) {
   const pair = new WebSocketPair(), client = pair[0], server = pair[1] as WSX;
-  server.accept?.(); server.send(JSON.stringify({ t: 'full', why: g.why ?? 'full', n: g.n ?? 0, max: g.max ?? 0 })); server.close(4002, 'cap');
+  server.accept?.(); server.send(JSON.stringify({ t: 'full', why: g.why ?? 'full', n: g.n ?? 0, max: g.max ?? 0, ...(g.msg ? { msg: g.msg } : {}) })); server.close(4002, 'cap');
   return new Response(null, { status: 101, webSocket: client } as ResponseInit);
 }
 async function who(req: Request, env: Env) {
@@ -266,6 +275,8 @@ export default {
 
       const me = await who(req, env);
       if (!me) return json(req, { error: 'auth' }, 401);
+      // 🔧 maintenance: only the admin's requests go through (top-ups, saves, market, guilds wait) — '/me' still answers
+      if (path !== '/me' && !path.startsWith('/admin/') && !isAdminId(env, me.id)) { const mt = await maintOf(env); if (mt) return json(req, { error: 'maint', msg: mt.msg }, 503); }
 
       if (path === '/me') return json(req, { id: me.id, google: !!me.google_sub, name: me.name, admin: (env.ADMINS ?? '').split(',').includes(me.id) });
 
@@ -482,6 +493,59 @@ export default {
           const r = await one<{ ref: string; id: string; pack: string; thb: number; dia: number }>("SELECT ref, id, pack, thb, dia FROM payments WHERE ref = ? AND status = 'paid'", String(b.ref ?? ''));
           if (!r) return json(req, { error: 'ref' }, 400);
           return (await payCredit(env, r.id, r.ref, r.dia, r.thb, r.pack)) ? json(req, { ok: true }) : json(req, { error: 'credit' }, 500);
+        }
+        // 🧹 OBT day (src/systems/obtWipe.ts): maintenance on/off (kicks everyone online), a dry-run count, the wipe (backup
+        // tables first, then every save made fresh + what is ticked to keep), and a way back from a backup
+        if (path === '/admin/obt') {
+          const b = req.method === 'POST' ? await req.json().catch(() => ({})) as { action?: string; on?: boolean; msg?: string; keep?: string[]; confirm?: string; table?: string } : {};
+          const keep = (Array.isArray(b.keep) ? b.keep : []).map(String).filter(k => KEEP_OPTS.some(o => o.id === k));
+          const mraw = await kvGet(env, 'maint'); let mt: { on: boolean; msg: string; since: number } | null = null; try { mt = mraw ? JSON.parse(mraw) : null; } catch { mt = null; }
+          const backups = async () => ((await DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'bak_%' ORDER BY name DESC").all<{ name: string }>()).results ?? []).map(r => r.name);
+          if (b.action === 'maint') {
+            const v = { on: !!b.on, msg: String(b.msg ?? '').slice(0, 200), since: b.on ? (mt?.on ? mt.since : now) : 0 };
+            await kvSet(env, 'maint', JSON.stringify(v)); maintC = { at: Date.now(), v }; await flag(env, me.id, 'admin:maint', v.on ? 'on: ' + v.msg : 'off');
+            if (v.on) {   // everyone online now: saved and sent away with the message
+              const on = await (await cw.fetch(new Request('https://r/onlinelist'))).json() as { ids: string[] };
+              await Promise.all(on.ids.filter(id => !isAdminId(env, id)).slice(0, 300).map(id => env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/kick?id=' + id, { method: 'POST', body: JSON.stringify({ msg: v.msg }) })).catch(() => null)));
+            }
+            return json(req, { ok: true, maint: v });
+          }
+          if (b.action === 'preview') {
+            const rows = ((await DB.prepare('SELECT data FROM saves').all<{ data: string }>()).results ?? []).map(r => { try { return JSON.parse(r.data); } catch { return {}; } });
+            return json(req, { ok: true, sum: wipeSummary(rows, keep) });
+          }
+          if (b.action === 'wipe') {
+            if (b.confirm !== 'ล้างข้อมูล') return json(req, { error: 'confirm' }, 400);
+            if (!mt?.on || now - mt.since < 60000) return json(req, { error: 'maint' }, 400);   // (maintenance on for a minute first: every game has saved and left)
+            const stamp = new Date(now + 7 * 3600000).toISOString().slice(0, 19).replace(/[-T:]/g, '');   // (Thai time to the second, e.g. 20261120193005)
+            for (const t of ['saves', 'guilds', 'char_names', 'market', 'market_pay', 'town', 'accounts']) await DB.prepare(`CREATE TABLE bak_${stamp}_${t} AS SELECT * FROM ${t}`).run();
+            await kvSet(env, 'wipe_at', String(now)); wipeC = { at: Date.now(), v: now };
+            const rows = (await DB.prepare('SELECT id, data FROM saves').all<{ id: string; data: string }>()).results ?? [];
+            const names = new Set<string>(); let n = 0;
+            for (let i = 0; i < rows.length; i += 50) {
+              const st = rows.slice(i, i + 50).map(r => { let o: Record<string, unknown> = {}; try { o = JSON.parse(r.data); } catch { /* broken row: fresh */ } const w = wipeSave(o, keep, now); if (typeof w.name === 'string') names.add(w.name.toLowerCase()); const d = JSON.stringify(w); return DB.prepare('UPDATE saves SET data = ?, size = ?, rev = rev + 1, at = ? WHERE id = ?').bind(d, d.length, now, r.id); });
+              await DB.batch(st); n += st.length;
+            }
+            await DB.prepare("DELETE FROM market WHERE status = 'open'").run();
+            await DB.prepare('DELETE FROM market_pay WHERE done = 0').run();
+            await DB.prepare('DELETE FROM mail_all').run();
+            await DB.prepare('UPDATE town SET broken = 0, at = 0, donated = 0, donors = NULL').run();
+            if (!keep.includes('guild')) await DB.prepare('DELETE FROM guilds').run();
+            if (keep.includes('name')) { const all2 = ((await DB.prepare('SELECT name_key FROM char_names').all<{ name_key: string }>()).results ?? []); for (const r of all2) if (!names.has(r.name_key)) await DB.prepare('DELETE FROM char_names WHERE name_key = ?').bind(r.name_key).run(); }
+            else { await DB.prepare('DELETE FROM char_names').run(); await DB.prepare('UPDATE accounts SET name = NULL, name_key = NULL').run(); }
+            await flag(env, me.id, 'admin:obtwipe', `${n} saves, keep ${keep.join(',')} (+${ALWAYS_KEEP.join(',')}), backup bak_${stamp}_*`);
+            return json(req, { ok: true, n, backup: 'bak_' + stamp });
+          }
+          if (b.action === 'restore') {   // the saves (characters) back from a backup — guilds / market / names stay as they are now
+            const t = String(b.table ?? ''); if (b.confirm !== 'กู้คืน' || !/^bak_\d{12,14}_saves$/.test(t) || !(await backups()).includes(t)) return json(req, { error: 'confirm' }, 400);
+            if (!mt?.on) return json(req, { error: 'maint' }, 400);
+            await DB.batch([DB.prepare('DELETE FROM saves'), DB.prepare(`INSERT INTO saves SELECT * FROM ${t}`)]);
+            await kvSet(env, 'wipe_at', String(now)); wipeC = { at: Date.now(), v: now };
+            await flag(env, me.id, 'admin:obtrestore', t);
+            return json(req, { ok: true });
+          }
+          return json(req, { maint: mt, wipeAt: Number(await kvGet(env, 'wipe_at')) || 0, backups: await backups(), opts: KEEP_OPTS.map(o => ({ id: o.id, label: o.label, def: o.def })), always: ALWAYS_KEEP,
+            counts: await one('SELECT (SELECT COUNT(*) FROM saves) saves, (SELECT COUNT(*) FROM guilds) guilds, (SELECT COUNT(*) FROM market WHERE status = \'open\') market, (SELECT COUNT(*) FROM char_names) names') });
         }
         // 👑 supporter tiers (src/systems/supporter.ts): the season the payments count in + who paid how much in it
         if (path === '/admin/sup') {
@@ -1089,14 +1153,17 @@ interface DOStore { setAlarm(t: number): Promise<void>; getAlarm(): Promise<numb
 export class Player {
   st: St | null = null; mem: Mem = newMem(); goalSend: { kind: string; n: number }[] = []; rev = 0; at = 0; dirty = false; loaded = false; id = '';
   constructor(private state: DOState & { storage: DOStore }, private env: Env) {}
+  loadT = 0;
   private async load(id: string) {
-    if (this.loaded) return; this.id = id;
+    if (this.loaded && (await wipeAt(this.env)) > this.loadT) { this.loaded = false; this.st = null; this.dirty = false; this.mem = newMem(); }   // (🧹 wiped since this copy was read: read the new one)
+    if (this.loaded) return; this.id = id; this.loadT = Date.now();
     const row = await this.env.DB.prepare('SELECT rev, at, data FROM saves WHERE id = ?').bind(id).first<{ rev: number; at: number; data: string }>();
     if (row) { this.st = JSON.parse(row.data); this.rev = row.rev; this.at = row.at; }
     this.loaded = true;
   }
   private async persist() {
     if (!this.dirty || !this.st) return;
+    if ((await wipeAt(this.env)) > this.loadT) { this.loaded = false; this.st = null; this.dirty = false; return; }   // (🧹 never write a copy from before the wipe over it)
     const data = JSON.stringify(this.st), now = Date.now(); this.rev++; this.at = now; this.dirty = false;
     await this.env.DB.prepare('INSERT INTO saves (id, rev, at, size, data) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET rev = excluded.rev, at = excluded.at, size = excluded.size, data = excluded.data').bind(this.id, this.rev, now, data.length, data).run();
   }
@@ -1482,6 +1549,12 @@ export class Player {
       this.dirty = true; await this.persist(); this.send({ t: 'note', own: this.diff(b), text: '' });
       return new Response(JSON.stringify({ ok: true }));
     }
+    if (u.pathname === '/kick') {   // (🔧 maintenance began) save, then send the game away with the message
+      const b = JSON.parse(await req.text().catch(() => '{}') || '{}') as { msg?: string };
+      await this.persist();
+      for (const w of this.state.getWebSockets()) { try { w.send(JSON.stringify({ t: 'full', why: 'maint', n: 0, max: 0, msg: String(b.msg ?? '') })); w.close(4002, 'maint'); } catch { /* gone */ } }
+      return new Response('{}');
+    }
     if (u.pathname === '/wipe') {   // (the back office, 18 Nov: a cheater's account) the hero starts over: Lv1, nothing — the name stays
       const name = (this.st as { name?: string } | null)?.name ?? 'Aren';
       const fresh = newGameState() as unknown as St & { name?: string }; fresh.name = name;
@@ -1576,7 +1649,9 @@ export class Player {
   }
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
     if (typeof data !== 'string' || data.length > 20000) return;
-    const me = (ws as WSX).deserializeAttachment() as { id: string }; await this.load(me.id);
+    const me = (ws as WSX).deserializeAttachment() as { id: string };
+    { const mt = await maintOf(this.env); if (mt && !isAdminId(this.env, me.id)) { try { ws.send(JSON.stringify({ t: 'full', why: 'maint', n: 0, max: 0, msg: mt.msg })); ws.close(4002, 'maint'); } catch { /* gone */ } return; } }   // (🔧 maintenance)
+    await this.load(me.id);
     let m: { t?: string; q?: number; name?: string; args?: unknown }; try { m = JSON.parse(data); } catch { return; }
     if (m.t === 'hb') { if (Date.now() - this.helloT > 60000) await this.hello('/hello'); if (this.st) { const b = this.snap(); if (await this.mailAll()) { await this.later(); this.send({ t: 'note', own: this.diff(b), text: '📬 มีจดหมายใหม่! เปิดที่ เมนู → 📬 จดหมาย' }); } if (this.cbtLetter()) { await this.later(); this.send({ t: 'note', own: { mail: (this.st as { mail?: unknown }).mail }, text: '📬 ของขวัญ CBT (VIP 7 วัน) รออยู่ในกล่องจดหมาย — กดซองจดหมายด้านบน' }); } } return; }   // (the game: still here — counts the minutes played for the money cap)
     if (m.t === 'sync' && this.st) { const own: St = {}; for (const k of Object.keys(this.st)) if (!CLIENT_KEYS.has(k)) own[k] = this.st[k]; ws.send(JSON.stringify({ t: 'note', own })); return; }   // (the game did something the server refused: its whole copy)
