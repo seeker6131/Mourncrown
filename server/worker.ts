@@ -29,6 +29,8 @@ import { grantDiamonds, grantVip } from '../src/systems/premium';
 import { charList, createChar, switchChar } from '../src/systems/chars';
 import { supCount, supSeasonOn, supSet, supTier, type SupSeason } from '../src/systems/supporter';
 import { KEEP_OPTS, ALWAYS_KEEP, wipeSave, wipeSummary } from '../src/systems/obtWipe';
+import { WING_BY_ID } from '../src/data/wings';
+import { MOUNTS } from '../src/data/mounts';
 import { isRaid } from '../src/world/stages';
 import { TOWN_BLDS, TOWN_NAME, setTown, repairNeed, repairPoints, repairProgress, isRepaired, type TownRow, type TownBld } from '../src/systems/town';
 import { RAID_SECS, RAID_MIN_KILLS, raidChest, nextRaid, type RaidPlan } from '../src/systems/townRaid';
@@ -497,7 +499,7 @@ export default {
         // 🧹 OBT day (src/systems/obtWipe.ts): maintenance on/off (kicks everyone online), a dry-run count, the wipe (backup
         // tables first, then every save made fresh + what is ticked to keep), and a way back from a backup
         if (path === '/admin/obt') {
-          const b = req.method === 'POST' ? await req.json().catch(() => ({})) as { action?: string; on?: boolean; msg?: string; keep?: string[]; confirm?: string; table?: string } : {};
+          const b = req.method === 'POST' ? await req.json().catch(() => ({})) as { action?: string; on?: boolean; msg?: string; keep?: string[]; confirm?: string; table?: string } : {} as { action?: string; table?: string; on?: boolean; msg?: string; keep?: string[]; confirm?: string };
           const keep = (Array.isArray(b.keep) ? b.keep : []).map(String).filter(k => KEEP_OPTS.some(o => o.id === k));
           const mraw = await kvGet(env, 'maint'); let mt: { on: boolean; msg: string; since: number } | null = null; try { mt = mraw ? JSON.parse(mraw) : null; } catch { mt = null; }
           const backups = async () => ((await DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'bak_%' ORDER BY name DESC").all<{ name: string }>()).results ?? []).map(r => r.name);
@@ -509,6 +511,20 @@ export default {
               await Promise.all(on.ids.filter(id => !isAdminId(env, id)).slice(0, 300).map(id => env.PLAYER.get(env.PLAYER.idFromName(id)).fetch(new Request('https://p/kick?id=' + id, { method: 'POST', body: JSON.stringify({ msg: v.msg }) })).catch(() => null)));
             }
             return json(req, { ok: true, maint: v });
+          }
+          if (b.action === 'list') {   // 📋 who holds what (mounts / wings / diamonds / wheel looks) — now, or in a backup made before a wipe
+            const t = String(b.table ?? ''), src = t && /^bak_\d{12,14}_saves$/.test(t) && (await backups()).includes(t) ? t : 'saves';
+            const rows = (await DB.prepare(`SELECT s.id, a.name, s.data FROM ${src} s LEFT JOIN accounts a ON a.id = s.id`).all<{ id: string; name: string | null; data: string }>()).results ?? [];
+            const out = [];
+            for (const r of rows) {
+              let d: Record<string, unknown> = {}; try { d = JSON.parse(r.data); } catch { continue; }
+              const arr = (k: string) => Array.isArray(d[k]) ? (d[k] as string[]) : [];
+              const x = { id: r.id, name: String(d.name ?? r.name ?? ''), lv: Number(d.level) || 1, dia: Number(d.diamonds) || 0, wings: arr('wings'), mounts: arr('mounts'), pets: arr('pets'), skins: arr('skins'), names: arr('nameColors'), titles: arr('titles').filter(q => ['cbt', 'storm', 'sup1', 'sup7'].includes(q)), vip: Number(d.vipUntil) > now ? Number(d.vipUntil) : 0, paid: Number(d.topupThb) || 0 };
+              if (x.dia > 0 || x.wings.length || x.mounts.some(m => m !== 'horse') || x.pets.length || x.skins.length) out.push(x);
+            }
+            out.sort((p, q) => q.dia - p.dia || q.wings.length - p.wings.length || q.mounts.length - p.mounts.length);
+            const wn = (id: string) => (WING_BY_ID[id] ? `${WING_BY_ID[id].name} (${WING_BY_ID[id].tier === 'X' ? 'Limited' : WING_BY_ID[id].tier})` : id), mn = (id: string) => (MOUNTS as Record<string, { name: string }>)[id]?.name ?? id;
+            return json(req, { ok: true, src, rows: out.map(x => ({ ...x, wings: x.wings.map(wn), mounts: x.mounts.map(mn) })) });
           }
           if (b.action === 'preview') {
             const rows = ((await DB.prepare('SELECT data FROM saves').all<{ data: string }>()).results ?? []).map(r => { try { return JSON.parse(r.data); } catch { return {}; } });

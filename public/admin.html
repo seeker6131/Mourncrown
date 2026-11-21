@@ -301,6 +301,10 @@ async function show() {
         <h2>3️⃣ ล้างข้อมูล</h2>
         <p class="dim">ต้องปิดปรับปรุงอย่างน้อย 1 นาทีก่อน (ให้เกมทุกเครื่องเซฟและออกครบ) • ระบบสำรองข้อมูลให้อัตโนมัติก่อนล้าง</p>
         <div class="row"><button class="btn" id="wBtn" style="background:#a3341a;color:#fff" ${m.on && mins >= 1 ? '' : 'disabled'}>🧹 ล้างข้อมูลผู้เล่นทั้งหมด</button><span id="wOut"></span></div>
+        <h2>📋 สรุปผู้เล่นที่มี สัตว์ขี่ / ปีก / เพชร</h2>
+        <div class="row"><select id="lSrc"><option value="">ตอนนี้</option>${d.backups.filter(t => t.endsWith('_saves')).map(t => `<option value="${esc(t)}">สำรอง ${esc(t)} (ก่อนล้าง)</option>`).join('')}</select>
+          <button class="btn" id="lBtn">📋 ดึงรายชื่อ</button><button class="btn" id="lCopy" style="display:none">📄 คัดลอกเป็นข้อความ</button><span id="lInfo" class="dim"></span></div>
+        <div id="lOut"></div>
         <h2>↩️ กู้คืนตัวละครจากสำรอง</h2>
         <div class="row">${d.backups.filter(t => t.endsWith('_saves')).map(t => `<button class="btn" data-rest="${esc(t)}">กู้คืน ${esc(t)}</button>`).join('') || '<span class="dim">ยังไม่มีสำรอง</span>'}</div>
         <p class="dim">กู้คืนเฉพาะตัวละคร (กิลด์ / ตลาด / ชื่อ ไม่กลับ) • ต้องปิดปรับปรุงอยู่</p>`;
@@ -315,6 +319,18 @@ async function show() {
         $('wOut').textContent = ' กำลังล้าง... อย่าปิดหน้านี้';
         const r = await api('/admin/obt', { action: 'wipe', keep: k, confirm: 'ล้างข้อมูล' });
         alert(r.ok ? `ล้างแล้ว ${r.n} ตัวละคร • สำรองไว้ที่ ${r.backup}_*\nตรวจด้วยบัญชีแอดมินก่อน แล้วค่อยกด 🟢 เปิดเซิร์ฟ` : 'ไม่สำเร็จ: ' + (r.error === 'maint' ? 'ต้องปิดปรับปรุงก่อนอย่างน้อย 1 นาที' : r.error)); show(); };
+      let lText = '';
+      $('lBtn').onclick = async () => {
+        $('lInfo').textContent = ' กำลังดึง...'; const r = await api('/admin/obt', { action: 'list', table: $('lSrc').value });
+        if (!r.ok) { $('lInfo').textContent = ' ไม่สำเร็จ'; return; }
+        const T = { cbt: 'ผู้บุกเบิก', storm: 'ผู้บุกเบิกพายุ', sup1: 'ผู้ร่วมสร้างตำนาน', sup7: 'ผู้ค้ำจุน' }, extra = x => [...x.pets.map(() => '⛈ เมฆพายุ'), ...x.skins.map(() => '🐴 สกินม้าดำ'), ...x.names.map(() => '✨ ชื่อทอง'), ...x.titles.map(t => '🏷 ' + (T[t] || t))].join(', ');
+        const sum = { n: r.rows.length, dia: r.rows.reduce((a, x) => a + x.dia, 0), w: r.rows.reduce((a, x) => a + x.wings.length, 0), m: r.rows.reduce((a, x) => a + x.mounts.length, 0) };
+        $('lInfo').textContent = ` ${num(sum.n)} คน • 💎 รวม ${num(sum.dia)} • ปีก ${num(sum.w)} • สัตว์ขี่ ${num(sum.m)} (${r.src === 'saves' ? 'ข้อมูลตอนนี้' : 'จากสำรอง'})`;
+        $('lOut').innerHTML = `<div class="tw"><table><tr><th>#</th><th>ชื่อ</th><th>Lv</th><th>💎 เพชร</th><th>🪽 ปีก</th><th>🐎 สัตว์ขี่</th><th>ของพิเศษ</th><th>เติม (฿)</th></tr>${r.rows.map((x, i) => `<tr><td class="dim">${i + 1}</td><td>${esc(x.name || '-')}<div class="dim" style="font-size:11px">${esc(x.id)}</div></td><td>${x.lv}</td><td>${x.dia ? num(x.dia) : ''}</td><td>${esc(x.wings.join(', '))}</td><td>${esc(x.mounts.join(', '))}</td><td>${esc(extra(x))}</td><td>${x.paid ? num(x.paid) : ''}</td></tr>`).join('') || '<tr><td colspan="8" class="dim">ไม่มี</td></tr>'}</table></div>`;
+        lText = r.rows.map((x, i) => `${i + 1}. ${x.name || x.id}${x.dia ? ' • 💎' + x.dia : ''}${x.wings.length ? ' • 🪽 ' + x.wings.join(', ') : ''}${x.mounts.length ? ' • 🐎 ' + x.mounts.join(', ') : ''}${extra(x) ? ' • ' + extra(x) : ''}`).join('\n');
+        $('lCopy').style.display = '';
+      };
+      $('lCopy').onclick = async () => { try { await navigator.clipboard.writeText(lText); alert('คัดลอกแล้ว ' + lText.split('\n').length + ' บรรทัด'); } catch { prompt('คัดลอกข้อความนี้', lText); } };
       main.querySelectorAll('[data-rest]').forEach(b => b.onclick = async () => {
         if (prompt('กู้คืนตัวละครทั้งหมดจาก ' + b.dataset.rest + ' ?\nพิมพ์คำว่า กู้คืน เพื่อยืนยัน') !== 'กู้คืน') return;
         const r = await api('/admin/obt', { action: 'restore', table: b.dataset.rest, confirm: 'กู้คืน' }); alert(r.ok ? 'กู้คืนแล้ว' : 'ไม่สำเร็จ: ' + (r.error || '')); show(); });
